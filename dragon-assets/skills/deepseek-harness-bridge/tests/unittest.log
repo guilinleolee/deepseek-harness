@@ -1,0 +1,16 @@
+test_basic_parse (test_deepseek_harness_bridge.TestCordisPatch.test_basic_parse) ... ok
+test_missing_patch_key (test_deepseek_harness_bridge.TestCordisPatch.test_missing_patch_key) ... ok
+test_validate_empty_patch (test_deepseek_harness_bridge.TestCordisPatch.test_validate_empty_patch) ... ok
+test_workflow (test_deepseek_harness_bridge.TestEndToEnd.test_workflow) ... ok
+test_six_plugins (test_deepseek_harness_bridge.TestExamplePlugins.test_six_plugins) ... ok
+test_all_peers_present (test_deepseek_harness_bridge.TestPeers.test_all_peers_present) ... ok
+test_empty_dependencies (test_deepseek_harness_bridge.TestPeers.test_empty_dependencies) ... ok
+test_principles_count (test_deepseek_harness_bridge.TestPrinciples.test_principles_count) ... ok
+test_principles_not_empty (test_deepseek_harness_bridge.TestPrinciples.test_principles_not_empty) ... ok
+test_default_workspaces (test_deepseek_harness_bridge.TestWorkspaces.test_default_workspaces) ... ok
+test_to_dict (test_deepseek_harness_bridge.TestWorkspaces.test_to_dict) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.001s
+
+OK

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>AI News Radar - 官方AI信息源</title>
+        <dateCreated>2026-05-13</dateCreated>
+        <ownerName>天龙引擎</ownerName>
+        <ownerEmail>dragon@tianlong.ai</ownerEmail>
+    </head>
+    <body>
+        <!-- OpenAI -->
+        <outline text="OpenAI" title="OpenAI">
+            <outline type="rss" text="Blog RSS" title="OpenAI Blog"
+                xmlUrl="https://openai.com/index/feed/" htmlUrl="https://openai.com/blog"/>
+            <outline type="rss" text="News RSS" title="OpenAI News"
+                xmlUrl="https://openai.com/news/rss" htmlUrl="https://openai.com/news"/>
+        </outline>
+
+        <!-- Anthropic -->
+        <outline text="Anthropic" title="Anthropic">
+            <outline type="rss" text="News RSS" title="Anthropic News"
+                xmlUrl="https://www.anthropic.com/news/rss" htmlUrl="https://www.anthropic.com/news"/>
+            <outline type="rss" text="Blog RSS" title="Anthropic Blog"
+                xmlUrl="https://www.anthropic.com/blog/rss" htmlUrl="https://www.anthropic.com/blog"/>
+            <outline type="rss" text="Research RSS" title="Anthropic Research"
+                xmlUrl="https://www.anthropic.com/research/rss" htmlUrl="https://www.anthropic.com/research"/>
+        </outline>
+
+        <!-- Google DeepMind -->
+        <outline text="Google DeepMind" title="Google DeepMind">
+            <outline type="rss" text="Blog RSS" title="DeepMind Blog"
+                xmlUrl="https://deepmind.google/blog/rss.xml" htmlUrl="https://deepmind.google/blog"/>
+            <outline type="rss" text="Research RSS" title="DeepMind Research"
+                xmlUrl="https://deepmind.google/research/rss.xml" htmlUrl="https://deepmind.google/research"/>
+        </outline>
+
+        <!-- Meta AI -->
+        <outline text="Meta AI" title="Meta AI">
+            <outline type="rss" text="Blog RSS" title="Meta AI Blog"
+                xmlUrl="https://ai.meta.com/blog/rss.xml" htmlUrl="https://ai.meta.com/blog"/>
+            <outline type="rss" text="Llama Blog" title="Llama Blog"
+                xmlUrl="https://ai.meta.com/llama/rss" htmlUrl="https://ai.meta.com/llama"/>
+        </outline>
+
+        <!-- Mistral AI -->
+        <outline text="Mistral AI" title="Mistral AI">
+            <outline type="rss" text="Blog RSS" title="Mistral Blog"
+                xmlUrl="https://mistral.ai/news/rss.xml" htmlUrl="https://mistral.ai/news"/>
+            <outline type="rss" text="Research RSS" title="Mistral Research"
+                xmlUrl="https://mistral.ai/research/rss.xml" htmlUrl="https://mistral.ai/research"/>
+        </outline>
+
+        <!-- Perplexity -->
+        <outline text="Perplexity" title="Perplexity">
+            <outline type="rss" text="Blog RSS" title="Perplexity Blog"
+                xmlUrl="https://www.perplexity.ai/blog/rss" htmlUrl="https://www.perplexity.ai/blog"/>
+        </outline>
+
+        <!-- Groq -->
+        <outline text="Groq" title="Groq">
+            <outline type="rss" text="Blog RSS" title="Groq Blog"
+                xmlUrl="https://console.groq.com/blog/rss" htmlUrl="https://console.groq.com/blog"/>
+        </outline>
+
+        <!-- xAI -->
+        <outline text="xAI" title="xAI">
+            <outline type="rss" text="Blog RSS" title="xAI Blog"
+                xmlUrl="https://x.ai/blog/rss" htmlUrl="https://x.ai/blog"/>
+        </outline>
+
+        <!-- Cohere -->
+        <outline text="Cohere" title="Cohere">
+            <outline type="rss" text="Blog RSS" title="Cohere Blog"
+                xmlUrl="https://cohere.com/blog/rss" htmlUrl="https://cohere.com/blog"/>
+            <outline type="rss" text="Research RSS" title="Cohere Research"
+                xmlUrl="https://cohere.com/research/rss" htmlUrl="https://cohere.com/research"/>
+        </outline>
+
+        <!-- Stability AI -->
+        <outline text="Stability AI" title="Stability AI">
+            <outline type="rss" text="Blog RSS" title="Stability Blog"
+                xmlUrl="https://stability.ai/news/rss" htmlUrl="https://stability.ai/news"/>
+        </outline>
+
+        <!-- Hugging Face -->
+        <outline text="Hugging Face" title="Hugging Face">
+            <outline type="rss" text="Blog RSS" title="Hugging Face Blog"
+                xmlUrl="https://huggingface.co/blog/rss.xml" htmlUrl="https://huggingface.co/blog"/>
+            <outline type="rss" text="Research RSS" title="Hugging Face Papers"
+                xmlUrl="https://huggingface.co/blog/feed.xml" htmlUrl="https://huggingface.co/blog"/>
+        </outline>
+
+        <!-- NVIDIA AI -->
+        <outline text="NVIDIA AI" title="NVIDIA AI">
+            <outline type="rss" text="Blog RSS" title="NVIDIA AI Blog"
+                xmlUrl="https://blogs.nvidia.com/ai-category/deep-learning/feed/" htmlUrl="https://blogs.nvidia.com/ai-category/deep-learning"/>
+            <outline type="rss" text="Research RSS" title="NVIDIA Research"
+                xmlUrl="https://research.nvidia.com/blog/feed" htmlUrl="https://research.nvidia.com/blog"/>
+        </outline>
+
+        <!-- Microsoft AI -->
+        <outline text="Microsoft AI" title="Microsoft AI">
+            <outline type="rss" text="AI Blog RSS" title="Microsoft AI Blog"
+                xmlUrl="https://blogs.microsoft.com/ai/feed/" htmlUrl="https://blogs.microsoft.com/ai"/>
+            <outline type="rss" text="Azure AI RSS" title="Azure AI"
+                xmlUrl="https://techcommunity.microsoft.com/apiFeed?comm=AI&amp;type=blog&amp;subType=rss&amp;tags=AzureAI" htmlUrl="https://techcommunity.microsoft.com/t5/ai-azure-ai"/>
+        </outline>
+
+        <!-- Amazon AI -->
+        <outline text="Amazon AI" title="Amazon AI">
+            <outline type="rss" text="AWS AI Blog" title="AWS AI Blog"
+                xmlUrl="https://aws.amazon.com/blogs/machine-learning/feed/" htmlUrl="https://aws.amazon.com/blogs/machine-learning"/>
+            <outline type="rss" text="AWS Bedrock Blog" title="AWS Bedrock"
+                xmlUrl="https://aws.amazon.com/blogs/aws/feed/" htmlUrl="https://aws.amazon.com/blogs/aws"/>
+        </outline>
+
+        <!-- Apple ML -->
+        <outline text="Apple ML" title="Apple ML">
+            <outline type="rss" text="ML Research RSS" title="Apple ML Research"
+                xmlUrl="https://machinelearning.apple.com/feed.xml" htmlUrl="https://machinelearning.apple.com"/>
+        </outline>
+
+        <!-- Salesforce AI -->
+        <outline text="Salesforce AI" title="Salesforce AI">
+            <outline type="rss" text="Einstein RSS" title="Salesforce Einstein"
+                xmlUrl="https://salesforce.com/blog/ai/feed" htmlUrl="https://salesforce.com/blog/ai"/>
+        </outline>
+
+        <!-- IBM AI -->
+        <outline text="IBM AI" title="IBM AI">
+            <outline type="rss" text="Research RSS" title="IBM Research"
+                xmlUrl="https://research.ibm.com/blog/feed" htmlUrl="https://research.ibm.com/blog"/>
+            <outline type="rss" text="Watson RSS" title="IBM Watson"
+                xmlUrl="https://watson-blog.mybluemix.net/feed" htmlUrl="https://watson-blog.mybluemix.net"/>
+        </outline>
+
+        <!-- Baidu AI -->
+        <outline text="Baidu AI" title="Baidu AI">
+            <outline type="rss" text="AI Blog RSS" title="Baidu AI Blog"
+                xmlUrl="https://baike.baidu.com/feeds/Ai.xml" htmlUrl="https://ai.baidu.com"/>
+        </outline>
+
+        <!-- ByteDance AI -->
+        <outline text="ByteDance AI" title="ByteDance AI">
+            <outline type="rss" text="AI Lab RSS" title="ByteDance AI Lab"
+                xmlUrl="https://ailab.bytedance.com/feed" htmlUrl="https://ailab.bytedance.com"/>
+        </outline>
+
+        <!-- Tencent AI -->
+        <outline text="Tencent AI" title="Tencent AI">
+            <outline type="rss" text="AI Lab RSS" title="Tencent AI Lab"
+                xmlUrl="https://ai.tencent.com/feed" htmlUrl="https://ai.tencent.com"/>
+        </outline>
+
+        <!-- Alibaba AI -->
+        <outline text="Alibaba AI" title="Alibaba AI">
+            <outline type="rss" text="Damo Conv AI RSS" title="Alibaba DAMO Conv AI"
+                xmlUrl="https://damo.convai.alibaba.com/blog/rss" htmlUrl="https://damo.convai.alibaba.com"/>
+        </outline>
+    </body>
+</opml>

@@ -1,0 +1,11 @@
+# Fincept Quant Analytics dependencies
+numpy>=1.21.0
+pandas>=1.3.0
+scipy>=1.7.0
+
+# Technical indicators (optional - will work without)
+# pip install ta-lib  # Linux/Mac only
+# pandas-ta>=0.3.0   # Cross-platform alternative
+
+# Options pricing (optional - will work without)
+# quantlib>=1.24      # Advanced options pricing

@@ -1,0 +1,14 @@
+{
+  "input_dir": "C:\\Users\\li\\.claude\\projects\\c--Users-li--claude\\dragon-engine\\skills\\book-distiller\\local-tests\\cangjie-poor-charlies",
+  "lang": "zh",
+  "outputs": {
+    "chapter_summaries": 5,
+    "concepts": 10,
+    "cases": 1,
+    "kg_triples": 4
+  },
+  "cangjie_mode": true,
+  "skill_count": 3,
+  "book_title": "cangjie-book",
+  "status": "OK"
+}

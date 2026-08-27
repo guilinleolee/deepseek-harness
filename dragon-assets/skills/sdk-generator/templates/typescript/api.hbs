@@ -1,0 +1,68 @@
+/**
+ * {{tag_title}} API
+ * Methods for {{tag_description}}
+ */
+import { ApiClient } from "./client";
+{{#each schemas}}
+import { {{pascal_name}} } from "./types";
+{{/each}}
+
+export class {{pascal_tag}}Api {
+  private client: ApiClient;
+
+  constructor(client: ApiClient) {
+    this.client = client;
+  }
+
+  {{#each endpoints}}
+  /**
+   * {{summary}}
+   {{#if description}}
+   * {{description}}
+   {{/if}}
+   {{#each parameters}}
+   * @param {{name}} {{description}}
+   {{/each}}
+   {{#if request_body}}
+   {{#each request_body.fields}}
+   * @param {{name}} {{description}}
+   {{/each}}
+   {{/if}}
+   */
+  async {{operation_id}}(
+    {{#each parameters}}
+    {{name}}: {{ts_type}}{{#unless @last}},
+    {{/each}}
+    {{#if request_body}}
+    {{#each request_body.fields}}
+    {{name}}: {{ts_type}}{{#unless @last}},
+    {{/each}}
+    {{/if}}
+  ): Promise<{{response_type}}> {
+    const path = `{{path}}`;
+    {{#each path_params}}
+    path = path.replace("{{original}}", String({{name}}));
+    {{/each}}
+    {{#if request_body}}
+    const data = { {{#each request_body.fields}}
+      {{name}}: {{name}}{{#unless @last}},
+      {{/unless}}
+    {{/each}} };
+    return this.client.{{method}}(path, {
+      {{#each query_params}}
+      params: { {{name}} },
+      {{/each}}
+      data,
+    });
+    {{/if}}
+    {{#unless request_body}}
+    return this.client.{{method}}(path, {
+      {{#each query_params}}
+      params: { {{name}} },
+      {{/each}}
+    });
+    {{/unless}}
+  }
+
+  {{/each}}
+}

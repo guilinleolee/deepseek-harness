@@ -1,0 +1,6 @@
+[2026-08-06T08:50:56Z] [INFO] ═══ skill-updater apply 模式 ═══
+[2026-08-06T08:50:56Z] [INFO]   模式: DRY-RUN
+[2026-08-06T08:50:56Z] [INFO]   G3 阈值: 100 commits
+[2026-08-06T08:50:56Z] [INFO]   G4 smoke: RUN
+[2026-08-06T08:50:56Z] [INFO]   天龙根: C:\Users\li\.claude\projects\dragon-engine
+[2026-08-06T08:50:56Z] [ERROR] 找不到 reports/scan-*.tsv，请先跑 scan.sh

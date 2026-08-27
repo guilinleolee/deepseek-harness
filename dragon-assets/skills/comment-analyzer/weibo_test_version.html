@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博爬取测试工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .status-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        .status-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        .btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: block;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checklist li:before {
+            content: '☐';
+            font-size: 20px;
+            color: #667eea;
+        }
+        .checklist li.checked:before {
+            content: '☑';
+            color: #28a745;
+        }
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 微博爬取功能测试</h1>
+
+        <div class="section">
+            <h2>📋 测试前检查清单</h2>
+            <ul class="checklist">
+                <li>已安装并登录Chrome/Edge浏览器</li>
+                <li>已登录微博账号（weibo.com）</li>
+                <li>微博页面能正常显示评论</li>
+                <li>了解如何打开浏览器控制台（F12）</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔍 第一步：页面诊断脚本</h2>
+            <p style="margin-bottom: 15px; color: #666;">
+                首先运行这个诊断脚本，检查微博页面结构是否正常：
+            </p>
+            <button class="btn" onclick="copyDiagnostic()">📋 复制诊断脚本</button>
+            <span id="diagFeedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+            <div style="margin-top: 15px;">
+                <strong>操作步骤：</strong>
+                <ol style="margin: 10px 0 10px 20px; line-height: 1.8;">
+                    <li>打开 <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" class="link">微博页面</a></li>
+                    <li>按 <code>F12</code> 打开控制台</li>
+                    <li>输入 <code>allow pasting</code> 并按Enter</li>
+                    <li>粘贴诊断脚本并按Enter</li>
+                    <li>查看控制台输出的诊断结果</li>
+                </ol>
+            </div>
+
+            <code id="diagnosticCode">/* 微博页面诊断脚本 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(60), 'color: #667eea');
+    console.log('%c微博页面诊断', 'color: #667eea; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(60), 'color: #667eea');
+
+    // 1. 检查URL
+    console.log('[1/6] 检查URL...');
+    console.log('当前URL:', window.location.href);
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('%c❌ 不在微博页面', 'color: #dc3545');
+        return;
+    }
+    console.log('%c✓ 在微博页面', 'color: #28a745');
+
+    // 2. 检查登录状态
+    console.log('\n[2/6] 检查登录状态...');
+    const loginCheck = document.querySelector('.woo-modal-main, .login-btn, [class*="login"]');
+    if (loginCheck) {
+        console.warn('%c⚠️ 可能未登录', 'color: #ffc107');
+        console.log('请先登录微博账号');
+    } else {
+        console.log('%c✓ 已登录', 'color: #28a745');
+    }
+
+    // 3. 检查评论列表容器
+    console.log('\n[3/6] 检查评论列表容器...');
+    const commentList = document.querySelector('.wbpro-list');
+    if (!commentList) {
+        console.error('%c❌ 未找到 .wbpro-list', 'color: #dc3545');
+        console.log('尝试其他选择器...');
+
+        // 尝试其他可能的选择器
+        const alternatives = [
+            '.comment-list',
+            '[class*="comment"]',
+            '[class*="Comment"]',
+            '.list',
+            '[class*="list"]'
+        ];
+
+        alternatives.forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el) {
+                console.log(`找到: ${selector}`, el);
+            }
+        });
+
+        return;
+    }
+    console.log('%c✓ 找到评论列表', 'color: #28a745');
+    console.log('元素:', commentList);
+    console.log('子元素数量:', commentList.children.length);
+
+    // 4. 检查评论项
+    console.log('\n[4/6] 检查评论项...');
+    const commentItems = commentList.children;
+    console.log('评论数量:', commentItems.length);
+
+    if (commentItems.length > 0) {
+        console.log('%c✓ 找到评论项', 'color: #28a745');
+
+        // 显示前3条评论的文本
+        for (let i = 0; i < Math.min(3, commentItems.length); i++) {
+            const text = commentItems[i].textContent;
+            console.log(`评论${i+1}:`, text.substring(0, 100) + '...');
+        }
+    } else {
+        console.warn('%c⚠️ 没有找到评论项', 'color: #ffc107');
+        console.log('可能原因：评论未加载、需要登录、页面结构变化');
+    }
+
+    // 5. 检查滚动功能
+    console.log('\n[5/6] 检查滚动功能...');
+    const scrollHeight = commentList ? commentList.scrollHeight : 0;
+    console.log('滚动高度:', scrollHeight);
+    console.log('%c✓ 滚动检测完成', 'color: #28a745');
+
+    // 6. 测试解析
+    console.log('\n[6/6] 测试评论解析...');
+    if (commentItems.length > 0) {
+        const testText = commentItems[0].textContent;
+        console.log('测试文本:', testText.substring(0, 200));
+
+        // 测试解析逻辑
+        const colonIndex = testText.indexOf(':');
+        const hasColon = colonIndex !== -1;
+        console.log('包含冒号:', hasColon ? '是' : '否');
+
+        const timeMatch = testText.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);
+        const hasTime = !!timeMatch;
+        console.log('包含时间:', hasTime ? '是' : '否');
+
+        if (hasColon && hasTime) {
+            console.log('%c✓ 评论格式正确', 'color: #28a745');
+        } else {
+            console.warn('%c⚠️ 评论格式可能已变化', 'color: #ffc107');
+        }
+    }
+
+    console.log('\n%c='.repeat(60), 'color: #667eea');
+    console.log('%c诊断完成', 'color: #28a745; font-weight: bold');
+    console.log('%c='.repeat(60), 'color: #667eea');
+
+    return {
+        hasCommentList: !!commentList,
+        commentCount: commentItems.length,
+        canScroll: scrollHeight > 0
+    };
+})();</code>
+        </div>
+
+        <div class="section">
+            <h2>🚀 第二步：完整爬取脚本</h2>
+            <p style="margin-bottom: 15px; color: #666;">
+                如果诊断脚本显示一切正常，运行完整爬取脚本：
+            </p>
+            <button class="btn" onclick="copyScraper()">📋 复制爬取脚本</button>
+            <span id="scrapeFeedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+            <code id="scraperCode">/* 微评评论完整爬取脚本 - 改进版 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(60), 'color: #667eea');
+    console.log('%c微博评论爬取工具', 'color: #667eea; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(60), 'color: #667eea');
+
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('❌ 请在微博页面使用');
+        return;
+    }
+
+    window.ALL_COMMENTS = new Map();
+    window.SCROLL_STATS = {
+        iterations: 0,
+        lastCount: 0,
+        noNewCount: 0,
+        maxIterations: 500,
+        stopAfterNoNew: 100
+    };
+
+    function parseComment(text) {
+        const colonIndex = text.indexOf(':');
+        if (colonIndex === -1) return null;
+        const username = text.substring(0, colonIndex).trim();
+        const timeMatch = text.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);
+        if (!timeMatch) return null;
+        const time = timeMatch[1] + ' ' + timeMatch[2];
+        const timeStartIndex = text.indexOf(timeMatch[0]);
+        let content = text.substring(colonIndex + 1, timeStartIndex).trim();
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/^:+/, '').trim();
+        content = content.replace(/\s+/g, ' ');
+        if (content.length < 2) return null;
+        const likeMatch = text.match(/(\d+)$/);
+        const likes = likeMatch ? parseInt(likeMatch[1]) : 0;
+        const uniqueId = username + '_' + content + '_' + time;
+        return { username, content, time, likes, uniqueId };
+    }
+
+    function extractComments() {
+        const list = document.querySelector('.wbpro-list');
+        if (!list) return 0;
+        const nodes = list.children;
+        for (let i = 0; i < nodes.length; i++) {
+            const text = nodes[i].textContent || '';
+            const comment = parseComment(text);
+            if (comment && !window.ALL_COMMENTS.has(comment.uniqueId)) {
+                window.ALL_COMMENTS.set(comment.uniqueId, comment);
+            }
+        }
+        return window.ALL_COMMENTS.size;
+    }
+
+    function smartScroll() {
+        const list = document.querySelector('.wbpro-list');
+        if (list) list.scrollTop = list.scrollHeight;
+        window.scrollTo(0, document.body.scrollHeight);
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return (t.includes('加载更多') || t.includes('展开查看') || t.includes('点击查看')) && el.offsetParent !== null;
+        });
+        if (btns.length > 0) btns[0].click();
+    }
+
+    async function scrape() {
+        console.log('开始爬取...');
+        let initialCount = extractComments();
+        console.log('初始评论数: ' + initialCount);
+
+        if (initialCount === 0) {
+            console.error('%c没有找到评论！', 'color: #dc3545; font-weight: bold');
+            console.log('请检查：');
+            console.log('1. 是否已登录微博');
+            console.log('2. 页面是否完全加载');
+            console.log('3. 是否滚动到评论区域');
+            return [];
+        }
+
+        for (let i = 0; i < window.SCROLL_STATS.maxIterations; i++) {
+            window.SCROLL_STATS.iterations = i + 1;
+            const count = extractComments();
+
+            if (i % 10 === 0 || count > window.SCROLL_STATS.lastCount) {
+                console.log('[' + (i+1) + '/' + window.SCROLL_STATS.maxIterations + '] 已加载: ' + count + ' 条' + (count > window.SCROLL_STATS.lastCount ? ' (+新)' : ''));
+            }
+
+            if (count >= 680) {
+                console.log('%c达到目标!', 'color: #28a745; font-weight: bold');
+                break;
+            }
+
+            if (count === window.SCROLL_STATS.lastCount) {
+                window.SCROLL_STATS.noNewCount++;
+                if (window.SCROLL_STATS.noNewCount % 20 === 0) {
+                    console.log('连续 ' + window.SCROLL_STATS.noNewCount + ' 次无新评论');
+                }
+                if (window.SCROLL_STATS.noNewCount >= window.SCROLL_STATS.stopAfterNoNew) {
+                    console.log('%c停止: 连续无新评论', 'color: #ffc107');
+                    break;
+                }
+            } else {
+                window.SCROLL_STATS.noNewCount = 0;
+                window.SCROLL_STATS.lastCount = count;
+            }
+
+            smartScroll();
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        const arr = Array.from(window.ALL_COMMENTS.values()).sort((a,b) => b.likes - a.likes);
+        console.log('%c='.repeat(60), 'color: #667eea');
+        console.log('%c完成! 总计: ' + arr.length + ' 条', 'color: #28a745; font-weight: bold');
+        console.log('%c='.repeat(60), 'color: #667eea');
+        return arr;
+    }
+
+    async function download(data) {
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'weibo_comments_' + new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+        const data = {
+            url: window.location.href,
+            target_count: 680,
+            actual_count: comments.length,
+            completion_rate: (comments.length/680*100).toFixed(1) + '%',
+            extracted_at: new Date().toISOString(),
+            comments: comments
+        };
+        download(data);
+        console.log('%c文件已下载!', 'color: #28a745; font-weight: bold');
+    }).catch(e => console.error('错误:', e));
+})();</code>
+        </div>
+
+        <div class="section">
+            <h2>📊 预期结果</h2>
+            <div class="status status-success">
+                <strong>✅ 成功标志：</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>控制台显示 "完成! 总计: XXX 条"</li>
+                    <li>浏览器自动下载 JSON 文件</li>
+                    <li>评论数量 > 100</li>
+                </ul>
+            </div>
+            <div class="status status-warning">
+                <strong>⚠️ 可能问题：</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>只爬到几条评论 → 可能未登录或页面未加载</li>
+                    <li>显示"未找到评论列表" → 页面结构变化</li>
+                    <li>脚本立即停止 → 需要手动滚动触发加载</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyDiagnostic() {
+            const code = document.getElementById('diagnosticCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('diagFeedback').style.display = 'inline';
+            });
+        }
+
+        function copyScraper() {
+            const code = document.getElementById('scraperCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('scrapeFeedback').style.display = 'inline';
+            });
+        }
+    </script>
+</body>
+</html>

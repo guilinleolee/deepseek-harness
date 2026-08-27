@@ -1,0 +1,97 @@
+# gbrain-signal-detector 配置
+# Always-on信号检测配置
+
+signal_detector:
+  # 默认关闭，用户可选开启
+  enabled: false
+
+  # 检测间隔（秒）
+  check_interval: 3600  # 1小时
+
+  # 最大信号数量
+  max_signals_per_day: 100
+
+  # 相关性阈值
+  relevance_threshold: 0.7
+
+  # 关键词列表
+  keywords:
+    - AI
+    - Claude
+    - Y Combinator
+    - Startup
+    - Agent
+    - LLM
+    - Machine Learning
+    - Venture Capital
+    - Entrepreneurship
+
+  # 信号源配置
+  sources:
+    # RSS源
+    - type: rss
+      name: Hacker News
+      url: "https://news.ycombinator.com/rss"
+      keywords:
+        - AI
+        - startup
+        - funding
+      enabled: true
+
+    - type: rss
+      name: MIT Tech Review
+      url: "https://www.technologyreview.com/feed/"
+      keywords:
+        - AI
+        - machine learning
+        - technology
+      enabled: true
+
+    # API源
+    - type: api
+      name: arXiv CS.AI
+      endpoint: "https://export.arxiv.org/api/query"
+      params:
+        search_query: "cat:cs.AI OR cat:cs.LG"
+        max_results: 10
+        sortBy: "submittedDate"
+      keywords:
+        - artificial intelligence
+        - machine learning
+        - neural network
+        - deep learning
+      enabled: false
+
+    # 社交媒体源
+    - type: social
+      name: Twitter/X
+      platform: twitter
+      keywords:
+        - AI
+        - YC
+        - startup
+      enabled: false
+
+  # 存储配置
+  storage:
+    # 目标记忆系统
+    target: MemPalace
+
+    # 是否编译到Wiki
+    wiki_compile: true
+
+    # 是否同步到Obsidian
+    obsidian_sync: true
+
+  # 通知配置
+  notification:
+    # 高优先级信号通知
+    enabled: true
+
+    # 通知阈值
+    threshold: 0.9
+
+    # 通知渠道
+    channels:
+      - type: log
+      - type: memory  # 写入记忆系统

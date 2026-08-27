@@ -1,0 +1,216 @@
+{
+  "last_updated": "2026-02-01T00:00:00Z",
+  "preferences": [
+    "命名规范：在 Frontmatter 的 name 字段中，务必在英文名后紧跟中文名（例如：name: humanizer 去AI味）。",
+    "元数据要求：创建或更新 SKILL 时，Frontmatter 必须包含 'github_url'（追踪来源）和 'github_hash'（追踪具体版本/提交）。",
+    "描述翻译：在 Frontmatter 的 description 字段中，必须将英文描述翻译成中文，确保中英双语描述（英文在前，中文在后，或根据描述长度合理排列）。"
+  ],
+  "fixes": [
+    "进化性修改：对于技能的后续修改，不要直接编辑 SKILL.md。应在技能根目录创建/更新 evolution.json 文件，以确保存储的改进建议在核心技能升级时得以保留。"
+  ],
+  "custom_prompts": "在创建新技能时，始终遵循 Progressive Disclosure（渐进式披露）原则，保持 SKILL.md 精简。",
+  "enhancements": [
+    {
+      "category": "执行者模型",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "HIGH",
+      "description": "新增'四种执行者'章节，明确不同任务的执行者选择策略",
+      "details": {
+        "执行者类型": [
+          {
+            "类型": "脚本（Script）",
+            "适用场景": "确定性操作 - API调用、文件读写、格式转换、数据分批",
+            "上下文成本": "零成本（只返回一行 JSON 状态）",
+            "示例": "采集100条数据用脚本，可节省99% token"
+          },
+          {
+            "类型": "SubAgent",
+            "适用场景": "需要AI判断 - 内容评估、文本分析、创意生成、异常处理",
+            "上下文成本": "中等成本（执行历史会注入主对话）",
+            "示例": "评估30条内容质量，必须用SubAgent"
+          },
+          {
+            "类型": "主 Agent",
+            "适用场景": "简单协调 - 解析用户输入、读写进度文件、流程控制",
+            "上下文成本": "累积成本（所有操作都在主对话中）",
+            "示例": "读取配置、协调多个步骤"
+          },
+          {
+            "类型": "准备 SubAgent",
+            "适用场景": "大批量数据预处理（>500条）- 统计数据量、计算分批、生成批次索引",
+            "上下文成本": "可控成本（完成后立即压缩上下文）",
+            "示例": "分批1000条数据，避免主Agent上下文爆炸"
+          }
+        ],
+        "决策流程": "任务需要做什么？\n1. 调用API/文件操作/格式转换？ → 脚本\n2. 需要AI理解/判断/生成？\n   - 数据量>500条？ → 准备SubAgent + SubAgent\n   - 数据量≤500条？ → SubAgent\n3. 简单协调/配置读取？ → 主Agent"
+      }
+    },
+    {
+      "category": "运行时数据管理",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "HIGH",
+      "description": "新增'runs/目录设计'章节，建立断点恢复机制",
+      "details": {
+        "目录命名": "{keyword}-{YYYYMMDD-HHMMSS}",
+        "目录结构": {
+          "state/": "【固定】进度状态，存放 progress.json",
+          "output/": "【固定】最终输出，存放 result.md 等",
+          "step{NN}-{action}/": "【动态】步骤输出，与workflow文件名对应"
+        },
+        "progress.json": {
+          "核心字段": [
+            "keyword - 运行标识（标准化后）",
+            "current_step - 当前步骤",
+            "completed_batches - 已完成的批次",
+            "恢复提示 - /compact后如何恢复"
+          ],
+          "作用": "游戏的'存档点'，支持断点恢复"
+        }
+      }
+    },
+    {
+      "category": "上下文管理策略",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "HIGH",
+      "description": "细化'上下文管理'章节，添加具体执行规则",
+      "details": {
+        "分轮执行规则": "每轮最多启动2个SubAgent，完成后必须/compact",
+        "极简返回格式": "SubAgent完成后只返回状态JSON，如 {\"ok\": true, \"batch\": 1, \"count\": 30}",
+        "禁止返回": "文件内容、分析结果列表、详细日志",
+        "/compact时机": {
+          "强制": "准备SubAgent完成后、上下文达到70%",
+          "推荐": "每轮SubAgent完成后、整个步骤完成后"
+        },
+        "上下文消耗来源": "系统Prompt(~5k)、SKILL.md(~2-5k)、步骤文档(~1-3k/步)、文件读取(~0.1-25k/次)、SubAgent返回(累积~10k/个)、对话历史(累积)"
+      }
+    },
+    {
+      "category": "用户输入收集",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "MEDIUM",
+      "description": "新增'AskUserQuestion模式'章节，系统化用户输入收集",
+      "details": {
+        "Claude Code限制": {
+          "问题数量": "1-4个/次",
+          "选项数量": "2-4个/问题",
+          "header长度": "≤12字符",
+          "Other选项": "自动提供，禁止手动添加"
+        },
+        "四种问题模式": [
+          {
+            "模式": "模式A - 核心输入",
+            "用途": "询问关键词、用户名等核心参数",
+            "特点": "提供示例选项，用户通常选Other输入自定义值"
+          },
+          {
+            "模式": "模式B - 预设选择",
+            "用途": "询问目标市场、语言等",
+            "特点": "从预设文件读取选项供用户选择"
+          },
+          {
+            "模式": "模式C - 模式切换",
+            "用途": "询问执行模式，如'完整流程'或'仅采集'",
+            "特点": "固定选项，切换执行路径"
+          },
+          {
+            "模式": "模式D - 可选补充",
+            "用途": "询问可选参数，如品牌筛选",
+            "特点": "第一个选项为'跳过'，允许用户不填"
+          }
+        ],
+        "多问题组合": "单次调用收集多个参数（推荐）；超过4个问题时，第一轮收集核心参数，第二轮根据结果收集补充参数"
+      }
+    },
+    {
+      "category": "多模式Skill设计",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "MEDIUM",
+      "description": "新增'多模式Skill'章节，支持一个Skill多种执行路径",
+      "details": {
+        "目录组织": "workflow/{mode}/ 子目录组织（如 workflow/clone/、workflow/timeline/、workflow/shared/）",
+        "触发词设计": "不同关键词触发不同模式（如'克隆'→Clone模式，'时间线'→Timeline模式）",
+        "运行目录命名": "带模式前缀（如 clone-karpathy-20260130-103000）",
+        "选择标准": {
+          "多模式": "输出格式相同 + 共享大量逻辑",
+          "多Skill": "输出格式不同 + 逻辑差异大"
+        }
+      }
+    },
+    {
+      "category": "命名规范细化",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "MEDIUM",
+      "description": "细化现有'命名规范'章节，添加四级命名体系",
+      "details": {
+        "Skill命名": {
+          "格式": "xiangyu-{domain}-{target}-{action}",
+          "四级体系": [
+            "第一级 xiangyu- - 前缀（固定为命名空间）",
+            "第二级 {domain}- - 领域（如 dev/social/content）",
+            "第三级 {target}- - 对象（如 wechat/github/ppt）",
+            "第四级 {action} - 动作（如 creating/collecting/syncing）"
+          ],
+          "规则": "最多64字符，小写+数字+连字符，推荐-ing动名词形式"
+        },
+        "文件命名": {
+          "步骤文档": "stepNN-{action}.md（NN两位数字）",
+          "运行目录": "step{NN}-{action}/（与workflow文件名对应）"
+        }
+      }
+    },
+    {
+      "category": "验证检查点设计",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "MEDIUM",
+      "description": "新增'验证检查点'章节，建立五层验证模式",
+      "details": {
+        "检查点编号": "格式：{步骤号}{字母}（如 2a、2b、2c）",
+        "五层验证模式": [
+          "第一层：文件存在且非空（失败则重试）",
+          "第二层：格式正确（JSON/MD可解析）（失败则重试）",
+          "第三层：字段完整（必要字段存在）（失败则重试）",
+          "第四层：值范围有效（如 0≤score≤100）（标记异常）",
+          "第五层：业务逻辑（满足业务规则）（标记失败）"
+        ],
+        "错误分类": [
+          "临时错误（网络超时、API限流）- 可重试，指数退避",
+          "永久错误（参数错误、格式错误）- 不可重试，终止并报告",
+          "权限错误（401/403、Token过期）- 不可重试，终止并提示检查凭证",
+          "资源错误（上下文溢出、磁盘满）- 不可重试，清理后重试"
+        ]
+      }
+    },
+    {
+      "category": "目录结构细化",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "LOW",
+      "description": "细化现有'Anatomy of a Skill'章节，添加按需创建时机",
+      "details": {
+        "最小可用结构": "只需 SKILL.md（单步骤Skill）",
+        "标准工作流结构": "SKILL.md + workflow/ + reference/ + scripts/ + config/ + runs/",
+        "目录添加时机": {
+          "workflow/": "4+步骤，或单步文档超50行时添加",
+          "reference/prompts/": "有SubAgent任务需要提示词模板时添加",
+          "reference/presets/": "AskUserQuestion选项需要外部数据时添加",
+          "scripts/": "需要调用API或处理数据时添加",
+          "config/": "需要参数配置时添加",
+          "credentials/": "需要API凭证时添加"
+        },
+        "核心原则": "只创建实际需要的目录，规范给你的是'菜单'，不是'套餐'"
+      }
+    },
+    {
+      "category": "脚本规范细化",
+      "source": "翔宇 Skill 规范实战经验",
+      "priority": "LOW",
+      "description": "新增'脚本规范'章节，明确脚本编写要求",
+      "details": {
+        "返回值规范": "必须返回JSON，包含ok字段表示成功或失败",
+        "错误信息": "失败时返回err字段，截断到100字符以控制输出",
+        "输出路径": "使用--run-dir参数传入运行目录，不硬编码路径",
+        "极简输出": "只输出状态JSON，不输出日志和调试信息",
+        "调用方式": "cd {skill_dir}/scripts/python && uv run python collect.py --run-dir {run_dir}"
+      }
+    }
+  ]
+}

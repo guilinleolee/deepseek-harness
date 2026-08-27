@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博爬取问题诊断</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        h2 { color: #667eea; margin-top: 0; }
+        .problem {
+            background: #fee;
+            border-left: 4px solid #f33;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .solution {
+            background: #efe;
+            border-left: 4px solid #3c3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn:hover { background: #5568d3; }
+        .status-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checklist li input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 微博爬取问题诊断</h1>
+        <p><strong>问题：</strong>只爬取到 3 条评论，目标 680 条</p>
+    </div>
+
+    <div class="problem">
+        <h3>⚠️ 可能的原因分析</h3>
+        <ol style="line-height: 2;">
+            <li><strong>未登录微博</strong> - 未登录只能看到少量公开评论</li>
+            <li><strong>页面未完全加载</strong> - 评论区域还没有加载完成</li>
+            <li><strong>需要手动触发</strong> - 微博评论需要手动滚动才会加载更多</li>
+            <li><strong>页面结构变化</strong> - 微博更新了页面结构</li>
+            <li><strong>初始评论数为0</strong> - 脚本检测到0条评论就停止了</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>📋 请先完成检查清单</h2>
+        <ul class="checklist">
+            <li><input type="checkbox" id="check1"> <label for="check1">我已登录微博账号</label></li>
+            <li><input type="checkbox" id="check2"> <label for="check2">微博页面能正常显示评论（我看到了很多评论）</label></li>
+            <li><input type="checkbox" id="check3"> <label for="check3">我手动滚动过页面，能看到更多评论</label></li>
+            <li><input type="checkbox" id="check4"> <label for="check4">页面完全加载完成（没有转圈加载图标）</label></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>🔬 分步诊断方案</h2>
+
+        <div class="step">
+            <strong>步骤 1：快速检查脚本</strong>
+            <p style="margin: 10px 0;">这个脚本会在 5 秒内完成，告诉你问题所在：</p>
+            <button class="btn" onclick="copyQuickCheck()">📋 复制快速检查脚本</button>
+
+            <div class="code" id="quickCheckCode">/* 快速检查 - 5秒内完成 */
+(function(){
+    console.clear();
+    console.log('%c=== 微博页面快速检查 ===', 'color: #667eea; font-size: 16px; font-weight: bold');
+
+    // 检查1: URL
+    console.log('\n[检查1] URL:', window.location.href.includes('weibo.com') ? '✓ 在微博' : '✗ 不在微博');
+
+    // 检查2: 评论列表
+    const list = document.querySelector('.wbpro-list');
+    console.log('[检查2] 评论列表 (.wbpro-list):', list ? '✓ 找到' : '✗ 未找到');
+
+    // 检查3: 评论数量
+    if (list) {
+        console.log('[检查3] 子元素数量:', list.children.length);
+        if (list.children.length === 0) {
+            console.warn('%c⚠️ 评论列表为空！可能原因:', 'color: #ffc107');
+            console.log('  1. 需要登录微博');
+            console.log('  2. 页面未完全加载');
+            console.log('  3. 该微博没有评论');
+        }
+    }
+
+    // 检查4: 显示第一条评论内容
+    if (list && list.children.length > 0) {
+        const firstComment = list.children[0].textContent;
+        console.log('[检查4] 第一条评论预览:', firstComment.substring(0, 80) + '...');
+    }
+
+    // 检查5: 测试滚动
+    if (list) {
+        console.log('[检查5] 尝试滚动...');
+        list.scrollTop = list.scrollHeight;
+        setTimeout(() => {
+            const newCount = list.children.length;
+            console.log('[检查5] 滚动后评论数:', newCount);
+            if (newCount === 0) {
+                console.error('%c❌ 问题确认：评论没有加载！', 'color: #dc3545; font-size: 14px; font-weight: bold');
+                console.log('%c解决方案:', 'color: #28a745; font-weight: bold');
+                console.log('1. 确保已登录微博');
+                console.log('2. 手动向下滚动页面几次');
+                console.log('3. 等待评论加载完成后再运行爬取脚本');
+            } else {
+                console.log('%c✓ 评论正常！可以开始爬取', 'color: #28a745; font-weight: bold');
+            }
+        }, 2000);
+    } else {
+        console.error('%c❌ 找不到评论列表，无法继续', 'color: #dc3545; font-weight: bold');
+    }
+
+    console.log('\n%c=== 检查完成，请查看上方结果 ===', 'color: #667eea');
+})();</div>
+        </div>
+
+        <div class="step">
+            <strong>步骤 2：使用方法</strong>
+            <ol style="line-height: 2;">
+                <li>打开微博: <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" style="color: #667eea;">https://weibo.com/7985254173/QmWvGrm7G#comment</a></li>
+                <li>确认能看到很多评论（手动滚动查看）</li>
+                <li>按 <span class="highlight">F12</span> 打开控制台</li>
+                <li>手动输入: <code>allow pasting</code> 然后按 Enter</li>
+                <li>点击上方"复制快速检查脚本"</li>
+                <li>在控制台按 Ctrl+V 粘贴，按 Enter 执行</li>
+                <li>等待 2-3 秒查看结果</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🎯 根据检查结果选择方案</h2>
+
+        <div class="status-box">
+            <strong>如果显示 "✓ 评论正常！可以开始爬取"</strong>
+            <p style="margin: 10px 0;">→ 问题已解决，使用完整爬取脚本</p>
+        </div>
+
+        <div class="problem">
+            <strong>如果显示 "评论列表为空" 或 "找不到评论列表"</strong>
+            <p style="margin: 10px 0;">→ 需要先解决登录或加载问题：</p>
+            <ol style="line-height: 2;">
+                <li><strong>登录问题</strong>: 点击微博右上角登录按钮</li>
+                <li><strong>加载问题</strong>: 手动向下滚动 5-10 次，等待评论加载</li>
+                <li><strong>刷新页面</strong>: 按 F5 刷新，等待完全加载</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="solution">
+        <h3>💡 正确的操作流程</h3>
+        <ol style="line-height: 2;">
+            <li><strong>打开微博页面</strong> - 确保已登录</li>
+            <li><strong>手动滚动</strong> - 向下滚动 5-10 次，确保评论加载</li>
+            <li><strong>验证评论</strong> - 确认能看到很多评论（不止 3 条）</li>
+            <li><strong>运行检查脚本</strong> - 使用上面的快速检查</li>
+            <li><strong>运行爬取脚本</strong> - 检查通过后再运行完整爬取</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>❓ 常见问题</h2>
+        <details style="margin: 10px 0; cursor: pointer;">
+            <summary style="padding: 10px; background: #f8f9fa; border-radius: 6px;">Q: 为什么只能看到 3 条评论？</summary>
+            <p style="padding: 10px; line-height: 1.8;">A: 这通常是因为未登录微博，或者页面没有完全加载评论。请确保已登录并手动滚动触发评论加载。</p>
+        </details>
+        <details style="margin: 10px 0; cursor: pointer;">
+            <summary style="padding: 10px; background: #f8f9fa; border-radius: 6px;">Q: 脚本运行后立即停止怎么办？</summary>
+            <p style="padding: 10px; line-height: 1.8;">A: 先运行快速检查脚本。如果显示评论为空，说明需要先解决加载问题。手动滚动几次后再试。</p>
+        </details>
+        <details style="margin: 10px 0; cursor: pointer;">
+            <summary style="padding: 10px; background: #f8f9fa; border-radius: 6px;">Q: 控制台显示 "未找到 .wbpro-list"？</summary>
+            <p style="padding: 10px; line-height: 1.8;">A: 这可能是页面结构变化。请截图控制台输出并提供给我分析。</p>
+        </details>
+    </div>
+
+    <div class="card">
+        <h2>📸 需要帮助？</h2>
+        <p>如果以上方法都无法解决问题，请提供：</p>
+        <ol style="line-height: 2;">
+            <li>控制台运行快速检查脚本的<span class="highlight">完整输出截图</span></li>
+            <li>微博页面的截图（显示评论区域）</li>
+            <li>是否已登录微博的确认</li>
+        </ol>
+    </div>
+
+    <script>
+        function copyQuickCheck() {
+            const code = document.getElementById('quickCheckCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ 快速检查脚本已复制！\n\n现在请：\n1. 打开微博页面\n2. 按F12打开控制台\n3. 输入 allow pasting 并按Enter\n4. 粘贴脚本并按Enter\n5. 等待3秒查看结果');
+            }).catch(() => {
+                alert('复制失败，请手动复制下方代码');
+            });
+        }
+    </script>
+</body>
+</html>

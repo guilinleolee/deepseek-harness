@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "types": [],
+    "paths": {
+      "@deepseek-ai/dsh-session-projection/types": ["./node_modules/@deepseek-ai/dsh-session-projection/lib/types/types.d.ts"],
+      "@deepseek-ai/dsh-session-projection": ["./node_modules/@deepseek-ai/dsh-session-projection/lib/types/index.d.ts"]
+    }
+  },
+  "include": ["src", "tests"]
+}

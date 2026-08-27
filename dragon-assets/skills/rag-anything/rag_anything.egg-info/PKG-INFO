@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: rag-anything
+Version: 1.0.0
+Summary: All-in-One multimodal RAG framework based on LightRAG
+Requires-Python: >=3.10
+Requires-Dist: pytest>=8.0.0
+Requires-Dist: pytest-asyncio>=0.23.0

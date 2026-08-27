@@ -1,0 +1,49 @@
+{
+  "name": "prompt-master",
+  "version": "1.0.0",
+  "description": "提词师 - 智能提示词工程技能基准测试",
+  "assertions": [
+    {
+      "type": "file_exists",
+      "path": "SKILL.md",
+      "description": "技能文件存在"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "name: prompt-master",
+      "description": "技能名称正确"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "version: 1.0.0",
+      "description": "版本号存在"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "author: 天龙引擎团队",
+      "description": "作者字段存在"
+    },
+    {
+      "type": "file_count",
+      "path": "templates",
+      "pattern": "*.md",
+      "min": 10,
+      "description": "至少有10个提示词模板"
+    }
+  ],
+  "tests": [
+    {
+      "name": "验证提示词模板格式",
+      "command": "python scripts/validate_scenarios.py",
+      "expected_exit_code": 0
+    },
+    {
+      "name": "测试模板渲染",
+      "command": "python scripts/render.py --template templates/p0/code-review.md --test",
+      "expected_exit_code": 0
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+// Package types - Type definitions for {{api_name}}
+// Generated from OpenAPI spec: {{api_version}}
+package types
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
+
+// ============================================================================
+// Object Types
+// ============================================================================
+{{#each schemas}}
+{{#if (eq type "object")}}
+
+// {{pascal_name}} - {{#if description}}{{description}}{{else}}Object type{{/if}}
+type {{pascal_name}} struct {
+{{#each properties}}
+	{{pascal_name}} {{go_type}} `json:"{{json_name}}{{#unless required}},omitempty{{/unless}}"`{{#unless @last}}
+{{/each}}
+}
+
+// UnmarshalJSON implements custom unmarshaling for {{pascal_name}}
+func (s *{{pascal_name}}) UnmarshalJSON(data []byte) error {
+	type Alias {{pascal_name}}
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	return json.Unmarshal(data, aux)
+}
+{{/if}}
+{{#if (eq type "enum")}}
+
+// {{pascal_name}} - Enum values for {{name}}
+type {{pascal_name}} string
+
+const (
+{{#each enum}}
+	{{pascal_name}}_{{upper_value}} {{pascal_name}} = "{{value}}"{{#unless @last}}
+{{/unless}}
+{{/each}}
+)
+
+// IsValid checks if the value is a valid {{pascal_name}}
+func (e {{pascal_name}}) IsValid() bool {
+	switch e {
+{{#each enum}}
+	case {{../pascal_name}}_{{upper_value}},
+{{/each}}
+		return true
+	}
+	return false
+}
+
+func (e {{pascal_name}}) String() string {
+	return string(e)
+}
+{{/if}}
+{{#if (eq type "array")}}
+
+// {{pascal_name}} - Array type: {{name}}
+type {{pascal_name}} []{{item_go_type}}
+{{/if}}
+{{/each}}
+
+// ============================================================================
+// OneOf / Union Types
+// ============================================================================
+{{#each schemas}}
+{{#if (eq type "oneOf")}}
+
+// {{pascal_name}} - OneOf: {{name}}
+type {{pascal_name}} interface {
+	is{{pascal_name}}()
+}
+
+{{#each oneOf}}
+type {{../pascal_name}}_{{idx}} struct {
+	Value {{go_type}} `json:"value,omitempty"`
+}
+
+func ({{../pascal_name}}_{{idx}}) is{{../pascal_name}}() {}
+{{/each}}
+
+// UnmarshalJSON for {{pascal_name}}
+func (o *{{pascal_name}}) UnmarshalJSON(data []byte) error {
+{{#each oneOf}}
+	var obj{{idx}} {{../pascal_name}}_{{idx}}
+	if err := json.Unmarshal(data, &obj{{idx}}); err == nil {
+		*o = obj{{idx}}
+		return nil
+	}
+{{/each}}
+	return nil
+}
+{{/if}}
+{{#if (eq type "allOf")}}
+
+// {{pascal_name}} - AllOf: {{name}}
+type {{pascal_name}} struct {
+{{#each allOf}}
+{{#if properties}}
+{{#each properties}}
+	{{pascal_name}} {{go_type}} `json:"{{json_name}}{{#unless required}},omitempty{{/unless}}"`
+{{/each}}
+{{/if}}
+{{#if ref}}
+	// Inherits from: {{ref}}
+{{/if}}
+{{/each}}
+}
+{{/if}}
+{{/each}}
+
+// ============================================================================
+// Request Body Types
+// ============================================================================
+{{#each request_bodies}}
+
+// {{pascal_name}}Request - Request body for {{operation_id}}
+type {{pascal_name}}Request struct {
+{{#each fields}}
+	{{pascal_name}} {{go_type}} `json:"{{json_name}}{{#unless required}},omitempty{{/unless}}"`{{#unless @last}}
+{{/each}}
+}
+
+// ToMap converts request to map for JSON serialization
+func (r *{{pascal_name}}Request) ToMap() map[string]interface{} {
+	m := make(map[string]interface{})
+{{#each fields}}
+	if r.{{pascal_name}} != {{zero_value}} {
+		m["{{json_name}}"] = r.{{pascal_name}}
+	}
+{{/each}}
+	return m
+}
+{{/each}}
+
+// ============================================================================
+// Pagination Types
+// ============================================================================
+{{#if has_pagination}}
+
+// PaginationParams - Common pagination parameters
+type PaginationParams struct {
+	Limit  int    `json:"limit,omitempty"`
+	Offset int    `json:"offset,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+	Page   int    `json:"page,omitempty"`
+}
+
+// ToQueryParams converts to URL query parameters
+func (p *PaginationParams) ToQueryParams() map[string]string {
+	q := make(map[string]string)
+	if p.Limit > 0 {
+		q["limit"] = fmt.Sprintf("%d", p.Limit)
+	}
+	if p.Offset > 0 {
+		q["offset"] = fmt.Sprintf("%d", p.Offset)
+	}
+	if p.Cursor != "" {
+		q["cursor"] = p.Cursor
+	}
+	if p.Page > 0 {
+		q["page"] = fmt.Sprintf("%d", p.Page)
+	}
+	return q
+}
+
+// PaginatedResponse - Generic paginated response
+type PaginatedResponse struct {
+	Items    []interface{} `json:"items"`
+	Total    int64         `json:"total"`
+	Limit    int           `json:"limit"`
+	Offset   int           `json:"offset"`
+	HasMore  bool          `json:"has_more"`
+}
+{{/if}}

@@ -1,0 +1,14 @@
+{
+  "evolutions": [
+    {
+      "rule": "Naming Convention",
+      "description": "Always include a Chinese name after the English name in the frontmatter name field (e.g., name: humanizer 去AI味).",
+      "added_at": "2026-01-26"
+    },
+    {
+      "rule": "Evolutionary Modification",
+      "description": "For any future modifications to a skill, do not edit SKILL.md directly. Instead, create/update an evolution.json file in the skill's root directory to store modification suggestions and custom logic. This ensures custom improvements are preserved when the core skill is upgraded.",
+      "added_at": "2026-01-26"
+    }
+  ]
+}

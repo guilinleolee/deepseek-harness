@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博爬取 - 修复下载版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4); }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+        .steps {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>💾 微博爬取 - 修复下载版</h1>
+
+        <div class="warning">
+            <strong>⚠️ 问题：</strong>脚本爬取到580条评论，但文件没有下载成功！
+        </div>
+
+        <div class="success">
+            <strong>✅ 解决方案：</strong>新版本会在完成后显示数据，并提供手动复制的方法！
+        </div>
+
+        <div class="steps">
+            <h3>📋 使用步骤</h3>
+            <ol style="line-height: 2;">
+                <li>打开 <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" style="color: #667eea;">微博页面</a></li>
+                <li>按 <code>F12</code> 打开控制台</li>
+                <li>输入 <code>allow pasting</code> 并按 Enter</li>
+                <li>复制下方脚本</li>
+                <li>粘贴到控制台并按 Enter</li>
+                <li><strong>等待完成后，在控制台复制数据</strong></li>
+            </ol>
+        </div>
+
+        <button class="btn" onclick="copyScript()">📋 复制修复版脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px; color: #667eea;">📜 脚本代码</h3>
+        <code id="scriptCode">/* 微博评论爬取 - 修复下载版 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #667eea');
+    console.log('%c微博评论爬取 - 修复下载版', 'color: #667eea; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #667eea');
+
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('❌ 请在微博页面使用');
+        return;
+    }
+
+    // 全局变量
+    window.ALL_COMMENTS = new Map();
+    window.SCROLL_STATS = {
+        iterations: 0,
+        lastCount: 0,
+        noNewCount: 0,
+        maxIterations: 600,
+        stopAfterNoNew: 80,
+        loadMoreClicks: 0
+    };
+
+    // 存储最终数据供手动复制
+    window.FINAL_DATA = null;
+
+    // 解析评论
+    function parseComment(text) {
+        const colonIndex = text.indexOf(':');
+        if (colonIndex === -1) return null;
+        const username = text.substring(0, colonIndex).trim();
+        const timeMatch = text.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);
+        if (!timeMatch) return null;
+        const time = timeMatch[1] + ' ' + timeMatch[2];
+        const timeStartIndex = text.indexOf(timeMatch[0]);
+        let content = text.substring(colonIndex + 1, timeStartIndex).trim();
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/^:+/, '').trim();
+        content = content.replace(/\s+/g, ' ');
+        if (content.length < 2) return null;
+        const likeMatch = text.match(/(\d+)$/);
+        const likes = likeMatch ? parseInt(likeMatch[1]) : 0;
+        const uniqueId = username + '_' + content + '_' + time;
+        return { username, content, time, likes, uniqueId };
+    }
+
+    // 提取评论
+    function extractComments() {
+        const list = document.querySelector('.wbpro-list');
+        if (!list) return 0;
+        const nodes = list.children;
+        for (let i = 0; i < nodes.length; i++) {
+            const text = nodes[i].textContent || '';
+            const comment = parseComment(text);
+            if (comment && !window.ALL_COMMENTS.has(comment.uniqueId)) {
+                window.ALL_COMMENTS.set(comment.uniqueId, comment);
+            }
+        }
+        return window.ALL_COMMENTS.size;
+    }
+
+    // 查找并点击"加载更多"按钮
+    function clickLoadMoreButton() {
+        const loadTexts = ['加载更多', '展开查看', '点击加载', '查看更多', '点击查看更多', '展开', '加载'];
+        let foundButton = null;
+        let buttonText = '';
+
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+            const text = el.textContent || '';
+            if (text.length < 50) {
+                for (const loadText of loadTexts) {
+                    if (text.includes(loadText) && el.offsetParent !== null) {
+                        const style = window.getComputedStyle(el);
+                        const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
+                        const isClickable = el.tagName === 'BUTTON' || el.tagName === 'A' || el.role === 'button' || el.onclick !== null || style.cursor === 'pointer';
+                        if (isVisible && isClickable) {
+                            foundButton = el;
+                            buttonText = text;
+                            break;
+                        }
+                    }
+                }
+                if (foundButton) break;
+            }
+        }
+
+        if (!foundButton) {
+            const buttonSelectors = ['button[class*="more"]', 'button[class*="load"]', 'a[class*="more"]', '[class*="expand"]', '.more-btn', '.load-more'];
+            for (const selector of buttonSelectors) {
+                const btn = document.querySelector(selector);
+                if (btn && btn.offsetParent !== null) {
+                    foundButton = btn;
+                    buttonText = btn.textContent;
+                    break;
+                }
+            }
+        }
+
+        if (foundButton) {
+            window.SCROLL_STATS.loadMoreClicks++;
+            console.log(`[按钮] 点击加载更多 #${window.SCROLL_STATS.loadMoreClicks}`);
+            try { foundButton.click(); } catch (e) { try { foundButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (e2) {} }
+            return true;
+        }
+        return false;
+    }
+
+    // 智能滚动
+    function smartScroll() {
+        const list = document.querySelector('.wbpro-list');
+        if (list) list.scrollTop = list.scrollHeight;
+        window.scrollTo(0, document.body.scrollHeight);
+        if (window.SCROLL_STATS.iterations % 3 === 0) clickLoadMoreButton();
+    }
+
+    // 切换排序
+    function switchSort() {
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return (t.includes('按时间') || t.includes('按热度')) && el.offsetParent !== null;
+        });
+        if (btns.length > 0) {
+            for (const b of btns) {
+                if (b.textContent.includes('按时间')) {
+                    console.log('[排序] 切换到按时间');
+                    b.click();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // 多种方式尝试下载
+    function tryMultipleDownloads(data) {
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const filename = 'weibo_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+
+        // 方式1: 使用 a 标签
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            console.log('%c[下载] 方式1: a标签点击', 'color: #64ffda');
+        } catch (e) {
+            console.warn('[下载] 方式1失败:', e);
+        }
+
+        // 方式2: 使用 iframe
+        setTimeout(() => {
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+                console.log('%c[下载] 方式2: iframe下载', 'color: #64ffda');
+            } catch (e) {
+                console.warn('[下载] 方式2失败:', e);
+            }
+        }, 500);
+
+        // 方式3: 使用 window.open
+        setTimeout(() => {
+            try {
+                window.open(url, '_blank');
+                console.log('%c[下载] 方式3: window.open', 'color: #64ffda');
+            } catch (e) {
+                console.warn('[下载] 方式3失败:', e);
+            }
+        }, 1000);
+
+        URL.revokeObjectURL(url);
+    }
+
+    // 主爬取函数
+    async function scrape() {
+        console.log('\n[开始] 启动爬取...\n');
+        switchSort();
+        await new Promise(r => setTimeout(r, 2000));
+
+        let initialCount = extractComments();
+        console.log(`[初始] 找到 ${initialCount} 条评论`);
+
+        if (initialCount === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            return [];
+        }
+
+        console.log(`\n[滚动] 开始加载评论...\n`);
+
+        for (let i = 0; i < window.SCROLL_STATS.maxIterations; i++) {
+            window.SCROLL_STATS.iterations = i + 1;
+            const currentCount = extractComments();
+
+            if (i % 5 === 0 || currentCount > window.SCROLL_STATS.lastCount) {
+                const progress = (currentCount / 680 * 100).toFixed(1);
+                const newBadge = currentCount > window.SCROLL_STATS.lastCount ? ' (+新)' : '';
+                console.log(`[${i+1}/${window.SCROLL_STATS.maxIterations}] ${currentCount}条 (${progress}%)${newBadge}`);
+            }
+
+            if (currentCount >= 680) {
+                console.log(`\n%c✅ 达到目标: ${currentCount} 条！`, 'color: #28a745; font-size: 16px; font-weight: bold');
+                break;
+            }
+
+            if (currentCount === window.SCROLL_STATS.lastCount) {
+                window.SCROLL_STATS.noNewCount++;
+                if (window.SCROLL_STATS.noNewCount >= window.SCROLL_STATS.stopAfterNoNew) {
+                    console.log(`\n%c⚠️ 连续 ${window.SCROLL_STATS.noNewCount} 次无新评论，停止`, 'color: #ffc107; font-weight: bold');
+                    break;
+                }
+            } else {
+                window.SCROLL_STATS.noNewCount = 0;
+                window.SCROLL_STATS.lastCount = currentCount;
+            }
+
+            smartScroll();
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        const arr = Array.from(window.ALL_COMMENTS.values()).sort((a, b) => b.likes - a.likes);
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${arr.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log(`[统计] 点击"加载更多"按钮: ${window.SCROLL_STATS.loadMoreClicks} 次`);
+        console.log('='.repeat(70) + '\n');
+        return arr;
+    }
+
+    // 执行
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            target_count: 680,
+            actual_count: comments.length,
+            completion_rate: (comments.length / 680 * 100).toFixed(1) + '%',
+            extracted_at: new Date().toISOString(),
+            load_more_clicks: window.SCROLL_STATS.loadMoreClicks,
+            comments: comments
+        };
+
+        // 保存到全局变量供手动复制
+        window.FINAL_DATA = data;
+
+        console.log('\n%c='.repeat(70), 'color: #64ffda');
+        console.log('%c💾 下载数据中...', 'color: #64ffda; font-size: 16px; font-weight: bold');
+        console.log('%c='.repeat(70), 'color: #64ffda');
+
+        // 尝试多种下载方式
+        tryMultipleDownloads(data);
+
+        console.log('\n%c='.repeat(70), 'color: #ffc107');
+        console.log('%c📋 如果下载失败，请手动复制数据', 'color: #ffc107; font-size: 16px; font-weight: bold');
+        console.log('%c='.repeat(70), 'color: #ffc107');
+        console.log('\n%c方法1: 复制下面这行，在控制台粘贴并按Enter', 'color: #64ffda');
+        console.log('%ccopy(JSON.stringify(window.FINAL_DATA, null, 2))', 'color: #ffd700; background: #333; padding: 5px;');
+        console.log('\n%c方法2: 查看完整数据', 'color: #64ffda');
+        console.log('%cconsole.log(window.FINAL_DATA)', 'color: #ffd700; background: #333; padding: 5px;');
+        console.log('\n然后复制输出的JSON数据，保存为 .json 文件\n');
+
+    }).catch(e => {
+        console.error('❌ 错误:', e);
+    });
+
+})();</code>
+
+        <div style="margin-top: 30px;">
+            <h3 style="color: #667eea;">📋 如果自动下载失败</h3>
+            <div class="warning">
+                <strong>手动复制方法：</strong>
+                <ol style="margin: 10px 0 0 20px; line-height: 2;">
+                    <li>脚本完成后，在控制台输入：<code>copy(JSON.stringify(window.FINAL_DATA, null, 2))</code></li>
+                    <li>按 Enter 执行</li>
+                    <li>数据已复制到剪贴板</li>
+                    <li>打开记事本，粘贴 (Ctrl+V)</li>
+                    <li>保存为 <code>weibo_comments.json</code></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => { document.getElementById('feedback').style.display = 'none'; }, 3000);
+            });
+        }
+    </script>
+</body>
+</html>

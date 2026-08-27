@@ -1,0 +1,180 @@
+# Identity Config Template
+# 身份配置模板 - 用于生成新的Agent身份配置
+
+identity:
+  # ============ 基本信息 ============
+  agent_id: "XX-YY"           # Agent编号，如07、09-02
+  name: "XX名称"               # Agent中文名称
+  version: "V1.0"              # 版本号
+  department: "所属部门"         # 所属部门
+  created: "YYYY-MM-DD"        # 创建日期
+  updated: "YYYY-MM-DD"        # 最后更新日期
+
+  # ============ 角色定义 ============
+  role:
+    # 主要职责（必须）
+    primary: "一句话描述主要职责"
+
+    # 次要职责（最多3项）
+    secondary:
+      - "次要职责1"
+      - "次要职责2"
+      - "次要职责3"
+
+    # 触发关键词（必须，覆盖主要使用场景）
+    keywords:
+      - "keyword1"
+      - "keyword2"
+      - "keyword3"
+
+    # 汇报关系
+    reports_to: "上级Agent编号"
+
+  # ============ 能力边界 ============
+  capabilities:
+    # 能够执行的能力（必须）
+    can_do:
+      - "能力1：具体描述"
+      - "能力2：具体描述"
+      - "能力3：具体描述"
+
+    # 不能执行的能力（必须）
+    cannot_do:
+      - "不能做1：原因说明"
+      - "不能做2：原因说明"
+
+    # 禁止事项（安全/合规依据）
+    prohibitions:
+      - "禁止1：安全/合规原因"
+      - "禁止2：安全/合规原因"
+
+    # 学习路径（可选）
+    learning_path:
+      - "当前能力 → 进阶能力"
+      - "进阶能力 → 专家能力"
+
+    # 能力上限
+    limits:
+      max_concurrent_tasks: 3
+      max_complexity: "medium"  # low/medium/high
+      requires_approval_for:
+        - "高风险操作"
+        - "跨部门任务"
+
+  # ============ 协作接口 ============
+  collaboration:
+    # 上游接口（谁调用我）
+    upstream:
+      - agent_id: "XX"
+        role: "调用方角色"
+        triggers:
+          - "触发条件1"
+          - "触发条件2"
+        priority: "high"  # high/medium/low
+
+    # 下游接口（我调用谁）
+    downstream:
+      - agent_id: "XX"
+        role: "被调用方角色"
+        for: "调用目的"
+        when: "调用时机"
+
+    # 通信协议
+    protocol:
+      format: "markdown"
+      frequency: "on_demand"  # on_demand/daily/weekly
+      output_required: true
+
+    # 错误处理
+    error_handling:
+      retry_attempts: 3
+      escalate_on_failure: true
+      escalate_to: "XX"
+
+  # ============ 升级路径 ============
+  escalation:
+    - trigger: "遇到未记录知识领域"
+      target: "01-investigator"
+      reason: "需要先调研再执行"
+      priority: "high"
+
+    - trigger: "遇到安全相关决策"
+      target: "05-security-reviewer"
+      reason: "需要安全师审核"
+      priority: "high"
+
+    - trigger: "遇到架构设计问题"
+      target: "02-architect"
+      reason: "需要架构师决策"
+      priority: "medium"
+
+  # ============ 已知冲突 ============
+  known_conflicts:
+    - agent_id: "XX"
+      type: "role_overlap"  # role_overlap/capability_cross/knowledge_overlap
+      description: "冲突描述"
+      resolution: "解决方案"
+
+  # ============ 演进追踪 ============
+  evolution:
+    # 版本历史
+    history:
+      - version: "V1.0"
+        date: "YYYY-MM-DD"
+        changes:
+          - "初始版本"
+        reason: "创建"
+
+    # 成长指标
+    growth_metrics:
+      capability_count: 0
+      collaboration_count: 0
+      keywords_count: 0
+      audit_score: 0
+
+    # 风险预警
+    risk_warnings:
+      - risk: "风险描述"
+        severity: "high"  # high/medium/low
+        detected_date: "YYYY-MM-DD"
+        status: "open"  # open/resolved/mitigated
+
+  # ============ SKILL配置 ============
+  skills:
+    # 必须的SKILL
+    required:
+      - skill: "skill-name"
+        source: "local/marketplace/agent"
+        version: "V1.0"
+
+    # 可选的SKILL
+    optional:
+      - skill: "optional-skill"
+        source: "local/marketplace/agent"
+        version: "V1.0"
+
+    # 工具权限
+    tool_permissions:
+      - tool: "tool-name"
+        level: "read"  # read/write/execute/admin
+        purpose: "使用目的"
+
+  # ============ 知识领域 ============
+  knowledge_domains:
+    primary:
+      - "主领域1"
+      - "主领域2"
+
+    secondary:
+      - "次领域1"
+      - "次领域2"
+
+    emerging:
+      - "新兴领域1"
+
+# ============ 使用说明 ============
+# 1. 将此模板复制到 identity-configs/{agent_id}.yaml
+# 2. 填充所有必填字段（无注释的字段）
+# 3. 根据需要添加可选字段
+# 4. 运行一致性检查：python scripts/consistency_checker.py --agent {agent_id}
+# 5. 生成审计报告：python scripts/identity_auditor.py audit --agent {agent_id}

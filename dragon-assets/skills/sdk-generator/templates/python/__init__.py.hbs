@@ -1,0 +1,25 @@
+"""
+{{api_name}} Python SDK
+Version: {{api_version}}
+Generated from OpenAPI spec
+"""
+from .client import APIClient, ClientConfig
+from .types import *
+
+{{#each schemas}}
+from .types import {{pascal_name}}
+{{/each}}
+{{#each tags}}
+from . import {{snake_tag}}_api
+{{/each}}
+
+__all__ = [
+    "APIClient",
+    "ClientConfig",
+    {{#each schemas}}
+    "{{pascal_name}}",
+    {{/each}}
+    {{#each tags}}
+    "{{snake_tag}}_api",
+    {{/each}}
+]

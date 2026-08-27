@@ -1,0 +1,26 @@
+test_custom_timezone (test_dsh_peak_gate_bridge.TestLocalStorageSchema.test_custom_timezone) ... ok
+test_default_schema (test_dsh_peak_gate_bridge.TestLocalStorageSchema.test_default_schema) ... ok
+test_10am_to_12pm (test_dsh_peak_gate_bridge.TestNextOffPeak.test_10am_to_12pm) ... ok
+test_15pm_to_18pm (test_dsh_peak_gate_bridge.TestNextOffPeak.test_15pm_to_18pm) ... ok
+test_20pm_already_offpeak (test_dsh_peak_gate_bridge.TestNextOffPeak.test_20pm_already_offpeak) ... ok
+test_cancel (test_dsh_peak_gate_bridge.TestParseCmd.test_cancel) ... ok
+test_help (test_dsh_peak_gate_bridge.TestParseCmd.test_help) ... ok
+test_hold (test_dsh_peak_gate_bridge.TestParseCmd.test_hold) ... ok
+test_hold_no_prefix (test_dsh_peak_gate_bridge.TestParseCmd.test_hold_no_prefix) ... ok
+test_list (test_dsh_peak_gate_bridge.TestParseCmd.test_list) ... ok
+test_remove (test_dsh_peak_gate_bridge.TestParseCmd.test_remove) ... ok
+test_remove_invalid_seq (test_dsh_peak_gate_bridge.TestParseCmd.test_remove_invalid_seq) ... ok
+test_unknown_cmd (test_dsh_peak_gate_bridge.TestParseCmd.test_unknown_cmd) ... ok
+test_offpeak_13pm_beijing (test_dsh_peak_gate_bridge.TestPeakWindow.test_offpeak_13pm_beijing) ... ok
+test_offpeak_20pm_beijing (test_dsh_peak_gate_bridge.TestPeakWindow.test_offpeak_20pm_beijing) ... ok
+test_peak_10am_beijing (test_dsh_peak_gate_bridge.TestPeakWindow.test_peak_10am_beijing) ... ok
+test_peak_15pm_beijing (test_dsh_peak_gate_bridge.TestPeakWindow.test_peak_15pm_beijing) ... ok
+test_weekend_offpeak (test_dsh_peak_gate_bridge.TestPeakWindow.test_weekend_offpeak) ... ok
+test_add_and_remove (test_dsh_peak_gate_bridge.TestQueueDataStruct.test_add_and_remove) ... ok
+test_remove_oob (test_dsh_peak_gate_bridge.TestQueueDataStruct.test_remove_oob) ... ok
+test_to_dict (test_dsh_peak_gate_bridge.TestQueueDataStruct.test_to_dict) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.001s
+
+OK

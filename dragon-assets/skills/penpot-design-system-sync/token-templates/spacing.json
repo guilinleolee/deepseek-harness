@@ -1,0 +1,118 @@
+{
+  "$metadata": {
+    "tokenSetOrder": ["base/spacing", "semantic/spacing"],
+    "version": "1.0.0"
+  },
+  "base": {
+    "spacing": {
+      "0": { "value": "0px", "type": "dimension", "$description": "0px - No spacing" },
+      "px": { "value": "1px", "type": "dimension", "$description": "1px - Hairline" },
+      "0.5": { "value": "2px", "type": "dimension", "$description": "2px - Hairline spacing" },
+      "1": { "value": "4px", "type": "dimension", "$description": "4px - 1 unit" },
+      "1.5": { "value": "6px", "type": "dimension", "$description": "6px - 1.5 units" },
+      "2": { "value": "8px", "type": "dimension", "$description": "8px - 2 units" },
+      "2.5": { "value": "10px", "type": "dimension", "$description": "10px - 2.5 units" },
+      "3": { "value": "12px", "type": "dimension", "$description": "12px - 3 units" },
+      "3.5": { "value": "14px", "type": "dimension", "$description": "14px - 3.5 units" },
+      "4": { "value": "16px", "type": "dimension", "$description": "16px - 4 units / 1rem" },
+      "5": { "value": "20px", "type": "dimension", "$description": "20px - 5 units" },
+      "6": { "value": "24px", "type": "dimension", "$description": "24px - 6 units" },
+      "7": { "value": "28px", "type": "dimension", "$description": "28px - 7 units" },
+      "8": { "value": "32px", "type": "dimension", "$description": "32px - 8 units / 2rem" },
+      "9": { "value": "36px", "type": "dimension", "$description": "36px - 9 units" },
+      "10": { "value": "40px", "type": "dimension", "$description": "40px - 10 units / 2.5rem" },
+      "11": { "value": "44px", "type": "dimension", "$description": "44px - 11 units" },
+      "12": { "value": "48px", "type": "dimension", "$description": "48px - 12 units / 3rem" },
+      "14": { "value": "56px", "type": "dimension", "$description": "56px - 14 units" },
+      "16": { "value": "64px", "type": "dimension", "$description": "64px - 16 units / 4rem" },
+      "20": { "value": "80px", "type": "dimension", "$description": "80px - 20 units / 5rem" },
+      "24": { "value": "96px", "type": "dimension", "$description": "96px - 24 units / 6rem" },
+      "28": { "value": "112px", "type": "dimension", "$description": "112px - 28 units / 7rem" },
+      "32": { "value": "128px", "type": "dimension", "$description": "128px - 32 units / 8rem" },
+      "36": { "value": "144px", "type": "dimension", "$description": "144px - 36 units / 9rem" },
+      "40": { "value": "160px", "type": "dimension", "$description": "160px - 40 units / 10rem" },
+      "44": { "value": "176px", "type": "dimension", "$description": "176px - 44 units / 11rem" },
+      "48": { "value": "192px", "type": "dimension", "$description": "192px - 48 units / 12rem" },
+      "52": { "value": "208px", "type": "dimension", "$description": "208px - 52 units / 13rem" },
+      "56": { "value": "224px", "type": "dimension", "$description": "224px - 56 units / 14rem" },
+      "60": { "value": "240px", "type": "dimension", "$description": "240px - 60 units / 15rem" },
+      "64": { "value": "256px", "type": "dimension", "$description": "256px - 64 units / 16rem" },
+      "72": { "value": "288px", "type": "dimension", "$description": "288px - 72 units / 18rem" },
+      "80": { "value": "320px", "type": "dimension", "$description": "320px - 80 units / 20rem" },
+      "96": { "value": "384px", "type": "dimension", "$description": "384px - 96 units / 24rem" },
+      "128": { "value": "512px", "type": "dimension", "$description": "512px - 128 units / 32rem" }
+    },
+    "borderRadius": {
+      "none": { "value": "0px", "type": "borderRadius", "$description": "No border radius" },
+      "xs": { "value": "2px", "type": "borderRadius", "$description": "Extra small - 2px" },
+      "sm": { "value": "4px", "type": "borderRadius", "$description": "Small - 4px" },
+      "default": { "value": "6px", "type": "borderRadius", "$description": "Default - 6px" },
+      "md": { "value": "8px", "type": "borderRadius", "$description": "Medium - 8px" },
+      "lg": { "value": "12px", "type": "borderRadius", "$description": "Large - 12px" },
+      "xl": { "value": "16px", "type": "borderRadius", "$description": "Extra large - 16px" },
+      "2xl": { "value": "24px", "type": "borderRadius", "$description": "2XL - 24px" },
+      "3xl": { "value": "32px", "type": "borderRadius", "$description": "3XL - 32px" },
+      "4xl": { "value": "40px", "type": "borderRadius", "$description": "4XL - 40px" },
+      "full": { "value": "9999px", "type": "borderRadius", "$description": "Full - pill shape" }
+    },
+    "borderWidth": {
+      "0": { "value": "0px", "type": "borderWidth", "$description": "No border" },
+      "default": { "value": "1px", "type": "borderWidth", "$description": "Default border width" },
+      "2": { "value": "2px", "type": "borderWidth", "$description": "2px border" },
+      "4": { "value": "4px", "type": "borderWidth", "$description": "4px border" },
+      "8": { "value": "8px", "type": "borderWidth", "$description": "8px border" }
+    },
+    "shadow": {
+      "none": { "value": "none", "type": "shadow", "$description": "No shadow" },
+      "xs": { "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "type": "shadow", "$description": "Extra small shadow" },
+      "sm": { "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "type": "shadow", "$description": "Small shadow" },
+      "default": { "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", "type": "shadow", "$description": "Default shadow" },
+      "md": { "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)", "type": "shadow", "$description": "Medium shadow" },
+      "lg": { "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", "type": "shadow", "$description": "Large shadow" },
+      "xl": { "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)", "type": "shadow", "$description": "Extra large shadow" },
+      "2xl": { "value": "0 32px 64px -12px rgb(0 0 0 / 0.35)", "type": "shadow", "$description": "2XL shadow" },
+      "inner": { "value": "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)", "type": "shadow", "$description": "Inner shadow" }
+    }
+  },
+  "semantic": {
+    "spacing": {
+      "gap": {
+        "xs": { "value": "{base.spacing.1}", "type": "dimension", "$description": "Extra small gap" },
+        "sm": { "value": "{base.spacing.2}", "type": "dimension", "$description": "Small gap" },
+        "md": { "value": "{base.spacing.4}", "type": "dimension", "$description": "Default gap" },
+        "lg": { "value": "{base.spacing.6}", "type": "dimension", "$description": "Large gap" },
+        "xl": { "value": "{base.spacing.8}", "type": "dimension", "$description": "Extra large gap" }
+      },
+      "padding": {
+        "button": {
+          "x": { "value": "{base.spacing.4}", "type": "dimension", "$description": "Button horizontal padding" },
+          "y": { "value": "{base.spacing.2}", "type": "dimension", "$description": "Button vertical padding" }
+        },
+        "input": {
+          "x": { "value": "{base.spacing.3}", "type": "dimension", "$description": "Input horizontal padding" },
+          "y": { "value": "{base.spacing.2}", "type": "dimension", "$description": "Input vertical padding" }
+        },
+        "card": {
+          "default": { "value": "{base.spacing.6}", "type": "dimension", "$description": "Card default padding" },
+          "compact": { "value": "{base.spacing.4}", "type": "dimension", "$description": "Card compact padding" },
+          "spacious": { "value": "{base.spacing.8}", "type": "dimension", "$description": "Card spacious padding" }
+        },
+        "container": {
+          "sm": { "value": "{base.spacing.4}", "type": "dimension", "$description": "Small container padding" },
+          "md": { "value": "{base.spacing.6}", "type": "dimension", "$description": "Default container padding" },
+          "lg": { "value": "{base.spacing.8}", "type": "dimension", "$description": "Large container padding" },
+          "xl": { "value": "{base.spacing.12}", "type": "dimension", "$description": "Extra large container padding" }
+        }
+      },
+      "margin": {
+        "section": {
+          "xs": { "value": "{base.spacing.4}", "type": "dimension", "$description": "Extra small section margin" },
+          "sm": { "value": "{base.spacing.8}", "type": "dimension", "$description": "Small section margin" },
+          "md": { "value": "{base.spacing.12}", "type": "dimension", "$description": "Default section margin" },
+          "lg": { "value": "{base.spacing.16}", "type": "dimension", "$description": "Large section margin" },
+          "xl": { "value": "{base.spacing.24}", "type": "dimension", "$description": "Extra large section margin" }
+        }
+      }
+    }
+  }
+}

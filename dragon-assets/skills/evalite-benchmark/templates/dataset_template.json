@@ -1,0 +1,79 @@
+{
+  "name": "custom-benchmark",
+  "version": "1.0.0",
+  "description": "Custom LLM Benchmark Dataset",
+  "tasks": [
+    {
+      "id": "example-001",
+      "question": "What is the capital of France?",
+      "choices": ["London", "Paris", "Berlin", "Madrid"],
+      "answer": "Paris",
+      "category": "geography",
+      "difficulty": "easy",
+      "metadata": {
+        "source": "custom",
+        "tags": ["world_capitals", "europe"]
+      }
+    },
+    {
+      "id": "example-002",
+      "question": "What is the largest planet in our solar system?",
+      "choices": ["Earth", "Mars", "Jupiter", "Saturn"],
+      "answer": "Jupiter",
+      "category": "science",
+      "difficulty": "easy",
+      "metadata": {
+        "source": "custom",
+        "tags": ["astronomy", "solar_system"]
+      }
+    },
+    {
+      "id": "example-003",
+      "question": "Who wrote 'Romeo and Juliet'?",
+      "choices": ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+      "answer": "William Shakespeare",
+      "category": "literature",
+      "difficulty": "easy",
+      "metadata": {
+        "source": "custom",
+        "tags": ["classics", "drama"]
+      }
+    },
+    {
+      "id": "example-004",
+      "question": "What is 15 × 23?",
+      "choices": ["345", "335", "355", "325"],
+      "answer": "345",
+      "category": "math",
+      "difficulty": "medium",
+      "metadata": {
+        "source": "custom",
+        "tags": ["arithmetic"]
+      }
+    },
+    {
+      "id": "example-005",
+      "question": "In what year did World War II end?",
+      "choices": ["1943", "1944", "1945", "1946"],
+      "answer": "1945",
+      "category": "history",
+      "difficulty": "medium",
+      "metadata": {
+        "source": "custom",
+        "tags": ["world_history", "20th_century"]
+      }
+    }
+  ],
+  "metadata": {
+    "source": "custom",
+    "created": "2026-05-07",
+    "license": "MIT",
+    "total_tasks": 5,
+    "categories": ["geography", "science", "literature", "math", "history"],
+    "difficulty_distribution": {
+      "easy": 3,
+      "medium": 2,
+      "hard": 0
+    }
+  }
+}

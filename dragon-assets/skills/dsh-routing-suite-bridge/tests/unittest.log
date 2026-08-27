@@ -1,0 +1,19 @@
+test_workflow (test_dsh_routing_suite_bridge.TestEndToEnd.test_workflow) ... ok
+test_filter_eval_by_model (test_dsh_routing_suite_bridge.TestEvalP1P23.test_filter_eval_by_model) ... ok
+test_parse_invalid_p_id (test_dsh_routing_suite_bridge.TestEvalP1P23.test_parse_invalid_p_id) ... ok
+test_parse_p_id (test_dsh_routing_suite_bridge.TestEvalP1P23.test_parse_p_id) ... ok
+test_three_steps (test_dsh_routing_suite_bridge.TestInstallSteps.test_three_steps) ... ok
+test_default_modes_count (test_dsh_routing_suite_bridge.TestReasoningModes.test_default_modes_count) ... ok
+test_mixed_mode_is_trap (test_dsh_routing_suite_bridge.TestReasoningModes.test_mixed_mode_is_trap) ... ok
+test_modes_have_names (test_dsh_routing_suite_bridge.TestReasoningModes.test_modes_have_names) ... ok
+test_react_mode (test_dsh_routing_suite_bridge.TestReasoningModes.test_react_mode) ... ok
+test_spec_mode (test_dsh_routing_suite_bridge.TestReasoningModes.test_spec_mode) ... ok
+test_default_config (test_dsh_routing_suite_bridge.TestRuntimeInjectorConfig.test_default_config) ... ok
+test_reload_strategy (test_dsh_routing_suite_bridge.TestRuntimeInjectorConfig.test_reload_strategy) ... ok
+test_invalid_behaviors (test_dsh_routing_suite_bridge.TestValidateBehavior.test_invalid_behaviors) ... ok
+test_valid_behaviors (test_dsh_routing_suite_bridge.TestValidateBehavior.test_valid_behaviors) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.001s
+
+OK

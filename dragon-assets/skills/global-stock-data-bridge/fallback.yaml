@@ -1,0 +1,63 @@
+fallback_strategy: priority_order
+silent_failure: false
+max_retries: 3
+official_fallbacks: 3  # V1.0.1 上游韧性层
+
+error_handlers:
+  RATE_LIMIT:
+    action: retry_with_backoff
+    backoff_factor: 2.0
+    max_retries: 3
+    log: "Rate limit hit, retry with backoff"
+  API_KEY_INVALID:
+    action: switch_source
+    log: "API key invalid, switch to public source"
+  TICKER_NOT_FOUND:
+    action: fail_fast
+    log: "Ticker not found in any source"
+  TIMEOUT:
+    action: retry_with_backoff
+    backoff_factor: 1.5
+    max_retries: 2
+  PROTOCOL_404:
+    action: mark_deprecated
+    log: "Endpoint deprecated, suggest upgrade"
+  MARKET_CLOSED:
+    action: use_last_close
+    log: "Market closed, use last close price"
+  DATA_STALE:
+    action: warn_and_use
+    log: "Data stale (>1 day), warn and use"
+
+# 17 端点兜底链（key=端点名，values=数据源顺序，从主到末）
+endpoints:
+  # ============ L1 行情层 4 端点 ============
+  quote_realtime:       [yahoo_finance, alpha_vantage, fred]
+  historical_ohlcv:     [yahoo_finance, alpha_vantage]
+  intraday_ohlcv:       [alpha_vantage, yahoo_finance]
+  adjusted_close:       [yahoo_finance]
+
+  # ============ L2 财务层 3 端点 ============
+  financial_3statements: [sec_edgar, company_ir, yahoo_finance]
+  quarterly_37fields:    [sec_edgar, company_ir]
+  ttm_summary:           [sec_edgar, company_ir]
+
+  # ============ L3 技术指标层 5 端点（计算层）============
+  ma_indicator:          [compute_layer]
+  macd_indicator:        [compute_layer]
+  rsi_indicator:         [compute_layer]
+  kdj_indicator:         [compute_layer]
+  bollinger_bands:       [compute_layer]
+
+  # ============ L4 新闻层 2 端点 ============
+  global_news:           [reuters, bloomberg_rss, yahoo_finance]
+  stock_news:            [reuters, company_ir]
+
+  # ============ L5 公告层 1 端点 ============
+  sec_filing:            [sec_edgar, hkexnews]
+
+  # ============ L6 估值层 1 端点（计算层）============
+  valuation_ratios:      [compute_layer, yahoo_finance]
+
+  # ============ L7 同业对比 1 端点 ============
+  peer_compare:          [yahoo_finance, fred]

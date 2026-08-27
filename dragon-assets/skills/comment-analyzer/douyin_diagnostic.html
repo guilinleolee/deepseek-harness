@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抖音评论选择器诊断工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            padding: 40px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #999;
+            margin-bottom: 30px;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #fe2c55 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(254, 44, 85, 0.4);
+        }
+        code {
+            background: #2d2d2d;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        .steps {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .steps ol {
+            margin: 10px 0 0 20px;
+            line-height: 2;
+        }
+        .selector-list {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .selector-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #3d3d3d;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .selector-item.found {
+            background: rgba(40, 167, 69, 0.2);
+            border-left: 3px solid #28a745;
+        }
+        .selector-item.not-found {
+            background: rgba(220, 53, 69, 0.2);
+            border-left: 3px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 抖音评论选择器诊断工具</h1>
+        <p class="subtitle">帮助找到抖音评论区域的正确CSS选择器</p>
+
+        <div class="warning">
+            <strong>⚠️ 使用说明：</strong>
+            <div class="steps">
+                <ol>
+                    <li>打开抖音视频页面（确保能看到评论）</li>
+                    <li>按 <code>F12</code> 打开浏览器控制台</li>
+                    <li>输入 <code>allow pasting</code> 然后按 <code>Enter</code></li>
+                    <li>复制下方诊断脚本</li>
+                    <li>粘贴到控制台并按 <code>Enter</code></li>
+                    <li>查看输出结果，找到能匹配评论的选择器</li>
+                </ol>
+            </div>
+        </div>
+
+        <button class="btn" onclick="copyDiagnostic()">📋 复制诊断脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 15px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">📜 诊断脚本代码</h3>
+        <code id="diagnosticCode">/* 抖音评论选择器诊断工具 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #fe2c55');
+    console.log('%c抖音评论选择器诊断', 'color: #fe2c55; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #fe2c55');
+
+    if (!window.location.href.includes('douyin.com')) {
+        console.error('❌ 请在抖音页面使用');
+        return;
+    }
+
+    // 常见的抖音评论选择器
+    const selectors = [
+        // 抖音PC网页版
+        '[class*="comment"]',
+        '[class*="Comment"]',
+        '.comment-item',
+        '.reply-item',
+        '[data-e2e="comment-item"]',
+        '[data-e2e="reply-item"]',
+
+        // 抖音移动端H5
+        '[class*="CommentItem"]',
+        '[class*="ReplyItem"]',
+        '.comment-list-item',
+        '.reply-list-item',
+
+        // 通用容器
+        '.comment-container',
+        '.reply-container',
+        '[class*="list"] [class*="item"]',
+    ];
+
+    console.log('\n[cseo] 测试 ' + selectors.length + ' 个选择器...\n');
+
+    const results = [];
+
+    selectors.forEach((selector, index) => {
+        try {
+            const elements = document.querySelectorAll(selector);
+            const count = elements.length;
+
+            console.log(`[${index + 1}] ${selector}`);
+            console.log(`    找到: ${count} 个元素`);
+
+            if (count > 0) {
+                // 分析第一个元素的内容
+                const first = elements[0];
+                const text = first.textContent || '';
+                const className = first.className || '';
+
+                console.log(`    类名: ${className}`);
+                console.log(`    内容预览: ${text.substring(0, 100)}...`);
+
+                // 检查是否包含评论特征
+                const hasComment = text.includes('评论') ||
+                                  text.includes('回复') ||
+                                  /\d+天前|\d+小时前|\d+分钟前/.test(text);
+
+                if (hasComment) {
+                    console.log(`    %c✅ 可能包含评论`, 'color: #28a745; font-weight: bold');
+                    results.push({
+                        selector: selector,
+                        count: count,
+                        className: className,
+                        confidence: 'high'
+                    });
+                } else {
+                    console.log(`    ⚠️  不像评论内容`);
+                }
+            } else {
+                console.log(`    ❌ 未找到`);
+            }
+            console.log('');
+        } catch (e) {
+            console.log(`    ❌ 错误: ${e.message}`);
+            console.log('');
+        }
+    });
+
+    // 查找包含评论文本的元素
+    console.log('\n[search] 查找包含评论特征的元素...\n');
+
+    const allElements = document.querySelectorAll('*');
+    let commentElements = [];
+
+    for (let i = 0; i < Math.min(allElements.length, 10000); i++) {
+        const el = allElements[i];
+        const text = el.textContent || '';
+
+        // 跳过太长或太短的文本
+        if (text.length < 10 || text.length > 500) continue;
+
+        // 检查是否包含时间戳
+        if (/\d+天前|\d+小时前|\d+分钟前|昨天/.test(text)) {
+            // 检查是否在评论区容器中
+            const parent = el.parentElement;
+            if (parent) {
+                const parentClass = parent.className || '';
+                const parentTag = parent.tagName.toLowerCase();
+
+                commentElements.push({
+                    element: el,
+                    text: text.substring(0, 100),
+                    parentClass: parentClass,
+                    parentTag: parentTag
+                });
+            }
+        }
+
+        if (commentElements.length >= 10) break;
+    }
+
+    if (commentElements.length > 0) {
+        console.log(`%c找到 ${commentElements.length} 个可能的评论元素:`, 'color: #28a745; font-weight: bold');
+
+        commentElements.slice(0, 5).forEach((item, index) => {
+            console.log(`\n[${index + 1}] 文本: ${item.text}...`);
+            console.log(`    父元素: ${item.parentTag}.${item.parentClass}`);
+
+            // 推荐选择器
+            if (item.parentClass) {
+                const classSelector = '.' + item.parentClass.split(' ').join('.');
+                console.log(`    推荐选择器: ${classSelector}`);
+            }
+        });
+    } else {
+        console.log('%c❌ 未找到评论元素', 'color: #dc3545; font-weight: bold');
+    }
+
+    // 总结
+    console.log('\n' + '='.repeat(70));
+    console.log('%c诊断总结', 'color: #fe2c55; font-size: 18px; font-weight: bold');
+    console.log('='.repeat(70));
+
+    if (results.length > 0) {
+        console.log(`\n✅ 找到 ${results.length} 个可能的选择器:`);
+        results.forEach(r => {
+            console.log(`  • ${r.selector} (${r.count}个元素)`);
+        });
+        console.log('\n推荐使用第一个选择器进行爬取。');
+    } else {
+        console.log('\n⚠️  未找到明确的选择器');
+        console.log('\n可能的原因:');
+        console.log('  1. 页面还未加载完成，请稍后再试');
+        console.log('  2. 需要登录才能查看评论');
+        console.log('  3. 抖音更新了页面结构');
+        console.log('\n建议:');
+        console.log('  • 手动滚动页面让评论加载');
+        console.log('  • 确保已登录抖音账号');
+        console.log('  • 刷新页面后重新运行诊断');
+    }
+
+    console.log('\n' + '='.repeat(70));
+
+})();</code>
+
+        <div class="success">
+            <strong>💡 使用提示：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>抖音PC网页版和移动端H5的选择器可能不同</li>
+                <li>如果诊断未找到选择器，请确保评论区域已加载</li>
+                <li>可能需要手动滚动页面触发懒加载</li>
+                <li>部分内容需要登录后才能查看评论</li>
+            </ul>
+        </div>
+
+        <div class="selector-list">
+            <h3 style="margin-bottom: 15px;">🔍 常见抖音选择器</h3>
+            <div class="selector-item">[class*="comment"]</div>
+            <div class="selector-item">[class*="Comment"]</div>
+            <div class="selector-item">.comment-item</div>
+            <div class="selector-item">[data-e2e="comment-item"]</div>
+            <div class="selector-item">[class*="CommentItem"]</div>
+        </div>
+    </div>
+
+    <script>
+        function copyDiagnostic() {
+            const code = document.getElementById('diagnosticCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                const feedback = document.getElementById('feedback');
+                feedback.style.display = 'inline';
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动选择代码复制');
+            });
+        }
+    </script>
+</body>
+</html>

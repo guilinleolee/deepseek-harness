@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hero Scene</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --background: #0f0f23;
+      --text: #f1f5f9;
+      --particle: rgba(99,102,241,0.8);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #scene-hero {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    #scene-hero canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      width: 100%; height: 100%;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 2rem;
+    }
+    .logo-container {
+      margin-bottom: 2rem;
+    }
+    .logo {
+      width: 120px;
+      height: auto;
+      object-fit: contain;
+    }
+    .hero-title {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .hero-subtitle {
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      opacity: 0.8;
+      font-weight: 400;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-hero" class="scene">
+    <canvas id="particle-hero" data-component="particle-orbit"></canvas>
+    <div class="hero-content">
+      <div class="logo-container">
+        <img src="{{logo}}" class="logo" alt="Logo" onerror="this.style.display='none'" />
+      </div>
+      <h1 class="hero-title">{{title}}</h1>
+      <p class="hero-subtitle">{{subtitle}}</p>
+    </div>
+  </div>
+
+  <script>
+    // Hero Scene GSAP Timeline (paused by default, played by scene_composer)
+    (function() {
+      const sceneEl = document.getElementById('scene-hero');
+      const logoEl = sceneEl.querySelector('.logo');
+      const titleEl = sceneEl.querySelector('.hero-title');
+      const subtitleEl = sceneEl.querySelector('.hero-subtitle');
+
+      const heroTl = gsap.timeline({ paused: true });
+
+      // Mount particle component
+      heroTl.call(() => {
+        if (window.__registry && window.__registry['particle-orbit']) {
+          window.__registry['particle-orbit'].mount(sceneEl.querySelector('canvas'));
+        }
+      }, null, 0);
+
+      // Logo entrance
+      if (logoEl && logoEl.style.display !== 'none') {
+        heroTl.fromTo(logoEl,
+          { scale: 0.5, opacity: 0, y: -20 },
+          { scale: 1, opacity: 1, y: 0, duration: 0.8, ease: "power4.out" },
+          0.3
+        );
+      }
+
+      // Title entrance
+      heroTl.fromTo(titleEl,
+        { y: 40, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+        0.5
+      );
+
+      // Subtitle entrance
+      heroTl.fromTo(subtitleEl,
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 0.8, duration: 0.5, ease: "sine.out" },
+        0.8
+      );
+
+      // Particle burst at peak
+      heroTl.to({}, { duration: 1.5 }, 1.5);
+
+      // Unmount particle
+      heroTl.call(() => {
+        if (window.__registry && window.__registry['particle-orbit']) {
+          window.__registry['particle-orbit'].unmount();
+        }
+      }, null, 7);
+
+      // Register timeline
+      window.__timelines = window.__timelines || {};
+      window.__timelines['scene-hero'] = heroTl;
+
+      // Expose scene config
+      window.__sceneConfigs = window.__sceneConfigs || {};
+      window.__sceneConfigs['scene-hero'] = {
+        type: 'hero',
+        duration: {{duration}},
+        content: { title: '{{title}}', subtitle: '{{subtitle}}' }
+      };
+    })();
+  </script>
+</body>
+</html>

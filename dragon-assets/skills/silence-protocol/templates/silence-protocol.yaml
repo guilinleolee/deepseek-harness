@@ -1,0 +1,152 @@
+# silence-protocol.yaml
+# 留白协议模板
+# Silence Protocol Configuration Template
+# 用于快速生成自定义沉默协议配置
+
+protocol_id: "自定义协议ID"
+protocol_name: "协议名称"
+
+# ============================================================================
+# 沉默场景定义
+# ============================================================================
+silence_conditions:
+  mandatory_silence:
+    # 必须沉默的场景（无论什么情况都沉默）
+    - condition: "场景描述"
+      reason: "沉默原因"
+      alternative: "替代方案（延后/合并/不发送）"
+
+  default_silence:
+    # 默认沉默的场景（除非有明确理由才发牌）
+    - condition: "场景描述"
+      exception_criteria: "可以发牌的例外条件"
+
+  conditional_silence:
+    # 条件性沉默（满足沉默条件时沉默）
+    - condition: "场景描述"
+      silence_until: "沉默直到..."
+      wake_condition: "唤醒条件"
+
+# ============================================================================
+# 沉默时长设计
+# ============================================================================
+silence_duration:
+  immediate: "立即沉默（不发送）"
+  short_term: "短暂沉默（<5分钟）"
+  medium_term: "中等沉默（5-30分钟）"
+  long_term: "长期沉默（>30分钟）"
+  permanent: "永久沉默（除非用户主动开启）"
+
+  custom_tiers:
+    - tier: "tier_1"
+      name: "短暂沉默"
+      duration: "<5分钟"
+      description: "用于低优先级信息"
+    - tier: "tier_2"
+      name: "中等沉默"
+      duration: "5-30分钟"
+      description: "用于中等优先级信息"
+    - tier: "tier_3"
+      name: "长期沉默"
+      duration: ">30分钟"
+      description: "用于高优先级信息"
+
+# ============================================================================
+# 唤醒机制
+# ============================================================================
+wake_up:
+  conditions:
+    - "用户主动询问"
+    - "状态发生重大变化"
+    - "任务关键节点到达"
+    - "沉默时长达到上限"
+
+  escalation:
+    - "沉默超时时自动升级为发牌"
+    - "高优先级信息绕过沉默"
+
+  notification:
+    silent_countdown: true  # 是否静默倒计时通知
+    countdown_duration: "5分钟"  # 倒计时时长
+
+# ============================================================================
+# 打断成本配置
+# ============================================================================
+interruption_cost:
+  cognitive:
+    context_switch_time: 3  # 上下文切换时间（分钟）
+    mental_state_recovery: 2  # 心理状态恢复时间（分钟）
+    deep_work_loss: 5  # 深度工作损失程度（分钟）
+
+  emotional:
+    frustration_level: 2  # 挫败感程度（1-10）
+    trust_impact: 1  # 信任影响程度（1-10）
+    anxiety_increase: 2  # 焦虑增加程度（1-10）
+
+  efficiency:
+    task_completion_delay: 5  # 任务完成延迟（分钟）
+    flow_state_break: true  # 是否打破心流状态
+    productivity_loss: 0.2  # 生产力损失比例（0-1）
+
+# ============================================================================
+# 发牌收益配置
+# ============================================================================
+card_benefit:
+  uncertainty_reduction:
+    level: "high"  # high/medium/low
+    value: 3  # 价值评分（1-10）
+
+  action_clarity:
+    level: "high"  # high/medium/low
+    value: 3  # 价值评分（1-10）
+
+  efficiency_improvement:
+    percentage: 0.3  # 预估效率改善比例（0-1）
+
+# ============================================================================
+# 用户控制
+# ============================================================================
+user_control:
+  override_silence: true  # 是否允许用户覆盖沉默
+  customize_silence: true  # 是否允许用户自定义沉默
+  silence_history_visible: true  # 是否显示沉默历史
+
+  preferences:
+    quiet_mode: false  # 静音模式
+    do_not_disturb: false  # 勿扰模式
+    deep_work_protection: true  # 深度工作保护
+
+# ============================================================================
+# 沉默健康度监控
+# ============================================================================
+monitoring:
+  enabled: true
+
+  metrics:
+    - name: "沉默率"
+      formula: "沉默事件数 / 总发牌尝试数"
+      target: "<30%"
+
+    - name: "沉默正确率"
+      formula: "沉默正确数 / 总沉默数"
+      target: ">85%"
+
+    - name: "沉默超时触发率"
+      formula: "超时触发数 / 总沉默数"
+      target: "<10%"
+
+    - name: "沉默被绕过率"
+      formula: "高优先级绕过数 / 总沉默数"
+      target: "<5%"
+
+  alert_threshold:
+   沉默率: ">40%"
+    沉默超时触发率: ">20%"
+    用户负面反馈率: ">10%"
+
+# ============================================================================
+# 版本信息
+# ============================================================================
+version: "1.0.0"
+created_date: "2026-04-24"
+author: "天龙引擎"

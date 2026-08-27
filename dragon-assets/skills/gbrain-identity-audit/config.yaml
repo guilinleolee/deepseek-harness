@@ -1,0 +1,199 @@
+# gbrain-identity-audit 配置
+# 身份审计系统配置
+
+identity_audit:
+  # 审计版本
+  version: "V1.0"
+
+  # 审计范围 - 天龙引擎全部门
+  scope:
+    departments:
+      - id: "core-nine"
+        name: "核心九部"
+        agents: ["00", "01", "02", "03", "04", "05", "06", "07", "08"]
+      - id: "orchestration"
+        name: "编排协调"
+        agents: ["09-01", "09-02", "09-03", "09-04", "09-05"]
+      - id: "technology-center"
+        name: "技术中心"
+        agents: ["10-01", "10-02", "10-03", "10-04", "10-05", "13-01", "16-01", "16-02", "17-04", "19-01"]
+      - id: "planning-center"
+        name: "企划中心"
+        agents: ["20-01", "22-01", "22-02", "22-03", "25-01", "25-02", "28-01", "28-02", "28-03"]
+      - id: "marketing-center"
+        name: "营销中心"
+        agents: ["30-01", "30-02", "32-01", "32-02", "32-03", "35-01", "35-02", "35-03", "35-04", "35-05", "38-01", "38-02"]
+      - id: "operations-center"
+        name: "运营中心"
+        agents: ["40-01", "40-02", "45-01", "47-01", "49-01"]
+      - id: "product-center"
+        name: "产品中心"
+        agents: ["50-01", "50-02", "50-03"]
+      - id: "investment-center"
+        name: "投资中心"
+        agents: ["60-01", "60-02", "62-01", "62-02", "62-03", "64-01", "64-02", "66-01", "66-02", "68-01", "68-02"]
+      - id: "legal-center"
+        name: "法务中心"
+        agents: ["73-01", "73-02", "73-03", "76-01", "76-02", "78-01", "78-02", "78-03"]
+      - id: "finance-center"
+        name: "财务中心"
+        agents: ["80-01", "83-01", "83-02", "83-03", "86-01", "87-01", "88-01", "89-01"]
+      - id: "hr-center"
+        name: "人事中心"
+        agents: ["90-01", "93-01", "96-01", "91-01", "98-01", "97-01", "98-02", "99-01"]
+
+  # 检查严格度配置
+  strictness:
+    # 角色定义检查
+    role_definition:
+      level: "error"
+      require_primary: true       # 必须有主要职责
+      max_secondary: 3           # 次要职责最多3项
+      require_keywords: true      # 必须有触发关键词
+
+    # 能力盘点检查
+    capability_inventory:
+      level: "warn"
+      require_skill_list: true   # 必须有SKILL列表
+      require_tool_permissions: true  # 必须明确工具权限
+      max_tool_permissions: 20    # 工具权限最多20项
+
+    # 协作接口检查
+    collaboration_interface:
+      level: "error"
+      require_upstream: true     # 必须有上游接口
+      require_downstream: true   # 必须有下游接口
+      detect_circular_deps: true # 检测循环依赖
+
+    # 边界界定检查
+    boundary_definition:
+      level: "error"
+      require_can_do: true      # 必须有can_do列表
+      require_cannot_do: true    # 必须有cannot_do列表
+      require_prohibitions: true # 必须有禁止事项
+
+    # 一致性验证检查
+    consistency_verification:
+      level: "warn"
+      check_doc_vs_config: true  # 文档vs配置一致性
+      check_config_vs_behavior: true  # 配置vs行为一致性
+      check_self_vs_ability: true   # 自我认知vs能力
+
+    # 演进追踪检查
+    evolution_tracking:
+      level: "warn"
+      require_change_history: true  # 必须有变更历史
+      require_growth_metrics: true   # 必须有成长指标
+      require_risk_warnings: true   # 必须有风险预警
+
+  # 冲突检测配置
+  conflict_detection:
+    enabled: true
+    # 已知冲突矩阵
+    known_conflicts:
+      - agent_a: "03-builder"
+        agent_b: "06-code-reviewer"
+        type: "role-overlap"
+        description: "代码编写与代码审查边界模糊"
+        resolution: "严格分离：构建师执行→审查师审查"
+
+      - agent_a: "04-validator"
+        agent_b: "05-security-reviewer"
+        type: "capability-cross"
+        description: "安全测试与功能测试边界模糊"
+        resolution: "按安全等级分流"
+
+      - agent_a: "07-scribe"
+        agent_b: "01-investigator"
+        type: "knowledge-overlap"
+        description: "调研结论与记录归档边界模糊"
+        resolution: "调研师前端→记录师后端"
+
+      - agent_a: "09-02-orchestrator"
+        agent_b: "09-03-meta-reviewer"
+        type: "hierarchy-conflict"
+        description: "编排决策与元审查边界模糊"
+        resolution: "编排执行→元审查监督"
+
+    # 自动检测规则
+    auto_detection:
+      same_keywords: true       # 检测相同关键词
+      same_upstream: true       # 检测相同上游
+      circular_dependencies: true  # 检测循环依赖
+      duplicate_capabilities: true  # 检测重复能力
+
+  # 报告配置
+  report:
+    formats:
+      - markdown    # Markdown报告
+      - yaml        # YAML配置
+      - json        # JSON快照
+
+    output_dir: "reports/"
+    include_screenshots: false    # 包含截图
+    include_recommendations: true  # 包含建议
+
+    # 报告内容选项
+    content:
+      include_identity_config: true
+      include_conflict_matrix: true
+      include_capability_map: true
+      include_collaboration_graph: true
+      include_evolution_timeline: true
+
+  # 存储配置
+  storage:
+    # 审计报告存储
+    audit_reports_dir: "audit-reports/"
+
+    # 身份配置存储
+    identity_configs_dir: "identity-configs/"
+
+    # 冲突矩阵存储
+    conflict_matrix_file: "conflict-matrix.json"
+
+    # 演进历史存储
+    evolution_history_dir: "evolution-history/"
+
+    # 备份目录
+    backup_dir: "backups/"
+
+  # 与天龙引擎协同
+  tianlong_integration:
+    # 挂载到06审查师
+    attached_role: "06-code-reviewer"
+
+    # 下游处理
+    downstream:
+      - gbrain-signal-detector   # 信号检测
+      - gbrain-multimodal-ingest # 多模态摄入
+      - gbrain-daily-briefing    # 每日简报
+
+    # 天龙九部协同配置
+    dragon_team:
+      # 自动审计触发条件
+      auto_audit_triggers:
+        - event: "CLAUDE.md版本更新"
+          scope: "all"
+        - event: "新Agent首次使用"
+          scope: "single"
+        - event: "角色冲突检测"
+          scope: "all"
+        - event: "周度健康检查"
+          scope: "all"
+
+      # 审计报告同步
+      sync_targets:
+        - target: "CLAUDE.md"
+          field: "identity_audit"
+        - target: "MemPalace"
+          container: "identity-audit"
+        - target: "llm-wiki-compiler"
+          category: "天龙治理/身份审计"
+
+      # 角色同步
+      role_sync:
+        enabled: true
+        sync_with_claude_md: true
+        sync_with_agents: true
+        auto_generate_config: true

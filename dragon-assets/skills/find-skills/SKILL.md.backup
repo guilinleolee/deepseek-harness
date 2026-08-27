@@ -1,0 +1,67 @@
+---
+name: find-skills 找技能
+description: Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.
+github_url: https://github.com/KimYx0207/findskill
+github_hash: 363e7a147d23ae1dc3e23d76b6990a2065ea1b09
+version: 0.1.0
+created_at: 2026-01-30
+entry_point: SKILL.md
+dependencies: ["npx"]
+---
+
+# Find Skills (Windows Compatible Version)
+
+This skill helps you discover and install skills from the open agent skills ecosystem.
+
+**This is a Windows-compatible fork that fixes the empty output issue in Claude Code on Windows.**
+
+## ⚠️ CRITICAL: Windows Compatibility
+
+**On Windows, you MUST use PowerShell to run skills commands!**
+
+The default Bash/Git Bash environment on Windows does NOT work with `npx skills` - commands will return empty output.
+
+**Always use this format on Windows:**
+```bash
+powershell -Command "npx skills find '[query]'"
+powershell -Command "npx skills add [package] -g -y"
+powershell -Command "npx skills list -g"
+```
+
+**Example:**
+```bash
+# ✅ CORRECT - works on Windows
+powershell -Command "npx skills find 'react'"
+```
+
+## When to Use This Skill
+
+Use this skill when the user:
+- Asks "how do I do X" where X might be a common task with an existing skill
+- Says "find a skill for X" or "is there a skill for X"
+- Asks "can you do X" where X is a specialized capability
+
+## How to Help Users Find Skills
+
+### Step 1: Search for Skills
+Run the find command with a relevant query.
+
+**On Windows (REQUIRED):**
+```bash
+powershell -Command "npx skills find '[query]'"
+```
+
+### Step 2: Present Options to the User
+When you find relevant skills, present them to the user with the skill name and install command.
+
+### Step 3: Offer to Install
+If the user wants to proceed, you can install the skill for them.
+
+**On Windows (REQUIRED):**
+```bash
+powershell -Command "npx skills add <owner/repo@skill> -g -y"
+```
+
+---
+**Original skill by Vercel Labs: https://github.com/vercel-labs/skills**
+**Windows fix by: https://github.com/KimYx0207/findskill**

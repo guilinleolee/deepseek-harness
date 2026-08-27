@@ -1,0 +1,1347 @@
+{
+  "apify/agent-skills": {
+    "owner": "apify",
+    "repo": "agent-skills",
+    "remote_hash": "28e08de7b3e6da475eeeb985d57e7f51bc76c6c2",
+    "method": "git_config",
+    "skills": [
+      "competitor-intelligence",
+      "ecommerce-monitor",
+      "lead-generation",
+      "market-research"
+    ],
+    "skill_count": 4,
+    "status": "reachable"
+  },
+  "mmlong818/Cat-Research": {
+    "owner": "mmlong818",
+    "repo": "Cat-Research",
+    "remote_hash": "3ae393e2d5bc36a0cd9361185f7fb7eb53d0a64b",
+    "method": "git_config",
+    "skills": [
+      "conclusion-validator",
+      "fact-checker-v2",
+      "quality-ratchet",
+      "source-verifier"
+    ],
+    "skill_count": 4,
+    "status": "reachable"
+  },
+  "CuriousLearnerDev/Online_tools": {
+    "owner": "CuriousLearnerDev",
+    "repo": "Online_tools",
+    "remote_hash": "1ccce0d74a00b23f5744e6e39da303b4feac8d12",
+    "method": "git_config",
+    "skills": [
+      "burp-cs-extensions",
+      "hexstrike-pentest-suite",
+      "incident-response-sop",
+      "memory-forensics-kit",
+      "reverse-engineering-tools",
+      "vulnerability-scanner-kit"
+    ],
+    "skill_count": 6,
+    "status": "reachable"
+  },
+  "JuliusBrussee/caveman": {
+    "owner": "JuliusBrussee",
+    "repo": "caveman",
+    "remote_hash": "84cc3c14fa1e10182adaced856e003406ccd250d",
+    "method": "git_config",
+    "skills": [
+      "caveman-commit",
+      "caveman-eval-harness",
+      "caveman-file-compress",
+      "caveman-review",
+      "caveman-terse"
+    ],
+    "skill_count": 5,
+    "status": "reachable"
+  },
+  "bytedance/deer-flow": {
+    "owner": "bytedance",
+    "repo": "deer-flow",
+    "remote_hash": "b9709934255b2f7f951fd4b2300543ef764e1473",
+    "method": "git_config",
+    "skills": [
+      "deer-flow-memory",
+      "deer-flow-multi-agent",
+      "deer-flow-skill-system",
+      "podcast-generation"
+    ],
+    "skill_count": 4,
+    "status": "reachable"
+  },
+  "wade56754/openclaw-strategist": {
+    "owner": "wade56754",
+    "repo": "openclaw-strategist",
+    "remote_hash": "a94f97a0d4b7bfc8285792976ac5fe758e3f142f",
+    "method": "git_config",
+    "skills": [
+      "business-decision-sop",
+      "mental-models-checker",
+      "warroom-decision"
+    ],
+    "skill_count": 3,
+    "status": "reachable"
+  },
+  "affaan-m/everything-claude-code": {
+    "owner": "affaan-m",
+    "repo": "everything-claude-code",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "method": "git_config",
+    "skills": [
+      "agent-harness-construction",
+      "agent-payment-x402",
+      "ai-first-engineering",
+      "ai-regression-testing",
+      "api-design",
+      "benchmark",
+      "blueprint",
+      "browser-qa",
+      "canary-watch",
+      "claude-api",
+      "context-budget",
+      "continuous-agent-loop",
+      "database-migrations",
+      "deployment-patterns",
+      "docker-patterns",
+      "e2e-testing",
+      "enterprise-agent-ops",
+      "git-workflow",
+      "golang-patterns",
+      "mcp-server-patterns",
+      "python-patterns",
+      "search-first",
+      "security-scan",
+      "team-builder"
+    ],
+    "skill_count": 24,
+    "status": "reachable"
+  },
+  "paperclipai/paperclip": {
+    "owner": "paperclipai",
+    "repo": "paperclip",
+    "remote_hash": "8f1cd0474fa022363521191faf6bd44c71ec19b3",
+    "method": "git_config",
+    "skills": [
+      "paperclip-cost-control",
+      "paperclip-goal",
+      "paperclip-governance",
+      "paperclip-heartbeat",
+      "paperclip-org",
+      "paperclip-ticket"
+    ],
+    "skill_count": 6,
+    "status": "reachable"
+  },
+  "simstudioai/sim": {
+    "owner": "simstudioai",
+    "repo": "sim",
+    "remote_hash": "3422f64c5f6e1a1c4c008fac1ac1709e9c97035a",
+    "method": "git_config",
+    "skills": [
+      "e2b-sandbox",
+      "reactflow-workflow",
+      "simstudio-api"
+    ],
+    "skill_count": 3,
+    "status": "reachable"
+  },
+  "garrytan/gstack": {
+    "owner": "garrytan",
+    "repo": "gstack",
+    "remote_hash": "6209163900beb7497391f8dfc35e2c7d362f23b8",
+    "method": "git_config",
+    "skills": [
+      "gstack-browse",
+      "gstack-preamble",
+      "multi-ai-review"
+    ],
+    "skill_count": 3,
+    "status": "reachable"
+  },
+  "scrapy/scrapy": {
+    "owner": "scrapy",
+    "repo": "scrapy",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "scrapy-anti-ban",
+      "scrapy-data-pipeline",
+      "scrapy-spider-developer"
+    ],
+    "skill_count": 3,
+    "status": "error"
+  },
+  "vercel-labs/skills": {
+    "owner": "vercel-labs",
+    "repo": "skills",
+    "remote_hash": "5516b8ad07393f35af4b50238b9d3f7cceca5f1e",
+    "method": "git_config",
+    "skills": [
+      "find-skills",
+      "skills-cli"
+    ],
+    "skill_count": 2,
+    "status": "reachable"
+  },
+  "cheahjs/free-llm-api-resources": {
+    "owner": "cheahjs",
+    "repo": "free-llm-api-resources",
+    "remote_hash": "b67cfc61f7663b822d0f860f554f5afd4a2bec4a",
+    "method": "git_config",
+    "skills": [
+      "free-llm-provider-aggregator",
+      "smart-provider-router"
+    ],
+    "skill_count": 2,
+    "status": "reachable"
+  },
+  "vercel-labs/agent-browser": {
+    "owner": "vercel-labs",
+    "repo": "agent-browser",
+    "remote_hash": "57405f93614fae46e5c955ce662b4785283e1301",
+    "method": "http://localhost:7890",
+    "skills": [
+      "agent-browser",
+      "agent-browser-skill",
+      "browserbase-skill"
+    ],
+    "skill_count": 3,
+    "status": "reachable"
+  },
+  "666ghj/MiroFish": {
+    "owner": "666ghj",
+    "repo": "MiroFish",
+    "remote_hash": "fa0f6519b10c4a25b78f1bcc1f00dfcd8bf1ab41",
+    "method": "git_config",
+    "skills": [
+      "graph-rag-builder",
+      "swarm-intelligence"
+    ],
+    "skill_count": 2,
+    "status": "reachable"
+  },
+  "HKUDS/LightRAG": {
+    "owner": "HKUDS",
+    "repo": "LightRAG",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "enterprise-docs-search",
+      "graph-rag-builder",
+      "lightrag-knowledge-base"
+    ],
+    "skill_count": 3,
+    "status": "error"
+  },
+  "code-yeongyu/oh-my-openagent": {
+    "owner": "code-yeongyu",
+    "repo": "oh-my-openagent",
+    "remote_hash": "48b0cfeaf54b19beca3c29d501c58c05d5515d2d",
+    "method": "http://127.0.0.1:7890",
+    "skills": [
+      "hash-anchored-edit",
+      "lsp-tools"
+    ],
+    "skill_count": 2,
+    "status": "reachable"
+  },
+  "wanikua/boluobobo-ai-court-tutorial": {
+    "owner": "wanikua",
+    "repo": "boluobobo-ai-court-tutorial",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "discord-bot",
+      "openviking",
+      "quadrants"
+    ],
+    "skill_count": 3,
+    "status": "error"
+  },
+  "daxiangnaoyang/openclaw-advanced-memory": {
+    "owner": "daxiangnaoyang",
+    "repo": "openclaw-advanced-memory",
+    "remote_hash": "9f346bade231755f2bf0b3d958215c01172519c1",
+    "method": "git_config",
+    "skills": [
+      "advanced-memory-sync"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "NVIDIA/NeMo-Agent-Toolkit-Examples": {
+    "owner": "NVIDIA",
+    "repo": "NeMo-Agent-Toolkit-Examples",
+    "remote_hash": "184c67af8427fba09d9f9975f72fa39f9208a011",
+    "method": "git_config",
+    "skills": [
+      "agent-payment-x402"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "paul-gauthier/aider": {
+    "owner": "paul-gauthier",
+    "repo": "aider",
+    "remote_hash": "0189cf4f0009aa58fd24a3b8c834819c8230fa77",
+    "method": "git_config",
+    "skills": [
+      "aider-pair-programming"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "comeonzhj/Auto-Redbook-Skills": {
+    "owner": "comeonzhj",
+    "repo": "Auto-Redbook-Skills",
+    "remote_hash": "6f06770f3662624760a0c885bca6230f40c8b7ad",
+    "method": "git_config",
+    "skills": [
+      "auto-redbook-skills"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "aiming-lab/AutoResearchClaw": {
+    "owner": "aiming-lab",
+    "repo": "AutoResearchClaw",
+    "remote_hash": "84dad0a401404739cfcc47851cd1d282b671bb2f",
+    "method": "git_config",
+    "skills": [
+      "auto-research-claw"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "shadcn-ui/ui": {
+    "owner": "shadcn-ui",
+    "repo": "ui",
+    "remote_hash": "cc20c8a79493156476de07c4711ea15522d3c446",
+    "method": "http://localhost:10808",
+    "skills": [
+      "shadcn-blocks-generator",
+      "shadcn-component-generator"
+    ],
+    "skill_count": 2,
+    "status": "reachable"
+  },
+  "SkyworkAI/DeepResearchAgent": {
+    "owner": "SkyworkAI",
+    "repo": "DeepResearchAgent",
+    "remote_hash": "d4376664b885eb1db310aace66173911703d0a7e",
+    "method": "git_config",
+    "skills": [
+      "autogenesis"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "karpathy/autoresearch": {
+    "owner": "karpathy",
+    "repo": "autoresearch",
+    "remote_hash": "228791fb499afffb54b46200aca536f79142f117",
+    "method": "git_config",
+    "skills": [
+      "autoresearch-loop"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "Ofnoname/baidu-index-spider": {
+    "owner": "Ofnoname",
+    "repo": "baidu-index-spider",
+    "remote_hash": "a626f1ee87798894ebefaf9fdefa11a36a638321",
+    "method": "git_config",
+    "skills": [
+      "baidu-index"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "HuangQingQuan/bidding_document_generator": {
+    "owner": "HuangQingQuan",
+    "repo": "bidding_document_generator",
+    "remote_hash": "0948863c1411eaa77e359af9fb0f72c6942dca62",
+    "method": "git_config",
+    "skills": [
+      "bidding-document-generator"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "jackwener/bilibili-cli": {
+    "owner": "jackwener",
+    "repo": "bilibili-cli",
+    "remote_hash": "dbe28551930df43b633baa52e9639832aeada967",
+    "method": "git_config",
+    "skills": [
+      "bilibili-operations"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "ruvnet/ruflo": {
+    "owner": "ruvnet",
+    "repo": "ruflo",
+    "remote_hash": "01070ede81fa6fbae93d01c347bec1af5d6c17f0",
+    "method": "git_config",
+    "skills": [
+      "booster"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "sparanoid/chinese-copywriting-guidelines": {
+    "owner": "sparanoid",
+    "repo": "chinese-copywriting-guidelines",
+    "remote_hash": "a26e2ce63c99bf546a0cc9a09085d916c6432185",
+    "method": "git_config",
+    "skills": [
+      "chinese-copywriting-rules"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "thedotmack/claude-mem": {
+    "owner": "thedotmack",
+    "repo": "claude-mem",
+    "remote_hash": "8ace1d9c84e5ce455356cf852c370ea625e3b1d1",
+    "method": "git_config",
+    "skills": [
+      "claude-mem"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "HKUDS/CLI-Anything": {
+    "owner": "HKUDS",
+    "repo": "CLI-Anything",
+    "remote_hash": "47540664f834027f336ebe0d56b28d3ca1c6711b",
+    "method": "git_config",
+    "skills": [
+      "cli-anything"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "Nemo2011/bilibili-api": {
+    "owner": "Nemo2011",
+    "repo": "bilibili-api",
+    "remote_hash": "0147ab61aa5a9f821c9b441cb1ddfdc761a3d999",
+    "method": "http://127.0.0.1:10808",
+    "skills": [
+      "bilibili-operations"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "DeusData/codebase-memory-mcp": {
+    "owner": "DeusData",
+    "repo": "codebase-memory-mcp",
+    "remote_hash": "bebc6d8d571268f6ebe30f8bd1aca036e958b6ef",
+    "method": "git_config",
+    "skills": [
+      "codebase-memory-mcp"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "muratcankoylan/agent-skills-for-context-engineering": {
+    "owner": "muratcankoylan",
+    "repo": "agent-skills-for-context-engineering",
+    "remote_hash": "7a95d94c364e25c869a86896a45791dfda6db8bf",
+    "method": "git_config",
+    "skills": [
+      "context-engineering"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "upstash/context7": {
+    "owner": "upstash",
+    "repo": "context7",
+    "remote_hash": "5d284f215471c341e0e3d9bb4f9c24bb1345ada1",
+    "method": "git_config",
+    "skills": [
+      "context7"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "joaomdmoura/crewAI": {
+    "owner": "joaomdmoura",
+    "repo": "crewAI",
+    "remote_hash": "cb46a1c4babef8c51db6499d7a81f2c36b01bdef",
+    "method": "git_config",
+    "skills": [
+      "crewai-orchestration"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "user/repo": {
+    "owner": "user",
+    "repo": "repo",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "cli-anything"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "dontbesilent2025/dbskill": {
+    "owner": "dontbesilent2025",
+    "repo": "dbskill",
+    "remote_hash": "f29b07c5d4811ef21951a9b59cb8978fa0851b17",
+    "method": "git_config",
+    "skills": [
+      "dbs"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "HKUDS/DeepTutor": {
+    "owner": "HKUDS",
+    "repo": "DeepTutor",
+    "remote_hash": "e8a569a61856c74210d8fb7a406c5483b4a6d291",
+    "method": "git_config",
+    "skills": [
+      "deeptutor-bridge"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "VoltAgent/awesome-design-md": {
+    "owner": "VoltAgent",
+    "repo": "awesome-design-md",
+    "remote_hash": "6dc4def886e9ad4022d616dc2afc2fcdf0056d07",
+    "method": "git_config",
+    "skills": [
+      "design-md-assistant"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "github.com/affaan-m": {
+    "owner": "github.com",
+    "repo": "affaan-m",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "docker-patterns"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "drizzle-team/drizzle-orm": {
+    "owner": "drizzle-team",
+    "repo": "drizzle-orm",
+    "remote_hash": "48e5406027103a9fca6eb66417187c4a8b5c6aa3",
+    "method": "git_config",
+    "skills": [
+      "drizzle-orm"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "e2b-dev/e2b": {
+    "owner": "e2b-dev",
+    "repo": "e2b",
+    "remote_hash": "3167e19b4fced0bc436e35bfa3f33e9d72d5424b",
+    "method": "git_config",
+    "skills": [
+      "e2b-sandbox"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "KimYx0207/findskill": {
+    "owner": "KimYx0207",
+    "repo": "findskill",
+    "remote_hash": "cf7635e3755c47b472bfb6dfd854680b5662ee26",
+    "method": "git_config",
+    "skills": [
+      "find-skills"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "firecrawl/firecrawl": {
+    "owner": "firecrawl",
+    "repo": "firecrawl",
+    "remote_hash": "0c24965c73d7b8828a4e565035a9f66871d295b1",
+    "method": "git_config",
+    "skills": [
+      "firecrawl-api"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "zarazhangrui/follow-builders": {
+    "owner": "zarazhangrui",
+    "repo": "follow-builders",
+    "remote_hash": "72469e3ab8bd1a4dff23cdf391cc5aea9e81ee0c",
+    "method": "git_config",
+    "skills": [
+      "follow-builders"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "assafelovic/gpt-researcher": {
+    "owner": "assafelovic",
+    "repo": "gpt-researcher",
+    "remote_hash": "92bfc0388c5f7a03b6cb34eaf6ae14298a4b458e",
+    "method": "git_config",
+    "skills": [
+      "gpt-researcher"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "openclaw/openclaw": {
+    "owner": "openclaw",
+    "repo": "openclaw",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "discord-bot"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "microsoft/graphrag": {
+    "owner": "microsoft",
+    "repo": "graphrag",
+    "remote_hash": "0da2a4dd3e1402bd97a7ddd4e6cace8c87a55c8b",
+    "method": "git_config",
+    "skills": [
+      "graph-rag-builder"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "gsd-build/get-shit-done": {
+    "owner": "gsd-build",
+    "repo": "get-shit-done",
+    "remote_hash": "a72bebb3791f5c5d3294683223d35182deed9388",
+    "method": "git_config",
+    "skills": [
+      "gsd-dragon-bridge"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "heygen-com/hyperframes": {
+    "owner": "heygen-com",
+    "repo": "hyperframes",
+    "remote_hash": "a47f48a17fd8bd4846688ed5ba55d6686de0f183",
+    "method": "git_config",
+    "skills": [
+      "hyperframes-core"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "dracohu2025-cloud/draco-skills-collection": {
+    "owner": "dracohu2025-cloud",
+    "repo": "draco-skills-collection",
+    "remote_hash": "496ce67bd114297e1403d342c738c1acdb22aae7",
+    "method": "git_config",
+    "skills": [
+      "hyperframes-core"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "google/knowledge-graph": {
+    "owner": "google",
+    "repo": "knowledge-graph",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "graph-rag-builder"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "obsidianmd/jsoncanvas": {
+    "owner": "obsidianmd",
+    "repo": "jsoncanvas",
+    "remote_hash": "6a703e28021df8fdda8217c097162a86a3a23c53",
+    "method": "git_config",
+    "skills": [
+      "json-canvas"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "pbakaus/impeccable": {
+    "owner": "pbakaus",
+    "repo": "impeccable",
+    "remote_hash": "346ce25952a6d4150433e8fb1369cb59571ebc30",
+    "method": "git_config",
+    "skills": [
+      "impeccable"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "mvanhorn/last30days-skill": {
+    "owner": "mvanhorn",
+    "repo": "last30days-skill",
+    "remote_hash": "d1823a2d05d6eb1b701ec176e8f937f4cb27e596",
+    "method": "git_config",
+    "skills": [
+      "last30days"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "kyegomez/OpenMythos": {
+    "owner": "kyegomez",
+    "repo": "OpenMythos",
+    "remote_hash": "227dbb153266cd154f3d335f18c6b80947879f14",
+    "method": "http://127.0.0.1:10808",
+    "skills": [
+      "hidden-state-reasoning",
+      "openmythos-reasoning",
+      "rdt-architecture-research",
+      "rdt-aware-prompt-design"
+    ],
+    "skill_count": 4,
+    "status": "reachable"
+  },
+  "airbnb/lottie-web": {
+    "owner": "airbnb",
+    "repo": "lottie-web",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "lottie-integration"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "msitarzewski/agency-agents": {
+    "owner": "msitarzewski",
+    "repo": "agency-agents",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "wechat-official-account",
+      "xiaohongshu-operations",
+      "zhihu-operations"
+    ],
+    "skill_count": 3,
+    "status": "error"
+  },
+  "anthropics/claude-code": {
+    "owner": "anthropics",
+    "repo": "claude-code",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "gstack-preamble",
+      "info-graphic-pro",
+      "infographic-designer",
+      "knowledge-comic",
+      "web-scraping-scrapling",
+      "x-publisher"
+    ],
+    "skill_count": 6,
+    "status": "error"
+  },
+  "airbnb/lottie-js": {
+    "owner": "airbnb",
+    "repo": "lottie-js",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "lottie-integration"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "massgen/MassGen": {
+    "owner": "massgen",
+    "repo": "MassGen",
+    "remote_hash": "cc0e60fbb9ff98f83cc12878af808cb46eb0d4a7",
+    "method": "git_config",
+    "skills": [
+      "massgen-consensus"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "kepano/kepano-obsidian": {
+    "owner": "kepano",
+    "repo": "kepano-obsidian",
+    "remote_hash": "473697347a0eaac790a6596229c741b3915f3b77",
+    "method": "http://localhost:7890",
+    "skills": [
+      "kepano-obsidian"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "geekan/MetaGPT": {
+    "owner": "geekan",
+    "repo": "MetaGPT",
+    "remote_hash": "11cdf466d042aece04fc6cfd13b28e1a70341b1f",
+    "method": "git_config",
+    "skills": [
+      "metagpt"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "LottieFiles/dotlottie-js": {
+    "owner": "LottieFiles",
+    "repo": "dotlottie-js",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "lottie-integration"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "mixedbread-ai/mgrep": {
+    "owner": "mixedbread-ai",
+    "repo": "mgrep",
+    "remote_hash": "0883c7a3c3c8658dcd40301826d0da2ab185cb0e",
+    "method": "http://localhost:10808",
+    "skills": [
+      "mgrep"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "mastra-ai/mastra": {
+    "owner": "mastra-ai",
+    "repo": "mastra",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "mastra"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "massgen/massgen": {
+    "owner": "massgen",
+    "repo": "massgen",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "massgen-consensus"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "airbnb/lottie-sites": {
+    "owner": "airbnb",
+    "repo": "lottie-sites",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "lottie-integration"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "easychen/opc-methodology": {
+    "owner": "easychen",
+    "repo": "opc-methodology",
+    "remote_hash": "b3d0503a52298a2fbe4751231f3119d6a015eab5",
+    "method": "git_config",
+    "skills": [
+      "opc-methodology"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "garrytan/gbrain": {
+    "owner": "garrytan",
+    "repo": "gbrain",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "gbrain-multimodal-ingest",
+      "gbrain-signal-detector"
+    ],
+    "skill_count": 2,
+    "status": "error"
+  },
+  "NVIDIA/AgentToolkit": {
+    "owner": "NVIDIA",
+    "repo": "AgentToolkit",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "nemo-claw-sandbox"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "haunchen/n8n-skills": {
+    "owner": "haunchen",
+    "repo": "n8n-skills",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "n8n-skill"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "op7418/Claude-to-IM-skill": {
+    "owner": "op7418",
+    "repo": "Claude-to-IM-skill",
+    "remote_hash": "536908f5e9bd65a151ca4cb4b08d3fedc1a43b4d",
+    "method": "git_config",
+    "skills": [
+      "qq-operations"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "DayuanJiang/next-ai-draw-io": {
+    "owner": "DayuanJiang",
+    "repo": "next-ai-draw-io",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "next-ai-drawio-mcp"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "remotion-dev/remotion": {
+    "owner": "remotion-dev",
+    "repo": "remotion",
+    "remote_hash": "98d08765bcff87e8868bf25909c8b75d270a0321",
+    "method": "git_config",
+    "skills": [
+      "remotion-best-practices"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "your-org/dragon-engine": {
+    "owner": "your-org",
+    "repo": "dragon-engine",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "openspace-community-bridge"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "OpenBB-finance/OpenBB": {
+    "owner": "OpenBB-finance",
+    "repo": "OpenBB",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "openbb-skill"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "buluslan/review-analyzer": {
+    "owner": "buluslan",
+    "repo": "review-analyzer",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "review-analyzer-skill"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "n8n-io/n8n": {
+    "owner": "n8n-io",
+    "repo": "n8n",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "n8n-skill"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "affaan-m/agentshield": {
+    "owner": "affaan-m",
+    "repo": "agentshield",
+    "remote_hash": "162e8e197155a71d360103d99a5efcb722b8a936",
+    "method": "git_config",
+    "skills": [
+      "security-scan"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "vercel-labs/agent-skills": {
+    "owner": "vercel-labs",
+    "repo": "agent-skills",
+    "remote_hash": "ce3e64e468f8fa09a2d075d102771838061fdac0",
+    "method": "git_config",
+    "skills": [
+      "skills-cli"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "supermemoryai/supermemory": {
+    "owner": "supermemoryai",
+    "repo": "supermemory",
+    "remote_hash": "23a60f90f69953d9285568aa1fb5c9b187bdf611",
+    "method": "git_config",
+    "skills": [
+      "supermemory-memory"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "camel-ai/oasis": {
+    "owner": "camel-ai",
+    "repo": "oasis",
+    "remote_hash": "e88662fd3928f0dd7cc6fe919eea4c6b484aa6d3",
+    "method": "git_config",
+    "skills": [
+      "swarm-intelligence"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "camel-ai/camel": {
+    "owner": "camel-ai",
+    "repo": "camel",
+    "remote_hash": "5d1b2ef81981a46c8e23d368b80f778d8d4b9b0e",
+    "method": "git_config",
+    "skills": [
+      "swarm-intelligence"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "multica-ai/multica": {
+    "owner": "multica-ai",
+    "repo": "multica",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "multica-daemon-runtime",
+      "multica-skills-lock",
+      "multica-task-lifecycle",
+      "multica-websocket-realtime"
+    ],
+    "skill_count": 4,
+    "status": "error"
+  },
+  "dequelabs/axe-core": {
+    "owner": "dequelabs",
+    "repo": "axe-core",
+    "remote_hash": "ea7202c6bf1a6166c878dbf19bb5454372b61fae",
+    "method": "http://127.0.0.1:7890",
+    "skills": [
+      "radix-accessibility"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "princeton-nlp/SWE-agent": {
+    "owner": "princeton-nlp",
+    "repo": "SWE-agent",
+    "remote_hash": "0f4f3bba990e01ca8460b9963abdcd89e38042f2",
+    "method": "git_config",
+    "skills": [
+      "swe-agent"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "yunshu0909/yunshu_skillshub": {
+    "owner": "yunshu0909",
+    "repo": "yunshu_skillshub",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "yunshu-backlog-manager",
+      "yunshu-multi-perspective-analysis"
+    ],
+    "skill_count": 2,
+    "status": "error"
+  },
+  "buluslan/review-analyzer-skill": {
+    "owner": "buluslan",
+    "repo": "review-analyzer-skill",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "review-analyzer-skill"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "triggerdotdev/trigger.dev": {
+    "owner": "triggerdotdev",
+    "repo": "trigger.dev",
+    "remote_hash": "5693b62cfbc03736a28c842d006177dd86fa66b2",
+    "method": "git_config",
+    "skills": [
+      "trigger-dev"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "topics/anti-crawler": {
+    "owner": "topics",
+    "repo": "anti-crawler",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "scrapy-anti-ban"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "TurixAI/TuriX-CUA": {
+    "owner": "TurixAI",
+    "repo": "TuriX-CUA",
+    "remote_hash": "8f80ae656ebb72a86592128c87fde3ef1c49af17",
+    "method": "git_config",
+    "skills": [
+      "turix-desktop-agent"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "AllenHu0829/typeless-auto-submit": {
+    "owner": "AllenHu0829",
+    "repo": "typeless-auto-submit",
+    "remote_hash": "7d9945c18c35ff89bd7663d1d1cac3dd59ff0624",
+    "method": "git_config",
+    "skills": [
+      "typeless-auto-submit"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "tavily-ai/tavily-mcp": {
+    "owner": "tavily-ai",
+    "repo": "tavily-mcp",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "tavily-mcp"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "jackwener/twitter-cli": {
+    "owner": "jackwener",
+    "repo": "twitter-cli",
+    "remote_hash": "7816f8d813ff384dce80ec0a0a5dd70c03404a55",
+    "method": "http://127.0.0.1:10808",
+    "skills": [
+      "twitter-operations"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "modelcontextprotocol/servers": {
+    "owner": "modelcontextprotocol",
+    "repo": "servers",
+    "remote_hash": "4503e2d12b799448cd05f789dd40f9643a8d1a6c",
+    "method": "git_config",
+    "skills": [
+      "unified-search"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "D4Vinci/Scrapling": {
+    "owner": "D4Vinci",
+    "repo": "Scrapling",
+    "remote_hash": "54a080aae1d491db4b161bc98af8a227ec923749",
+    "method": "git_config",
+    "skills": [
+      "web-scraping-scrapling"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "wechat-article/wechat-article-exporter": {
+    "owner": "wechat-article",
+    "repo": "wechat-article-exporter",
+    "remote_hash": "e6ebbf39e47e6f83819e4eb9aeaec4e5672a064a",
+    "method": "git_config",
+    "skills": [
+      "wechat-article-exporter"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "yt-dlp/yt-dlp": {
+    "owner": "yt-dlp",
+    "repo": "yt-dlp",
+    "remote_hash": "165ee77a2be1b3360f1b82e03a933348ecd13e41",
+    "method": "git_config",
+    "skills": [
+      "video-downloader"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "runesleo/x-reader": {
+    "owner": "runesleo",
+    "repo": "x-reader",
+    "remote_hash": "f7ac0fe08ad9104ddbd12f907fce9b702f17900f",
+    "method": "git_config",
+    "skills": [
+      "x-reader"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "xpzouying/xiaohongshu-mcp": {
+    "owner": "xpzouying",
+    "repo": "xiaohongshu-mcp",
+    "remote_hash": "c63748f6a96d0dafba6d3acdd67947711837de22",
+    "method": "git_config",
+    "skills": [
+      "xiaohongshu-mcp"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "jackwener/xiaohongshu-cli": {
+    "owner": "jackwener",
+    "repo": "xiaohongshu-cli",
+    "remote_hash": "4d63f3c0c85ccd9054fa8e96d7f761aaf2507449",
+    "method": "git_config",
+    "skills": [
+      "xiaohongshu-cli"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "openclaw/skills": {
+    "owner": "openclaw",
+    "repo": "skills",
+    "remote_hash": "210771ede8b7c92f3434d52005879455b09d0b56",
+    "method": "git_config",
+    "skills": [
+      "youtube-ultimate"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "op7418/Youtube-clipper-skill": {
+    "owner": "op7418",
+    "repo": "Youtube-clipper-skill",
+    "remote_hash": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+    "method": "git_config",
+    "skills": [
+      "youtube-clipper-skill"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "wong2/weixin-agent-sdk": {
+    "owner": "wong2",
+    "repo": "weixin-agent-sdk",
+    "remote_hash": "74694e31c8b39dee388f1ce824bc44690f6af778",
+    "method": "http://127.0.0.1:10808",
+    "skills": [
+      "weixin-acp"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "linuxhsj/openclaw-zero-token": {
+    "owner": "linuxhsj",
+    "repo": "openclaw-zero-token",
+    "remote_hash": "45371627469647d8e4be8b9569437b21bffdaed2",
+    "method": "git_config",
+    "skills": [
+      "zero-token-gateway"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "zstmfhy/zlibrary-to-notebooklm": {
+    "owner": "zstmfhy",
+    "repo": "zlibrary-to-notebooklm",
+    "remote_hash": "4eb1f04a49e9bd2f846c26be4b025f8f9b9e7249",
+    "method": "git_config",
+    "skills": [
+      "zlibrary-to-notebooklm"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "kyrolabs/swarms": {
+    "owner": "kyrolabs",
+    "repo": "swarms",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "swarms"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "All-Hands/AI-Hands": {
+    "owner": "All-Hands",
+    "repo": "AI-Hands",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "openhands"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "owner/repo": {
+    "owner": "owner",
+    "repo": "repo",
+    "remote_hash": null,
+    "method": null,
+    "skills": [
+      "swe-agent"
+    ],
+    "skill_count": 1,
+    "status": "error"
+  },
+  "eyaltoledano/claude-task-master": {
+    "owner": "eyaltoledano",
+    "repo": "claude-task-master",
+    "remote_hash": "c0c98d367c55296bfe69e65680625b6db437af02",
+    "method": "http://localhost:10808",
+    "skills": [
+      "task-master"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  },
+  "github/spec-kit": {
+    "owner": "github",
+    "repo": "spec-kit",
+    "remote_hash": "aad7b161883d5d6c6e8d7ba4c75154a0d6224e87",
+    "method": "http://127.0.0.1:7890",
+    "skills": [
+      "spec-kit-workflow"
+    ],
+    "skill_count": 1,
+    "status": "reachable"
+  }
+}

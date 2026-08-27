@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博爬取 - 激进版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4); }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .comp-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .comp-box.improved {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔥 微博爬取 - 激进版 v3.0</h1>
+
+        <div class="warning">
+            <strong>⚠️ 当前问题：</strong>点击 27 次按钮只爬到 8 条评论
+        </div>
+
+        <div class="info">
+            <strong>💡 激进版改进：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>✓ 每次滚动后都尝试点击按钮（不是每3次）</li>
+                <li>✓ 等待时间增加到 2.5 秒（原来 1.5 秒）</li>
+                <li>✓ 最大迭代次数增加到 1000 次</li>
+                <li>✓ 连续无新评论阈值提高到 150 次</li>
+                <li>✓ 模拟人工滚动（缓慢滚动）</li>
+            </ul>
+        </div>
+
+        <div class="comparison">
+            <div class="comp-box">
+                <strong>旧版本</strong><br>
+                每3次点击按钮<br>
+                等待 1.5 秒<br>
+                600 次迭代
+            </div>
+            <div class="comp-box improved">
+                <strong>激进版</strong><br>
+                每次都点击按钮<br>
+                等待 2.5 秒<br>
+                1000 次迭代
+            </div>
+        </div>
+
+        <h3 style="color: #e74c3c; margin-top: 30px;">📋 使用步骤</h3>
+        <ol style="line-height: 2;">
+            <li>打开 <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" style="color: #e74c3c;">微博页面</a></li>
+            <li><strong>手动滚动到评论区</strong></li>
+            <li>按 <code>F12</code> 打开控制台</li>
+            <li>输入 <code>allow pasting</code> 并按 Enter</li>
+            <li>复制下方脚本</li>
+            <li>粘贴到控制台并按 Enter</li>
+            <li><strong>等待 20-30 分钟</strong></li>
+        </ol>
+
+        <button class="btn" onclick="copyScript()">📋 复制激进版脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px; color: #e74c3c;">📜 脚本代码</h3>
+        <code id="scriptCode">/* 微博评论爬取 - 激进版 v3.0 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #e74c3c');
+    console.log('%c微博评论爬取 - 激进版 v3.0', 'color: #e74c3c; font-size: 18px; font-weight: bold');
+    console.log('%c每次滚动都点击按钮 | 等待2.5秒 | 最多1000次迭代', 'color: #ff6b6b');
+    console.log('%c='.repeat(70), 'color: #e74c3c');
+
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('❌ 请在微博页面使用');
+        return;
+    }
+
+    window.ALL_COMMENTS = new Map();
+    window.SCROLL_STATS = {
+        iterations: 0,
+        lastCount: 0,
+        noNewCount: 0,
+        maxIterations: 1000,
+        stopAfterNoNew: 150,
+        loadMoreClicks: 0,
+        startTime: Date.now()
+    };
+
+    function parseComment(text) {
+        const colonIndex = text.indexOf(':');
+        if (colonIndex === -1) return null;
+        const username = text.substring(0, colonIndex).trim();
+        const timeMatch = text.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);
+        if (!timeMatch) return null;
+        const time = timeMatch[1] + ' ' + timeMatch[2];
+        const timeStartIndex = text.indexOf(timeMatch[0]);
+        let content = text.substring(colonIndex + 1, timeStartIndex).trim();
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/^:+/, '').trim();
+        content = content.replace(/\s+/g, ' ');
+        if (content.length < 2) return null;
+        const likeMatch = text.match(/(\d+)$/);
+        const likes = likeMatch ? parseInt(likeMatch[1]) : 0;
+        const uniqueId = username + '_' + content + '_' + time;
+        return { username, content, time, likes, uniqueId };
+    }
+
+    function extractComments() {
+        const list = document.querySelector('.wbpro-list');
+        if (!list) return 0;
+        const nodes = list.children;
+        for (let i = 0; i < nodes.length; i++) {
+            const text = nodes[i].textContent || '';
+            const comment = parseComment(text);
+            if (comment && !window.ALL_COMMENTS.has(comment.uniqueId)) {
+                window.ALL_COMMENTS.set(comment.uniqueId, comment);
+            }
+        }
+        return window.ALL_COMMENTS.size;
+    }
+
+    // 激进的按钮点击 - 每次都尝试
+    function aggressiveClickLoadMore() {
+        const loadTexts = ['加载更多', '展开查看', '点击加载', '查看更多', '点击查看更多', '展开', '加载', '下一页', '更多评论'];
+        let clickCount = 0;
+
+        // 查找所有按钮
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+            const text = el.textContent || '';
+            if (text.length < 50) {
+                for (const loadText of loadTexts) {
+                    if (text.includes(loadText) && el.offsetParent !== null) {
+                        const style = window.getComputedStyle(el);
+                        const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+                        const isClickable = el.tagName === 'BUTTON' || el.tagName === 'A' || el.role === 'button' || el.onclick !== null || style.cursor === 'pointer';
+                        if (isVisible && isClickable) {
+                            try {
+                                el.click();
+                                clickCount++;
+                                window.SCROLL_STATS.loadMoreClicks++;
+                            } catch (e) {
+                                try {
+                                    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                                    clickCount++;
+                                    window.SCROLL_STATS.loadMoreClicks++;
+                                } catch (e2) {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 查找特定class的按钮
+        const buttonSelectors = ['button[class*="more"]', 'button[class*="load"]', 'a[class*="more"]', '[class*="expand"]', '.more-btn', '.load-more', '[class*="next"]'];
+        buttonSelectors.forEach(selector => {
+            try {
+                const btns = document.querySelectorAll(selector);
+                btns.forEach(btn => {
+                    if (btn.offsetParent !== null) {
+                        btn.click();
+                        clickCount++;
+                        window.SCROLL_STATS.loadMoreClicks++;
+                    }
+                });
+            } catch (e) {}
+        });
+
+        if (clickCount > 0) {
+            console.log(`[按钮] 本次点击了 ${clickCount} 个按钮 (总计: ${window.SCROLL_STATS.loadMoreClicks})`);
+        }
+    }
+
+    // 模拟人工缓慢滚动
+    function humanScroll() {
+        const list = document.querySelector('.wbpro-list');
+        if (list) {
+            const scrollStep = Math.max(100, Math.floor(list.scrollHeight / 10));
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    list.scrollTop += scrollStep;
+                }, i * 100);
+            }
+        }
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function switchSort() {
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return (t.includes('按时间') || t.includes('按热度')) && el.offsetParent !== null;
+        });
+        if (btns.length > 0) {
+            for (const b of btns) {
+                if (b.textContent.includes('按时间')) {
+                    console.log('[排序] 切换到按时间');
+                    b.click();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function tryMultipleDownloads(data) {
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const filename = 'weibo_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            console.log('%c[下载] 文件已下载', 'color: #28a745');
+        } catch (e) {
+            console.warn('[下载] 自动下载失败，请手动复制数据');
+        }
+
+        window.FINAL_DATA = data;
+        console.log('\n%c如需手动复制，请执行: copy(JSON.stringify(window.FINAL_DATA, null, 2))', 'color: #ffc107');
+    }
+
+    async function scrape() {
+        console.log('\n[开始] 启动激进版爬取...\n');
+        console.log('[设置] 每次滚动都点击按钮 | 等待2.5秒 | 最多1000次迭代\n');
+
+        switchSort();
+        await new Promise(r => setTimeout(r, 3000));
+
+        let initialCount = extractComments();
+        console.log(`[初始] 找到 ${initialCount} 条评论`);
+
+        if (initialCount === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            console.log('请确保：');
+            console.log('1. 已登录微博');
+            console.log('2. 手动滚动到评论区');
+            console.log('3. 页面完全加载');
+            return [];
+        }
+
+        console.log(`\n[滚动] 开始激进加载...\n`);
+        console.log('提示: 这将需要 20-30 分钟，请保持页面打开\n');
+
+        for (let i = 0; i < window.SCROLL_STATS.maxIterations; i++) {
+            window.SCROLL_STATS.iterations = i + 1;
+            const currentCount = extractComments();
+
+            // 每10次输出详细进度
+            if (i % 10 === 0 || currentCount > window.SCROLL_STATS.lastCount) {
+                const progress = (currentCount / 680 * 100).toFixed(1);
+                const elapsed = ((Date.now() - window.SCROLL_STATS.startTime) / 1000 / 60).toFixed(1);
+                const newBadge = currentCount > window.SCROLL_STATS.lastCount ? ' (+新!)' : '';
+                console.log(`[${i+1}/${window.SCROLL_STATS.maxIterations}] ${currentCount}条 (${progress}%) | 已用时: ${elapsed}分钟${newBadge}`);
+            }
+
+            if (currentCount >= 680) {
+                console.log(`\n%c✅ 达到目标: ${currentCount} 条！`, 'color: #28a745; font-size: 16px; font-weight: bold');
+                break;
+            }
+
+            if (currentCount === window.SCROLL_STATS.lastCount) {
+                window.SCROLL_STATS.noNewCount++;
+                if (window.SCROLL_STATS.noNewCount % 30 === 0) {
+                    console.log(`[等待] 连续 ${window.SCROLL_STATS.noNewCount} 次无新评论，继续尝试...`);
+                }
+                if (window.SCROLL_STATS.noNewCount >= window.SCROLL_STATS.stopAfterNoNew) {
+                    console.log(`\n%c⚠️ 连续 ${window.SCROLL_STATS.noNewCount} 次无新评论，停止`, 'color: #ffc107; font-weight: bold');
+                    break;
+                }
+            } else {
+                window.SCROLL_STATS.noNewCount = 0;
+                window.SCROLL_STATS.lastCount = currentCount;
+            }
+
+            // 每次都：滚动 + 点击按钮
+            humanScroll();
+            await new Promise(r => setTimeout(r, 500));
+            aggressiveClickLoadMore();
+            await new Promise(r => setTimeout(r, 2000));
+        }
+
+        const arr = Array.from(window.ALL_COMMENTS.values()).sort((a, b) => b.likes - a.likes);
+        const elapsed = ((Date.now() - window.SCROLL_STATS.startTime) / 1000 / 60).toFixed(1);
+
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${arr.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log(`[统计] 点击按钮: ${window.SCROLL_STATS.loadMoreClicks} 次`);
+        console.log(`[统计] 用时: ${elapsed} 分钟`);
+        console.log('='.repeat(70) + '\n');
+        return arr;
+    }
+
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            target_count: 680,
+            actual_count: comments.length,
+            completion_rate: (comments.length / 680 * 100).toFixed(1) + '%',
+            extracted_at: new Date().toISOString(),
+            load_more_clicks: window.SCROLL_STATS.loadMoreClicks,
+            duration_minutes: ((Date.now() - window.SCROLL_STATS.startTime) / 1000 / 60).toFixed(1),
+            comments: comments
+        };
+
+        tryMultipleDownloads(data);
+    }).catch(e => {
+        console.error('❌ 错误:', e);
+    });
+
+})();</code>
+
+        <div class="info" style="margin-top: 30px;">
+            <strong>⏱️ 预计时间：</strong>20-30 分钟
+            <br><br>
+            <strong>💡 提示：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>保持微博页面在前台</li>
+                <li>不要切换到其他标签页</li>
+                <li>确保电脑不休眠</li>
+                <li>控制台会显示实时进度</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => { document.getElementById('feedback').style.display = 'none'; }, 3000);
+            });
+        }
+    </script>
+</body>
+</html>

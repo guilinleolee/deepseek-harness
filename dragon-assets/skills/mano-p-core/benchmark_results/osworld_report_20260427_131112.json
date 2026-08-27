@@ -1,0 +1,15 @@
+{
+  "report": {
+    "total_tasks": 0,
+    "passed": 0,
+    "failed": 0,
+    "partial": 0,
+    "overall_success_rate": 0.0,
+    "avg_steps": 0.0,
+    "avg_duration": 0.0,
+    "success_rate_by_category": {},
+    "benchmark_version": "v1.0",
+    "mano_p_version": "1.0.0"
+  },
+  "results": []
+}

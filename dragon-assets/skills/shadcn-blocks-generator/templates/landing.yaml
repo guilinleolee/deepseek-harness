@@ -1,0 +1,67 @@
+---
+name: landing
+description: 完整着陆页预设 (Hero + Features + Pricing + CTA + Footer)
+blocks:
+  - hero-centered
+  - features-grid
+  - pricing-cards
+  - testimonials-cards
+  - cta-simple
+  - footer-simple
+---
+
+# 着陆页预设
+
+快速构建完整的营销着陆页。
+
+## 包含区块
+
+1. **Hero Centered** - 居中英雄区，标题+副标题+CTA
+2. **Features Grid** - 3列功能网格展示
+3. **Pricing Cards** - 3列定价卡片对比
+4. **Testimonials Cards** - 用户评价展示
+5. **CTA Simple** - 简单行动号召区
+6. **Footer Simple** - 简洁页脚
+
+## 使用方式
+
+```bash
+# CLI 方式
+npx shadcn-ui-blocks preset landing
+
+# 自然语言方式
+[@设计师] 创建一个完整的着陆页
+[@构建师] 使用 landing 预设生成页面
+```
+
+## 页面结构
+
+```tsx
+// app/page.tsx
+import { HeroCentered } from "@/components/blocks/hero-centered"
+import { FeaturesGrid } from "@/components/blocks/features-grid"
+import { PricingCards } from "@/components/blocks/pricing-cards"
+import { TestimonialsCards } from "@/components/blocks/testimonials-cards"
+import { CtaSimple } from "@/components/blocks/cta-simple"
+import { FooterSimple } from "@/components/blocks/footer-simple"
+
+export default function LandingPage() {
+  return (
+    <main>
+      <HeroCentered />
+      <FeaturesGrid />
+      <PricingCards />
+      <TestimonialsCards />
+      <CtaSimple />
+      <FooterSimple />
+    </main>
+  )
+}
+```
+
+## 预期效果
+
+- 页面开发时间: **-80%**
+- 响应式自动适配
+- 主题自动应用
+- SEO友好结构

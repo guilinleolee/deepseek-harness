@@ -1,0 +1,4 @@
+#!/bin/bash
+# NeuroArxiv CLI - arXiv Prior Art检查工具
+cd "$(dirname "$0")"
+node cli.js "$@"

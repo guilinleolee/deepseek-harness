@@ -1,0 +1,71 @@
+"""
+{{tag_title}} API
+Methods for {{tag_description}}
+"""
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .client import APIClient
+
+{{#each schemas}}
+from .types import {{pascal_name}}
+
+
+{{/each schemas}}
+class {{pascal_tag}}API:
+    """API methods for {{tag_title}}"""
+
+    def __init__(self, client: "APIClient"):
+        self.client = client
+
+    {{#each endpoints}}
+    def {{snake_operation_id}}(
+        self,
+        {{#each parameters}}
+        {{snake_name}}: {{python_type}}{{#unless required}} = None{{/unless}}{{#unless @last}},
+        {{/each parameters}}
+        {{#if request_body}}
+        {{#each request_body.fields}}
+        {{snake_name}}: {{python_type}}{{#unless required}} = None{{/unless}}{{#unless @last}},
+        {{/each}}
+        {{/if}}
+    ) -> {{python_response_type}}:
+        """
+        {{summary}}
+        {{#if description}}
+        {{description}}
+        {{/if description}}
+        {{#each parameters}}
+        @param {{snake_name}} {{description}}
+        {{/each parameters}}
+        {{#if request_body}}
+        {{#each request_body.fields}}
+        @param {{snake_name}} {{description}}
+        {{/each}}
+        {{/if}}
+        """
+        path = "{{path}}"
+        {{#each path_params}}
+        path = path.replace("{{original}}", str({{snake_name}}))
+        {{/each path_params}}
+
+        params = {}
+        {{#each query_params}}
+        if {{snake_name}} is not None:
+            params["{{name}}"] = {{snake_name}}
+        {{/each}}
+
+        {{#if request_body}}
+        data = {
+            {{#each request_body.fields}}
+            "{{name}}": {{snake_name}}{{#unless @last}},
+            {{/unless}}
+            {{/each}}
+        }
+        return self.client.{{method}}(path, params=params, data=data)
+        {{/if}}
+        {{#unless request_body}}
+        return self.client.{{method}}(path, params=params)
+        {{/unless}}
+
+    {{/each endpoints}}

@@ -1,0 +1,96 @@
+# web-access 站点经验库
+# 存储各域名的操作模式，跨会话复用
+
+# 格式说明:
+# domain: 域名
+# login_required: 是否需要登录
+# login_method: 登录方式 (chrome_cdp/manual/none)
+# selectors: 关键选择器
+# patterns: 操作模式
+# success_rate: 成功率 (0-1)
+# last_updated: 最后更新时间
+
+sites:
+  # 示例：GitHub
+  github.com:
+    login_required: false
+    login_method: none
+    selectors:
+      repo_list: ".repo-list-item"
+      file_content: ".blob-code-inner"
+      readme: "article.markdown-body"
+    patterns:
+      - action: browse_repo
+        steps:
+          - "Navigate to repo URL"
+          - "Wait for .repo-list-item"
+          - "Extract README content"
+      - action: search_code
+        steps:
+          - "Use GitHub search API via WebSearch"
+          - "Fallback to CDP for private repos"
+    success_rate: 0.95
+    last_updated: 2026-03-27
+
+  # 示例：需要登录的网站
+  example-secure-site.com:
+    login_required: true
+    login_method: chrome_cdp
+    selectors:
+      dashboard: ".dashboard-content"
+      data_table: "table.data-table tbody tr"
+    patterns:
+      - action: extract_data
+        steps:
+          - "Connect to existing Chrome via CDP"
+          - "Navigate to /dashboard"
+          - "Wait for .data-table"
+          - "Extract rows"
+    success_rate: 0.88
+    last_updated: 2026-03-27
+
+# 工具选择策略 (按优先级)
+tool_strategy:
+  - name: WebSearch
+    cost: low
+    speed: fast
+    use_cases:
+      - "公开信息搜索"
+      - "文档查询"
+      - "新闻获取"
+    success_threshold: 0.9
+
+  - name: WebFetch
+    cost: low
+    speed: medium
+    use_cases:
+      - "静态页面抓取"
+      - "博客文章"
+      - "API文档"
+    success_threshold: 0.85
+
+  - name: Jina Reader
+    cost: low
+    speed: medium
+    use_cases:
+      - "需要清洗的网页"
+      - "广告较多的页面"
+      - "需要提取正文内容"
+    success_threshold: 0.8
+
+  - name: Chrome CDP
+    cost: high
+    speed: slow
+    use_cases:
+      - "需要登录的网站"
+      - "动态渲染内容"
+      - "需要交互操作"
+    success_threshold: 0.75
+
+# 站点经验累积规则
+experience_rules:
+  - 新站点首次访问记录基本信息
+  - 成功操作后更新 success_rate
+  - 连续3次失败触发人工审核
+  - 选择器失效时尝试备用选择器
+  - 每周清理 success_rate < 0.5 的站点

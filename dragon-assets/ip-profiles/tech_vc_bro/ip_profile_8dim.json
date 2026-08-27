@@ -1,0 +1,131 @@
+{
+  "blogger_id": "tech_vc_bro",
+  "blogger_name": "科技风投老王",
+  "matched_template": "商务",
+  "language": "zh",
+  "dialect": "普通话",
+  "_meta": {
+    "schema_version": "8-dim-v2.0",
+    "created_at": "2026-07-18",
+    "source": "seed",
+    "consent": {
+      "voice_consent_file": "voice_consent.txt",
+      "ip_consent_file": "ip_consent.txt",
+      "consent_expires_at": "2027-01-14T21:46:26",
+      "watermark_enabled": true
+    }
+  },
+  "dim_1_timbre": {
+    "label": "中年男性",
+    "notes": ""
+  },
+  "dim_2_speed": {
+    "label": "中等",
+    "chars_per_sec": 4.5,
+    "notes": ""
+  },
+  "dim_3_dialect": {
+    "detected": "普通话",
+    "notes": ""
+  },
+  "dim_4_emotion": {
+    "label": "冷静理性",
+    "notes": ""
+  },
+  "dim_5_prosody": {
+    "f0_mean_hz": 130.0,
+    "notes": ""
+  },
+  "dim_6_vocabulary": {
+    "top_words": [
+      "ROI",
+      "复盘",
+      "闭环",
+      "赛道",
+      "估值",
+      "杠杆"
+    ],
+    "forbidden_words": [
+      "降维打击"
+    ]
+  },
+  "dim_7_writing_style": {
+    "style_id": "khazix-writer-v1.0",
+    "style_name": "khazix 风",
+    "mother_formula": "理性拆解一件事的本质",
+    "voice_keywords": [
+      "本质",
+      "杠杆",
+      "ROI",
+      "闭环",
+      "复盘",
+      "赛道"
+    ],
+    "metaphor_library": [
+      "资产负债表",
+      "现金流",
+      "估值模型",
+      "PE/VC",
+      "复利曲线"
+    ],
+    "emotion_library": [
+      "理性",
+      "克制",
+      "紧迫感"
+    ],
+    "rhythm_tools": [
+      "数据论证",
+      "对比",
+      "反问"
+    ],
+    "knowledge_output": "层层推理 + 数据支撑",
+    "closing_patterns": [
+      "理性呼吁",
+      "数据回顾"
+    ],
+    "self_check_4_layer": {
+      "L1_hard_rules": "零踩雷词",
+      "L2_style_consistency": "数据 + 推理",
+      "L3_content_quality": "数字具体",
+      "L4_living_sense": "理性克制"
+    }
+  },
+  "dim_8_ip_visual": {
+    "anchor": {
+      "image_path": "./photos/photo_1.jpg",
+      "description": "科技风投老王"
+    },
+    "spec": {
+      "style_keywords": [
+        "理性",
+        "数据驱动",
+        "克制"
+      ],
+      "color_palette": [
+        "#002FA7",
+        "#fafaf8",
+        "#0a0a0a",
+        "#737373"
+      ],
+      "color_palette_mood": "IKB Klein 蓝 · 极致克制",
+      "line_thickness": "medium",
+      "composition": "中近景"
+    },
+    "extensions": {
+      "actions": [
+        "手势克制"
+      ],
+      "expressions": [
+        "冷静",
+        "专注"
+      ]
+    }
+  },
+  "ip_consent_summary": {
+    "voice_authorized": true,
+    "ip_image_authorized": true,
+    "scope": "全平台",
+    "commercial_use": true,
+    "expires_at": "2027-01-14"
+  }
+}

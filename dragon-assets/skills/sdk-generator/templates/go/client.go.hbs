@@ -1,0 +1,338 @@
+// Package client - HTTP client for {{api_name}}
+// Generated from OpenAPI spec: {{api_version}}
+package client
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+// APIError - Base API error
+type APIError struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+	Response   string `json:"response"`
+}
+
+func (e *APIError) Error() string {
+	if e.StatusCode > 0 {
+		return fmt.Sprintf("APIError(%d): %s", e.StatusCode, e.Message)
+	}
+	return fmt.Sprintf("APIError: %s", e.Message)
+}
+
+// RateLimitError - Rate limit exceeded
+type RateLimitError struct {
+	APIError
+	RetryAfter time.Duration
+}
+
+// NotFoundError - Resource not found
+type NotFoundError struct {
+	APIError
+}
+
+// UnauthorizedError - Authentication failed
+type UnauthorizedError struct {
+	APIError
+}
+
+// ValidationError - Request validation failed
+type ValidationError struct {
+	APIError
+}
+
+// ============================================================================
+// Client Config
+// ============================================================================
+
+// Config - Client configuration
+type Config struct {
+	BaseURL      string
+{{#if auth}}
+{{#if (eq auth_type "bearer")}}
+	Token        string
+{{/if}}
+{{#if (eq auth_type "api_key")}}
+	APIKey       string
+	APIKeyHeader string
+{{/if}}
+{{#if (eq auth_type "basic")}}
+	Username     string
+	Password     string
+{{/if}}
+{{#if (eq auth_type "oauth2")}}
+	AccessToken  string
+{{/if}}
+{{/if}}
+	Timeout      time.Duration
+	MaxRetries   int
+	RetryDelay   time.Duration
+	Headers      map[string]string
+}
+
+// NewConfig creates a new client config with defaults
+func NewConfig(baseURL string) *Config {
+	return &Config{
+		BaseURL:    strings.TrimSuffix(baseURL, "/"),
+		Timeout:    30 * time.Second,
+		MaxRetries: 3,
+		RetryDelay: 1 * time.Second,
+		Headers:    make(map[string]string),
+{{#if auth}}
+{{#if (eq auth_type "api_key")}}
+		APIKeyHeader: "X-API-Key",
+{{/if}}
+{{/if}}
+	}
+}
+
+// ============================================================================
+// Client
+// ============================================================================
+
+// Client - HTTP client for {{api_name}}
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	maxRetries int
+	retryDelay time.Duration
+	headers   map[string]string
+}
+
+// NewClient creates a new API client
+func NewClient(config *Config) *Client {
+	return &Client{
+		baseURL: strings.TrimSuffix(config.BaseURL, "/"),
+		httpClient: &http.Client{
+			Timeout: config.Timeout,
+		},
+		maxRetries: config.MaxRetries,
+		retryDelay:  config.RetryDelay,
+		headers: buildHeaders(config),
+	}
+}
+
+func buildHeaders(config *Config) map[string]string {
+	h := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
+	}
+{{#if auth}}
+{{#if (eq auth_type "bearer")}}
+	if config.Token != "" {
+		h["Authorization"] = fmt.Sprintf("Bearer %s", config.Token)
+	}
+{{/if}}
+{{#if (eq auth_type "api_key")}}
+	if config.APIKey != "" {
+		h[config.APIKeyHeader] = config.APIKey
+	}
+{{/if}}
+{{#if (eq auth_type "basic")}}
+	if config.Username != "" && config.Password != "" {
+		credentials := base64.StdEncoding.EncodeToString(
+			[]byte(fmt.Sprintf("%s:%s", config.Username, config.Password)),
+		)
+		h["Authorization"] = fmt.Sprintf("Basic %s", credentials)
+	}
+{{/if}}
+{{#if (eq auth_type "oauth2")}}
+	if config.AccessToken != "" {
+		h["Authorization"] = fmt.Sprintf("Bearer %s", config.AccessToken)
+	}
+{{/if}}
+{{/if}}
+	for k, v := range config.Headers {
+		h[k] = v
+	}
+	return h
+}
+
+func (c *Client) buildURL(path string, params map[string]interface{}) string {
+	result := c.baseURL + path
+	if len(params) > 0 {
+		query := url.Values{}
+		for k, v := range params {
+			if v == nil {
+				continue
+			}
+			switch val := v.(type) {
+			case string:
+				query.Add(k, val)
+			case int:
+				query.Add(k, strconv.Itoa(val))
+			case int64:
+				query.Add(k, strconv.FormatInt(val, 10))
+			case float64:
+				query.Add(k, strconv.FormatFloat(val, 'f', -1, 64))
+			case bool:
+				query.Add(k, strconv.FormatBool(val))
+			case []string:
+				for _, item := range val {
+					query.Add(k, item)
+				}
+			default:
+				query.Add(k, fmt.Sprintf("%v", val))
+			}
+		}
+		if len(query) > 0 {
+			result += "?" + query.Encode()
+		}
+	}
+	return result
+}
+
+func (c *Client) doRequest(ctx context.Context, method, path string, params map[string]interface{}, body interface{}) ([]byte, int, error) {
+	url := c.buildURL(path, params)
+
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reqBody = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	for k, v := range c.headers {
+		req.Header.Set(k, v)
+	}
+
+	var lastErr error
+	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("request failed: %w", err)
+			if attempt < c.maxRetries {
+				time.Sleep(c.retryDelay * time.Duration(1<<attempt))
+				continue
+			}
+			return nil, 0, lastErr
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, resp.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+		}
+
+		switch resp.StatusCode {
+		case http.StatusNoContent:
+			return nil, resp.StatusCode, nil
+		case http.StatusTooManyRequests:
+			retryAfter := c.retryDelay
+			if ra := resp.Header.Get("Retry-After"); ra != "" {
+				if seconds, err := strconv.Atoi(ra); err == nil {
+					retryAfter = time.Duration(seconds) * time.Second
+				}
+			}
+			if attempt < c.maxRetries {
+				time.Sleep(retryAfter * time.Duration(1<<attempt))
+				continue
+			}
+			return nil, resp.StatusCode, &RateLimitError{
+				APIError:    APIError{Message: "Rate limit exceeded", StatusCode: resp.StatusCode, Response: string(body)},
+				RetryAfter: retryAfter,
+			}
+		case http.StatusNotFound:
+			return nil, resp.StatusCode, &NotFoundError{
+				APIError: APIError{Message: fmt.Sprintf("Resource not found: %s", path), StatusCode: resp.StatusCode, Response: string(body)},
+			}
+		case http.StatusUnauthorized:
+			return nil, resp.StatusCode, &UnauthorizedError{
+				APIError: APIError{Message: "Authentication failed", StatusCode: resp.StatusCode, Response: string(body)},
+			}
+		case http.StatusUnprocessableEntity:
+			return nil, resp.StatusCode, &ValidationError{
+				APIError: APIError{Message: "Validation failed", StatusCode: resp.StatusCode, Response: string(body)},
+			}
+		case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+			return body, resp.StatusCode, nil
+		default:
+			return nil, resp.StatusCode, &APIError{
+				Message:    fmt.Sprintf("HTTP %d", resp.StatusCode),
+				StatusCode: resp.StatusCode,
+				Response:   string(body),
+			}
+		}
+	}
+
+	return nil, 0, lastErr
+}
+
+// ============================================================================
+// HTTP Methods
+// ============================================================================
+
+// Get performs a GET request
+func (c *Client) Get(ctx context.Context, path string, params map[string]interface{}) (json.RawMessage, error) {
+	body, status, err := c.doRequest(ctx, http.MethodGet, path, params, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status == http.StatusNoContent {
+		return nil, nil
+	}
+	return body, nil
+}
+
+// Post performs a POST request
+func (c *Client) Post(ctx context.Context, path string, params map[string]interface{}, data interface{}) (json.RawMessage, error) {
+	body, status, err := c.doRequest(ctx, http.MethodPost, path, params, data)
+	if err != nil {
+		return nil, err
+	}
+	if status == http.StatusNoContent {
+		return nil, nil
+	}
+	return body, nil
+}
+
+// Put performs a PUT request
+func (c *Client) Put(ctx context.Context, path string, params map[string]interface{}, data interface{}) (json.RawMessage, error) {
+	body, status, err := c.doRequest(ctx, http.MethodPut, path, params, data)
+	if err != nil {
+		return nil, err
+	}
+	if status == http.StatusNoContent {
+		return nil, nil
+	}
+	return body, nil
+}
+
+// Patch performs a PATCH request
+func (c *Client) Patch(ctx context.Context, path string, params map[string]interface{}, data interface{}) (json.RawMessage, error) {
+	body, status, err := c.doRequest(ctx, http.MethodPatch, path, params, data)
+	if err != nil {
+		return nil, err
+	}
+	if status == http.StatusNoContent {
+		return nil, nil
+	}
+	return body, nil
+}
+
+// Delete performs a DELETE request
+func (c *Client) Delete(ctx context.Context, path string, params map[string]interface{}) error {
+	_, _, err := c.doRequest(ctx, http.MethodDelete, path, params, nil)
+	return err
+}

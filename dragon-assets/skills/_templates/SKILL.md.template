@@ -1,0 +1,188 @@
+---
+# SKILL.md Standardized Template V1.0
+# Borrowed from nomifun/nomifun-desktop v0.7.2 (Apache-2.0)
+# Reference: https://github.com/nomifun/nomifun-desktop/blob/main/docs/skills/drive-nomifun/SKILL.md
+#
+# Usage:
+#   1. Copy this file to `dragon-engine/skills/<skill-slug>/SKILL.md`
+#   2. Replace angle-bracket placeholders
+#   3. Run `python scripts/skill_lint.py <path>` to validate
+#
+# Two frontmatter modes supported (skill_lint auto-detects):
+#   - minimal:  4 fields (license, triggers, name, version) — legacy compat
+#   - standard: 11 fields (full) — new from stage 46
+#
+# This file documents the standard 11-field mode. To use minimal mode, see
+# `SKILL.minimal.template` next to this file.
+
+# === Required (11 fields) ===
+
+name: <kebab-case-slug>           # must match directory name; lowercase + hyphens; ≤ 64 chars
+version: 1.0.0                    # semver X.Y.Z (also accept legacy "V1.0" form)
+base_version: 0.0                 # optional — upstream base version if borrowed
+description: |
+  One-line description (≤ 120 chars) + 触发词锚定.
+  Must NOT enumerate triggers verbatim — triggers belong to the `triggers` array.
+triggers:                          # 5-15 trigger phrases (Chinese + English mixed OK)
+  - "trigger phrase 1 (中文 or English)"
+  - "trigger phrase 2"
+upstream:                          # optional — list upstream projects borrowed from
+  - "owner/repo V0.0.0 (Protocol · Stars)"
+downstream:                        # 4 agents that depend on this skill
+  - agent-id V.x
+  - agent-id V.x
+inputs:                            # input contract
+  - { name: <arg-name>, type: <str|int|bool|path|yaml|json>, required: <bool> }
+outputs:                           # output contract
+  - { name: <arg-name>, type: <text|yaml|json|exit-code> }
+errors:                            # error code mapping
+  - { code: 400, meaning: "<短描述>" }
+  - { code: 429, meaning: "<限流>" }
+  - { code: 500, meaning: "<服务端故障>" }
+
+# === Required (3 fields, behavior) ===
+
+DO:                                # exactly 6 items
+  - "DO item 1"
+  - "DO item 2"
+  - "DO item 3"
+  - "DO item 4"
+  - "DO item 5"
+  - "DO item 6"
+DONTS:                             # exactly 10 items
+  - "DON'T 1"
+  - "DON'T 2"
+  - "DON'T 3"
+  - "DON'T 4"
+  - "DON'T 5"
+  - "DON'T 6"
+  - "DON'T 7"
+  - "DON'T 8"
+  - "DON'T 9"
+  - "DON'T 10"
+
+# === Required (1 field, concrete) ===
+
+example:                           # at least 1 fully runnable example
+  cli: |
+    <one specific shell command that actually works>
+  output: |
+    <the expected output (truncated to relevant section)>
+
+---
+
+# <Skill Title — Title Case, English>
+
+> **L0 一句话**: <一句话 ≤ 15 字，中文>
+
+> **L1 使用场景**（50-100 字）: <用一段话讲清楚解决什么问题、给谁用、怎么用>
+
+> **L2 详细文档**: 见下方分层
+
+---
+
+## 一、能力矩阵
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| <capability 1> | `python <script>.py <cmd>` | <一行描述> |
+| <capability 2> | `python <script>.py <cmd>` | <一行描述> |
+
+## 二、使用示例
+
+### 示例 1: <典型用例>
+
+```bash
+python scripts/<skill_client>.py <args>
+```
+
+```yaml
+# 输出（YAML / JSON / 文本，按实际类型）
+<实际输出节录>
+```
+
+### 示例 2: <边界用例>
+
+```bash
+python scripts/<skill_client>.py <args>
+```
+
+## 三、错误码与处理
+
+| 错误码 | 含义 | 推荐处理 |
+| --- | --- | --- |
+| 400 | 请求参数错误 | 检查 `--<flag>` 拼写 |
+| 429 | 限流 | 按 `Retry-After` 退避；切备胎源 |
+| 500 | 服务端故障 | 重试 ≤ 3 次；记录 trace |
+
+## 四、测试与验证
+
+```bash
+python scripts/skill_lint.py skills/<skill-slug>/SKILL.md  # 12 断言
+python -m pytest tests/test_<skill-slug>.py -v             # 自研 unittest
+```
+
+## 五、下游岗位对接
+
+| 岗位 | 接入点 | 触发场景 |
+| --- | --- | --- |
+| <agent-id V.x> | YAML 第 X 字段 | <描述> |
+| <agent-id V.x> | YAML 第 Y 字段 | <描述> |
+
+## 六、版本信息
+
+- **SKILL.md 版本**: V1.0.0（standard 11-field frontmatter）
+- **base_version**: V0.0（如有）
+- **上游协议**: Apache-2.0（仅当借用）
+- **天龙累计 PASS**: <数字>
+- **最后验证日期**: YYYY-MM-DD
+
+---
+
+## 模板使用说明（这段会在 skill_lint 时自动忽略）
+
+### 11 字段强制顺序
+
+```
+name
+version
+base_version
+description
+triggers
+upstream
+downstream
+inputs
+outputs
+errors
+DO
+DONTS
+example
+```
+
+### 触发词设计规范
+
+1. **必须有 5-15 个**：太少 = undertrigger；太多 = overtrigger
+2. **不能与 description 字符串完全重复**（互相印证而非冗余）
+3. **中文触发词必须有 1-2 个**（中文用户高比例）
+4. **每条 ≤ 15 字**
+5. **去重**：triggers 数组内部不允许重复（skill_lint 会报错）
+
+### DO / DON'T 设计规范
+
+1. DO = 正向引导，给 LLM 什么时候用 → 必须 ≤ 15 字 / 条
+2. DON'T = 反向护栏，给 LLM 什么时候不用 → 必须 ≤ 15 字 / 条
+3. 每条独立可读，不依赖其他条目
+4. DON'T 是 stage 41 mneme 风格核心 → 必须有 ≥ 10 条，覆盖 false positive + false negative 两类
+
+### example 设计规范
+
+1. 必须是**真实可跑**的命令（不能是伪代码或 "..."
+2. 必须包含 `cli:` + `output:` 两部分
+3. output 必须有节录（不能只是 "..." 占位）
+
+### name 命名规范
+
+1. kebab-case：仅小写字母 + 数字 + `-`
+2. ≤ 64 字符
+3. 与所在目录名 100% 相同（skill_lint 会校验）
+4. 必须 `^[a-z][a-z0-9-]*[a-z0-9]$`

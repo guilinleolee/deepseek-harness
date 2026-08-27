@@ -1,0 +1,26 @@
+{
+  "blogger": "laoli_bro_2026",
+  "style_id": "xhs-checklist",
+  "palette": "#FDFFA7",
+  "aspect_ratio": "3:4",
+  "prompt_length": 494,
+  "ip_consent": "unknown",
+  "template_source": "C:\\Users\\li\\.claude\\skills\\gpt-image-2-prompt-library\\templates\\xhs\\styles\\04-checklist.md",
+  "timestamp": "2026-07-20T03:14:09.952Z",
+  "selected_style": "xhs-checklist",
+  "pre_answers": {
+    "style": "xhs-checklist",
+    "figure_1": "local://./photos/photo_1.jpg",
+    "expression": "auto",
+    "extra_materials": "0",
+    "background": "auto",
+    "font_style": "variety-bold",
+    "font_color": "fdffa7-default",
+    "title": "老李兄弟 7 个真实踩坑",
+    "auto_recommended": true
+  },
+  "prompt_path": "C:\\Users\\li\\.claude\\projects\\c--Users-li--claude\\dragon-engine\\skills\\blogger-hologram-to-poster\\output\\laoli_bro_2026-xhs-checklist.prompt.md",
+  "prompt": "参考图 1 的人物五官特征，保持人物一致性，真人半身出镜。\n\n由模型决定，人物位于画面[左侧/右侧/中下方]，\n占画面约 45%，[具体动作：食指指向清单/竖大拇指/手掌朝向标题]，\n人物边缘有 #FDFFA7 描边。\n\n画面顶部放置超大中文标题\"老李兄弟 7 个真实踩坑\"，\n字体为超粗黑体，#FDFFA7 填充 + 粗黑描边，\n文字紧凑有冲击力；标题背后的黄色底板或色块统一使用 #FDFFA7。\n\n画面[左侧/右侧]竖向排列 3 条绿色勾选清单：\n✅ 从 0 开始\n✅ 一键跑通\n✅ 实测有效\n清单文字为白色粗体 + 黑色描边，每条间距紧凑，像教程卖点。\n\n如果有图 2，将图 2 作为[软件界面/产品截图/教程结果图]\n放在人物身后或侧边，轻微倾斜，带投影，作为教程证据。\n\n底部可以加入一条[紫色/#FDFFA7/白色]横幅，\n写\"[底部强化短句，例如：跟着做，小白也能搞定]\"，\n字体粗大，形成收尾锤。\n\n背景是主题相关的暖色调场景，\n略微虚化，让标题、人物、清单三者最醒目。\n\n3:4 竖版小红书真人出镜封面，教程感强，信息密度高，\n清单清晰可读，所有重要元素不超出安全区。",
+  "dry_run": true,
+  "note": "dry-run 模式：不调 gpt-image-2，仅验证 pipeline 端到端"
+}

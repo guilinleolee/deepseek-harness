@@ -1,0 +1,146 @@
+"""
+Type definitions for {{api_name}}
+Generated from OpenAPI spec: {{api_version}}
+{{#if description}}
+{{description}}
+{{/if description}}
+"""
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Union
+from enum import Enum
+import json
+
+
+{{#each schemas}}
+{{#if (eq type "object")}}
+/{{{schema_type_comment}}}
+
+
+/@dataclass
+class {{pascal_name}}(BaseModel):
+    """{{#if description}}{{description}}{{/if}}"""
+    {{#if required.length}}
+    Required: {{required.join(", ")}}
+    {{/if required.length}}
+    {{#each properties}}
+    {{name}}: {{python_type}}{{#unless required}} = None{{/unless}}{{#unless @last}}
+    {{/unless}}
+    {{/each properties}}
+
+
+{{/if}}
+{{#if (eq type "enum")}}
+class {{pascal_name}}(str, Enum):
+    """Enum values for {{name}}"""
+    {{#each enum}}
+    {{upper_value}} = "{{value}}"{{#unless @last}}
+    {{/unless}}
+    {{/each enum}}
+
+
+{{/if}}
+{{#if (eq type "array")}}
+{{pascal_name}} = List[{{item_python_type}}]
+"""Array type: {{name}}"""
+
+
+{{/if}}
+{{/each schemas}}
+
+
+# Union types for schemas with multiple types
+{{#each schemas}}
+{{#if (eq type "oneOf")}}
+{{pascal_name}} = Union[
+    {{#each oneOf}}
+    {{python_type}}{{#unless @last}},
+    {{/unless}}
+    {{/each}}
+]
+"""OneOf: {{name}}"""
+
+
+{{/if}}
+{{#if (eq type "allOf")}}
+@dataclass
+class {{pascal_name}}(BaseModel):
+    """AllOf: {{name}}"""
+    {{#each allOf}}
+    {{#if properties}}
+    {{#each properties}}
+    {{name}}: {{python_type}}{{#unless required}} = None{{/unless}}{{#unless @last}}
+    {{/unless}}
+    {{/each}}
+    {{/if}}
+    {{#if ref}}
+    # Inherits from: {{ref}}
+    pass
+    {{/if}}
+    {{/each}}
+
+
+{{/if}}
+{{/each schemas}}
+
+
+# Request/Response body types
+{{#each request_bodies}}
+@dataclass
+class {{pascal_name}}Request:
+    """Request body for {{operation_id}}"""
+    {{#each fields}}
+    {{name}}: {{python_type}}{{#unless required}} = None{{/unless}}{{#unless @last}}
+    {{/unless}}
+    {{/each fields}}
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: v for k, v in self.__dict__.items() if v is not None}
+
+
+{{/each request_bodies}}
+
+
+# Pagination types
+{{#if has_pagination}}
+class PaginationParams:
+    """Common pagination parameters"""
+
+    def __init__(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        cursor: Optional[str] = None,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None
+    ):
+        self.limit = limit
+        self.offset = offset
+        self.cursor = cursor
+        self.page = page
+        self.page_size = page_size
+
+    def to_params(self) -> Dict[str, Any]:
+        params = {"limit": self.limit}
+        if self.offset:
+            params["offset"] = self.offset
+        if self.cursor:
+            params["cursor"] = self.cursor
+        if self.page is not None:
+            params["page"] = self.page
+        if self.page_size is not None:
+            params["page_size"] = self.page_size
+        return params
+
+
+@dataclass
+class PaginatedResponse(BaseModel):
+    """Generic paginated response"""
+    items: List[Any]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+{{/if has_pagination}}

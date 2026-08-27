@@ -1,0 +1,48 @@
+{
+  "template_id": "finance",
+  "description": "适合财经分析，投资理财内容",
+  "brand": {
+    "niche": "财经分析/投资理财",
+    "audience": "25-50岁有投资需求的高净值人群",
+    "personality": "专业、权威、可信赖",
+    "tone": "专业严谨，数据说话",
+    "values": ["专业", "客观", "前瞻"]
+  },
+  "style": {
+    "colors": {
+      "primary": "#1A365D",
+      "secondary": "#2B6CB0",
+      "accent": "#38A169",
+      "background": "#F7FAFC",
+      "text": "#1A202C"
+    },
+    "fonts": {
+      "heading": "Source Han Sans",
+      "body": "Noto Sans SC",
+      "accent": "Roboto Mono"
+    },
+    "templates": ["data-centric", "chart-focus"],
+    "image_style": "data-visualization, professional-charts, clean-graphs",
+    "layout_preference": "data-dense, structured-hierarchy"
+  },
+  "platforms": {
+    "xiaohongshu": {
+      "enabled": true,
+      "aspect_ratio": "3:4",
+      "hashtags": ["#财经", "#投资", "#理财", "#股票", "#基金"]
+    },
+    "wechat": {
+      "enabled": true,
+      "account_type": "subscription"
+    },
+    "youtube": {
+      "enabled": true,
+      "thumbnail_style": "16:9"
+    }
+  },
+  "compliance": {
+    "license": "MIT",
+    "attribution_required": true,
+    "custom_rules": ["不构成投资建议", "数据来源需注明"]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "description": "InfiniteTalk单图模式示例 - 使用单张参考图片生成口播视频",
+  "version": "1.0",
+  "date": "2026-05-02",
+  "example_type": "single_image_mode",
+
+  "input": {
+    "image_path": "./examples/refs/product_spokesperson.jpg",
+    "audio_path": "./examples/audio/product_intro.wav"
+  },
+
+  "generation_config": {
+    "mode": "single",
+    "size": "infinitetalk-480",
+    "motion_frame": 9,
+    "max_frame_num": 1000,
+    "sample_steps": 40,
+    "sample_text_guide_scale": 5.0,
+    "sample_audio_guide_scale": 4.0,
+    "use_teacache": false,
+    "teacache_thresh": 0.6,
+    "num_persistent_param_in_dit": 14,
+    "dtype": "bf16"
+  },
+
+  "prompt_config": {
+    "positive": "一位年轻女性主播，自然微笑表情，正面视角，柔和室内灯光，商业摄影质感，简洁纯色背景，产品展示口播风格，专业唇形同步，自然对话感",
+    "negative": "blurry, low quality, distorted, artifacts, animation, cartoon, anime, 3D render, poor lip sync, unnatural mouth movement, face deformation, multiple people, watermark, text overlay, logo, low resolution, pixelated"
+  },
+
+  "reference_image_requirements": {
+    "format": "jpg/png/webp",
+    "resolution": "推荐 512x512 或更高",
+    "face_coverage": "面部占图片 30%-70% 效果最佳",
+    "lighting": "正面光或三点布光，避免强烈侧光",
+    "expression": "中性或微笑表情，避免夸张表情",
+    "background": "简洁背景效果更好，避免复杂背景"
+  },
+
+  "audio_requirements": {
+    "format": "WAV (16kHz, 16bit, mono 推荐)",
+    "duration": "60秒内效果最佳，最长支持5分钟",
+    "content": "清晰人声，无背景音乐干扰效果更佳",
+    "language": "支持中文/英文/日文/韩文等多语言"
+  },
+
+  "output": {
+    "directory": "./outputs/infinite_talk_single",
+    "filename": "single_i2v_{timestamp}.mp4",
+    "format": "mp4",
+    "fps": 25
+  },
+
+  "usage": {
+    "command": "python scripts/generate_infinite.py --input_json examples/single_example_image.json --audio_file {audio_path}",
+    "alternative": "python scripts/generate_infinite.py --input_image {image_path} --audio_file {audio_path} --output_dir ./outputs"
+  },
+
+  "use_cases": [
+    {
+      "name": "产品介绍视频",
+      "image": "产品代言人正面照",
+      "audio": "产品功能介绍配音",
+      "prompt_template": "一位专业主播，自然微笑，正面视角，柔和灯光，简洁背景，产品展示风格"
+    },
+    {
+      "name": "品牌代言视频",
+      "image": "品牌代言人照片",
+      "audio": "品牌口号配音",
+      "prompt_template": "一位成熟专业女性，商务正装，自信微笑，高端品牌质感，权威感"
+    },
+    {
+      "name": "培训讲解视频",
+      "image": "讲师照片",
+      "audio": "培训课程配音",
+      "prompt_template": "一位专业培训师，认真教学表情，适度手势，正面稳定视角，办公室背景"
+    },
+    {
+      "name": "多语言口播",
+      "image": "形象代言人",
+      "audio": "各语言版本配音",
+      "prompt_template": "根据语言选择对应模板：中文用自然口语，英文用标准播报，日文用温柔语调"
+    }
+  ],
+
+  "troubleshooting": {
+    "poor_lip_sync": "降低sample_audio_guide_scale到3.0，增加sample_steps到50",
+    "face_deformation": "使用正面照，控制motion_frame在7-9之间",
+    "low_quality": "确保输入图片清晰，避免过度压缩的JPEG",
+    "artifacts": "增加negative_prompt中的质量相关词汇"
+  }
+}

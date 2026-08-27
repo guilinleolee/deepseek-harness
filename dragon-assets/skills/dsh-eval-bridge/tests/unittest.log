@@ -1,0 +1,19 @@
+test_basic_parse (test_dsh_eval_bridge.TestBenchmarkParse.test_basic_parse) ... ok
+test_missing_case_key_fails (test_dsh_eval_bridge.TestBenchmarkParse.test_missing_case_key_fails) ... ok
+test_missing_top_key_fails (test_dsh_eval_bridge.TestBenchmarkParse.test_missing_top_key_fails) ... ok
+test_invalid_json_fallback (test_dsh_eval_bridge.TestJudgeParse.test_invalid_json_fallback) ... ok
+test_markdown_wrapped (test_dsh_eval_bridge.TestJudgeParse.test_markdown_wrapped) ... ok
+test_score_out_of_range_clamped (test_dsh_eval_bridge.TestJudgeParse.test_score_out_of_range_clamped) ... ok
+test_valid_verdict (test_dsh_eval_bridge.TestJudgeParse.test_valid_verdict) ... ok
+test_prompt_has_required_fields (test_dsh_eval_bridge.TestJudgePromptBuild.test_prompt_has_required_fields) ... ok
+test_cost_with_pricing (test_dsh_eval_bridge.TestMetricCompute.test_cost_with_pricing) ... ok
+test_p95_latency (test_dsh_eval_bridge.TestMetricCompute.test_p95_latency) ... ok
+test_task_success_rate (test_dsh_eval_bridge.TestMetricCompute.test_task_success_rate) ... ok
+test_b_wins (test_dsh_eval_bridge.TestPairedAB.test_b_wins) ... ok
+test_no_common_cases (test_dsh_eval_bridge.TestPairedAB.test_no_common_cases) ... ok
+test_signed_delta (test_dsh_eval_bridge.TestPairedAB.test_signed_delta) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.004s
+
+OK

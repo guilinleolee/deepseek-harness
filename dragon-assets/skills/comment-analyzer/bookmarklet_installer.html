@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一键安装微博爬取书签</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .bookmarklet-btn {
+            display: block;
+            background: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+        .bookmarklet-btn:hover {
+            background: #218838;
+        }
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .tip {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 微博爬取书签安装器</h1>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>安装书签（拖拽下面的按钮到书签栏）</strong>
+            <a href="javascript:(function(){console.clear();console.log('Starting Weibo Comment Scraper...');window.ALL_COMMENTS=new Map();window.SCROLL_STATS={iterations:0,lastCount:0,noNewCount:0,maxIterations:200};function parseComment(t){const i=t.indexOf(':');if(-1===i)return null;const u=t.substring(0,i).trim(),m=t.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);if(!m)return null;const time=m[1]+' '+m[2],s=t.indexOf(m[0]);let c=t.substring(i+1,s).trim();c=c.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g,'').trim();c=c.replace(/^:+/,'').trim();c=c.replace(/\s+/g,' ');if(c.length<2)return null;const l=t.match(/(\d+)$/),likes=l?parseInt(l[1]):0,id=u+'_'+c+'_'+time;return{username:u,content:c,time:time,likes:likes,uniqueId:id}}function extractComments(){const list=document.querySelector('.wbpro-list');if(!list)return 0;const nodes=list.children;for(let i=0;i<nodes.length;i++){const text=nodes[i].textContent||'',comment=parseComment(text);if(comment&&!window.ALL_COMMENTS.has(comment.uniqueId))window.ALL_COMMENTS.set(comment.uniqueId,comment)}return window.ALL_COMMENTS.size}function smartScroll(){const list=document.querySelector('.wbpro-list');if(list)list.scrollTop=list.scrollHeight;window.scrollTo(0,document.body.scrollHeight);const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return(t.includes('加载更多')||t.includes('点击加载')||t.includes('展开'))&&null!==e.offsetParent});btns.length>0&&btns[0].click()}function switchSort(){const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return t.includes('按时间')||t.includes('按热度')});if(btns.length>0)for(const b of btns)if(b.textContent.includes('按时间')){b.click();console.log('Switched to sort by time');return!0}return!1}async function scrape(){console.log('Starting...');switchSort();await new Promise(r=>setTimeout(r,2000));for(let i=0;i<window.SCROLL_STATS.maxIterations;i++){window.SCROLL_STATS.iterations=i+1;const count=extractComments();if(i%10===0)console.log('['+(i+1)+'/'+window.SCROLL_STATS.maxIterations+'] Loaded: '+count+' comments');if(count>=680){console.log('Target reached: '+count);break}if(count===window.SCROLL_STATS.lastCount){window.SCROLL_STATS.noNewCount++;if(window.SCROLL_STATS.noNewCount>=15){console.log('No new comments, stopping');break}}else{window.SCROLL_STATS.noNewCount=0;window.SCROLL_STATS.lastCount=count}smartScroll();await new Promise(r=>setTimeout(r,1200))}const arr=Array.from(window.ALL_COMMENTS.values()).sort((a,b)=>b.likes-a.likes);console.log('='.repeat(60));console.log('Scraping Complete!');console.log('Total: '+arr.length+' comments');console.log('='.repeat(60));return arr}async function download(data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='weibo_comments_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)+'.json',a.click(),URL.revokeObjectURL(url)}scrape().then(comments=>{const data={url:window.location.href,target_count:680,actual_count:comments.length,completion_rate:(comments.length/680*100).toFixed(1)+'%',extracted_at:new Date().toISOString(),comments:comments};download(data);console.log('Data downloaded! Send to Claude for analysis.');}).catch(e=>console.error('Error:',e))})();" class="bookmarklet-btn">📋 拖拽此按钮到书签栏</a>
+            <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                <strong>方法：</strong>将上面的绿色按钮拖拽到浏览器的书签栏
+            </p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>打开微博页面</strong>
+            <p>在浏览器中打开：<a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank">https://weibo.com/7985254173/QmWvGrm7G#comment</a></p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>点击书签执行爬取</strong>
+            <p>点击刚才保存的书签，脚本会自动执行并下载JSON文件</p>
+        </div>
+
+        <div class="tip">
+            <strong>⚠️ 注意事项：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>确保已登录微博账号</li>
+                <li>爬取过程约需4-8分钟</li>
+                <li>完成后会自动下载JSON文件</li>
+                <li>将下载的文件路径告诉Claude即可生成分析报告</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>书签安装助手</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 { color: #333; }
+        h2 { color: #667eea; margin-top: 0; }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover { background: #5568d3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        ol { line-height: 1.8; }
+        li { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📖 微博爬取书签 - 手动安装指南</h1>
+
+        <div class="warning" id="checkResult">
+            <strong>检测中...</strong> 请按照以下步骤检查和安装书签
+        </div>
+
+        <h2>方法1：检查是否已安装</h2>
+        <ol>
+            <li>查看浏览器顶部是否有<strong>书签栏</strong></li>
+            <li>在书签栏中寻找名为 <strong>"微博爬取"</strong> 的书签</li>
+            <li><strong>找不到书签栏？</strong> 按 <code>Ctrl + Shift + B</code> 显示</li>
+        </ol>
+
+        <h2>方法2：手动添加书签（推荐）</h2>
+        <ol>
+            <li>复制下面的完整代码：</li>
+        </ol>
+        <div class="code-block" id="bookmarkCode">javascript:(function(){console.clear();console.log('Starting Weibo Comment Scraper...');window.ALL_COMMENTS=new Map();window.SCROLL_STATS={iterations:0,lastCount:0,noNewCount:0,maxIterations:200};function parseComment(t){const i=t.indexOf(':');if(-1===i)return null;const u=t.substring(0,i).trim(),m=t.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);if(!m)return null;const time=m[1]+' '+m[2],s=t.indexOf(m[0]);let c=t.substring(i+1,s).trim();c=c.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g,'').trim();c=c.replace(/^:+/,'').trim();c=c.replace(/\s+/g,' ');if(c.length<2)return null;const l=t.match(/(\d+)$/),likes=l?parseInt(l[1]):0,id=u+'_'+c+'_'+time;return{username:u,content:c,time:time,likes:likes,uniqueId:id}}function extractComments(){const list=document.querySelector('.wbpro-list');if(!list)return 0;const nodes=list.children;for(let i=0;i<nodes.length;i++){const text=nodes[i].textContent||'',comment=parseComment(text);if(comment&&!window.ALL_COMMENTS.has(comment.uniqueId))window.ALL_COMMENTS.set(comment.uniqueId,comment)}return window.ALL_COMMENTS.size}function smartScroll(){const list=document.querySelector('.wbpro-list');if(list)list.scrollTop=list.scrollHeight;window.scrollTo(0,document.body.scrollHeight);const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return(t.includes('加载更多')||t.includes('点击加载')||t.includes('展开'))&&null!==e.offsetParent});if(btns.length>0)btns[0].click()}function switchSort(){const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return t.includes('按时间')||t.includes('按热度')});if(btns.length>0){for(const b of btns){if(b.textContent.includes('按时间')){b.click();console.log('Switched to sort by time');return!0}}}async function scrape(){console.log('Starting...');switchSort();await new Promise(r=>setTimeout(r,2000));for(let i=0;i<window.SCROLL_STATS.maxIterations;i++){window.SCROLL_STATS.iterations=i+1;const count=extractComments();if(i%10===0)console.log('['+(i+1)+'/'+window.SCROLL_STATS.maxIterations+'] Loaded: '+count+' comments');if(count>=680){console.log('Target reached: '+count);break}if(count===window.SCROLL_STATS.lastCount){window.SCROLL_STATS.noNewCount++;if(window.SCROLL_STATS.noNewCount>=15){console.log('No new comments, stopping');break}}else{window.SCROLL_STATS.noNewCount=0;window.SCROLL_STATS.lastCount=count}smartScroll();await new Promise(r=>setTimeout(r,1200))}const arr=Array.from(window.ALL_COMMENTS.values()).sort((a,b)=>b.likes-a.likes);console.log('='.repeat(60));console.log('Complete! Total: '+arr.length+' comments');console.log('='.repeat(60));return arr}async function download(data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='weibo_comments_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)+'.json',a.click(),URL.revokeObjectURL(url)}scrape().then(comments=>{const data={url:window.location.href,target_count:680,actual_count:comments.length,completion_rate:(comments.length/680*100).toFixed(1)+'%',extracted_at:new Date().toISOString(),comments:comments};download(data);console.log('Downloaded! Send file path to Claude for report.');}).catch(e=>console.error('Error:',e))})();</div>
+
+        <button class="btn" onclick="copyCode()">📋 复制代码</button>
+
+        <ol start="2">
+            <li>按 <code>Ctrl + D</code> 打开"添加书签"对话框</li>
+            <li>在"名称"字段输入：<strong>微博爬取</strong></li>
+            <li>在"URL"或"地址"字段，<strong>粘贴刚才复制的代码</strong></li>
+            <li>点击"保存"或"完成"</li>
+        </ol>
+
+        <h2>方法3：右键添加书签</h2>
+        <ol>
+            <li>在书签栏空白处<strong>右键点击</strong></li>
+            <li>选择"添加页面"或"添加书签"</li>
+            <li>输入名称：<strong>微博爬取</strong></li>
+            <li>粘贴上面的代码到URL字段</li>
+            <li>保存</li>
+        </ol>
+
+        <div class="card">
+            <h2>使用方法（安装后）</h2>
+            <ol>
+                <li>打开微博文章页面：<a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank">清真食堂争议微博</a></li>
+                <li>确保已登录微博账号</li>
+                <li>点击书签栏中的 <strong>"微博爬取"</strong> 书签</li>
+                <li>等待自动完成（约4-8分钟）</li>
+                <li>自动下载JSON文件</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function copyCode() {
+            const code = document.getElementById('bookmarkCode').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('代码已复制到剪贴板！\n\n现在按 Ctrl+D 添加书签，粘贴代码到URL字段。');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('代码已复制到剪贴板！\n\n现在按 Ctrl+D 添加书签，粘贴代码到URL字段。');
+            });
+        }
+
+        // Auto-detect if we're on the correct page
+        if (window.location.href.includes('weibo.com')) {
+            document.getElementById('checkResult').innerHTML = '<strong>✅ 检测到你在微博页面！</strong> 如果书签已安装，现在就可以点击"微博爬取"书签开始爬取。';
+            document.getElementById('checkResult').className = 'success';
+        } else {
+            document.getElementById('checkResult').innerHTML = '<strong>⚠️ 当前不在微博页面</strong><br>安装书签后，请前往微博文章页面使用。';
+        }
+    </script>
+</body>
+</html>

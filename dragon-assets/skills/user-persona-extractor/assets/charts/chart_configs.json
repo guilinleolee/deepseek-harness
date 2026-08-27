@@ -1,0 +1,29 @@
+{
+  "age_chart": {
+    "type": "pie",
+    "colors": ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"],
+    "labels": ["18-24岁", "25-30岁", "31-35岁", "36-40岁", "40岁+"]
+  },
+  "gender_chart": {
+    "type": "doughnut",
+    "colors": {
+      "male": "#3B82F6",
+      "female": "#EC4899"
+    }
+  },
+  "region_chart": {
+    "type": "bar",
+    "color": "#3B82F6",
+    "max_items": 10
+  },
+  "radar_chart": {
+    "type": "radar",
+    "dimensions": ["年龄", "性别", "地域", "内容偏好", "互动行为"],
+    "scales": {
+      "r": {
+        "beginAtZero": true,
+        "max": 100
+      }
+    }
+  }
+}

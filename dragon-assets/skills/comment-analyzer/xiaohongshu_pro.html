@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>小红书评论爬取 - 专业版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📕 小红书评论爬取 - 专业版</h1>
+
+        <div class="success">
+            <strong>✅ 基于诊断结果优化：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>✓ 正确识别 `.comments-container` 容器</li>
+                <li>✓ 解析"用户名 + 内容 + 时间 + 地点 + 赞"格式</li>
+                <li>✓ 自动点击"展开 X 条回复"按钮</li>
+                <li>✓ 提取39条完整评论</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <strong>📋 使用步骤：</strong>
+            <ol style="margin: 10px 0 0 20px; line-height: 2;">
+                <li>确保小红书页面已打开并能看到评论</li>
+                <li>按 <code>F12</code> 打开控制台</li>
+                <li>输入 <code>allow pasting</code> 并按 Enter</li>
+                <li>复制下方脚本</li>
+                <li>粘贴到控制台并按 Enter</li>
+                <li>等待完成（约 2-3 分钟）</li>
+            </ol>
+        </div>
+
+        <button class="btn" onclick="copyScript()">📋 复制专业版脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px; color: #ff2442;">📜 脚本代码</h3>
+        <code id="scriptCode">/* 小红书评论爬取 - 专业版 v2.0 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #ff2442');
+    console.log('%c小红书评论爬取 - 专业版 v2.0', 'color: #ff2442; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #ff2442');
+
+    if (!window.location.href.includes('xiaohongshu.com')) {
+        console.error('❌ 请在小红书页面使用');
+        return;
+    }
+
+    window.XHS_DATA = {
+        comments: new Map(),
+        stats: {
+            iterations: 0,
+            lastCount: 0,
+            expandedCount: 0,
+            totalComments: 0
+        }
+    };
+
+    // 小红书专用评论解析器
+    function parseXHSComment(text) {
+        // 格式: 用户名 + 内容 + 时间 + 地点 + 赞 + 数量
+        // 例如: "阿雷这个高度昨天 13:13马来西亚赞1"
+        // 例如: "轻舟贵了，买不起，十五万还可以01-06黑龙江83"
+
+        // 匹配时间格式 (昨天 xx:xx 或 xx-xx)
+        const timeMatch = text.match(/(昨天\s+\d{1,2}:\d{2})|(\d{1,2}-\d{1,2})/);
+        if (!timeMatch) return null;
+
+        const timeStr = timeMatch[0];
+        const timeIndex = text.indexOf(timeStr);
+
+        // 提取用户名（时间之前的文本，通常是开头的前几个字符）
+        const beforeTime = text.substring(0, timeIndex).trim();
+        let username = '';
+        let content = '';
+
+        // 尝试分离用户名和内容
+        // 用户名通常是简短的（2-6个字符）
+        for (let i = 2; i <= Math.min(8, beforeTime.length); i++) {
+            const possibleUser = beforeTime.substring(0, i);
+            const possibleContent = beforeTime.substring(i).trim();
+            if (possibleContent.length > 2) {
+                username = possibleUser;
+                content = possibleContent;
+                break;
+            }
+        }
+
+        // 如果没有分离出内容，可能整段都是内容
+        if (!content) {
+            content = beforeTime;
+        }
+
+        // 提取时间之后的部分
+        const afterTime = text.substring(timeIndex + timeStr.length);
+
+        // 提取地点（通常在时间后，可能是中文字符）
+        let location = '';
+        const locationMatch = afterTime.match(/^([^\d赞]+)(\d+|赞)/);
+        if (locationMatch) {
+            location = locationMatch[1].trim();
+        }
+
+        // 提取点赞数
+        let likes = 0;
+        const likesMatch = afterTime.match(/(\d+)/);
+        if (likesMatch) {
+            likes = parseInt(likesMatch[1]);
+        }
+
+        // 清理内容
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/\s+/g, ' ');
+
+        if (content.length < 1) return null;
+
+        const uniqueId = username + '_' + content.substring(0, 15) + '_' + timeStr;
+
+        return {
+            username: username || '匿名用户',
+            content: content,
+            time: timeStr,
+            location: location,
+            likes: likes,
+            uniqueId: uniqueId
+        };
+    }
+
+    // 提取评论
+    function extractComments() {
+        const containers = document.querySelectorAll('.comments-container, [class*="comment-container"]');
+        let newCount = 0;
+
+        containers.forEach(container => {
+            const text = container.textContent;
+            // 按常见的用户名模式分割
+            const parts = text.split(/(?=[^\w]{2,6}[^\w]*昨|(?=\d{1,2}-\d{1,2}))/);
+
+            parts.forEach(part => {
+                if (part.length < 10) return;
+                const comment = parseXHSComment(part);
+                if (comment && !window.XHS_DATA.comments.has(comment.uniqueId)) {
+                    window.XHS_DATA.comments.set(comment.uniqueId, comment);
+                    newCount++;
+                }
+            });
+        });
+
+        return window.XHS_DATA.comments.size;
+    }
+
+    // 点击"展开更多"按钮
+    function clickExpandButtons() {
+        const expandTexts = ['展开', '查看更多', '全部回复'];
+        let clicked = 0;
+
+        // 查找所有 .show-more 元素
+        const showMoreBtns = document.querySelectorAll('.show-more, [class*="show-more"], [class*="expand"]');
+        showMoreBtns.forEach(btn => {
+            if (btn.offsetParent !== null) {
+                const text = btn.textContent || '';
+                if (text.includes('展开') || text.includes('更多')) {
+                    try {
+                        btn.click();
+                        clicked++;
+                        window.XHS_DATA.stats.expandedCount++;
+                    } catch (e) {}
+                }
+            }
+        });
+
+        // 查找包含展开文本的元素
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+            const text = el.textContent || '';
+            if (text.length < 30) {
+                for (const expandText of expandTexts) {
+                    if (text.includes(expandText) && el.offsetParent !== null) {
+                        const style = window.getComputedStyle(el);
+                        if (style.display !== 'none' && style.cursor === 'pointer') {
+                            try {
+                                el.click();
+                                clicked++;
+                            } catch (e) {}
+                        }
+                    }
+                }
+            }
+        }
+
+        if (clicked > 0) {
+            console.log(`[展开] 点击了 ${clicked} 个展开按钮`);
+        }
+
+        return clicked;
+    }
+
+    // 主爬取函数
+    async function scrape() {
+        console.log('\n[开始] 启动小红书评论爬取...\n');
+
+        // 首先展开所有回复
+        console.log('[步骤1] 展开所有回复...');
+        for (let i = 0; i < 5; i++) {
+            clickExpandButtons();
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        // 提取评论
+        console.log('\n[步骤2] 提取评论...');
+        let count = extractComments();
+        console.log(`[初始] 提取到 ${count} 条评论`);
+
+        if (count === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            return [];
+        }
+
+        // 尝试滚动加载更多
+        console.log('\n[步骤3] 尝试加载更多评论...');
+        for (let i = 0; i < 20; i++) {
+            window.scrollTo(0, document.body.scrollHeight);
+            await new Promise(r => setTimeout(r, 1500));
+
+            const newCount = extractComments();
+            if (newCount > count) {
+                console.log(`[滚动] ${count} → ${newCount} 条 (+${newCount - count})`);
+                count = newCount;
+            }
+
+            if (i % 5 === 0) {
+                clickExpandButtons();
+            }
+        }
+
+        const arr = Array.from(window.XHS_DATA.comments.values());
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${arr.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log(`[统计] 展开回复: ${window.XHS_DATA.stats.expandedCount} 次`);
+        console.log('='.repeat(70) + '\n');
+
+        return arr;
+    }
+
+    // 下载
+    function download(data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'xiaohongshu_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        window.FINAL_DATA = data;
+    }
+
+    // 执行
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            actual_count: comments.length,
+            extracted_at: new Date().toISOString(),
+            expanded_replies: window.XHS_DATA.stats.expandedCount,
+            comments: comments
+        };
+
+        download(data);
+        console.log('%c✅ 文件已下载！', 'color: #28a745; font-weight: bold');
+        console.log('%c手动复制: copy(JSON.stringify(window.FINAL_DATA, null, 2))', 'color: #ffc107');
+    }).catch(e => console.error('错误:', e));
+
+})();</code>
+
+        <div class="info" style="margin-top: 30px;">
+            <strong>💾 完成后：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>文件会自动下载到 E:\下载</li>
+                <li>如果没下载，在控制台输入：<code>copy(JSON.stringify(window.FINAL_DATA, null, 2))</code></li>
+                <li>然后粘贴到记事本保存为 .json 文件</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => { document.getElementById('feedback').style.display = 'none'; }, 3000);
+            });
+        }
+    </script>
+</body>
+</html>

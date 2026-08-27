@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xshuiai.github.io/media-publish-check/sitemap.xml

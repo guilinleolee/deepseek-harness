@@ -1,0 +1,70 @@
+{
+  "platforms": {
+    "amazon": {
+      "enabled": true,
+      "region": "com",
+      "useProxy": true,
+      "proxyConfig": {
+        "http": "",
+        "https": ""
+      }
+    },
+    "jd": {
+      "enabled": true,
+      "useCookie": false,
+      "cookiePath": ""
+    },
+    "taobao": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/taobao.json"
+    },
+    "pdd": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/pdd.json"
+    },
+    "ebay": {
+      "enabled": true,
+      "region": "com"
+    }
+  },
+  "monitoring": {
+    "interval": "daily",
+    "checkHour": 9,
+    "priceAlert": {
+      "enabled": true,
+      "threshold": 10,
+      "channels": ["email", "dingtalk"]
+    },
+    "stockAlert": {
+      "enabled": true,
+      "channels": ["email"]
+    }
+  },
+  "analysis": {
+    "sentimentAnalysis": true,
+    "keywordExtraction": true,
+    "trendIdentification": true
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "~/.claude/data/ecommerce.db"
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "smtp": "",
+      "from": "",
+      "to": []
+    },
+    "dingtalk": {
+      "enabled": false,
+      "webhook": ""
+    },
+    "wecom": {
+      "enabled": false,
+      "webhook": ""
+    }
+  }
+}

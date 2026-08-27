@@ -1,0 +1,20 @@
+{
+  "evolutions": [
+    {
+      "date": "2026-01-30",
+      "feature": "Superpowers Integration",
+      "description": "Integrated 'superpowers' engineering protocols: Atomic tasks, TDD Iron Law, Two-Stage Review, and Root Cause Investigation.",
+      "impact": "Increased delivery certainty and reduced architectural drift."
+    },
+    {
+      "date": "2026-01-30",
+      "version": "2.0.0",
+      "enhancements": [
+        "实施 Eval-Driven Development (EDD) 评估体系",
+        "定义 Capability Evals (新功能验证) 与 Regression Evals (防回退验证)",
+        "引入 pass@k 指标体系，量化 AI 生成的可信度"
+      ],
+      "instructions": "在宣称任务完成前，必须根据 .claude/evals/ 中的定义运行评估。核心功能必须通过 pass^3 = 100% (连续 3 次成功) 的严苛测试。所有评估结果必须记录在 eval-report 中。"
+    }
+  ]
+}

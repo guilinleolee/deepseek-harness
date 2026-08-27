@@ -1,0 +1,5 @@
+# Libgen 搜索
+libgen-api>=1.0.1
+
+# Z-Library 搜索
+zlibrary>=1.0.0

@@ -1,0 +1,26 @@
+{
+  "name": "dsh-trajectory-debug-bundle",
+  "version": "0.1.0",
+  "description": "Trajectory Debug Workbench: installable DSH profile bundle (cordis.patch.yml layer)",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "cordis.patch.yml",
+    "README.md",
+    "index.js"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "dsh-trajectory-debug-host": "workspace:*",
+    "dsh-trajectory-debug-remotes": "workspace:*",
+    "dsh-client-ui-trajectory-debug": "workspace:*"
+  },
+  "scripts": {
+    "publish:package": "corepack pnpm publish --no-git-checks"
+  }
+}

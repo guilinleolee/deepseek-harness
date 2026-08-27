@@ -1,0 +1,76 @@
+# LightRAG Configuration Template
+
+# Working Directory
+working_dir: ./rag_storage
+
+# LLM Settings
+llm:
+  # Recommended: >= 32B parameters, >= 32KB context
+  model: qwen3-30b-a3b
+  context_window: 64000
+  api_base: null  # Use default or set custom endpoint
+
+# Embedding Settings
+embedding:
+  model: BAAI/bge-m3
+  dimension: 1024
+  api_base: null
+
+# Reranker Settings (default enabled for best quality)
+reranker:
+  enabled: true
+  model: BAAI/bge-reranker-v2-m3
+
+# Chunking Settings
+chunk:
+  size: 1200  # tokens per chunk
+  overlap: 100  # overlap between chunks
+
+# Query Settings
+query:
+  mode: hybrid  # local, global, hybrid, mix
+  top_k: 60
+  stream: false
+
+# Storage Backends
+storage:
+  # KV Store: jsonkv, pgkv, redis, mongodb, opensearch
+  kv: jsonkv
+
+  # Vector Store: nanovector, pgvector, milvus, chroma, faiss, qdrant
+  vector: nanovector
+
+  # Graph Store: networkx, neo4j, pggraph, age
+  graph: networkx
+
+# PostgreSQL Connection (if using pgkv/pgvector/pggraph)
+postgresql:
+  host: localhost
+  port: 5432
+  database: lightrag
+  user: postgres
+  password: null
+
+# Neo4j Connection (if using neo4j graph store)
+neo4j:
+  uri: bolt://localhost:7687
+  user: neo4j
+  password: null
+
+# Redis Connection (if using redis kv store)
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+  password: null
+
+# Logging
+logging:
+  level: INFO
+  file: null  # Set to path for file logging
+
+# Performance Tuning
+performance:
+  max_concurrent_inserts: 10
+  batch_size: 100
+  cache_ttl: 3600  # seconds

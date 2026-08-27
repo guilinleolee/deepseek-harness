@@ -1,0 +1,23 @@
+{
+  "name": "dsh-trajectory-debug-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Trajectory Debug Workbench plugin family for DeepSeek Harness",
+  "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c",
+  "scripts": {
+    "typecheck": "pnpm -r --workspace-concurrency=1 typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "pnpm -r build && node scripts/bundle-client.mjs",
+    "bundle:client": "node scripts/bundle-client.mjs",
+    "check": "corepack pnpm -r build && corepack pnpm -r typecheck && corepack pnpm test",
+    "check:publish": "node scripts/verify-publish.mjs",
+    "publish:all": "corepack pnpm -r publish --no-git-checks"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.8"
+  }
+}

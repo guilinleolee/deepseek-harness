@@ -1,0 +1,225 @@
+name: AI News Radar Scout
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches: [main]
+    paths:
+      - 'feeds/opml/**'
+      - 'scripts/**'
+
+env:
+  PYTHON_VERSION: '3.10'
+  SKILL_DIR: ${{ github.workspace }}
+
+jobs:
+  # Job 1: Fetch Official AI News
+  fetch-official:
+    name: Fetch Official AI News
+    runs-on: ubuntu-latest
+    outputs:
+      official_count: ${{ steps.fetch.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Fetch Official Feeds
+        id: fetch
+        run: |
+          python scripts/scout.py \
+            --opml feeds/opml/official.opml \
+            --output output/official_news.json \
+            --min-score 0.6
+          echo "count=$(cat output/official_news.json | jq length)" >> $GITHUB_OUTPUT
+      - name: Upload Official News
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-news
+          path: output/official_news.json
+          retention-days: 7
+
+  # Job 2: Fetch Research Papers
+  fetch-research:
+    name: Fetch Research Papers
+    runs-on: ubuntu-latest
+    outputs:
+      research_count: ${{ steps.fetch.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Fetch Research Feeds
+        id: fetch
+        run: |
+          python scripts/scout.py \
+            --opml feeds/opml/research.opml \
+            --output output/research_news.json \
+            --min-score 0.5
+          echo "count=$(cat output/research_news.json | jq length)" >> $GITHUB_OUTPUT
+      - name: Upload Research News
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-news
+          path: output/research_news.json
+          retention-days: 7
+
+  # Job 3: Fetch AI Media News
+  fetch-media:
+    name: Fetch AI Media News
+    runs-on: ubuntu-latest
+    outputs:
+      media_count: ${{ steps.fetch.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Fetch Media Feeds
+        id: fetch
+        run: |
+          python scripts/scout.py \
+            --opml feeds/opml/news.opml \
+            --output output/media_news.json \
+            --min-score 0.6
+          echo "count=$(cat output/media_news.json | jq length)" >> $GITHUB_OUTPUT
+      - name: Upload Media News
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-news
+          path: output/media_news.json
+          retention-days: 7
+
+  # Job 4: Fetch Custom Feeds
+  fetch-custom:
+    name: Fetch Custom Feeds
+    runs-on: ubuntu-latest
+    outputs:
+      custom_count: ${{ steps.fetch.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Fetch Custom Feeds
+        id: fetch
+        run: |
+          python scripts/scout.py \
+            --opml feeds/opml/custom.opml \
+            --output output/custom_news.json \
+            --min-score 0.5
+          echo "count=$(cat output/custom_news.json | jq length)" >> $GITHUB_OUTPUT
+      - name: Upload Custom News
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-news
+          path: output/custom_news.json
+          retention-days: 7
+
+  # Job 5: Merge and Score
+  merge-and-score:
+    name: Merge and Score News
+    runs-on: ubuntu-latest
+    needs: [fetch-official, fetch-research, fetch-media, fetch-custom]
+    outputs:
+      total_count: ${{ steps.merge.outputs.total }}
+      high_priority: ${{ steps.score.outputs.high }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: input
+        # Download all artifacts
+      - name: Merge News Feeds
+        id: merge
+        run: |
+          python scripts/update_news.py \
+            --input-dir input \
+            --output output/merged_news.json
+          echo "total=$(cat output/merged_news.json | jq length)" >> $GITHUB_OUTPUT
+      - name: Calculate AI Scores
+        id: score
+        run: |
+          python scripts/score.py \
+            --input output/merged_news.json \
+            --output output/scored_news.json
+          echo "high=$(cat output/scored_news.json | jq '[.[] | select(.ai_score >= 0.8)] | length')" >> $GITHUB_OUTPUT
+      - name: Upload Merged News
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-news
+          path: output/
+          retention-days: 30
+
+  # Job 6: Health Check
+  health-check:
+    name: Source Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install requests
+      - name: Check All Sources
+        run: |
+          python scripts/health_check.py \
+            --sources feeds/opml/*.opml \
+            --output output/health_report.json
+      - name: Upload Health Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-report
+          path: output/health_report.json
+          retention-days: 30
+
+  # Job 7: Generate Summary (always runs)
+  generate-summary:
+    name: Generate Daily Summary
+    runs-on: ubuntu-latest
+    needs: [merge-and-score, health-check]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install feedparser requests
+      - name: Download Merged News
+        uses: actions/download-artifact@v4
+        with:
+          name: merged-news
+          path: input
+      - name: Generate Summary
+        run: |
+          python scripts/scout.py \
+            --opml feeds/opml/official.opml \
+            --output output/summary.md \
+            --format markdown
+      - name: Create PR if High Priority News
+        if: needs.merge-and-score.outputs.high_priority != '0'
+        run: |
+          echo "High priority AI news detected: ${{ needs.merge-and-score.outputs.high_priority }} items"
+          # Create a summary comment for the PR
+          echo "## AI News Radar Daily Summary" > summary.md
+          echo "### High Priority (${{ needs.merge-and-score.outputs.high_priority }})" >> summary.md
+          echo "Found high-priority AI news requiring attention." >> summary.md

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Media Publish Check｜自媒体发布审核"
+  short_description: "全平台发布前审核：抖音、小红书、视频号、快手"
+  default_prompt: "使用 $media-publish-check 做全平台发布前审核。我将把视频、图文、口播稿、字幕或封面发给你，请按抖音、小红书、视频号或快手的发布场景，检查内容、画面、音轨、AI 标注、授权、来源和平台适配；先给能否直接发、最多 3 个问题和修改稿。"

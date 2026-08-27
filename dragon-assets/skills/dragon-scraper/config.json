@@ -1,0 +1,18 @@
+{
+  "concurrency": 3,
+  "requestDelay": [1000, 3000],
+  "timeout": 30000,
+  "retries": 3,
+  "proxy": {
+    "enabled": false,
+    "list": []
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "~/.claude/data/scraper.db"
+  },
+  "output": {
+    "format": "json",
+    "directory": "~/.claude/output/scraper/"
+  }
+}

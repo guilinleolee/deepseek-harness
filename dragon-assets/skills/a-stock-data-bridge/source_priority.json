@@ -1,0 +1,115 @@
+{
+  "version": "1.0",
+  "skill": "a-stock-data-bridge",
+  "upstream_version": "V3.4.0",
+  "modified": "2026-07-21",
+  "principle": "通达信/腾讯/百度 优先（不封 IP）→ 东财仅用于独有数据 → 同花顺/iwencai 作为研报搜索兜底 → 巨潮作为公告权威",
+  "comment": "数据源优先级映射 · 与上游 V3.4.0 source_priority 字段对齐（天龙额外加备注说明）",
+  "sources": {
+    "mootdx": {
+      "tier": 1,
+      "rationale": "通达信客户端协议，公开开源，零反爬压力",
+      "auth_required": false,
+      "rate_limit_hint": "无明确限制"
+    },
+    "tencent": {
+      "tier": 1,
+      "tier_name": "腾讯财经",
+      "rationale": "网页 API，历史稳定，偶尔触发频率限制",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "baidu": {
+      "tier": 1,
+      "tier_name": "百度股市通",
+      "rationale": "K线 + 概念板块，作为腾讯备胎",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "eastmoney_datacenter": {
+      "tier": 2,
+      "tier_name": "东方财富 datacenter",
+      "rationale": "独有数据（龙虎榜/北向/融资融券大宗），强反爬",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s 强制"
+    },
+    "eastmoney_push2": {
+      "tier": 2,
+      "tier_name": "东方财富 push2 (实时行情)",
+      "rationale": "实时报价/资金流，强反爬",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s 强制"
+    },
+    "tonghuashun": {
+      "tier": 3,
+      "tier_name": "同花顺",
+      "rationale": "强势股/题材归因/打板数据，中等反爬",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "tonghuashun_iwencai": {
+      "tier": 3,
+      "tier_name": "iwencai 问财",
+      "rationale": "NL 搜索与 QA，中等反爬",
+      "auth_required": false,
+      "rate_limit_hint": "≥2s"
+    },
+    "xinlang": {
+      "tier": 2,
+      "tier_name": "新浪财经",
+      "rationale": "财报三表，作为东财备胎",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "cninfo": {
+      "tier": 1,
+      "tier_name": "巨潮 cninfo",
+      "rationale": "沪深北全量公告，官方权威",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "xueqiu": {
+      "tier": 4,
+      "tier_name": "雪球",
+      "rationale": "评论热榜，需 cookie，**走 agent-reach 账号态通路**",
+      "auth_required": true,
+      "auth_provider": "agent-reach",
+      "rate_limit_hint": "≥2s"
+    },
+    "sse_interactive": {
+      "tier": 1,
+      "tier_name": "上交所互动易",
+      "rationale": "官方问答",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "sse_option": {
+      "tier": 1,
+      "tier_name": "上交所期权",
+      "rationale": "Greeks/隐含波动率，官方",
+      "auth_required": false,
+      "rate_limit_hint": "≥2s"
+    },
+    "ths_option_chain": {
+      "tier": 1,
+      "tier_name": "THS 期权链",
+      "rationale": "天龙桥接入（待 V1.1 实现）",
+      "auth_required": false,
+      "rate_limit_hint": "≥2s"
+    },
+    "global_news": {
+      "tier": 1,
+      "tier_name": "东财全球资讯",
+      "rationale": "全球新闻聚合",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "iwencai_qa": {
+      "tier": 3,
+      "tier_name": "iwencai QA",
+      "rationale": "NL 搜索兜底",
+      "auth_required": false,
+      "rate_limit_hint": "≥2s"
+    }
+  }
+}

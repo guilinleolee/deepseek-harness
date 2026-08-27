@@ -1,0 +1,34 @@
+MemTensor/MemOS
+Copyright 2025-2026 MemTensor Authors
+
+This product includes software developed by MemTensor (https://github.com/MemTensor).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=========================================================================
+Modified by dragon-engine / 2026-08-26
+Stage 47.1 借鉴档 (Apache-2.0 · 1006 forks · 14 个月迭代)
+=========================================================================
+
+The dragon-engine adaptation borrows 5 methodologies from MemOS:
+
+  ① Self-evolving memory OS architecture (4-layer pipeline: ingest / consolidate / retrieve / inject)
+  ② Ultra-persistent memory (local SQLite + heat score, avoids repetitive LLM tool calls)
+  ③ Hybrid retrieval (vector + BM25 + graph hops with Reciprocal Rank Fusion)
+  ④ Cross-task reasoning routing (session_id-keyed memory sub-graphs)
+  ⑤ Apache-2.0 LICENSE verbatim + NOTICE Modified compliance
+
+The dragon-engine integration is licensed under the Apache License, Version 2.0
+(inherited from MemOS upstream). Source-of-truth: dragon-engine skills/memos-methodology/.
+
+No modifications to the upstream MemOS LICENSE file bytes (verbatim 11.4 KB Apache-2.0).

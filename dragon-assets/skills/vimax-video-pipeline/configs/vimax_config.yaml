@@ -1,0 +1,333 @@
+# ViMax Video Pipeline Configuration
+# Multi-Agent Video Generation Framework
+# Source: HKUDS/ViMax (4.9k Stars, MIT License)
+
+version: "1.0.0"
+framework: "vimax-video-pipeline"
+
+# =============================================================================
+# Agent Configuration
+# =============================================================================
+agents:
+  screenwriter:
+    model: "gpt-4o"
+    temperature: 0.7
+    max_tokens: 4096
+    role: "Screenplay and dialogue generation"
+    tools: ["text_generation", "language_model"]
+
+  script_planner:
+    model: "gpt-4o"
+    temperature: 0.5
+    max_tokens: 8192
+    role: "Scene layout and camera angle planning"
+    tools: ["text_generation", "language_model"]
+
+  global_info_planner:
+    model: "gpt-4o"
+    temperature: 0.4
+    max_tokens: 8192
+    role: "Narrative arc and visual style analysis"
+    tools: ["text_generation", "language_model"]
+
+  character_extractor:
+    model: "gpt-4o"
+    temperature: 0.3
+    max_tokens: 4096
+    role: "Character identification and profile extraction"
+    tools: ["text_generation", "language_model"]
+
+  character_portraits_generator:
+    model: "dall-e-3"
+    style: "photorealistic"
+    quality: "hd"
+    size: "1024x1024"
+    role: "Character portrait image generation"
+    tools: ["image_generation"]
+
+  reference_image_selector:
+    model: "clip"
+    threshold: 0.75
+    min_images_per_scene: 8
+    role: "Text-based image filtering using CLIP aesthetics"
+    tools: ["image_filtering", "clip_model"]
+
+  best_image_selector:
+    model: "gpt-4o-vision"
+    selection_ratio: 0.3
+    role: "VLM-based multimodal image selection"
+    tools: ["vision_model", "image_selection"]
+
+  camera_image_generator:
+    model: "dall-e-3"
+    style: "cinematic"
+    quality: "hd"
+    size: "1792x1024"
+    aspect_ratio: "16:9"
+    role: "Camera shot frame generation with camera tree"
+    tools: ["image_generation"]
+
+  scene_extractor:
+    model: "gpt-4o"
+    temperature: 0.5
+    max_tokens: 4096
+    role: "Scene breakdown into camera shots"
+    tools: ["text_generation", "language_model"]
+
+  event_extractor:
+    model: "gpt-4o"
+    temperature: 0.4
+    max_tokens: 4096
+    role: "Key event extraction from compressed story"
+    tools: ["text_generation", "language_model"]
+
+  novel_compressor:
+    model: "gpt-4o"
+    temperature: 0.3
+    compression_ratio: 0.3
+    max_tokens: 16384
+    role: "Novel compression to key events"
+    tools: ["text_generation", "language_model"]
+
+  orchestrator:
+    model: "gpt-4o"
+    temperature: 0.5
+    max_tokens: 4096
+    role: "Video compilation and final output"
+    tools: ["video_compilation", "ffmpeg"]
+
+# =============================================================================
+# Workflow Configuration
+# =============================================================================
+workflows:
+  idea2video:
+    input_type: "text"
+    input_example: "A hero's journey through an ancient Chinese kingdom"
+    estimated_duration_minutes: 30
+    phases: 5
+    scenes: "5-10"
+    shots_per_scene: "4-8"
+    checkpoint_enabled: true
+    parallel_agents_max: 3
+
+  novel2video:
+    input_type: "text"
+    input_example: "A 50,000-word fantasy novel with 5 main characters and 20 chapters"
+    estimated_duration_minutes: 60
+    phases: 6
+    events: "5-15"
+    scenes_per_event: "2-4"
+    shots_per_scene: "4-8"
+    compression_ratio: 0.3
+    checkpoint_enabled: true
+    parallel_agents_max: 4
+
+  script2video:
+    input_type: "text"
+    input_example: "A 30-minute screenplay with scene headings, action descriptions, and character dialogues"
+    estimated_duration_minutes: 45
+    phases: 5
+    scenes: "10-30"
+    shots_per_scene: "4-8"
+    average_shot_duration: "3-5 seconds"
+    checkpoint_enabled: true
+    parallel_agents_max: 4
+
+  autocameo:
+    input_type: "text"
+    input_example: "Avatar: photorealistic person, Script: Welcome to our channel, Background: office"
+    estimated_duration_minutes: 15
+    script_length: "30 seconds - 5 minutes"
+    processing_time_per_minute: "3-5 minutes"
+    checkpoint_enabled: true
+    parallel_agents_max: 2
+    avatar_types:
+      - photorealistic
+      - cartoon
+      - anime
+      - 3d_avatar
+
+# =============================================================================
+# RAG Configuration (Character Tracking)
+# =============================================================================
+rag:
+  enabled: true
+  db_path: "./vimax_rag"
+  layers:
+    - scene
+    - event
+    - novel
+  character_tracking:
+    static_features: true
+    dynamic_features: true
+    appearance_records: true
+    relationships: true
+  consistency_check:
+    enabled: true
+    check_interval: "after_each_scene"
+    severity_levels:
+      - warning
+      - error
+      - critical
+
+# =============================================================================
+# Reference Image Filtering Configuration
+# =============================================================================
+reference_filtering:
+  stage1_text_filtering:
+    model: "clip"
+    min_images_per_scene: 8
+    score_threshold: 0.75
+    top_k: 20
+  stage2_multimodal_selection:
+    model: "gpt-4o-vision"
+    selection_ratio: 0.3
+    consistency_weight: 0.4
+    quality_weight: 0.3
+    relevance_weight: 0.3
+
+# =============================================================================
+# Camera Tree Configuration
+# =============================================================================
+camera_tree:
+  enabled: true
+  depth: 3
+  branching_factor: 2
+  spatial_consistency_weight: 0.5
+  temporal_consistency_weight: 0.3
+  style_consistency_weight: 0.2
+  shot_types:
+    - establishing
+    - wide
+    - medium
+    - close_up
+    - extreme_close_up
+    - over_shoulder
+    - pov
+    - aerial
+    - tracking
+    - static
+
+# =============================================================================
+# Checkpoint Configuration
+# =============================================================================
+checkpoints:
+  enabled: true
+  path: "./vimax_checkpoints"
+  save_interval: "after_each_phase"
+  retain_policy: "keep_all"
+  compression: true
+  metadata:
+    - workflow_name
+    - phase_id
+    - agent_id
+    - timestamp
+    - input_hash
+    - output_hash
+
+# =============================================================================
+# Video Compilation Configuration
+# =============================================================================
+video_compilation:
+  fps: 30
+  resolution:
+    width: 1920
+    height: 1080
+  codec: "h264"
+  audio_codec: "aac"
+  bitrate: "8M"
+  output_format: "mp4"
+  transitions:
+    enabled: true
+    default: "fade"
+    options:
+      - fade
+      - crossfade
+      - wipe
+      - slide
+  subtitles:
+    enabled: true
+    font: "Arial"
+    font_size: 24
+    color: "white"
+    background: "black"
+  background_music:
+    enabled: true
+    volume: 0.3
+    fade_in: 2
+    fade_out: 2
+
+# =============================================================================
+# Parallel Execution Configuration
+# =============================================================================
+parallel_execution:
+  enabled: true
+  max_concurrent_agents: 4
+  dependency_resolution: "automatic"
+  retry_on_failure: true
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+output:
+  base_path: "./vimax_output"
+  subdirectories:
+    - videos
+    - images
+    - audio
+    - checkpoints
+    - logs
+  file_naming:
+    pattern: "{workflow}_{timestamp}_{index}"
+    include_workflow: true
+    include_timestamp: true
+    include_hash: false
+  logging:
+    level: "INFO"
+    format: "json"
+    path: "./vimax_output/logs"
+
+# =============================================================================
+# Tianlong Engine Integration
+# =============================================================================
+tianlong_integration:
+  position: "35-05"
+  position_name: "短视频编导"
+  engine_version: "V11.15"
+  synergy_agents:
+    - "17-01数据分析师"
+    - "09-02编排协调师"
+  supported_engines:
+    - "Pixelle-Video"
+    - "Remotion"
+    - "Hyperframes"
+    - "MagiHuman"
+    - "Seedance 2.0"
+  quality_gates:
+    - name: "character_consistency"
+      check: "rag_consistency_check"
+      threshold: 0.8
+    - name: "visual_quality"
+      check: "clip_score"
+      threshold: 0.75
+    - name: "audio_sync"
+      check: "lip_sync_accuracy"
+      threshold: 0.85
+
+# =============================================================================
+# Performance Tuning
+# =============================================================================
+performance:
+  batch_processing:
+    enabled: true
+    batch_size: 4
+  caching:
+    enabled: true
+    cache_size_mb: 1024
+    ttl_hours: 24
+  resource_limits:
+    max_memory_mb: 8192
+    max_concurrent_generations: 2
+    timeout_minutes: 30

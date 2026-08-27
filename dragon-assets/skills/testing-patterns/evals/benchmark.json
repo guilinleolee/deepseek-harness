@@ -1,0 +1,36 @@
+{
+  "name": "testing-patterns",
+  "version": "1.0.0",
+  "description": "测试模式技能基准测试",
+  "assertions": [
+    {
+      "type": "file_exists",
+      "path": "SKILL.md",
+      "description": "技能文件存在"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "TDD",
+      "description": "包含TDD内容"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "单元测试",
+      "description": "包含单元测试"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "集成测试",
+      "description": "包含集成测试"
+    },
+    {
+      "type": "content_contains",
+      "path": "SKILL.md",
+      "text": "Jest",
+      "description": "包含Jest框架"
+    }
+  ]
+}

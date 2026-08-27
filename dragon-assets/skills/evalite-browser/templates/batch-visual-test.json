@@ -1,0 +1,44 @@
+{
+  "name": "visual-regression-batch",
+  "url": "http://localhost:3000/",
+  "description": "Batch visual regression test for all pages",
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "pages": [
+    {
+      "name": "home",
+      "url": "/",
+      "wait_for_selector": "body"
+    },
+    {
+      "name": "about",
+      "url": "/about",
+      "wait_for_selector": "main"
+    },
+    {
+      "name": "contact",
+      "url": "/contact",
+      "wait_for_selector": "form"
+    },
+    {
+      "name": "pricing",
+      "url": "/pricing",
+      "wait_for_selector": ".pricing-table"
+    },
+    {
+      "name": "features",
+      "url": "/features",
+      "wait_for_selector": ".feature-grid"
+    }
+  ],
+  "visual": {
+    "enabled": true,
+    "threshold": 0.1,
+    "full_page": true,
+    "animations_wait": 1000,
+    "dynamic_content_wait": 500
+  }
+}

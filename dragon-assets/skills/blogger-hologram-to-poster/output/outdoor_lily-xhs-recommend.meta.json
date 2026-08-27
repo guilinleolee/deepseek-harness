@@ -1,0 +1,26 @@
+{
+  "blogger": "outdoor_lily",
+  "style_id": "xhs-recommend",
+  "palette": "#FDFFA7",
+  "aspect_ratio": "3:4",
+  "prompt_length": 534,
+  "ip_consent": "unknown",
+  "template_source": "C:\\Users\\li\\.claude\\skills\\gpt-image-2-prompt-library\\templates\\xhs\\styles\\06-recommend.md",
+  "timestamp": "2026-07-20T03:14:09.531Z",
+  "selected_style": "xhs-recommend",
+  "pre_answers": {
+    "style": "xhs-recommend",
+    "figure_1": "local://./photos/photo_1.jpg",
+    "expression": "auto",
+    "extra_materials": "0",
+    "background": "auto",
+    "font_style": "variety-bold",
+    "font_color": "fdffa7-default",
+    "title": "户外 Lily 7 个真实踩坑",
+    "auto_recommended": true
+  },
+  "prompt_path": "C:\\Users\\li\\.claude\\projects\\c--Users-li--claude\\dragon-engine\\skills\\blogger-hologram-to-poster\\output\\outdoor_lily-xhs-recommend.prompt.md",
+  "prompt": "参考图 1 的人物五官特征，保持人物一致性，真人半身出镜。\n\n[具体表情：微笑推荐/双手点赞/认真安利]，\n人物位于画面中央偏[左/右]，占画面约 48%，\n由模型决定，眼神看向镜头，人物边缘有 #FDFFA7 描边，\n形成清晰抠图感。\n\n画面[顶部/底部]放置超大中文标题\"户外 Lily 7 个真实踩坑\"，\n字体为超粗圆润黑体，#FDFFA7 和白色组合填充 + 粗黑描边，\n亲切但醒目；标题背后的黄色底板或色块统一使用 #FDFFA7，\n**禁止荧光黄/金黄/偏橙黄**。\n\n在人物旁边加入主题相关 emoji，例如：\n- 笑脸、爱心、喇叭（资源类）\n- 耳机、麦克风、小宇宙 logo（播客类）\n- 星星、书本、工具图标（工具书类）\n数量控制在 3-5 个，围绕人物手势分布。\n\n如果有图 2，将图 2 作为推荐对象的小卡片或封面缩略图，\n放在人物手边，轻微倾斜，带白色边框和投影。\n\n背景是主题相关的暖色调场景，轻微虚化，\n有真实分享感，不抢标题和人物的视觉权重。\n\n画面可以加入一行竖排小字\"亲测好用\"，\n白色粗体 + 黑色描边，贴近人物侧边。\n\n3:4 竖版小红书真人出镜封面，种草感强，亲切可信，高点击感，\n标题和人物都清晰，所有重要元素不超出安全区。",
+  "dry_run": true,
+  "note": "dry-run 模式：不调 gpt-image-2，仅验证 pipeline 端到端"
+}

@@ -1,0 +1,90 @@
+dsh-routing-suite-bridge
+Copyright 2026 dragon-engine contributors
+
+This product includes software developed by yjh051108 in the project
+"dsh-routing-suite" (https://github.com/yjh051108/dsh-routing-suite),
+licensed under the MIT License.
+
+================================================================================
+Section 1 — Product Identification
+================================================================================
+
+Product name    : dsh-routing-suite-bridge
+Version         : V1.0 (Stage 52 of dragon-engine)
+Mirror date     : 2026-08-26
+Upstream version: v0.3.0 (2026-08)
+License (mirror): MIT (see LICENSE)
+Strategy        : 借鉴档 (Reference adaptation — not source mirror)
+                  Pure-Python implementation, no upstream source code reused.
+                  Per upstream README, the upstream components (dsh-super-injector /
+                  dsh-router-standard) are MIT-licensed and their APIs are
+                  designed to be open implementations.
+
+================================================================================
+Section 2 — Upstream Attribution (MIT)
+================================================================================
+
+Original copyright:
+    Copyright (c) 2026 yjh051108
+
+Upstream acknowledgements (from upstream README):
+    - xiaobright/modeltest (V4.1b evaluation)
+    - xiaobright/dsh-anchored-standard (anchoring mechanism)
+
+Adapted by dragon-engine / 2026-08-26.
+
+Reference list (per MIT § 4 conditions):
+    - 4-mode routing decision tree (spec/react/weak/mixed)
+    - 3 dev_* tools interface (dev_router_status / dev_router_mode / dev_mode_subagent)
+    - Model adaptation table (Pro=spec / Flash=neutral)
+    - 3-anchor persona pattern (review + converge + anti-drift)
+
+================================================================================
+Section 3 — Trademark Notice (Upstream Branding)
+================================================================================
+
+"DSH" / "DeepSeek Harness" / "deepseek-harness" are property of DeepSeek Co., Ltd.
+"dsh-routing-suite" / "dsh-super-injector" / "dsh-router-standard" are property of yjh051108.
+
+This dragon-engine bridge package is NOT affiliated with, endorsed by, or
+sponsored by yjh051108 or DeepSeek Co., Ltd., except that it is distributed
+under the upstream MIT License terms.
+
+Permitted phrasing:
+    - "借鉴 yjh051108/dsh-routing-suite 范式"
+    - "Reference adaptation of dsh-routing-suite (MIT)"
+    - "Based on yjh051108/dsh-routing-suite v0.3.0"
+
+Forbidden phrasing:
+    - "官方路由套件" / "DSH 官方认证"
+    - Any wording implying yjh051108 or DeepSeek endorses dragon-engine
+
+================================================================================
+Section 4 — Bridge Additions (MIT — dragon-engine copyright)
+================================================================================
+
+The following files are ORIGINAL work by dragon-engine contributors,
+licensed under MIT for symmetry with upstream:
+
+    dragon-engine/skills/dsh-routing-suite-bridge/SKILL.md
+    dragon-engine/skills/dsh-routing-suite-bridge/scripts/router.py
+    dragon-engine/skills/dsh-routing-suite-bridge/scripts/dev_tools.py
+    dragon-engine/skills/dsh-routing-suite-bridge/scripts/check.py
+    dragon-engine/skills/dsh-routing-suite-bridge/tests/test_*.py
+    dragon-engine/skills/dsh-routing-suite-bridge/LICENSE  (mirror copy)
+    dragon-engine/skills/dsh-routing-suite-bridge/NOTICE   (this file)
+    dragon-engine/memory/stage-52-dsh-routing-suite.md
+
+Original copyright:
+    Copyright (c) 2026 dragon-engine contributors
+
+================================================================================
+Section 5 — Modification Log
+================================================================================
+
+  2026-08-26  V1.0.0  Stage 52 initial 借鉴档
+                       - router.py: 4-mode decision tree + model adaptation
+                       - dev_tools.py: 3 dev_* tools (status/mode/subagent)
+                       - check.py: 6 PASS health check
+                       - 6 PASS pytest (classify/dev_tools/e2e 3 大类)
+                       - MIT LICENSE + this NOTICE

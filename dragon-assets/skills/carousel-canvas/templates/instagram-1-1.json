@@ -1,0 +1,42 @@
+{
+  "platform": "instagram",
+  "name": "Instagram 方形",
+  "aspect_ratio": "1:1",
+  "size": {
+    "width": 1080,
+    "height": 1080
+  },
+  "template_defaults": {
+    "padding": 100,
+    "corner_radius": 0
+  },
+  "slides": {
+    "cover": {
+      "layout": "centered",
+      "title": {
+        "size": 56,
+        "weight": "bold",
+        "max_width": 880,
+        "line_height": 1.2
+      }
+    },
+    "content": {
+      "image": {
+        "max_width": 880,
+        "max_height": 880,
+        "centered": true
+      },
+      "caption": {
+        "size": 28,
+        "max_width": 880,
+        "max_lines": 10
+      }
+    },
+    "ending": {
+      "cta": {
+        "button_width": 500,
+        "button_height": 80
+      }
+    }
+  }
+}

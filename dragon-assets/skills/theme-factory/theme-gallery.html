@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Factory - 主题展示画廊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .theme-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .theme-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+        .color-swatch { transition: transform 0.2s ease; }
+        .color-swatch:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-6">
+            <h1 class="text-4xl font-bold mb-2">🎨 Theme Factory</h1>
+            <p class="text-xl text-gray-300">30种精选主题 · 含20个中国本土化主题</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 bg-white shadow-sm z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex gap-4 flex-wrap">
+                <a href="#international" class="px-4 py-2 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition">🌍 国际通用</a>
+                <a href="#classic" class="px-4 py-2 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition">🏛️ 经典文化</a>
+                <a href="#modern" class="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition">🚀 现代国风</a>
+                <a href="#nature" class="px-4 py-2 rounded-full bg-teal-100 text-teal-700 hover:bg-teal-200 transition">🏔️ 自然风光</a>
+                <a href="#thematic" class="px-4 py-2 rounded-full bg-pink-100 text-pink-700 hover:bg-pink-200 transition">🎉 主题应用</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-12">
+
+        <!-- International Themes -->
+        <section id="international" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">🌍</span> 国际通用主题 (10)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Ocean Depths -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#0a192f" title="#0a192f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#112240" title="#112240"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#233554" title="#233554"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#64ffda" title="#64ffda"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Ocean Depths</h3>
+                        <p class="text-gray-600 text-sm mb-2">Professional and calming maritime theme</p>
+                        <p class="text-xs text-gray-500">Headers: Inter · Body: Inter</p>
+                    </div>
+                </div>
+
+                <!-- Sunset Boulevard -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff6b6b" title="#ff6b6b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffa502" title="#ffa502"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff7f50" title="#ff7f50"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2d3436" title="#2d3436"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Sunset Boulevard</h3>
+                        <p class="text-gray-600 text-sm mb-2">Warm and vibrant sunset colors</p>
+                        <p class="text-xs text-gray-500">Headers: Playfair Display · Body: Lato</p>
+                    </div>
+                </div>
+
+                <!-- Forest Canopy -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2d5a27" title="#2d5a27"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4a7c3f" title="#4a7c3f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8fbc8f" title="#8fbc8f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f5dc" title="#f5f5dc"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Forest Canopy</h3>
+                        <p class="text-gray-600 text-sm mb-2">Natural and grounded earth tones</p>
+                        <p class="text-xs text-gray-500">Headers: Merriweather · Body: Open Sans</p>
+                    </div>
+                </div>
+
+                <!-- Modern Minimalist -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a1a" title="#1a1a1a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#333333" title="#333333"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f5f5" title="#f5f5f5"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Modern Minimalist</h3>
+                        <p class="text-gray-600 text-sm mb-2">Clean and contemporary grayscale</p>
+                        <p class="text-xs text-gray-500">Headers: Helvetica Neue · Body: Arial</p>
+                    </div>
+                </div>
+
+                <!-- Golden Hour -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a574" title="#d4a574"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c9956c" title="#c9956c"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b4513" title="#8b4513"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fffaf0" title="#fffaf0"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Golden Hour</h3>
+                        <p class="text-gray-600 text-sm mb-2">Rich and warm autumnal palette</p>
+                        <p class="text-xs text-gray-500">Headers: Cormorant Garamond · Body: Crimson Text</p>
+                    </div>
+                </div>
+
+                <!-- Arctic Frost -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#a8d8ea" title="#a8d8ea"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#aa96da" title="#aa96da"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fcbad3" title="#fcbad3"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Arctic Frost</h3>
+                        <p class="text-gray-600 text-sm mb-2">Cool and crisp winter-inspired</p>
+                        <p class="text-xs text-gray-500">Headers: Montserrat · Body: Roboto</p>
+                    </div>
+                </div>
+
+                <!-- Desert Rose -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c4a35a" title="#c4a35a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a373" title="#d4a373"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#e9c46a" title="#e9c46a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fefae0" title="#fefae0"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Desert Rose</h3>
+                        <p class="text-gray-600 text-sm mb-2">Soft and sophisticated dusty tones</p>
+                        <p class="text-xs text-gray-500">Headers: Libre Baskerville · Body: Source Sans Pro</p>
+                    </div>
+                </div>
+
+                <!-- Tech Innovation -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#0f0f23" title="#0f0f23"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a2e" title="#1a1a2e"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#00d4ff" title="#00d4ff"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#7c3aed" title="#7c3aed"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Tech Innovation</h3>
+                        <p class="text-gray-600 text-sm mb-2">Bold and modern tech aesthetic</p>
+                        <p class="text-xs text-gray-500">Headers: Space Grotesk · Body: IBM Plex Sans</p>
+                    </div>
+                </div>
+
+                <!-- Botanical Garden -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2d6a4f" title="#2d6a4f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#40916c" title="#40916c"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#95d5b2" title="#95d5b2"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d8f3dc" title="#d8f3dc"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Botanical Garden</h3>
+                        <p class="text-gray-600 text-sm mb-2">Fresh and organic garden colors</p>
+                        <p class="text-xs text-gray-500">Headers: DM Serif Display · Body: DM Sans</p>
+                    </div>
+                </div>
+
+                <!-- Midnight Galaxy -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#0d1b2a" title="#0d1b2a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1b263b" title="#1b263b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#415a77" title="#415a77"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#e0e1dd" title="#e0e1dd"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">Midnight Galaxy</h3>
+                        <p class="text-gray-600 text-sm mb-2">Dramatic and cosmic deep tones</p>
+                        <p class="text-xs text-gray-500">Headers: Orbitron · Body: Exo 2</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Chinese Classic Culture Themes -->
+        <section id="classic" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">🏛️</span> 经典文化系列 (10)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Red Chamber -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b0000" title="#8b0000"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a574" title="#d4a574"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2c1810" title="#2c1810"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5e6d3" title="#f5e6d3"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">红楼梦 <span class="text-gray-400 text-sm">red-chamber</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">文学、文化、艺术展示</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Blue Porcelain -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1e3a5f" title="#1e3a5f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4a90a4" title="#4a90a4"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f1e8" title="#f5f1e8"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">青花瓷典雅 <span class="text-gray-400 text-sm">blue-porcelain</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">传统文化、博物馆、收藏</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL XiaoWei · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Ink Wash -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a1a" title="#1a1a1a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4a4a4a" title="#4a4a4a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b8b8b" title="#8b8b8b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#faf9f6" title="#faf9f6"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">水墨丹青 <span class="text-gray-400 text-sm">ink-wash</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">艺术展览、书法、国画</p>
+                        <p class="text-xs text-gray-500">Headers: Ma Shan Zheng · Body: Noto Serif SC</p>
+                    </div>
+                </div>
+
+                <!-- Zen Tea -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#5d4e37" title="#5d4e37"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b7355" title="#8b7355"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4c4b0" title="#d4c4b0"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f8f5f0" title="#f8f5f0"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">禅茶一味 <span class="text-gray-400 text-sm">zen-tea</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">茶文化、冥想、养生</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL XiaoWei · Body: Source Han Sans</p>
+                    </div>
+                </div>
+
+                <!-- Suzhou Garden -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#3d5a4c" title="#3d5a4c"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#7a9e8c" title="#7a9e8c"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4e6d7" title="#d4e6d7"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#faf8f5" title="#faf8f5"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">苏州园林 <span class="text-gray-400 text-sm">suzhou-garden</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">旅游、建筑、园林设计</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Forbidden City -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b0000" title="#8b0000"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a017" title="#d4a017"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a1a" title="#1a1a1a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fff8e7" title="#fff8e7"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">紫禁皇城 <span class="text-gray-400 text-sm">forbidden-city</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">历史、故宫、皇家文化</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL XiaoWei · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Republic Era -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2c3e50" title="#2c3e50"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#7f8c8d" title="#7f8c8d"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c9a959" title="#c9a959"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f1e8" title="#f5f1e8"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">民国风情 <span class="text-gray-400 text-sm">republic-era</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">民国历史、旗袍、老上海</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Calligraphy Art -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a1a" title="#1a1a1a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c41e3a" title="#c41e3a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4c4b0" title="#d4c4b0"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#faf9f6" title="#faf9f6"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">现代书法 <span class="text-gray-400 text-sm">calligraphy-art</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">书法展览、艺术工作室、文创产品</p>
+                        <p class="text-xs text-gray-500">Headers: Ma Shan Zheng · Body: Noto Serif SC</p>
+                    </div>
+                </div>
+
+                <!-- Peking Opera -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#000000" title="#000000"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff0000" title="#ff0000"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffd700" title="#ffd700"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">京剧脸谱 <span class="text-gray-400 text-sm">peking-opera</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">戏曲表演、艺术展览、传统文化</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL XiaoWei · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Dunhuang Flying -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b4513" title="#8b4513"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a574" title="#d4a574"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4169e1" title="#4169e1"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffd700" title="#ffd700"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">敦煌飞天 <span class="text-gray-400 text-sm">dunhuang-flying</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">艺术、文化、佛教主题</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Modern Chinese Themes -->
+        <section id="modern" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">🚀</span> 现代国风系列 (4)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                <!-- China Tech -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a2e" title="#1a1a2e"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c41e3a" title="#c41e3a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#00d4ff" title="#00d4ff"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">中国科技 <span class="text-gray-400 text-sm">china-tech</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">科技企业、创新产品、新基建</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Sans SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Modern Chinese -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2c3e50" title="#2c3e50"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b7355" title="#8b7355"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4c4b0" title="#d4c4b0"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#faf8f5" title="#faf8f5"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">新中式简约 <span class="text-gray-400 text-sm">modern-chinese</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">品牌设计、商务报告、现代家居</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Guochao Trend -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff6b6b" title="#ff6b6b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffd93d" title="#ffd93d"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#6bcb77" title="#6bcb77"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4d96ff" title="#4d96ff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">国潮风 <span class="text-gray-400 text-sm">guochao-trend</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">潮流品牌、年轻市场、文创产品</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL KuaiLe · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Silk Road -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b4513" title="#8b4513"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4a574" title="#d4a574"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#4169e1" title="#4169e1"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f1e8" title="#f5f1e8"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">丝路新语 <span class="text-gray-400 text-sm">silk-road</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">国际贸易、文化交流、一带一路</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Natural Scenery Themes -->
+        <section id="nature" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">🏔️</span> 自然风光系列 (4)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                <!-- Lingnan Spring -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#2d5a27" title="#2d5a27"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff9a8b" title="#ff9a8b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffd93d" title="#ffd93d"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f8f5f0" title="#f8f5f0"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">岭南春色 <span class="text-gray-400 text-sm">lingnan-spring</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">南方文化、旅游、美食</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Jiangnan Water -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#5f9ea0" title="#5f9ea0"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#87ceeb" title="#87ceeb"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f5dc" title="#f5f5dc"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">江南水乡 <span class="text-gray-400 text-sm">jiangnan-water</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">旅游、文化、诗词、摄影</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL XiaoWei · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Great Wall -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#8b4513" title="#8b4513"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d2691e" title="#d2691e"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#556b2f" title="#556b2f"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#f5f5dc" title="#f5f5dc"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">长城巍峨 <span class="text-gray-400 text-sm">great-wall</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">历史、国家形象、企业实力</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Zen Space -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#3d3d3d" title="#3d3d3d"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#6b6b6b" title="#6b6b6b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#d4d4d4" title="#d4d4d4"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fafafa" title="#fafafa"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">禅意空间 <span class="text-gray-400 text-sm">zen-space</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">冥想空间、瑜伽馆、茶道</p>
+                        <p class="text-xs text-gray-500">Headers: Noto Serif SC · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Thematic Application Themes -->
+        <section id="thematic" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">🎉</span> 主题应用系列 (2)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+
+                <!-- Panda Cute -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#1a1a1a" title="#1a1a1a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffffff" title="#ffffff"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#98d982" title="#98d982"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffcccb" title="#ffcccb"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">熊猫萌趣 <span class="text-gray-400 text-sm">panda-cute</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">环保公益、儿童产品、旅游纪念</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL KuaiLe · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+                <!-- Festival Joy -->
+                <div class="theme-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="h-24 flex">
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#c41e3a" title="#c41e3a"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ffd700" title="#ffd700"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#ff6b6b" title="#ff6b6b"></div>
+                        <div class="color-swatch flex-1 cursor-pointer" style="background:#fff8e7" title="#fff8e7"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">节庆欢腾 <span class="text-gray-400 text-sm">festival-joy</span></h3>
+                        <p class="text-gray-600 text-sm mb-2">春节活动、节日庆典、年终总结</p>
+                        <p class="text-xs text-gray-500">Headers: ZCOOL KuaiLe · Body: Noto Sans SC</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <p class="text-gray-400">Theme Factory v2.0 · 天龙引擎设计系统</p>
+            <p class="text-sm text-gray-500 mt-2">点击色块复制色值 · 支持中文字体：Noto Sans SC / Noto Serif SC / ZCOOL系列</p>
+        </div>
+    </footer>
+
+    <script>
+        // Copy color on click
+        document.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', function() {
+                const color = this.getAttribute('title');
+                navigator.clipboard.writeText(color).then(() => {
+                    this.style.transform = 'scale(1.2)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 200);
+                });
+            });
+        });
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

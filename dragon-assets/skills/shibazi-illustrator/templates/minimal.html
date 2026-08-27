@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{BRAND_NAME}}: {{TITLE_MAIN}}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap');
+        body {
+            background-color: #FFFFFF;
+            font-family: 'Noto Sans SC', sans-serif;
+            margin: 0;
+            padding: 60px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .poster-card {
+            width: 600px;
+            background-color: #FFFFFF;
+            position: relative;
+            padding: 80px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        .content-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+        }
+
+        /* 极简页眉 */
+        .minimal-header {
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 30px;
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 400;
+            color: #9CA3AF;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* 极简标题 */
+        .main-title {
+            font-weight: 300;
+            font-size: 48px;
+            line-height: 1.2;
+            color: #111827;
+            letter-spacing: -0.02em;
+        }
+
+        .title-highlight {
+            font-weight: 700;
+            color: #2563EB;
+        }
+
+        /* 极简副标题 */
+        .sub-title-box {
+            border-left: 2px solid #E5E7EB;
+            padding-left: 20px;
+        }
+        .sub-title-text {
+            color: #6B7280;
+            font-size: 18px;
+            font-weight: 300;
+            line-height: 1.8;
+            letter-spacing: 0.01em;
+        }
+
+        /* 极简核心模片 */
+        .section-title {
+            font-weight: 700;
+            color: #111827;
+            font-size: 16px;
+            margin-bottom: 12px;
+            letter-spacing: 0.05em;
+        }
+        .section-body {
+            font-size: 14px;
+            color: #6B7280;
+            line-height: 1.8;
+            font-weight: 300;
+        }
+
+        /* 极简页脚 */
+        .footer-summary {
+            font-size: 20px;
+            font-weight: 300;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            color: #111827;
+        }
+
+        .minimal-footer {
+            border-top: 1px solid #E5E7EB;
+            padding-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tagline {
+            font-size: 11px;
+            color: #9CA3AF;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster-card">
+        <div class="content-layer">
+
+            <header class="minimal-header">
+                <div class="brand-name">{{BRAND_NAME}} / {{BRAND_VERSION}}</div>
+            </header>
+
+            <div class="main-title">
+                {{TITLE_MAIN}}<br/>
+                <span class="title-highlight">{{TITLE_HIGHLIGHT}}</span>
+            </div>
+
+            <div class="sub-title-box">
+                <p class="sub-title-text">
+                    {{SUBTITLE}}
+                </p>
+            </div>
+
+            <main class="grid" style="display: grid; grid-template-columns: 1fr; gap: 40px;">
+                {{SECTIONS}}
+            </main>
+
+            <footer class="minimal-footer">
+                <div>
+                    <h2 class="footer-summary">
+                        {{FOOTER_SUMMARY}}
+                    </h2>
+                    <div class="tagline">{{BRAND_TAGLINE}}</div>
+                </div>
+            </footer>
+
+        </div>
+    </div>
+
+</body>
+</html>

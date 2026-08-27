@@ -1,0 +1,81 @@
+# 生产环境配置示例
+# Production Configuration Example
+
+# 爬虫配置
+scraper:
+  # 请求配置
+  timeout: 30
+  retry_times: 3
+  delay_range: [1, 3]
+
+  # 并发配置
+  max_concurrent: 5
+  batch_size: 100
+
+  # 反检测配置
+  stealth: true
+  user_agent_rotation: true
+
+# 代理池配置
+proxy_pool:
+  enabled: true
+  strategy: round_robin  # round_robin, random, least_used, score_based
+  refresh_interval: 300  # 5分钟
+  proxies:
+    - http://proxy1.example.com:8080
+    - http://proxy2.example.com:8080
+    - http://proxy3.example.com:8080
+
+# 数据验证配置
+validation:
+  enabled: true
+  rules:
+    - field: url
+      type: required
+    - field: url
+      type: url
+    - field: price
+      type: number
+      min: 0
+    - field: title
+      type: required
+
+# 数据清洗配置
+cleaning:
+  enabled: true
+  remove_extra_spaces: true
+  remove_newlines: false
+  strip_html: true
+  remove_duplicates: true
+  remove_empty: true
+
+# 监控告警配置
+monitoring:
+  enabled: true
+  alert_thresholds:
+    error_rate: 0.5      # 50%
+    avg_time: 30         # 30秒
+    fail_rate: 0.3       # 30%
+
+  # 告警通知（可扩展）
+  alerts:
+    - type: email
+      enabled: false
+      recipients:
+        - admin@example.com
+    - type: webhook
+      enabled: false
+      url: https://hooks.example.com/alerts
+
+# 导出配置
+export:
+  default_format: json  # json, csv, excel
+  encoding: utf-8
+  pretty_print: true
+  output_dir: ./output
+
+# 日志配置
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  file: ./logs/scraper.log
+  rotation: 10MB

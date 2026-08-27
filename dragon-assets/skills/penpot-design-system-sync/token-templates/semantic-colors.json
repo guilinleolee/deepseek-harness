@@ -1,0 +1,108 @@
+{
+  "$metadata": {
+    "tokenSetOrder": ["semantic/colors"],
+    "version": "1.0.0"
+  },
+  "semantic": {
+    "colors": {
+      "background": {
+        "default": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Default page background" },
+        "subtle": { "value": "{base.colors.gray.50}", "type": "color", "$description": "Subtle background for cards/panels" },
+        "muted": { "value": "{base.colors.gray.100}", "type": "color", "$description": "Muted background for emphasis areas" },
+        "toned": { "value": "{base.colors.gray.200}", "type": "color", "$description": "Toned background for hover states" },
+        "solid": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Solid dark background" },
+        "inverse": { "value": "{base.colors.gray.950}", "type": "color", "$description": "Inverse background for contrast" }
+      },
+      "foreground": {
+        "default": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Default text color" },
+        "muted": { "value": "{base.colors.gray.600}", "type": "color", "$description": "Muted/secondary text" },
+        "subtle": { "value": "{base.colors.gray.400}", "type": "color", "$description": "Subtle/placeholder text" },
+        "on-solid": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Text on solid backgrounds" },
+        "inverse": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Text on inverse backgrounds" }
+      },
+      "primary": {
+        "default": { "value": "{base.colors.blue.500}", "type": "color", "$description": "Primary brand color" },
+        "hover": { "value": "{base.colors.blue.600}", "type": "color", "$description": "Primary hover state" },
+        "active": { "value": "{base.colors.blue.700}", "type": "color", "$description": "Primary active/pressed state" },
+        "subtle": { "value": "{base.colors.blue.50}", "type": "color", "$description": "Primary subtle background" },
+        "emphasis": { "value": "{base.colors.blue.100}", "type": "color", "$description": "Primary emphasis background" },
+        "foreground": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Text on primary background" },
+        "border": { "value": "{base.colors.blue.200}", "type": "color", "$description": "Primary border color" },
+        "ring": { "value": "{base.colors.blue.300}", "type": "color", "$description": "Primary focus ring" }
+      },
+      "secondary": {
+        "default": { "value": "{base.colors.gray.100}", "type": "color", "$description": "Secondary background" },
+        "hover": { "value": "{base.colors.gray.200}", "type": "color", "$description": "Secondary hover state" },
+        "active": { "value": "{base.colors.gray.300}", "type": "color", "$description": "Secondary active state" },
+        "subtle": { "value": "{base.colors.gray.50}", "type": "color", "$description": "Secondary subtle background" },
+        "foreground": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Text on secondary background" },
+        "border": { "value": "{base.colors.gray.200}", "type": "color", "$description": "Secondary border" },
+        "ring": { "value": "{base.colors.gray.300}", "type": "color", "$description": "Secondary focus ring" }
+      },
+      "accent": {
+        "default": { "value": "{base.colors.amber.400}", "type": "color", "$description": "Accent/highlight color" },
+        "hover": { "value": "{base.colors.amber.500}", "type": "color", "$description": "Accent hover state" },
+        "active": { "value": "{base.colors.amber.600}", "type": "color", "$description": "Accent active state" },
+        "subtle": { "value": "{base.colors.amber.50}", "type": "color", "$description": "Accent subtle background" },
+        "foreground": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Text on accent background" }
+      },
+      "destructive": {
+        "default": { "value": "{base.colors.red.500}", "type": "color", "$description": "Destructive/error color" },
+        "hover": { "value": "{base.colors.red.600}", "type": "color", "$description": "Destructive hover state" },
+        "active": { "value": "{base.colors.red.700}", "type": "color", "$description": "Destructive active state" },
+        "subtle": { "value": "{base.colors.red.50}", "type": "color", "$description": "Destructive subtle background" },
+        "foreground": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Text on destructive background" },
+        "border": { "value": "{base.colors.red.200}", "type": "color", "$description": "Destructive border" },
+        "ring": { "value": "{base.colors.red.300}", "type": "color", "$description": "Destructive focus ring" }
+      },
+      "success": {
+        "default": { "value": "{base.colors.green.500}", "type": "color", "$description": "Success/positive color" },
+        "hover": { "value": "{base.colors.green.600}", "type": "color", "$description": "Success hover state" },
+        "active": { "value": "{base.colors.green.700}", "type": "color", "$description": "Success active state" },
+        "subtle": { "value": "{base.colors.green.50}", "type": "color", "$description": "Success subtle background" },
+        "foreground": { "value": "{base.colors.primitive.white}", "type": "color", "$description": "Text on success background" },
+        "border": { "value": "{base.colors.green.200}", "type": "color", "$description": "Success border" },
+        "ring": { "value": "{base.colors.green.300}", "type": "color", "$description": "Success focus ring" }
+      },
+      "warning": {
+        "default": { "value": "{base.colors.amber.500}", "type": "color", "$description": "Warning/caution color" },
+        "hover": { "value": "{base.colors.amber.600}", "type": "color", "$description": "Warning hover state" },
+        "active": { "value": "{base.colors.amber.700}", "type": "color", "$description": "Warning active state" },
+        "subtle": { "value": "{base.colors.amber.50}", "type": "color", "$description": "Warning subtle background" },
+        "foreground": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Text on warning background" },
+        "border": { "value": "{base.colors.amber.200}", "type": "color", "$description": "Warning border" },
+        "ring": { "value": "{base.colors.amber.300}", "type": "color", "$description": "Warning focus ring" }
+      },
+      "info": {
+        "default": { "value": "{base.colors.cyan.500}", "type": "color", "$description": "Informational color" },
+        "hover": { "value": "{base.colors.cyan.600}", "type": "color", "$description": "Info hover state" },
+        "active": { "value": "{base.colors.cyan.700}", "type": "color", "$description": "Info active state" },
+        "subtle": { "value": "{base.colors.cyan.50}", "type": "color", "$description": "Info subtle background" },
+        "foreground": { "value": "{base.colors.gray.900}", "type": "color", "$description": "Text on info background" },
+        "border": { "value": "{base.colors.cyan.200}", "type": "color", "$description": "Info border" },
+        "ring": { "value": "{base.colors.cyan.300}", "type": "color", "$description": "Info focus ring" }
+      },
+      "border": {
+        "default": { "value": "{base.colors.gray.200}", "type": "color", "$description": "Default border color" },
+        "hover": { "value": "{base.colors.gray.300}", "type": "color", "$description": "Border on hover" },
+        "active": { "value": "{base.colors.gray.400}", "type": "color", "$description": "Border on active" },
+        "subtle": { "value": "{base.colors.gray.100}", "type": "color", "$description": "Subtle border" },
+        "muted": { "value": "{base.colors.gray.800}", "type": "color", "$description": "Muted border for dark backgrounds" },
+        "emphasis": { "value": "{base.colors.gray.400}", "type": "color", "$description": "Emphasized border" }
+      },
+      "ring": {
+        "default": { "value": "{base.colors.blue.500}", "type": "color", "$description": "Focus ring color" },
+        "subtle": { "value": "{base.colors.blue.200}", "type": "color", "$description": "Subtle focus ring" },
+        "muted": { "value": "{base.colors.gray.400}", "type": "color", "$description": "Muted focus ring" }
+      },
+      "overlay": {
+        "light": { "value": "rgba(0, 0, 0, 0.04)", "type": "color", "$description": "Light overlay for hover states" },
+        "default": { "value": "rgba(0, 0, 0, 0.08)", "type": "color", "$description": "Default overlay" },
+        "strong": { "value": "rgba(0, 0, 0, 0.16)", "type": "color", "$description": "Strong overlay for modals" },
+        "dark": { "value": "rgba(0, 0, 0, 0.24)", "type": "color", "$description": "Dark overlay for emphasis" },
+        "darker": { "value": "rgba(0, 0, 0, 0.36)", "type": "color", "$description": "Darker overlay for tooltips" },
+        "base": { "value": "rgba(0, 0, 0, 0.50)", "type": "color", "$description": "Base overlay for dialogs" }
+      }
+    }
+  }
+}

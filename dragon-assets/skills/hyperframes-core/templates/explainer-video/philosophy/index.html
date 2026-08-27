@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Philosophy Scene</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --background: #0f0f23;
+      --text: #f1f5f9;
+      --particle: rgba(99,102,241,0.8);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #scene-philosophy {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    .philosophy-bg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    .gradient-radial {
+      background: radial-gradient(ellipse at center, var(--secondary) 0%, var(--background) 70%);
+    }
+    #scene-philosophy canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      width: 100%; height: 100%;
+    }
+    .philosophy-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 2rem;
+      max-width: 900px;
+    }
+    .philosophy-slogan {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 600;
+      margin: 1.2rem 0;
+      line-height: 1.4;
+      background: linear-gradient(135deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-philosophy" class="scene">
+    <div class="philosophy-bg gradient-radial"></div>
+    <canvas id="particle-philosophy" data-component="particle-bloom"></canvas>
+    <div class="philosophy-content">
+      <p class="philosophy-slogan" id="slogan1">{{slogan1}}</p>
+      <p class="philosophy-slogan" id="slogan2">{{slogan2}}</p>
+      <p class="philosophy-slogan" id="slogan3">{{slogan3}}</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const sceneEl = document.getElementById('scene-philosophy');
+
+      const philosophyTl = gsap.timeline({ paused: true });
+
+      // Mount particle
+      philosophyTl.call(() => {
+        if (window.__registry && window.__registry['particle-bloom']) {
+          window.__registry['particle-bloom'].mount(sceneEl.querySelector('canvas'));
+        }
+      }, null, 0);
+
+      // Slogan 1
+      philosophyTl.fromTo('#slogan1',
+        { y: 60, opacity: 0, scale: 0.9 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+        0.5
+      );
+
+      // Slogan 2
+      philosophyTl.fromTo('#slogan2',
+        { y: 60, opacity: 0, scale: 0.9 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+        2.0
+      );
+
+      // Slogan 3
+      philosophyTl.fromTo('#slogan3',
+        { y: 60, opacity: 0, scale: 0.9 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+        3.5
+      );
+
+      // Unmount particle
+      philosophyTl.call(() => {
+        if (window.__registry && window.__registry['particle-bloom']) {
+          window.__registry['particle-bloom'].unmount();
+        }
+      }, null, 6);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['scene-philosophy'] = philosophyTl;
+
+      window.__sceneConfigs = window.__sceneConfigs || {};
+      window.__sceneConfigs['scene-philosophy'] = {
+        type: 'philosophy',
+        duration: {{duration}},
+        content: { slogan1: '{{slogan1}}', slogan2: '{{slogan2}}', slogan3: '{{slogan3}}' }
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "evolutions": [
+    {
+      "date": "2026-01-30",
+      "feature": "Superpowers Integration",
+      "description": "Integrated 'superpowers' engineering protocols: Atomic tasks, TDD Iron Law, Two-Stage Review, and Root Cause Investigation.",
+      "impact": "Increased delivery certainty and reduced architectural drift."
+    }
+  ]
+}

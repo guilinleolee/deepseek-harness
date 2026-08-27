@@ -1,0 +1,76 @@
+# GBrain Webhook Transforms Skill Configuration
+# Webhook 数据转换技能配置
+
+webhook_transforms:
+  enabled: true
+
+  # 服务器配置
+  server:
+    host: "0.0.0.0"
+    port: 8080
+    workers: 2
+    debug: false
+
+  # GBrain 路径配置
+  brain:
+    base_path: "~/.claude/gbrain"
+    entities_dir: "entities"
+    pages_dir: "pages"
+    timeline_file: "timeline.json"
+    index_file: ".brain_index.json"
+
+  # GitHub 配置
+  github:
+    secret: "${GITHUB_WEBHOOK_SECRET}"
+    allowed_repos: []
+    event_transforms:
+      push: "standard"
+      pull_request: "standard"
+      issues: "standard"
+      release: "minimal"
+      star: "minimal"
+      fork: "minimal"
+
+  # Slack 配置
+  slack:
+    signing_secret: "${SLACK_SIGNING_SECRET}"
+    allowed_channels: []
+    ignore_bots: true
+    min_reaction_count: 2
+
+  # RSS 配置
+  rss:
+    feeds: []
+    poll_interval: 3600
+
+  # Calendar 配置
+  calendar:
+    provider: "google"
+    credentials_file: "~/.claude/gbrain/credentials/calendar.json"
+    watched_calendars: []
+
+  # 通用配置
+  general:
+    dry_run: false
+    confidence_threshold: 0.5
+    transform_mode: "standard"
+    max_events_per_source: 100
+    deduplicate_window: 3600
+
+  # 写入配置
+  write:
+    auto_create_entities: true
+    auto_link: true
+    auto_backlink: true
+    update_index: true
+
+  # 安全配置
+  security:
+    verify_signatures: true
+    allowed_hosts: []
+    max_payload_size: 10485760
+
+  # 缓存配置
+  cache:
+    enabled: true
+    ttl_seconds: 300

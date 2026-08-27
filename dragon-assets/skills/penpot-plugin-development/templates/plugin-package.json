@@ -1,0 +1,52 @@
+{
+  "name": "{{plugin_name}}",
+  "version": "{{version}}",
+  "description": "{{description}}",
+  "main": "content-script.js",
+  "types": "types.d.ts",
+  "scripts": {
+    "dev": "echo 'Plugin does not require build step'",
+    "build": "echo 'Plugin does not require build step'",
+    "package": "penpot-plugin publish .",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "penpot",
+    "penpot-plugin",
+    "design-system",
+    "{{#if category}}{{category}}{{else}}design{{/if}}"
+  ],
+  "author": "{{author}}",
+  "license": "{{license}}",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/{{owner}}/{{plugin_name}}"
+  },
+  "bugs": {
+    "url": "https://github.com/{{owner}}/{{plugin_name}}/issues"
+  },
+  "homepage": "{{homepage}}",
+  "PenpotConfig": {
+    "manifest": "manifest.yaml",
+    "entryPoints": [
+      "content-script.js"
+    ],
+    {{#if background}}
+    "background": "background.js",
+    {{/if}}
+    {{#if sidePanel}}
+    "sidePanel": "side-panel.js",
+    {{/if}}
+    "version": "{{version}}"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0"
+  },
+  "{{#if dependencies}}dependencies{{else}}peerDependencies{{/if}}": {
+    {{#each dependencies}}
+    "{{name}}": "{{version}}"{{#unless @last}},{{/unless}}
+    {{/each}}
+  }
+}

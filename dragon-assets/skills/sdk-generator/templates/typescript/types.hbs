@@ -1,0 +1,48 @@
+/**
+ * Type definitions for {{api_name}}
+ * Generated from OpenAPI spec: {{api_version}}
+{{#if description}}
+ * {{description}}
+{{/if}}
+ */
+{{#each schemas}}
+{{#if (eq type "object")}}
+/{{{schema_type_comment}}}
+/**
+{{#if description}}
+ * {{description}}
+{{/if}}
+{{#if required.length}}
+ * Required: {{required.join(", ")}}
+{{/if}}
+ */
+export interface {{pascal_name}} {
+  {{#each properties}}
+  /** {{#if description}}{{description}}{{/if}} */
+  {{camel_name}}{{#unless required}}?{{/unless}}: {{ts_type}}}{{#unless @last}};
+  {{/unless}}
+  {{/each}}
+}
+
+{{/if}}
+{{#if (eq type "enum")}}
+/**
+ * Enum values for {{name}}
+ */
+export const {{pascal_name}} = {
+  {{#each enum}}
+  {{upper_value}}: "{{value}}"{{#unless @last}},
+  {{/unless}}
+  {{/each}}
+} as const;
+export type {{pascal_name}}Value = typeof {{pascal_name}}[keyof typeof {{pascal_name}}];
+
+{{/if}}
+{{#if (eq type "array")}}
+/**
+ * Array type: {{name}}
+ */
+export type {{pascal_name}} = {{item_ts_type}}[];
+
+{{/if}}
+{{/each}}

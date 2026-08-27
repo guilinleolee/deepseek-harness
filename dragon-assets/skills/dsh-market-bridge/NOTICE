@@ -1,0 +1,43 @@
+dsh-market-bridge
+Copyright 2026 dragon-engine (天龙引擎)
+
+This product includes software developed by the dsh-market contributors
+(https://github.com/dsh-market/dsh-market).
+
+================================================================================
+Modified by dragon-engine / 2026-08-26
+================================================================================
+
+Original work:
+  Repository: https://github.com/dsh-market/dsh-market
+  License: MIT (Copyright (c) 2026 fkysly and dsh-market contributors)
+  Upstream version borrowed: v1.31.1 (2026-08-26 snapshot, 2474 stars)
+
+Modifications:
+  - Stage 50.2 (2026-08-26): Initial "borrowing archive" (借鉴档) with 5 design
+    patterns from upstream V0.x (MIT · 2430 stars).
+  - Stage 50.3 (2026-08-26): Upgrade to V2.0 — 13 IMPROVEMENT-PLAN items absorbed
+    (P0-1 preflightTarget, P0-2 verifyActivation, P0-4 pnpm-compat, P1-8 catalog
+    governance, P1-9 issue classification 13-class, P1-13 i18n, plus catalog
+    ETag/304, region routing, backup/restore, themes, restart guards).
+  - Re-implemented in Python (NOT mirroring the upstream TypeScript source) —
+    only design and IMPROVEMENT-PLAN contents borrowed, per the borrowing-archive
+    pattern (借鉴档) used in Stage 41/45/46/48/49/50.1.
+  - 64/64 unittest PASS (V1.0 16 backward-compatible + V2.0 48 new).
+
+License compatibility:
+  - Upstream: MIT ✅ (permissive, no copyleft)
+  - This NOTICE + LICENSE verbatim satisfy MIT § 4 attribution clause.
+  - No trademark use; dsh-market-bridge is not an "official" dsh-market product.
+
+Upstream links (verified 2026-08-26):
+  - Repository:  https://github.com/dsh-market/dsh-market
+  - LICENSE:     https://raw.githubusercontent.com/dsh-market/dsh-market/main/LICENSE
+  - IMPROVEMENT-PLAN.md: https://github.com/dsh-market/dsh-market/blob/main/IMPROVEMENT-PLAN.md
+  - Catalog:     https://awesome-dsh-plugin.com/plugins.json
+
+Acknowledgments:
+  - dsh-market contributors for the original TypeScript implementation
+  - awesome-dsh-plugin curators for the catalog
+  - Panniantong/Agent-Reach (Stage 14) for the borrowed research pattern
+  - mneme-heat-engine V1.0 (Stage 41) for the "borrowing archive" template

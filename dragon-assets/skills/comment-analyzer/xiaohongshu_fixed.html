@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>小红书评论爬取 - 修复版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 小红书评论爬取 - 修复版 v3.0</h1>
+
+        <div class="warning">
+            <strong>⚠️ 上次问题：</strong>只爬到 2 条，且解析错误
+            <br><br>
+            <strong>✅ 修复内容：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>✓ 重新设计评论分割算法</li>
+                <li>✓ 过滤"共 XX 条评论"标题</li>
+                <li>✓ 正确识别用户名和内容</li>
+                <li>✓ 逐个遍历评论元素</li>
+            </ul>
+        </div>
+
+        <div class="success">
+            <strong>💡 新方案：</strong>
+            <br>直接遍历页面上每个评论元素，而不是用正则分割文本
+        </div>
+
+        <button class="btn" onclick="copyScript()">📋 复制修复版脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px; color: #ff2442;">📜 脚本代码</h3>
+        <code id="scriptCode">/* 小红书评论爬取 - 修复版 v3.0 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #ff2442');
+    console.log('%c小红书评论爬取 - 修复版 v3.0', 'color: #ff2442; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #ff2442');
+
+    if (!window.location.href.includes('xiaohongshu.com')) {
+        console.error('❌ 请在小红书页面使用');
+        return;
+    }
+
+    window.XHS_COMMENTS = [];
+    window.XHS_STATS = {
+        iterations: 0,
+        expandedCount: 0
+    };
+
+    // 改进的评论解析 - 直接从元素解析
+    function parseCommentElement(element) {
+        const text = element.textContent || '';
+
+        // 过滤掉标题和无效内容
+        if (text.includes('共') && text.includes('条评论')) return null;
+        if (text.length < 10) return null;
+        if (text.includes('展开') || text.includes('回复')) return null;
+
+        // 匹配时间
+        const timeMatch = text.match(/(昨天\s+\d{1,2}:\d{2})|(\d{1,2}-\d{1,2})|(\d+分钟前)|(\d+天前)|(\d+小时前)/);
+        if (!timeMatch) return null;
+
+        const timeStr = timeMatch[0];
+        const timeIndex = text.indexOf(timeStr);
+
+        // 时间之前的内容 = 用户名 + 评论内容
+        const beforeTime = text.substring(0, timeIndex).trim();
+
+        // 时间之后的内容 = 地点 + 赞 + 点赞数
+        const afterTime = text.substring(timeIndex + timeStr.length).trim();
+
+        // 尝试分离用户名和内容
+        // 小红书用户名通常是2-6个字符
+        let username = '';
+        let content = beforeTime;
+
+        // 查找可能的用户名边界
+        for (let i = 2; i <= Math.min(10, beforeTime.length); i++) {
+            const possibleUser = beforeTime.substring(0, i);
+            const possibleContent = beforeTime.substring(i).trim();
+
+            // 检查剩余内容是否足够长
+            if (possibleContent.length >= 2 && possibleContent.length <= 200) {
+                username = possibleUser;
+                content = possibleContent;
+                break;
+            }
+        }
+
+        // 提取地点
+        let location = '';
+        const locationMatch = afterTime.match(/^([^\d赞]+?)([赞]|$)/);
+        if (locationMatch && locationMatch[1].trim().length > 0) {
+            location = locationMatch[1].trim();
+        }
+
+        // 提取点赞数
+        let likes = 0;
+        const likesMatch = afterTime.match(/(\d+)/);
+        if (likesMatch) {
+            likes = parseInt(likesMatch[1]);
+        }
+
+        // 清理内容
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/\s+/g, ' ');
+
+        if (content.length < 1) return null;
+
+        // 生成唯一ID
+        const uniqueId = username + '_' + content.substring(0, 20) + '_' + timeStr;
+
+        return {
+            username: username || '匿名用户',
+            content: content,
+            time: timeStr,
+            location: location,
+            likes: likes,
+            uniqueId: uniqueId
+        };
+    }
+
+    // 从DOM直接提取评论
+    function extractCommentsFromDOM() {
+        const comments = [];
+        const seen = new Set();
+
+        // 查找所有可能的评论元素
+        const selectors = [
+            '.comments-container > div',
+            '[class*="comment-item"]',
+            '[class*="comment"] > div',
+            '.comment-container > div'
+        ];
+
+        selectors.forEach(selector => {
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    // 跳过容器元素
+                    if (el.children.length > 5) return;
+
+                    const comment = parseCommentElement(el);
+                    if (comment && !seen.has(comment.uniqueId)) {
+                        seen.add(comment.uniqueId);
+                        comments.push(comment);
+                    }
+                });
+            } catch (e) {}
+        });
+
+        return comments;
+    }
+
+    // 点击"展开"按钮
+    function clickExpandButtons() {
+        let clicked = 0;
+
+        // 查找所有展开按钮
+        const expandBtns = document.querySelectorAll('.show-more, [class*="expand"], [class*="more"]');
+        expandBtns.forEach(btn => {
+            const text = btn.textContent || '';
+            if ((text.includes('展开') || text.includes('更多')) && btn.offsetParent !== null) {
+                try {
+                    btn.click();
+                    clicked++;
+                } catch (e) {}
+            }
+        });
+
+        if (clicked > 0) {
+            console.log(`[展开] 点击了 ${clicked} 个按钮`);
+        }
+
+        return clicked;
+    }
+
+    // 主爬取函数
+    async function scrape() {
+        console.log('\n[开始] 启动小红书评论爬取...\n');
+
+        // 步骤1: 展开所有回复
+        console.log('[步骤1] 展开所有回复...');
+        for (let i = 0; i < 3; i++) {
+            clickExpandButtons();
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        // 步骤2: 提取评论
+        console.log('\n[步骤2] 提取评论...');
+        let comments = extractCommentsFromDOM();
+        console.log(`[初始] 提取到 ${comments.length} 条评论`);
+
+        if (comments.length === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            console.log('调试信息：尝试查找所有文本...');
+
+            // 输出调试信息
+            const allDivs = document.querySelectorAll('div');
+            let count = 0;
+            allDivs.forEach(div => {
+                const text = div.textContent || '';
+                if (text.includes('昨天') || text.match(/\d{1,2}-\d{1,2}/)) {
+                    if (text.length > 20 && text.length < 200 && count < 5) {
+                        console.log(`元素${count}:`, text.substring(0, 100));
+                        count++;
+                    }
+                }
+            });
+            return [];
+        }
+
+        // 步骤3: 尝试滚动加载更多
+        console.log('\n[步骤3] 滚动加载更多...');
+        for (let i = 0; i < 15; i++) {
+            window.scrollTo(0, document.body.scrollHeight);
+            await new Promise(r => setTimeout(r, 1200));
+
+            const newComments = extractCommentsFromDOM();
+            if (newComments.length > comments.length) {
+                console.log(`[滚动] ${comments.length} → ${newComments.length} 条 (+${newComments.length - comments.length})`);
+                comments = newComments;
+            }
+
+            if (i % 5 === 0) {
+                clickExpandButtons();
+            }
+        }
+
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${comments.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log('='.repeat(70) + '\n');
+
+        // 显示前3条作为预览
+        console.log('%c预览前3条评论:', 'color: #64ffda');
+        comments.slice(0, 3).forEach((c, i) => {
+            console.log(`\n${i + 1}. ${c.username}: ${c.content}`);
+            console.log(`   时间: ${c.time} | 地点: ${c.location} | 赞: ${c.likes}`);
+        });
+
+        return comments;
+    }
+
+    // 下载
+    function download(data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'xiaohongshu_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        window.FINAL_DATA = data;
+    }
+
+    // 执行
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            actual_count: comments.length,
+            extracted_at: new Date().toISOString(),
+            expanded_replies: window.XHS_STATS.expandedCount,
+            comments: comments
+        };
+
+        download(data);
+        console.log('\n%c✅ 文件已下载！', 'color: #28a745; font-weight: bold');
+        console.log('%c手动复制: copy(JSON.stringify(window.FINAL_DATA, null, 2))', 'color: #ffc107');
+    }).catch(e => console.error('错误:', e));
+
+})();</code>
+
+        <div class="warning" style="margin-top: 30px;">
+            <strong>🔍 如果还是只爬到几条：</strong>
+            <br>请把控制台的完整输出发给我，特别是"调试信息"部分
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => { document.getElementById('feedback').style.display = 'none'; }, 3000);
+            });
+        }
+    </script>
+</body>
+</html>

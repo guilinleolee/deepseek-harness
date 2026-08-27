@@ -1,0 +1,41 @@
+---
+license: UNKNOWN           # optional: Apache-2.0 / MIT / BSD-3 / AGPL-3.0 / UNKNOWN
+triggers: ["<trigger-1>", "<trigger-2>"]   # ≥ 2 phrases
+---
+
+# <Skill Title — Title Case, English>
+
+## L0: 一句话描述 (≤15字)
+
+<一句话 ≤ 15 字>
+
+## L1: 使用场景 (50-100字)
+
+<用于解决什么问题 / 给谁用 / 怎么用>
+
+## L2: 详细文档
+
+### 能力矩阵
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| <capability 1> | `python <script>.py <cmd>` | <一行描述> |
+
+### 使用示例
+
+```bash
+python scripts/<skill_client>.py <args>
+```
+
+### 错误码与处理
+
+| 错误码 | 含义 | 推荐处理 |
+| --- | --- | --- |
+| 400 | 请求参数错误 | 检查参数 |
+| 429 | 限流 | 退避 / 备胎 |
+
+### 测试与验证
+
+```bash
+python scripts/skill_lint.py <path>     # 兼容 4 字段最小模式
+```

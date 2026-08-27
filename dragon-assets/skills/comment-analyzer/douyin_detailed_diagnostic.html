@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抖音评论详细诊断</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            padding: 40px;
+        }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .btn {
+            background: linear-gradient(135deg, #fe2c55 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        code {
+            background: #1a1a1a;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.5;
+        }
+        .info {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 抖音评论详细诊断工具</h1>
+
+        <div class="info">
+            <strong>📋 使用说明：</strong>
+            <ol style="margin: 10px 0 0 20px; line-height: 2;">
+                <li>打开抖音视频页面</li>
+                <li>确保评论区已显示（手动滚动一下）</li>
+                <li>按 F12 打开控制台</li>
+                <li>输入 <code>allow pasting</code></li>
+                <li>复制下方脚本并执行</li>
+                <li>查看输出结果</li>
+            </ol>
+        </div>
+
+        <button class="btn" onclick="copyScript()">📋 复制诊断脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 15px; display: none;">✅ 已复制！</span>
+
+        <h3 style="margin-top: 30px;">📜 诊断脚本</h3>
+        <code id="scriptCode">/* 抖音评论详细诊断工具 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #fe2c55');
+    console.log('%c抖音评论详细诊断', 'color: #fe2c55; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #fe2c55');
+
+    // 找到评论容器的选择器
+    const selector = '[class*="comment"] [class*="item"]';
+    const elements = document.querySelectorAll(selector);
+
+    console.log('\\n[cseo] 找到 ' + elements.length + ' 个元素\\n');
+
+    if (elements.length === 0) {
+        console.log('❌ 未找到任何元素！');
+        console.log('\\n请尝试：');
+        console.log('  1. 向下滚动页面让评论区加载');
+        console.log('  2. 确保已登录');
+        console.log('  3. 刷新页面重试');
+        return;
+    }
+
+    // 分析前10个元素
+    const count = Math.min(10, elements.length);
+
+    console.log('%c=== 前 ' + count + ' 个元素的详细分析 ===', 'color: #64ffda; font-weight: bold\\n');
+
+    for (let i = 0; i < count; i++) {
+        const el = elements[i];
+        const text = el.textContent || '';
+        const className = el.className || '';
+
+        console.log('%c[元素 ' + (i + 1) + ']', 'color: #ffc107; font-weight: bold');
+        console.log('  类名: ' + className);
+        console.log('  文本长度: ' + text.length);
+        console.log('  子元素数: ' + el.children.length);
+
+        // 显示文本预览
+        const preview = text.substring(0, 150);
+        console.log('  内容: ' + preview + (text.length > 150 ? '...' : ''));
+
+        // 检查特征
+        const hasTime = /\\d/.test(text);
+        const hasChinese = /[\\u4e00-\\u9fa5]/.test(text);
+        const hasNumber = /\\d+/.test(text);
+
+        console.log('  特征: ' +
+            (hasTime ? '⏰时间 ' : '') +
+            (hasChinese ? '🈶中文 ' : '') +
+            (hasNumber ? '🔢数字 ' : '')
+        );
+
+        // 尝试提取用户名和内容
+        const lines = text.split(/\\n/).filter(l => l.trim());
+        if (lines.length > 0) {
+            console.log('  行数: ' + lines.length);
+            lines.slice(0, 3).forEach((line, idx) => {
+                console.log('    [' + (idx + 1) + '] ' + line.substring(0, 50));
+            });
+        }
+
+        console.log('');
+    }
+
+    // 查找可能包含评论的元素
+    console.log('\\n%c=== 智能查找评论 ===', 'color: #64ffda; font-weight: bold\\n');
+
+    let commentCandidates = [];
+
+    // 查找包含时间信息的元素
+    const allElements = document.querySelectorAll('*');
+    const timePatterns = [
+        /\\d+秒前/, /\\d+分钟前/, /\\d+小时前/, /\\d+天前/,
+        /刚刚/, /昨天/,
+        /\\d{1,2}-\\d{1,2}/,  // 01-15 格式
+        /\\d{4}-\\d{1,2}-\\d{1,2}/  // 2025-01-15 格式
+    ];
+
+    for (let i = 0; i < Math.min(allElements.length, 5000); i++) {
+        const el = allElements[i];
+        const text = el.textContent || '';
+
+        // 跳过太长或太短的
+        if (text.length < 5 || text.length > 300) continue;
+
+        // 跳过明显的容器
+        if (el.children.length > 8) continue;
+
+        // 检查是否包含时间
+        for (const pattern of timePatterns) {
+            if (pattern.test(text)) {
+                // 检查父元素
+                const parent = el.parentElement;
+                if (parent) {
+                    const parentClass = parent.className || '';
+                    const grandParent = parent.parentElement;
+
+                    commentCandidates.push({
+                        element: el,
+                        text: text,
+                        parentClass: parentClass,
+                        parentTag: parent.tagName,
+                        grandParentClass: grandParent ? grandParent.className : ''
+                    });
+                }
+                break;
+            }
+        }
+
+        if (commentCandidates.length >= 20) break;
+    }
+
+    if (commentCandidates.length > 0) {
+        console.log('✅ 找到 ' + commentCandidates.length + ' 个可能的评论元素\\n');
+
+        // 去重
+        const seen = new Set();
+        const unique = [];
+
+        commentCandidates.forEach(c => {
+            const key = c.text.substring(0, 50);
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(c);
+            }
+        });
+
+        console.log('去重后: ' + unique.length + ' 个\\n');
+
+        // 显示前5个
+        unique.slice(0, 5).forEach((c, i) => {
+            console.log('%c[' + (i + 1) + ']', 'color: #28a745; font-weight: bold');
+            console.log('  文本: ' + c.text.substring(0, 100));
+
+            // 推荐选择器
+            if (c.parentClass) {
+                const classes = c.parentClass.split(' ').filter(cls => cls.length > 3);
+                if (classes.length > 0) {
+                    console.log('  父元素类名: ' + classes.join(', '));
+                    console.log('  推荐选择器: .' + classes[0]);
+                }
+            }
+
+            console.log('');
+        });
+
+        // 给出建议
+        console.log('\\n%c=== 建议的选择器 ===', 'color: #ffc107; font-weight: bold');
+
+        const parentClasses = new Set();
+        unique.forEach(c => {
+            if (c.parentClass) {
+                const classes = c.parentClass.split(' ');
+                classes.forEach(cls => {
+                    if (cls && cls.length > 3) {
+                        parentClasses.add(cls);
+                    }
+                });
+            }
+        });
+
+        if (parentClasses.size > 0) {
+            console.log('\\n常见的父元素类名:');
+            Array.from(parentClasses).slice(0, 5).forEach(cls => {
+                const count = document.querySelectorAll('.' + cls).length;
+                console.log('  .' + cls + ' (' + count + ' 个)');
+            });
+        }
+    } else {
+        console.log('❌ 未找到评论候选元素');
+        console.log('\\n可能的原因：');
+        console.log('  • 页面还未完全加载');
+        console.log('  • 需要滚动页面触发加载');
+        console.log('  • 需要登录');
+        console.log('  • 抖音更新了页面结构');
+    }
+
+    console.log('\\n' + '='.repeat(70));
+
+})();</code>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                const feedback = document.getElementById('feedback');
+                feedback.style.display = 'inline';
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动复制');
+            });
+        }
+    </script>
+</body>
+</html>

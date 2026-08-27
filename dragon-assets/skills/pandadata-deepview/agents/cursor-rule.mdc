@@ -1,0 +1,112 @@
+# Cursor Rules: pandadata-deepview
+
+> 本文件用于配置 Cursor IDE 的 Rules，使其正确调用 Pandadata DeepView 期货分析能力。
+
+---
+
+## Cursor 配置说明
+
+将本文件复制到项目 `.cursor/rules/` 目录，并命名为 `pandadata-deepview.mdc`。
+
+---
+
+## System Prompt 注入
+
+```markdown
+# Pandadata DeepView 期货分析模式
+
+当用户请求涉及以下关键词时，自动激活期货分析模式：
+- 席位博弈、席位持仓、席位盈亏
+- 期限结构、基差、contango、backwardation
+- 仓单、库存、虚实盘比、现货利润
+- 跨期套利、日历价差
+- 期货品种分析（螺纹钢、豆粕、铜等）
+
+## 工作流约束
+
+1. **先分诊**：判断用户意图属于四种模式中的哪一种
+2. **查契约**：调用前查阅 `references/api-contract.md`
+3. **小样本**：先用单品种+单日试调
+4. **同日对齐**：跨模块结论必须同一 trade_date
+5. **事实/推断分离**：严格区分事实描述和推断结论
+
+## 禁止事项
+
+- 禁止编造接口参数
+- 禁止跨日拼接数据
+- 禁止输出交易指令
+- 禁止使用"必然""一定会"等确定性措辞
+
+## 报告格式
+
+完整报告：
+1. 摘要结论
+2. 数据范围
+3. 行情与合约背景
+4. 席位博弈
+5. 基差与期限结构
+6. 仓单库存与现货
+7. 交叉验证
+8. 风险与限制
+9. 附录
+
+快速问答：结论 / 关键证据 / 矛盾点 / 数据来源
+```
+
+---
+
+## Rule 配置
+
+```json
+{
+  "version": "1.0",
+  "name": "pandadata-deepview",
+  "description": "Pandadata DeepView 期货分析模式",
+  "priority": "high",
+  "trigger_keywords": [
+    "席位",
+    "期货",
+    "基差",
+    "期限结构",
+    "仓单",
+    "库存",
+    "套利",
+    "RB", "M", "CU", "SC", "AU", "AG"
+  ],
+  "instructions_file": "references/analysis-playbook.md",
+  "api_contract_file": "references/api-contract.md"
+}
+```
+
+---
+
+## 快捷命令
+
+| 命令 | 说明 |
+|------|------|
+| `/futures <品种> <模式>` | 快捷分析指定品种，如 `/futures RB 席位博弈` |
+| `/basis <品种>` | 查看品种期限结构 |
+| `/inventory <品种>` | 查看品种仓单库存 |
+| `/arbitrage` | 全品种套利扫描 |
+| `/report` | 生成完整研判报告 |
+
+---
+
+## 数据源
+
+本规则依赖 `pandadata-api` SKILL 提供实际的数据接口调用能力。
+
+**必需文件**：
+- `../pandadata-api/SKILL.md` - API 接口定义
+- `references/analysis-playbook.md` - 分析手册
+- `references/api-contract.md` - 接口契约
+
+**目录结构**：
+```
+.cursor/
+├── rules/
+│   └── pandadata-deepview.mdc  ← 本文件
+└── skills/
+    ├── pandadata-api/
+    └── pandadata-deepview/
+```

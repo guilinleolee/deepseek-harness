@@ -1,0 +1,1330 @@
+{
+  "total": 73,
+  "mirrored_at": "2026-07-20T10:18:03Z",
+  "source": "https://github.com/SamurAIGPT/Generative-Media-Skills",
+  "license": "MIT",
+  "tianlong_skill_root": "../",
+  "categories": {
+    "_core": {
+      "count": 3,
+      "skills": [
+        "edit",
+        "media",
+        "platform"
+      ]
+    },
+    "edit": {
+      "count": 2,
+      "skills": [
+        "ai-clipping",
+        "muapi-ai-clipping"
+      ]
+    },
+    "motion": {
+      "count": 28,
+      "skills": [
+        "3d-logo-animation",
+        "ai-fight-scene",
+        "animal-video-generator",
+        "award-ceremony-video",
+        "cartoon-dance-animation",
+        "character-story-video",
+        "cinema-director",
+        "drone-style-video",
+        "freeze-effect-video",
+        "giant-product-showcase",
+        "jewelry-product-video",
+        "muapi-cinema-director",
+        "muapi-product-video-ad-maker",
+        "muapi-seedance-2",
+        "muapi-social-media-video",
+        "muapi-ugc-video-factory",
+        "muapi-youtube-shorts",
+        "muapi-youtube-thumbnail",
+        "music-video",
+        "one-shot-video",
+        "product-ad-cinematic",
+        "product-showcase-video",
+        "product-video-ad-maker",
+        "seedance-2",
+        "storyboard-to-cooking-video",
+        "talking-baby-video",
+        "ugc-lifestyle-try-on",
+        "ugc-video-factory"
+      ]
+    },
+    "social": {
+      "count": 7,
+      "skills": [
+        "instagram-post",
+        "product-campaign",
+        "rednote-cover",
+        "social-media-video",
+        "social-pack",
+        "ugc-ads-workflow",
+        "youtube-shorts"
+      ]
+    },
+    "visual": {
+      "count": 32,
+      "skills": [
+        "action-figure-generator",
+        "ad-creative",
+        "amazon-product-listing",
+        "blog-header",
+        "brand-kit",
+        "brochures",
+        "chibi-collage-effect",
+        "color-analysis-board",
+        "couple-grid-creator",
+        "design-guide",
+        "fashion-try-on",
+        "floor-plan-rendering",
+        "interior-design",
+        "interior-design-visualizer",
+        "keyboard-art-maker",
+        "logo-branding",
+        "logo-creator",
+        "logo-generator",
+        "muapi-ad-creative",
+        "muapi-instagram-post",
+        "muapi-logo-creator",
+        "muapi-nano-banana",
+        "muapi-ui-design",
+        "multi-angle-reshoot",
+        "multi-angle-shots",
+        "nano-banana",
+        "photo-pack-generator",
+        "selfie-with-celebrities",
+        "storyboard",
+        "ui-design",
+        "url-to-design",
+        "youtube-thumbnail"
+      ]
+    },
+    "workflow": {
+      "count": 1,
+      "skills": [
+        "workflow"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "muapi-ad-creative",
+      "path": "library/visual/muapi-ad-creative/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-ad-creative/SKILL.md",
+      "category": "visual",
+      "muapi_model": "ad-creative",
+      "trigger_keywords": [
+        "muapi",
+        "ad",
+        "creative"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-ai-clipping",
+      "path": "library/edit/muapi-ai-clipping/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-ai-clipping/SKILL.md",
+      "category": "edit",
+      "muapi_model": "ai-clipping",
+      "trigger_keywords": [
+        "muapi",
+        "ai",
+        "clipping"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-cinema-director",
+      "path": "library/motion/muapi-cinema-director/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-cinema-director/SKILL.md",
+      "category": "motion",
+      "muapi_model": "cinema-director",
+      "trigger_keywords": [
+        "muapi",
+        "cinema",
+        "director"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-instagram-post",
+      "path": "library/visual/muapi-instagram-post/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-instagram-post/SKILL.md",
+      "category": "visual",
+      "muapi_model": "instagram-post",
+      "trigger_keywords": [
+        "muapi",
+        "instagram",
+        "post"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-logo-creator",
+      "path": "library/visual/muapi-logo-creator/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-logo-creator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "logo-creator",
+      "trigger_keywords": [
+        "muapi",
+        "logo",
+        "creator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-nano-banana",
+      "path": "library/visual/muapi-nano-banana/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-nano-banana/SKILL.md",
+      "category": "visual",
+      "muapi_model": "nano-banana",
+      "trigger_keywords": [
+        "muapi",
+        "nano",
+        "banana"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-product-video-ad-maker",
+      "path": "library/motion/muapi-product-video-ad-maker/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-product-video-ad-maker/SKILL.md",
+      "category": "motion",
+      "muapi_model": "product-video-ad-maker",
+      "trigger_keywords": [
+        "muapi",
+        "product",
+        "video",
+        "ad",
+        "maker"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-seedance-2",
+      "path": "library/motion/muapi-seedance-2/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-seedance-2/SKILL.md",
+      "category": "motion",
+      "muapi_model": "seedance-2",
+      "trigger_keywords": [
+        "muapi",
+        "seedance",
+        "2"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-social-media-video",
+      "path": "library/motion/muapi-social-media-video/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-social-media-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "social-media-video",
+      "trigger_keywords": [
+        "muapi",
+        "social",
+        "media",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-ugc-video-factory",
+      "path": "library/motion/muapi-ugc-video-factory/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-ugc-video-factory/SKILL.md",
+      "category": "motion",
+      "muapi_model": "ugc-video-factory",
+      "trigger_keywords": [
+        "muapi",
+        "ugc",
+        "video",
+        "factory"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-ui-design",
+      "path": "library/visual/muapi-ui-design/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-ui-design/SKILL.md",
+      "category": "visual",
+      "muapi_model": "ui-design",
+      "trigger_keywords": [
+        "muapi",
+        "ui",
+        "design"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-youtube-shorts",
+      "path": "library/motion/muapi-youtube-shorts/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-youtube-shorts/SKILL.md",
+      "category": "motion",
+      "muapi_model": "youtube-shorts",
+      "trigger_keywords": [
+        "muapi",
+        "youtube",
+        "shorts"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "muapi-youtube-thumbnail",
+      "path": "library/motion/muapi-youtube-thumbnail/SKILL.md",
+      "upstream_path": ".opencode/skills/muapi-youtube-thumbnail/SKILL.md",
+      "category": "motion",
+      "muapi_model": "youtube-thumbnail",
+      "trigger_keywords": [
+        "muapi",
+        "youtube",
+        "thumbnail"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "edit",
+      "path": "library/_core/edit/SKILL.md",
+      "upstream_path": "core/edit/SKILL.md",
+      "category": "_core",
+      "muapi_model": "edit",
+      "trigger_keywords": [
+        "edit"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "media",
+      "path": "library/_core/media/SKILL.md",
+      "upstream_path": "core/media/SKILL.md",
+      "category": "_core",
+      "muapi_model": "media",
+      "trigger_keywords": [
+        "media"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "platform",
+      "path": "library/_core/platform/SKILL.md",
+      "upstream_path": "core/platform/SKILL.md",
+      "category": "_core",
+      "muapi_model": "platform",
+      "trigger_keywords": [
+        "platform"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ai-clipping",
+      "path": "library/edit/ai-clipping/SKILL.md",
+      "upstream_path": "library/edit/ai-clipping/SKILL.md",
+      "category": "edit",
+      "muapi_model": "ai-clipping",
+      "trigger_keywords": [
+        "ai",
+        "clipping"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "3d-logo-animation",
+      "path": "library/motion/3d-logo-animation/SKILL.md",
+      "upstream_path": "library/motion/3d-logo-animation/SKILL.md",
+      "category": "motion",
+      "muapi_model": "3d-logo-animation",
+      "trigger_keywords": [
+        "3d",
+        "logo",
+        "animation"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ai-fight-scene",
+      "path": "library/motion/ai-fight-scene/SKILL.md",
+      "upstream_path": "library/motion/ai-fight-scene/SKILL.md",
+      "category": "motion",
+      "muapi_model": "ai-fight-scene",
+      "trigger_keywords": [
+        "ai",
+        "fight",
+        "scene"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "animal-video-generator",
+      "path": "library/motion/animal-video-generator/SKILL.md",
+      "upstream_path": "library/motion/animal-video-generator/SKILL.md",
+      "category": "motion",
+      "muapi_model": "animal-video-generator",
+      "trigger_keywords": [
+        "animal",
+        "video",
+        "generator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "award-ceremony-video",
+      "path": "library/motion/award-ceremony-video/SKILL.md",
+      "upstream_path": "library/motion/award-ceremony-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "award-ceremony-video",
+      "trigger_keywords": [
+        "award",
+        "ceremony",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "cartoon-dance-animation",
+      "path": "library/motion/cartoon-dance-animation/SKILL.md",
+      "upstream_path": "library/motion/cartoon-dance-animation/SKILL.md",
+      "category": "motion",
+      "muapi_model": "cartoon-dance-animation",
+      "trigger_keywords": [
+        "cartoon",
+        "dance",
+        "animation"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "character-story-video",
+      "path": "library/motion/character-story-video/SKILL.md",
+      "upstream_path": "library/motion/character-story-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "character-story-video",
+      "trigger_keywords": [
+        "character",
+        "story",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "cinema-director",
+      "path": "library/motion/cinema-director/SKILL.md",
+      "upstream_path": "library/motion/cinema-director/SKILL.md",
+      "category": "motion",
+      "muapi_model": "cinema-director",
+      "trigger_keywords": [
+        "cinema",
+        "director"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "drone-style-video",
+      "path": "library/motion/drone-style-video/SKILL.md",
+      "upstream_path": "library/motion/drone-style-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "drone-style-video",
+      "trigger_keywords": [
+        "drone",
+        "style",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "freeze-effect-video",
+      "path": "library/motion/freeze-effect-video/SKILL.md",
+      "upstream_path": "library/motion/freeze-effect-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "freeze-effect-video",
+      "trigger_keywords": [
+        "freeze",
+        "effect",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "giant-product-showcase",
+      "path": "library/motion/giant-product-showcase/SKILL.md",
+      "upstream_path": "library/motion/giant-product-showcase/SKILL.md",
+      "category": "motion",
+      "muapi_model": "giant-product-showcase",
+      "trigger_keywords": [
+        "giant",
+        "product",
+        "showcase"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "jewelry-product-video",
+      "path": "library/motion/jewelry-product-video/SKILL.md",
+      "upstream_path": "library/motion/jewelry-product-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "jewelry-product-video",
+      "trigger_keywords": [
+        "jewelry",
+        "product",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "music-video",
+      "path": "library/motion/music-video/SKILL.md",
+      "upstream_path": "library/motion/music-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "music-video",
+      "trigger_keywords": [
+        "music",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "one-shot-video",
+      "path": "library/motion/one-shot-video/SKILL.md",
+      "upstream_path": "library/motion/one-shot-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "one-shot-video",
+      "trigger_keywords": [
+        "one",
+        "shot",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "product-ad-cinematic",
+      "path": "library/motion/product-ad-cinematic/SKILL.md",
+      "upstream_path": "library/motion/product-ad-cinematic/SKILL.md",
+      "category": "motion",
+      "muapi_model": "product-ad-cinematic",
+      "trigger_keywords": [
+        "product",
+        "ad",
+        "cinematic"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "product-showcase-video",
+      "path": "library/motion/product-showcase-video/SKILL.md",
+      "upstream_path": "library/motion/product-showcase-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "product-showcase-video",
+      "trigger_keywords": [
+        "product",
+        "showcase",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "product-video-ad-maker",
+      "path": "library/motion/product-video-ad-maker/SKILL.md",
+      "upstream_path": "library/motion/product-video-ad-maker/SKILL.md",
+      "category": "motion",
+      "muapi_model": "product-video-ad-maker",
+      "trigger_keywords": [
+        "product",
+        "video",
+        "ad",
+        "maker"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "seedance-2",
+      "path": "library/motion/seedance-2/SKILL.md",
+      "upstream_path": "library/motion/seedance-2/SKILL.md",
+      "category": "motion",
+      "muapi_model": "seedance-2",
+      "trigger_keywords": [
+        "seedance",
+        "2"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "storyboard-to-cooking-video",
+      "path": "library/motion/storyboard-to-cooking-video/SKILL.md",
+      "upstream_path": "library/motion/storyboard-to-cooking-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "storyboard-to-cooking-video",
+      "trigger_keywords": [
+        "storyboard",
+        "to",
+        "cooking",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "talking-baby-video",
+      "path": "library/motion/talking-baby-video/SKILL.md",
+      "upstream_path": "library/motion/talking-baby-video/SKILL.md",
+      "category": "motion",
+      "muapi_model": "talking-baby-video",
+      "trigger_keywords": [
+        "talking",
+        "baby",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ugc-lifestyle-try-on",
+      "path": "library/motion/ugc-lifestyle-try-on/SKILL.md",
+      "upstream_path": "library/motion/ugc-lifestyle-try-on/SKILL.md",
+      "category": "motion",
+      "muapi_model": "ugc-lifestyle-try-on",
+      "trigger_keywords": [
+        "ugc",
+        "lifestyle",
+        "try",
+        "on"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ugc-video-factory",
+      "path": "library/motion/ugc-video-factory/SKILL.md",
+      "upstream_path": "library/motion/ugc-video-factory/SKILL.md",
+      "category": "motion",
+      "muapi_model": "ugc-video-factory",
+      "trigger_keywords": [
+        "ugc",
+        "video",
+        "factory"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "instagram-post",
+      "path": "library/social/instagram-post/SKILL.md",
+      "upstream_path": "library/social/instagram-post/SKILL.md",
+      "category": "social",
+      "muapi_model": "instagram-post",
+      "trigger_keywords": [
+        "instagram",
+        "post"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "product-campaign",
+      "path": "library/social/product-campaign/SKILL.md",
+      "upstream_path": "library/social/product-campaign/SKILL.md",
+      "category": "social",
+      "muapi_model": "product-campaign",
+      "trigger_keywords": [
+        "product",
+        "campaign"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "rednote-cover",
+      "path": "library/social/rednote-cover/SKILL.md",
+      "upstream_path": "library/social/rednote-cover/SKILL.md",
+      "category": "social",
+      "muapi_model": "rednote-cover",
+      "trigger_keywords": [
+        "rednote",
+        "cover"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "social-media-video",
+      "path": "library/social/social-media-video/SKILL.md",
+      "upstream_path": "library/social/social-media-video/SKILL.md",
+      "category": "social",
+      "muapi_model": "social-media-video",
+      "trigger_keywords": [
+        "social",
+        "media",
+        "video"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "social-pack",
+      "path": "library/social/social-pack/SKILL.md",
+      "upstream_path": "library/social/social-pack/SKILL.md",
+      "category": "social",
+      "muapi_model": "social-pack",
+      "trigger_keywords": [
+        "social",
+        "pack"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ugc-ads-workflow",
+      "path": "library/social/ugc-ads-workflow/SKILL.md",
+      "upstream_path": "library/social/ugc-ads-workflow/SKILL.md",
+      "category": "social",
+      "muapi_model": "ugc-ads-workflow",
+      "trigger_keywords": [
+        "ugc",
+        "ads",
+        "workflow"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "youtube-shorts",
+      "path": "library/social/youtube-shorts/SKILL.md",
+      "upstream_path": "library/social/youtube-shorts/SKILL.md",
+      "category": "social",
+      "muapi_model": "youtube-shorts",
+      "trigger_keywords": [
+        "youtube",
+        "shorts"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "action-figure-generator",
+      "path": "library/visual/action-figure-generator/SKILL.md",
+      "upstream_path": "library/visual/action-figure-generator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "action-figure-generator",
+      "trigger_keywords": [
+        "action",
+        "figure",
+        "generator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ad-creative",
+      "path": "library/visual/ad-creative/SKILL.md",
+      "upstream_path": "library/visual/ad-creative/SKILL.md",
+      "category": "visual",
+      "muapi_model": "ad-creative",
+      "trigger_keywords": [
+        "ad",
+        "creative"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "amazon-product-listing",
+      "path": "library/visual/amazon-product-listing/SKILL.md",
+      "upstream_path": "library/visual/amazon-product-listing/SKILL.md",
+      "category": "visual",
+      "muapi_model": "amazon-product-listing",
+      "trigger_keywords": [
+        "amazon",
+        "product",
+        "listing"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "blog-header",
+      "path": "library/visual/blog-header/SKILL.md",
+      "upstream_path": "library/visual/blog-header/SKILL.md",
+      "category": "visual",
+      "muapi_model": "blog-header",
+      "trigger_keywords": [
+        "blog",
+        "header"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "brand-kit",
+      "path": "library/visual/brand-kit/SKILL.md",
+      "upstream_path": "library/visual/brand-kit/SKILL.md",
+      "category": "visual",
+      "muapi_model": "brand-kit",
+      "trigger_keywords": [
+        "brand",
+        "kit"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "brochures",
+      "path": "library/visual/brochures/SKILL.md",
+      "upstream_path": "library/visual/brochures/SKILL.md",
+      "category": "visual",
+      "muapi_model": "brochures",
+      "trigger_keywords": [
+        "brochures"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "chibi-collage-effect",
+      "path": "library/visual/chibi-collage-effect/SKILL.md",
+      "upstream_path": "library/visual/chibi-collage-effect/SKILL.md",
+      "category": "visual",
+      "muapi_model": "chibi-collage-effect",
+      "trigger_keywords": [
+        "chibi",
+        "collage",
+        "effect"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "color-analysis-board",
+      "path": "library/visual/color-analysis-board/SKILL.md",
+      "upstream_path": "library/visual/color-analysis-board/SKILL.md",
+      "category": "visual",
+      "muapi_model": "color-analysis-board",
+      "trigger_keywords": [
+        "color",
+        "analysis",
+        "board"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "couple-grid-creator",
+      "path": "library/visual/couple-grid-creator/SKILL.md",
+      "upstream_path": "library/visual/couple-grid-creator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "couple-grid-creator",
+      "trigger_keywords": [
+        "couple",
+        "grid",
+        "creator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "design-guide",
+      "path": "library/visual/design-guide/SKILL.md",
+      "upstream_path": "library/visual/design-guide/SKILL.md",
+      "category": "visual",
+      "muapi_model": "design-guide",
+      "trigger_keywords": [
+        "design",
+        "guide"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "fashion-try-on",
+      "path": "library/visual/fashion-try-on/SKILL.md",
+      "upstream_path": "library/visual/fashion-try-on/SKILL.md",
+      "category": "visual",
+      "muapi_model": "fashion-try-on",
+      "trigger_keywords": [
+        "fashion",
+        "try",
+        "on"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "floor-plan-rendering",
+      "path": "library/visual/floor-plan-rendering/SKILL.md",
+      "upstream_path": "library/visual/floor-plan-rendering/SKILL.md",
+      "category": "visual",
+      "muapi_model": "floor-plan-rendering",
+      "trigger_keywords": [
+        "floor",
+        "plan",
+        "rendering"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "interior-design-visualizer",
+      "path": "library/visual/interior-design-visualizer/SKILL.md",
+      "upstream_path": "library/visual/interior-design-visualizer/SKILL.md",
+      "category": "visual",
+      "muapi_model": "interior-design-visualizer",
+      "trigger_keywords": [
+        "interior",
+        "design",
+        "visualizer"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "interior-design",
+      "path": "library/visual/interior-design/SKILL.md",
+      "upstream_path": "library/visual/interior-design/SKILL.md",
+      "category": "visual",
+      "muapi_model": "interior-design",
+      "trigger_keywords": [
+        "interior",
+        "design"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "keyboard-art-maker",
+      "path": "library/visual/keyboard-art-maker/SKILL.md",
+      "upstream_path": "library/visual/keyboard-art-maker/SKILL.md",
+      "category": "visual",
+      "muapi_model": "keyboard-art-maker",
+      "trigger_keywords": [
+        "keyboard",
+        "art",
+        "maker"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "logo-branding",
+      "path": "library/visual/logo-branding/SKILL.md",
+      "upstream_path": "library/visual/logo-branding/SKILL.md",
+      "category": "visual",
+      "muapi_model": "logo-branding",
+      "trigger_keywords": [
+        "logo",
+        "branding"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "logo-creator",
+      "path": "library/visual/logo-creator/SKILL.md",
+      "upstream_path": "library/visual/logo-creator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "logo-creator",
+      "trigger_keywords": [
+        "logo",
+        "creator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "logo-generator",
+      "path": "library/visual/logo-generator/SKILL.md",
+      "upstream_path": "library/visual/logo-generator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "logo-generator",
+      "trigger_keywords": [
+        "logo",
+        "generator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "multi-angle-reshoot",
+      "path": "library/visual/multi-angle-reshoot/SKILL.md",
+      "upstream_path": "library/visual/multi-angle-reshoot/SKILL.md",
+      "category": "visual",
+      "muapi_model": "multi-angle-reshoot",
+      "trigger_keywords": [
+        "multi",
+        "angle",
+        "reshoot"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "multi-angle-shots",
+      "path": "library/visual/multi-angle-shots/SKILL.md",
+      "upstream_path": "library/visual/multi-angle-shots/SKILL.md",
+      "category": "visual",
+      "muapi_model": "multi-angle-shots",
+      "trigger_keywords": [
+        "multi",
+        "angle",
+        "shots"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "nano-banana",
+      "path": "library/visual/nano-banana/SKILL.md",
+      "upstream_path": "library/visual/nano-banana/SKILL.md",
+      "category": "visual",
+      "muapi_model": "nano-banana",
+      "trigger_keywords": [
+        "nano",
+        "banana"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "photo-pack-generator",
+      "path": "library/visual/photo-pack-generator/SKILL.md",
+      "upstream_path": "library/visual/photo-pack-generator/SKILL.md",
+      "category": "visual",
+      "muapi_model": "photo-pack-generator",
+      "trigger_keywords": [
+        "photo",
+        "pack",
+        "generator"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "selfie-with-celebrities",
+      "path": "library/visual/selfie-with-celebrities/SKILL.md",
+      "upstream_path": "library/visual/selfie-with-celebrities/SKILL.md",
+      "category": "visual",
+      "muapi_model": "selfie-with-celebrities",
+      "trigger_keywords": [
+        "selfie",
+        "with",
+        "celebrities"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "storyboard",
+      "path": "library/visual/storyboard/SKILL.md",
+      "upstream_path": "library/visual/storyboard/SKILL.md",
+      "category": "visual",
+      "muapi_model": "storyboard",
+      "trigger_keywords": [
+        "storyboard"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "ui-design",
+      "path": "library/visual/ui-design/SKILL.md",
+      "upstream_path": "library/visual/ui-design/SKILL.md",
+      "category": "visual",
+      "muapi_model": "ui-design",
+      "trigger_keywords": [
+        "ui",
+        "design"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "url-to-design",
+      "path": "library/visual/url-to-design/SKILL.md",
+      "upstream_path": "library/visual/url-to-design/SKILL.md",
+      "category": "visual",
+      "muapi_model": "url-to-design",
+      "trigger_keywords": [
+        "url",
+        "to",
+        "design"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "youtube-thumbnail",
+      "path": "library/visual/youtube-thumbnail/SKILL.md",
+      "upstream_path": "library/visual/youtube-thumbnail/SKILL.md",
+      "category": "visual",
+      "muapi_model": "youtube-thumbnail",
+      "trigger_keywords": [
+        "youtube",
+        "thumbnail"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    },
+    {
+      "id": "workflow",
+      "path": "library/workflow/SKILL.md",
+      "upstream_path": "library/workflow/SKILL.md",
+      "category": "workflow",
+      "muapi_model": "workflow",
+      "trigger_keywords": [
+        "workflow"
+      ],
+      "upstream_e2e": "untested",
+      "tianlong_e2e": "pending MUAPI_API_KEY",
+      "depends_on": [
+        "async-task-pattern/adapters/muapi.sh"
+      ]
+    }
+  ]
+}

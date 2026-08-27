@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微博评论爬取工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .step-content {
+            color: #666;
+            line-height: 1.8;
+        }
+        .step-content code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            text-decoration: none;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .code-display {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        .success-check {
+            color: #28a745;
+            font-size: 20px;
+        }
+        .copy-feedback {
+            display: none;
+            color: #28a745;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 微博评论爬取工具</h1>
+
+        <div class="warning-box">
+            <strong>⚠️ 重要：</strong>书签可能因浏览器安全限制而失效。请使用以下手动方法。
+        </div>
+
+        <h2 style="color: #667eea; margin: 30px 0 20px 0;">操作步骤（3分钟内完成）</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-title">打开微博页面</div>
+            <div class="step-content">
+                点击下方按钮打开目标微博页面：<br><br>
+                <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" class="btn">🔗 打开微博页面</a>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-title">打开开发者工具</div>
+            <div class="step-content">
+                在微博页面中按键盘上的 <code>F12</code> 键，或者右键点击页面选择"检查"<br><br>
+                然后点击顶部的 <code>Console（控制台）</code> 标签
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-title">复制并运行脚本</div>
+            <div class="step-content">
+                <button class="btn btn-success" onclick="copyScript()">📋 复制爬取脚本</button>
+                <span id="copyFeedback" class="copy-feedback">✅ 已复制！</span><br><br>
+
+                切换到微博页面的控制台，按 <code>Ctrl + V</code> 粘贴脚本，然后按 <code>Enter</code> 执行
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>💡 执行后：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>控制台会显示进度：[1/200] 已加载: XX 条评论</li>
+                <li>约4-8分钟后自动完成</li>
+                <li>完成后自动下载 JSON 文件</li>
+                <li>将下载的文件路径告诉 Claude 即可生成报告</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-title">爬取脚本（自动复制）</div>
+            <div class="code-display" id="scriptDisplay">(function(){console.clear();console.log('%c='+Array(60).join('='),'color:#667eea');console.log('%c微博评论爬取工具启动中...','color:#667eea;font-size:16px;font-weight:bold');console.log('%c='+Array(60).join('='),'color:#667eea');if(!window.location.href.includes('weibo.com')){console.error('❌ 请在微博页面使用');return}window.ALL_COMMENTS=new Map();window.SCROLL_STATS={iterations:0,lastCount:0,noNewCount:0,maxIterations:200};function parseComment(t){const i=t.indexOf(':');if(-1===i)return null;const u=t.substring(0,i).trim(),m=t.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);if(!m)return null;const time=m[1]+' '+m[2],s=t.indexOf(m[0]);let c=t.substring(i+1,s).trim();c=c.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g,'').trim();c=c.replace(/^:+/,'').trim();c=c.replace(/\s+/g,' ');if(c.length<2)return null;const l=t.match(/(\d+)$/),likes=l?parseInt(l[1]):0,id=u+'_'+c+'_'+time;return{username:u,content:c,time:time,likes:likes,uniqueId:id}}function extractComments(){const list=document.querySelector('.wbpro-list');if(!list){console.warn('未找到评论列表');return 0}const nodes=list.children;for(let i=0;i<nodes.length;i++){const text=nodes[i].textContent||'',comment=parseComment(text);if(comment&&!window.ALL_COMMENTS.has(comment.uniqueId))window.ALL_COMMENTS.set(comment.uniqueId,comment)}return window.ALL_COMMENTS.size}function smartScroll(){const list=document.querySelector('.wbpro-list');if(list)list.scrollTop=list.scrollHeight;window.scrollTo(0,document.body.scrollHeight);const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return(t.includes('加载更多')||t.includes('点击加载')||t.includes('展开'))&&null!==e.offsetParent});if(btns.length>0)btns[0].click()}function switchSort(){const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return t.includes('按时间')||t.includes('按热度')});if(btns.length>0){for(const b of btns){if(b.textContent.includes('按时间')){console.log('切换到按时间排序');b.click();return true}}}async function scrape(){console.log('开始爬取...');switchSort();await new Promise(r=>setTimeout(r,2000));for(let i=0;i<window.SCROLL_STATS.maxIterations;i++){window.SCROLL_STATS.iterations=i+1;const count=extractComments();if(i%10===0)console.log('['+(i+1)+'/'+window.SCROLL_STATS.maxIterations+'] 已加载:'+count+'条评论');if(count>=680){console.log('%c达到目标:'+count,'color:#28a745;font-weight:bold');break}if(count===window.SCROLL_STATS.lastCount){window.SCROLL_STATS.noNewCount++;if(window.SCROLL_STATS.noNewCount>=15){console.log('连续无新评论,停止');break}}else{window.SCROLL_STATS.noNewCount=0;window.SCROLL_STATS.lastCount=count}smartScroll();await new Promise(r=>setTimeout(r,1200))}const arr=Array.from(window.ALL_COMMENTS.values()).sort((a,b)=>b.likes-a.likes);console.log('%c爬取完成!总计:'+arr.length,'color:#28a745;font-size:14px;font-weight:bold');return arr}async function download(data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='weibo_comments_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)+'.json';a.click();URL.revokeObjectURL(url)}scrape().then(comments=>{const data={url:window.location.href,target_count:680,actual_count:comments.length,completion_rate:(comments.length/680*100).toFixed(1)+'%',extracted_at:new Date().toISOString(),comments:comments};download(data);console.log('%c文件已下载!','color:#28a745;font-weight:bold')}).catch(e=>console.error('错误:',e))})();</div>
+        </div>
+    </div>
+
+    <script>
+        const fullScript = `(function(){
+    console.clear();
+    console.log('%c=' + Array(60).join('='), 'color: #667eea');
+    console.log('%c微博评论爬取工具启动中...', 'color: #667eea; font-size: 16px; font-weight: bold');
+    console.log('%c=' + Array(60).join('='), 'color: #667eea');
+
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('❌ 请在微博页面使用');
+        return;
+    }
+
+    window.ALL_COMMENTS = new Map();
+    window.SCROLL_STATS = {
+        iterations: 0,
+        lastCount: 0,
+        noNewCount: 0,
+        maxIterations: 200
+    };
+
+    function parseComment(text) {
+        const colonIndex = text.indexOf(':');
+        if (colonIndex === -1) return null;
+        const username = text.substring(0, colonIndex).trim();
+        const timeMatch = text.match(/(\\d{1,2}-\\d{1,2}-\\d{1,2})\\s+(\\d{1,2}:\\d{2})/);
+        if (!timeMatch) return null;
+        const time = timeMatch[1] + ' ' + timeMatch[2];
+        const timeStartIndex = text.indexOf(timeMatch[0]);
+        let content = text.substring(colonIndex + 1, timeStartIndex).trim();
+        content = content.replace(/@[\\u4e00-\\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/^:+/, '').trim();
+        content = content.replace(/\\s+/g, ' ');
+        if (content.length < 2) return null;
+        const likeMatch = text.match(/(\\d+)$/);
+        const likes = likeMatch ? parseInt(likeMatch[1]) : 0;
+        const uniqueId = username + '_' + content + '_' + time;
+        return { username, content, time, likes, uniqueId };
+    }
+
+    function extractComments() {
+        const list = document.querySelector('.wbpro-list');
+        if (!list) {
+            console.warn('未找到评论列表');
+            return 0;
+        }
+        const nodes = list.children;
+        for (let i = 0; i < nodes.length; i++) {
+            const text = nodes[i].textContent || '';
+            const comment = parseComment(text);
+            if (comment && !window.ALL_COMMENTS.has(comment.uniqueId)) {
+                window.ALL_COMMENTS.set(comment.uniqueId, comment);
+            }
+        }
+        return window.ALL_COMMENTS.size;
+    }
+
+    function smartScroll() {
+        const list = document.querySelector('.wbpro-list');
+        if (list) list.scrollTop = list.scrollHeight;
+        window.scrollTo(0, document.body.scrollHeight);
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return (t.includes('加载更多') || t.includes('点击加载') || t.includes('展开')) && el.offsetParent !== null;
+        });
+        if (btns.length > 0) btns[0].click();
+    }
+
+    function switchSort() {
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return t.includes('按时间') || t.includes('按热度');
+        });
+        if (btns.length > 0) {
+            for (const b of btns) {
+                if (b.textContent.includes('按时间')) {
+                    console.log('切换到按时间排序');
+                    b.click();
+                    return true;
+                }
+            }
+        }
+    }
+
+    async function scrape() {
+        console.log('开始爬取...');
+        switchSort();
+        await new Promise(r => setTimeout(r, 2000));
+
+        for (let i = 0; i < window.SCROLL_STATS.maxIterations; i++) {
+            window.SCROLL_STATS.iterations = i + 1;
+            const count = extractComments();
+
+            if (i % 10 === 0) {
+                console.log('[' + (i+1) + '/' + window.SCROLL_STATS.maxIterations + '] 已加载: ' + count + ' 条评论');
+            }
+
+            if (count >= 680) {
+                console.log('%c达到目标: ' + count, 'color: #28a745; font-weight: bold');
+                break;
+            }
+
+            if (count === window.SCROLL_STATS.lastCount) {
+                window.SCROLL_STATS.noNewCount++;
+                if (window.SCROLL_STATS.noNewCount >= 15) {
+                    console.log('连续无新评论，停止');
+                    break;
+                }
+            } else {
+                window.SCROLL_STATS.noNewCount = 0;
+                window.SCROLL_STATS.lastCount = count;
+            }
+
+            smartScroll();
+            await new Promise(r => setTimeout(r, 1200));
+        }
+
+        const arr = Array.from(window.ALL_COMMENTS.values()).sort((a, b) => b.likes - a.likes);
+        console.log('%c爬取完成! 总计: ' + arr.length, 'color: #28a745; font-size: 14px; font-weight: bold');
+        return arr;
+    }
+
+    async function download(data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'weibo_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    scrape().then(comments => {
+        const data = {
+            url: window.location.href,
+            target_count: 680,
+            actual_count: comments.length,
+            completion_rate: (comments.length / 680 * 100).toFixed(1) + '%',
+            extracted_at: new Date().toISOString(),
+            comments: comments
+        };
+        download(data);
+        console.log('%c文件已下载!', 'color: #28a745; font-weight: bold');
+    }).catch(e => console.error('错误:', e));
+})();`;
+
+        function copyScript() {
+            navigator.clipboard.writeText(fullScript).then(() => {
+                document.getElementById('copyFeedback').style.display = 'inline';
+                setTimeout(() => {
+                    document.getElementById('copyFeedback').style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动复制下方代码框中的内容');
+            });
+        }
+    </script>
+</body>
+</html>

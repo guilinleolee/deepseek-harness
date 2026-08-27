@@ -1,0 +1,50 @@
+{
+  "template_id": "lifestyle",
+  "description": "适合生活方式、时尚、美妆内容",
+  "brand": {
+    "niche": "生活方式分享",
+    "audience": "18-35岁年轻女性、时尚爱好者",
+    "personality": "温暖、真实、有品位",
+    "tone": "亲切自然，像朋友分享",
+    "values": ["真实", "美好", "品味"]
+  },
+  "style": {
+    "colors": {
+      "primary": "#E8B4B8",
+      "secondary": "#F5E6E8",
+      "accent": "#C9A0DC",
+      "background": "#FFFBF8",
+      "text": "#4A4A4A"
+    },
+    "fonts": {
+      "heading": "Playfair Display",
+      "body": "Noto Sans SC",
+      "accent": "Cormorant Garamond"
+    },
+    "templates": ["warm-minimal", "floral-accent"],
+    "image_style": "warm-tone, natural-light, lifestyle-photography",
+    "layout_preference": "breathing-space, soft-edges"
+  },
+  "platforms": {
+    "xiaohongshu": {
+      "enabled": true,
+      "aspect_ratio": "3:4",
+      "hashtags": ["#生活", "#时尚", "#穿搭", "#好物分享", "#日常"]
+    },
+    "douyin": {
+      "enabled": true,
+      "aspect_ratio": "9:16",
+      "hashtags": ["#生活分享", "#时尚", "#种草"]
+    },
+    "instagram": {
+      "enabled": true,
+      "aspect_ratio": "1:1",
+      "hashtags": ["#lifestyle", "#ootd", "#fashion"]
+    }
+  },
+  "compliance": {
+    "license": "MIT",
+    "attribution_required": false,
+    "custom_rules": ["真实分享，避免过度营销"]
+  }
+}

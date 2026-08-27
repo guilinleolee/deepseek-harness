@@ -1,0 +1,188 @@
+# GBrain External API Lookup Configuration
+# 外部API查询配置
+
+api_lookup:
+  brain_first:
+    enabled: true
+    mandatory: true     # 铁律: 外部API前必须先查Brain
+    freshness_threshold: "7d"
+    check_before_api: true
+
+  external_apis:
+    perplexity:
+      enabled: true
+      priority: 1      # 首选深度研究
+      timeout: 120
+      max_results: 10
+      search_depth: "high"
+
+    web_search:
+      enabled: true
+      priority: 2
+      timeout: 30
+      max_results: 5
+      engines: ["duckduckgo", "bing"]
+
+    linkedin:
+      enabled: true
+      priority: 3      # 仅用于人员信息
+      timeout: 30
+      auth_required: true
+      rate_limit: 10
+
+    twitter:
+      enabled: false  # 默认禁用，需显式启用
+      priority: 4
+      timeout: 20
+      auth_required: true
+      rate_limit: 15
+
+  learn_loop:
+    read_first: true
+    enrich_merge: true   # 新旧合并而非覆盖
+    write_sync: true     # 同步写回
+    cite_required: true
+    citation_format: "[Source: {name}, {url}, {date}]"
+
+  ambient:
+    enabled: true
+    interrupt: false     # 永远不打断
+    subagent_enabled: true
+    batch_size: 3
+    delay: 30
+    post_session: true
+
+# 天龙引擎集成
+tianlong_integration:
+  attached_role: "07-scribe"
+  triggers:
+    - "查一下"
+    - "lookup"
+    - "enrich"
+    - "background"
+    - "补充背景"
+    - "了解一下"
+    - "外部查询"
+    - "API查询"
+  always_on:
+    - "READ_ENRICH_WRITE_LOOP"
+    - "AMBIENT_ENRICHMENT"
+  upstream:
+    - gbrain-hybrid-search
+    - gbrain-entity-enrich
+  downstream:
+    - gbrain-daily-briefing    # 充实结果进入简报
+    - gbrain-identity-audit      # 身份相关发现触发审计
+
+  # 被动充实配置
+  passive_enrichment:
+    enabled: true
+    post_session: true
+    threshold_mentions: 3      # 提及3次以上才充实
+    stale_refresh: true          # 自动刷新陈旧实体
+    stale_threshold: "7d"
+    max_ambient_entities: 10
+
+# 来源优先级铁律
+source_precedence:
+  priority_1: "user_direct"           # 用户直接陈述
+  priority_2: "compiled_truth"         # 编译后的真相(会议记录)
+  priority_3: "timeline_events"       # 时间线事件
+  priority_4: "external_sources"       # 外部来源
+
+  # 冲突处理
+  conflict_resolution:
+    newer_wins: true
+    user_over_external: true
+    external_requires_citation: true
+
+  # 引用标注格式
+  citation_format: "[Source: {name}, {url}, {date}]"
+  citation_pattern: "\\[Source: [^\\]]+\\]"
+
+# Brain-First Lookup 流程配置
+brain_first_lookup:
+  step_1_query:
+    method: "hybrid_search"
+    threshold: 0.6
+    max_results: 5
+
+  step_2_freshness:
+    check_timestamp: true
+    threshold: "7d"
+    stale_action: "refresh_async"
+
+  step_3_decision:
+    branches:
+      - condition: "brain_has_sufficient_info"
+        action: "USE_BRAIN"
+      - condition: "stale_but_has_base"
+        action: "USE_BRAIN_THEN_REFRESH_ASYNC"
+      - condition: "no_info OR need_deep_research"
+        action: "CALL_EXTERNAL_API"
+
+  step_4_external_api:
+    default_api: "perplexity"
+    fallback_api: "web_search"
+
+  step_5_write_back:
+    sync: true
+    add_citation: true
+    update_timestamp: true
+
+  step_6_backlinks:
+    auto_create: true
+    bidirectional: true
+
+# READ→ENRICH→WRITE 循环配置
+read_enrich_write:
+  read:
+    load_existing: true
+    merge_strategy: "smart_merge"  # smart_merge | replace | append
+    conflict_handling: "newer_wins"
+
+  enrich:
+    merge_new_info: true
+    validate_consistency: true
+    flag_conflicts: true
+    preserve_user_truth: true
+
+  write:
+    sync_write: true
+    add_provenance: true
+    update_relations: true
+    trigger_downstream: true
+
+# Ambient Enrichment 配置
+ambient_enrichment:
+  interrupt_threshold: 0  # 永远不阻塞
+
+  spawn_subagent: true
+  subagent_priority: "low"
+  subagent_timeout: 300  # 5分钟
+
+  triggers:
+    - "new_person_mentioned"
+    - "new_company_mentioned"
+    - "stale_entity"
+    - "new_technology_discussed"
+
+  behavior:
+    log_to_console: false    # 不打印到控制台
+    notify_on_complete: false  # 不通知用户
+    persist_results: true      # 持久化结果
+
+  async_loop:
+    enabled: true
+    post_conversation: true   # 对话结束后执行
+    batch_size: 3             # 每次最多3个实体
+    delay_between: 30          # 实体间延迟(秒)
+
+# 知识库路径
+knowledge_base:
+  root: "~/.claude/gbrain"
+  pages_dir: "pages"
+  entities_dir: "entities"
+  raw_dir: "raw/api_responses"
+  log_dir: "logs"
+  cache_dir: ".cache/api_lookup"

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "blogger_id": "laoli_bro_2026",
+  "accounts": [
+    {
+      "platform": "xiaohongshu",
+      "blogger_id": "laoli_bro_2026",
+      "nickname": "老李兄弟主号",
+      "enabled": true,
+      "auto_publish": false,
+      "draft_before_publish": true,
+      "config_file": "xiaohongshu.json"
+    }
+  ],
+  "created_at": "2026-08-17T03:07:01.248Z",
+  "updated_at": "2026-08-17T03:10:04.737Z"
+}

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>安装微博爬取书签 - 一次设置永久使用</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.3);
+            padding: 50px;
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        .bookmarklet-btn {
+            display: block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+            border-radius: 15px;
+            text-decoration: none;
+            font-size: 22px;
+            font-weight: bold;
+            margin: 30px 0;
+            cursor: move;
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+            border: 3px solid #1e7e34;
+        }
+        .bookmarklet-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
+        }
+        .step {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .step-content {
+            color: #666;
+            line-height: 1.8;
+        }
+        .step-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+        }
+        .comparison {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        .comparison h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+        .comparison table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comparison th, .comparison td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ffc107;
+        }
+        .comparison th {
+            background: #ffc107;
+            color: #000;
+        }
+        .check { color: #28a745; font-weight: bold; }
+        .cross { color: #dc3545; font-weight: bold; }
+        .tip {
+            background: #d1ecf1;
+            border-left: 5px solid #0c5460;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .tip strong {
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔖 微博爬取书签 - 一次设置永久使用</h1>
+
+        <div class="comparison">
+            <h3>📊 方案对比</h3>
+            <table>
+                <tr>
+                    <th>项目</th>
+                    <th>之前的方案</th>
+                    <th>书签方案（推荐）</th>
+                </tr>
+                <tr>
+                    <td><strong>设置次数</strong></td>
+                    <td><span class="cross">❌ 每次都要执行</span></td>
+                    <td><span class="check">✅ 只需设置一次</span></td>
+                </tr>
+                <tr>
+                    <td><strong>使用时操作</strong></td>
+                    <td><span class="cross">❌ 5个步骤</span></td>
+                    <td><span class="check">✅ 点击1次书签</span></td>
+                </tr>
+                <tr>
+                    <td><strong>时间成本</strong></td>
+                    <td><span class="cross">❌ 每次约2分钟</span></td>
+                    <td><span class="check">✅ 每次约1秒</span></td>
+                </tr>
+                <tr>
+                    <td><strong>适用范围</strong></td>
+                    <td><span class="cross">❌ 当前页面</span></td>
+                    <td><span class="check">✅ 任何微博页面</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <a href="javascript:(function(){console.clear();console.log('Starting Weibo Comment Scraper...');window.ALL_COMMENTS=new Map();window.SCROLL_STATS={iterations:0,lastCount:0,noNewCount:0,maxIterations:200};function parseComment(t){const i=t.indexOf(':');if(-1===i)return null;const u=t.substring(0,i).trim(),m=t.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);if(!m)return null;const time=m[1]+' '+m[2],s=t.indexOf(m[0]);let c=t.substring(i+1,s).trim();c=c.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g,'').trim();c=c.replace(/^:+/,'').trim();c=c.replace(/\s+/g,' ');if(c.length<2)return null;const l=t.match(/(\d+)$/),likes=l?parseInt(l[1]):0,id=u+'_'+c+'_'+time;return{username:u,content:c,time:time,likes:likes,uniqueId:id}}function extractComments(){const list=document.querySelector('.wbpro-list');if(!list)return 0;const nodes=list.children;for(let i=0;i<nodes.length;i++){const text=nodes[i].textContent||'',comment=parseComment(text);if(comment&&!window.ALL_COMMENTS.has(comment.uniqueId))window.ALL_COMMENTS.set(comment.uniqueId,comment)}return window.ALL_COMMENTS.size}function smartScroll(){const list=document.querySelector('.wbpro-list');if(list)list.scrollTop=list.scrollHeight;window.scrollTo(0,document.body.scrollHeight);const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return(t.includes('加载更多')||t.includes('点击加载')||t.includes('展开'))&&null!==e.offsetParent});if(btns.length>0)btns[0].click()}function switchSort(){const btns=Array.from(document.querySelectorAll('*')).filter(e=>{const t=e.textContent||'';return t.includes('按时间')||t.includes('按热度')});if(btns.length>0){for(const b of btns){if(b.textContent.includes('按时间')){b.click();console.log('Switched to sort by time');return!0}}}async function scrape(){console.log('Starting...');switchSort();await new Promise(r=>setTimeout(r,2000));for(let i=0;i<window.SCROLL_STATS.maxIterations;i++){window.SCROLL_STATS.iterations=i+1;const count=extractComments();if(i%10===0)console.log('['+(i+1)+'/'+window.SCROLL_STATS.maxIterations+'] Loaded: '+count+' comments');if(count>=680){console.log('Target reached: '+count);break}if(count===window.SCROLL_STATS.lastCount){window.SCROLL_STATS.noNewCount++;if(window.SCROLL_STATS.noNewCount>=15){console.log('No new comments, stopping');break}}else{window.SCROLL_STATS.noNewCount=0;window.SCROLL_STATS.lastCount=count}smartScroll();await new Promise(r=>setTimeout(r,1200))}const arr=Array.from(window.ALL_COMMENTS.values()).sort((a,b)=>b.likes-a.likes);console.log('='.repeat(60));console.log('Complete! Total: '+arr.length+' comments');console.log('='.repeat(60));return arr}async function download(data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='weibo_comments_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)+'.json',a.click(),URL.revokeObjectURL(url)}scrape().then(comments=>{const data={url:window.location.href,target_count:680,actual_count:comments.length,completion_rate:(comments.length/680*100).toFixed(1)+'%',extracted_at:new Date().toISOString(),comments:comments};download(data);console.log('Downloaded! Send file path to Claude for report.');}).catch(e=>console.error('Error:',e))})();" class="bookmarklet-btn">🔖 拖拽此按钮到书签栏（只需一次）</a>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-title">拖拽书签到书签栏（只需做一次）</div>
+            <div class="step-content">
+                用鼠标<strong>拖拽</strong>上面绿色的 **"🔖 拖拽此按钮到书签栏"** 按钮<br>
+                放到浏览器顶部的<strong>书签栏</strong>上<br>
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='100'%3E%3Crect x='10' y='10' width='580' height='80' fill='%23f0f0f0' stroke='%23333' rx='5'/%3E%3Ctext x='20' y='35' font-family='Arial' font-size='14' fill='%23666'%3E书签栏 (Bookmarks Bar)%3C/text%3E%3Crect x='150' y='30' width='120' height='40' fill='%2328a745' rx='5'/%3E%3Ctext x='160' y='55' font-family='Arial' font-size='12' fill='2333'%3E微博爬取%3C/text%3E%3Ctext x='300' y='55' font-family='Arial' font-size='12' fill='23333'%3E其他书签...%3C/text%3E%3C/svg%3E" alt="书签栏示意图"><br>
+                <small style="color: #999;">找不到书签栏？按 Ctrl+Shift+B 显示书签栏</small>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-title">重命名书签（可选）</div>
+            <div class="step-content">
+                右键点击刚添加的书签 → 选择<strong>"重命名"</strong> → 输入"微博爬取"
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-title">完成设置！</div>
+            <div class="step-content">
+                <strong>设置已完成！</strong>以后在任何微博页面只需要：<br><br>
+                1. 打开任何微博文章页面<br>
+                2. 点击"微博爬取"书签<br>
+                3. 等待自动完成<br>
+                4. 自动下载JSON文件
+            </div>
+        </div>
+
+        <div class="tip">
+            <strong>💡 提示：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>设置一次，永久使用</li>
+                <li>适用于所有微博文章页面</li>
+                <li>点击后自动运行，无需其他操作</li>
+                <li>约4-8分钟自动完成并下载</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

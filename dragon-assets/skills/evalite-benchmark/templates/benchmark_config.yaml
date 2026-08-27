@@ -1,0 +1,94 @@
+# Benchmark 项目配置模板
+# 复制此文件并根据您的需求修改
+
+name: "my-benchmark"
+version: "1.0.0"
+
+# ============================================
+# 模型配置
+# ============================================
+models:
+  # 示例：OpenAI 模型
+  - name: "gpt-4o"
+    provider: "openai"
+    model_id: "gpt-4o"
+    api_key_env: "OPENAI_API_KEY"  # 环境变量名
+    base_url: ""  # 自定义端点（可选）
+    extra_params:
+      temperature: 0.1
+      max_tokens: 2048
+
+  # 示例：Anthropic 模型
+  - name: "claude-3-5-sonnet"
+    provider: "anthropic"
+    model_id: "claude-3-5-sonnet-20240620"
+    api_key_env: "ANTHROPIC_API_KEY"
+    extra_params:
+      temperature: 0.1
+      max_tokens: 2048
+
+  # 示例：Google 模型
+  - name: "gemini-pro"
+    provider: "google"
+    model_id: "gemini-1.5-pro"
+    api_key_env: "GOOGLE_API_KEY"
+    base_url: ""  # 可选自定义端点
+    extra_params:
+      temperature: 0.1
+      max_tokens: 2048
+
+  # 示例：本地/Ollama 模型
+  - name: "llama3"
+    provider: "openai"
+    model_id: "llama3"
+    api_key_env: ""  # 本地模型不需要API Key
+    base_url: "http://localhost:11434/v1"
+    extra_params:
+      temperature: 0.1
+      max_tokens: 2048
+
+# ============================================
+# 数据集配置
+# ============================================
+dataset:
+  source: "./datasets/custom.json"  # 数据集文件路径
+  format: "json"  # 支持: json, csv, mmlu, hellaswag
+  shuffle: true  # 是否打乱顺序
+
+# ============================================
+# 评估配置
+# ============================================
+evaluation:
+  trials: 5  # 评估次数（推荐：快速=3, 标准=5, 正式=10）
+  timeout: 30  # 单次请求超时（秒）
+  parallel: true  # 是否并行评估
+  max_parallel_models: 3  # 最大并行模型数
+
+# ============================================
+# 统计配置
+# ============================================
+statistical:
+  test: "t-test"  # 测试方法: t-test, chi-square, wilcoxon
+  alpha: 0.05  # 显著性水平
+  confidence_interval: 0.95  # 置信区间
+
+# ============================================
+# 报告配置
+# ============================================
+reporting:
+  formats:
+    - "html"  # 可选: html, markdown, json
+    - "markdown"
+    - "json"
+  output_dir: "./results"  # 结果输出目录
+  include_charts: true  # 是否包含图表
+  include_stats: true  # 是否包含统计结果
+  include_raw_data: true  # 是否包含原始数据
+
+# ============================================
+# 回归检测配置
+# ============================================
+regression:
+  enabled: true  # 是否启用回归检测
+  baseline_file: "./results/baseline.json"  # 基准文件
+  alert_threshold: 0.05  # 告警阈值（5%下降触发告警）

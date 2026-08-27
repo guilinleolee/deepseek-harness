@@ -1,0 +1,1 @@
+# evalite-browser scripts package

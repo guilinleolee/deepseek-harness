@@ -1,0 +1,70 @@
+{
+  "name": "form-submission-test",
+  "url": "http://localhost:3000/form",
+  "description": "Test form input and submission",
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [
+    {
+      "action": "wait_for_selector",
+      "selector": "form"
+    },
+    {
+      "action": "fill",
+      "selector": "[name='email']",
+      "value": "user@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "[name='password']",
+      "value": "SecurePass123!"
+    },
+    {
+      "action": "fill",
+      "selector": "[name='name']",
+      "value": "Test User"
+    },
+    {
+      "action": "click",
+      "selector": "[type='submit']"
+    },
+    {
+      "action": "wait_for_navigation",
+      "timeout": 10000
+    }
+  ],
+  "assertions": [
+    {
+      "type": "visible",
+      "selector": ".success-message",
+      "description": "Success message is shown"
+    },
+    {
+      "type": "contains_text",
+      "selector": ".success-message",
+      "expected": "Thank you",
+      "description": "Success message contains thank you"
+    },
+    {
+      "type": "url_matches",
+      "expected": ".*success.*",
+      "description": "Redirected to success page"
+    }
+  ],
+  "visual": {
+    "enabled": true,
+    "name": "form-submitted"
+  },
+  "a11y": {
+    "enabled": true,
+    "rules": [
+      "color-contrast",
+      "label",
+      "aria-required-attr",
+      "button-name"
+    ]
+  }
+}

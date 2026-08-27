@@ -1,0 +1,30 @@
+Context Doctor Integration (天龙引擎集成包装层)
+Copyright (c) 2026, dragon-engine contributors
+
+This product includes software developed by dsh-external
+(https://github.com/Zhenyu98/dsh-context-doctor, BSD-3-Clause)
+
+==========================================================================
+Upstream License: BSD 3-Clause License
+Upstream Copyright (c) 2026, dsh-external
+Upstream Repository: https://github.com/Zhenyu98/dsh-context-doctor
+Upstream Version: v0.6.1 (as of 2026-08-22)
+==========================================================================
+
+Modified by dragon-engine / 2026-08-23
+- 本文件仅为天龙引擎（dragon-engine）集成包装层，仅保留上游 LICENSE 原文与版权声明。
+- 上游源码（src/audit.ts, src/scan.ts, src/analyze.ts, src/tokens.ts, src/routes.ts,
+  src/client/* 等）通过 DSH cordis bundle 插件机制动态加载，**未镜像**至本仓。
+- 本集成层仅新增：README.md、INTEGRATION_CHECKLIST.md、scripts/install-context-doctor.sh、
+  scripts/audit-template.md 等运维与文档资产。
+- 所有天龙场景下的"上下文注入审计"行为均由上游原版二进制执行，天龙侧不修改任何上游逻辑。
+
+BSD-3-Clause 第 3 条（Trademark）合规声明：
+- 天龙不得使用 "dsh-context-doctor 官方推荐 / 官方认证 / 官方授权" 等字样。
+- 本集成文档统一使用 "Powered by Zhenyu98/dsh-context-doctor" 表述。
+- 任何对外宣传、课程、出版物的引用须遵循"原作者署名 + 不暗示背书"原则。
+
+==========================================================================
+天龙引擎（dragon-engine）许可证：本集成包装层文档与脚本以 MIT 协议发布。
+详见 https://github.com/your-org/dragon-engine/blob/main/LICENSE
+==========================================================================

@@ -1,0 +1,259 @@
+# Meta Template - 元定义标准模板
+
+> **版本**: V1.0
+> **来源**: 天龙引擎V9.02 × 老金元组织方法论
+> **用途**: 定义和记录一个"元"(Meta)的完整规格
+
+---
+
+## 基本信息
+
+```yaml
+meta_id: "meta-xxx"                    # 元唯一标识符
+meta_name: "元名称"                     # 人类可读的元名称
+meta_alias: ["别名1", "别名2"]           # 可选的别名列表
+version: "1.0.0"                        # 当前版本
+created_date: "YYYY-MM-DD"             # 创建日期
+updated_date: "YYYY-MM-DD"             # 最后更新日期
+owner: "所属Agent或团队"                # 负责人
+status: "active"                       # active/draft/deprecated
+
+# 元分类
+category:
+  domain: "领域"                        # 技术/业务/治理
+  type: "类型"                          # 执行/编排/治理
+  complexity: "L1/L2/L3/L4"            # 复杂度等级
+```
+
+---
+
+## 5特征评估
+
+### 独立评估
+
+```yaml
+independence:
+  description: "单独拿出来能否说清负责什么？"
+
+  questions:
+    - question: "这个元能独立完成什么？"
+      answer: "..."
+
+    - question: "这个元的输入和输出是什么？"
+      answer: "..."
+
+    - question: "这个元不依赖其他元能工作吗？"
+      answer: "..."
+
+  score: 1-5  # 1=无法独立，5=完全独立
+  passed: true/false
+```
+
+### 足够小评估
+
+```yaml
+granularity:
+  description: "再往下拆，收益开始变低吗？"
+
+  current_size:
+    lines_of_code: 100-500  # 如果是代码元
+    responsibilities: 3-7    # 职责数量
+
+  assessment:
+    can_split: true/false
+    split_criteria: "什么情况下应该拆？"
+    split_benefit: "拆分收益"
+    keep_together_benefit: "保持一起收益"
+
+  decision: "split/keep"  # 最终决策
+  reason: "决策理由"
+```
+
+### 边界清晰评估
+
+```yaml
+boundaries:
+  description: "负责什么/不负责什么明确吗？"
+
+  responsible_for:
+    - "职责1：具体描述"
+    - "职责2：具体描述"
+    - "职责3：具体描述"
+
+  not_responsible_for:
+    - "排除1：具体描述"
+    - "排除2：具体描述"
+
+  boundaries_clarity:
+    score: 1-5
+    risks:
+      - "边界模糊风险1"
+      - "边界模糊风险2"
+
+  passed: true/false
+```
+
+### 可替换评估
+
+```yaml
+replaceability:
+  description: "升级/替换它会塌掉整个系统吗？"
+
+  dependencies:
+    inbound:
+      - "依赖此元的元A"
+      - "依赖此元的元B"
+
+    outbound:
+      - "此元依赖的X服务"
+      - "此元依赖的Y模块"
+
+  replacement_impact:
+    low: "替换影响小，可独立升级"
+    medium: "替换需要协调多个元"
+    high: "替换会破坏系统"
+
+  version_strategy:
+    strategy: "滚动/蓝绿/并行"
+    backward_compatible: true/false
+
+  passed: true/false
+```
+
+### 可复用评估
+
+```yaml
+reusability:
+  description: "下次遇到相近任务，它能复用吗？"
+
+  reuse_history:
+    - project: "项目A"
+      date: "YYYY-MM-DD"
+      usage: "复用方式"
+
+    - project: "项目B"
+      date: "YYYY-MM-DD"
+      usage: "复用方式"
+
+  interface_standardization:
+    standardized: true/false
+    interface_type: "REST/GraphQL/事件/API"
+
+  abstraction_level:
+    level: "高/中/低"
+    details: "抽象程度说明"
+
+  passed: true/false
+```
+
+---
+
+## 综合评分
+
+```yaml
+quality_score:
+  total_possible: 25
+  actual_score: ___
+  percentage: ___%
+
+  breakdown:
+    independence: __/5
+    granularity: __/5
+    boundaries: __/5
+    replaceability: __/5
+    reusability: __/5
+
+  qualification:
+    passed: true/false
+    grade: "优秀/良好/及格/不及格"
+
+    improvements_needed:
+      - "改进1"
+      - "改进2"
+```
+
+---
+
+## 治理设计
+
+```yaml
+governance:
+  checkpoints:
+    - id: "cp-1"
+      when: "执行前/执行后/关键里程碑"
+      check: "检查什么"
+      on_fail: "skip/rollback/notify/escalate"
+      responsible: "谁复核"
+
+  escalation:
+    level_1:
+      trigger: "局部失败"
+      handler: "本元自愈"
+      timeout: "X分钟"
+
+    level_2:
+      trigger: "跨元依赖失败"
+      handler: "编排协调元"
+      timeout: "X分钟"
+
+    level_3:
+      trigger: "系统性失败"
+      handler: "元审查师"
+      timeout: "X分钟"
+
+  fallback:
+    - scenario: "场景"
+      condition: "触发条件"
+      action: "兜底动作"
+      recovery: "恢复步骤"
+```
+
+---
+
+## 生命周期
+
+```yaml
+lifecycle:
+  entry_criteria:
+    - "激活条件1"
+    - "激活条件2"
+
+  exit_criteria:
+    - "完成条件1"
+    - "完成条件2"
+
+  error_handling:
+    local_errors:
+      - type: "错误类型A"
+        handling: "处理方式"
+
+    escalated_errors:
+      - type: "错误类型B"
+        handler: "升级到"
+
+  metrics:
+    - name: "指标名称"
+      target: "目标值"
+      actual: "实际值"
+      frequency: "采集频率"
+```
+
+---
+
+## 版本历史
+
+```yaml
+versions:
+  - version: "1.0.0"
+    date: "YYYY-MM-DD"
+    author: "作者"
+    changes:
+      - "变更1"
+      - "变更2"
+
+  - version: "0.9.0"
+    date: "YYYY-MM-DD"
+    author: "作者"
+    changes:
+      - "初始版本"
+```

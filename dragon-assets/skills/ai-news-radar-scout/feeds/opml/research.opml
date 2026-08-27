@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>AI News Radar - AI研究论文信息源</title>
+        <dateCreated>2026-05-13</dateCreated>
+        <ownerName>天龙引擎</ownerName>
+        <ownerEmail>dragon@tianlong.ai</ownerEmail>
+    </head>
+    <body>
+        <!-- arXiv CS.AI -->
+        <outline text="arXiv Papers" title="arXiv AI Papers">
+            <outline type="rss" text="cs.AI" title="arXiv CS.AI (Artificial Intelligence)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.AI" htmlUrl="https://arxiv.org/list/cs.AI/recent"/>
+            <outline type="rss" text="cs.LG" title="arXiv CS.LG (Machine Learning)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.LG" htmlUrl="https://arxiv.org/list/cs.LG/recent"/>
+            <outline type="rss" text="cs.CL" title="arXiv CS.CL (Computation and Language)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.CL" htmlUrl="https://arxiv.org/list/cs.CL/recent"/>
+            <outline type="rss" text="cs.CV" title="arXiv CS.CV (Computer Vision)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.CV" htmlUrl="https://arxiv.org/list/cs.CV/recent"/>
+            <outline type="rss" text="cs.RO" title="arXiv CS.RO (Robotics)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.RO" htmlUrl="https://arxiv.org/list/cs.RO/recent"/>
+            <outline type="rss" text="cs.NE" title="arXiv CS.NE (Neural and Evolutionary Computing)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.NE" htmlUrl="https://arxiv.org/list/cs.NE/recent"/>
+            <outline type="rss" text="cs.IR" title="arXiv CS.IR (Information Retrieval)"
+                xmlUrl="https://rss.arxiv.org/rss/cs.IR" htmlUrl="https://arxiv.org/list/cs.IR/recent"/>
+        </outline>
+
+        <!-- Papers with Code -->
+        <outline text="Papers with Code" title="Papers with Code">
+            <outline type="rss" text="Latest Papers" title="Latest Papers with Code"
+                xmlUrl="https://paperswithcode.com/feed" htmlUrl="https://paperswithcode.com"/>
+        </outline>
+
+        <!-- Hugging Face Papers -->
+        <outline text="HF Papers" title="Hugging Face Papers">
+            <outline type="rss" text="Daily Papers" title="Daily Papers"
+                xmlUrl="https://huggingface.co/papers/feed" htmlUrl="https://huggingface.co/papers"/>
+        </outline>
+
+        <!-- Semantic Scholar -->
+        <outline text="Semantic Scholar" title="Semantic Scholar">
+            <outline type="rss" text="AI Papers" title="Semantic Scholar AI"
+                xmlUrl="https://api.semanticscholar.org/rss/changeblog" htmlUrl="https://www.semanticscholar.org"/>
+        </outline>
+
+        <!-- Google Scholar Alerts -->
+        <outline text="Google Scholar" title="Google Scholar">
+            <outline type="rss" text="LLM Alerts" title="LLM Alerts"
+                xmlUrl="https://scholar.google.com/scholar_alerts?q=large+language+model" htmlUrl="https://scholar.google.com/scholar_alerts"/>
+            <outline type="rss" text="AI Agent Alerts" title="AI Agent Alerts"
+                xmlUrl="https://scholar.google.com/scholar_alerts?q=AI+agent" htmlUrl="https://scholar.google.com/scholar_alerts"/>
+            <outline type="rss" text="Multimodal Alerts" title="Multimodal Alerts"
+                xmlUrl="https://scholar.google.com/scholar_alerts?q=multimodal+AI" htmlUrl="https://scholar.google.com/scholar_alerts"/>
+        </outline>
+
+        <!-- DeepAI -->
+        <outline text="DeepAI Papers" title="DeepAI">
+            <outline type="rss" text="Latest" title="DeepAI Latest"
+                xmlUrl="https://deepai.org/publications/feed" htmlUrl="https://deepai.org/publications"/>
+        </outline>
+
+        <!-- OpenReview -->
+        <outline text="OpenReview" title="OpenReview">
+            <outline type="rss" text="NeurIPS" title="NeurIPS Papers"
+                xmlUrl="https://openreview.net/feed?group=NeurIPS&amp;state=accepteds" htmlUrl="https://openreview.net/group?id=NeurIPS.cc"/>
+            <outline type="rss" text="ICML" title="ICML Papers"
+                xmlUrl="https://openreview.net/feed?group=ICML&amp;state=accepteds" htmlUrl="https://openreview.net/group?id=ICML.cc"/>
+            <outline type="rss" text="ICLR" title="ICLR Papers"
+                xmlUrl="https://openreview.net/feed?group=ICLR" htmlUrl="https://openreview.net/group?id=ICLR.cc"/>
+            <outline type="rss" text="CVPR" title="CVPR Papers"
+                xmlUrl="https://openreview.net/feed?group=CVPR" htmlUrl="https://openreview.net/group?id=CVPR.cc"/>
+            <outline type="rss" text="ICCV" title="ICCV Papers"
+                xmlUrl="https://openreview.net/feed?group=ICCV" htmlUrl="https://openreview.net/group?id=ICCV.cc"/>
+        </outline>
+    </body>
+</opml>

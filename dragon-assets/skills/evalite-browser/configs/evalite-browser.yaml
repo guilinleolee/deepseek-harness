@@ -1,0 +1,159 @@
+# evalite-browser Configuration
+# https://github.com/example/evalite-browser
+
+project:
+  name: "evalite-browser-demo"
+  version: "1.0.0"
+  description: "Browser E2E testing for LLM applications"
+
+# Browser Configuration
+browser:
+  provider: "playwright"
+  headless: true
+  viewport:
+    width: 1280
+    height: 720
+  browsers:
+    - chromium
+    # - firefox  # Uncomment to enable
+    # - webkit    # Uncomment to enable
+  context:
+    locale: "en-US"
+    timezone_id: "America/New_York"
+    permissions: []  # e.g., ["geolocation", "notifications"]
+  launch_options:
+    args:
+      - "--disable-dev-shm-usage"
+      - "--no-sandbox"
+
+# Visual Testing Configuration
+visual:
+  enabled: true
+  baseline_dir: "./baseline"
+  current_dir: "./current"
+  threshold: 0.1  # 10% diff threshold
+  diff_highlight: true
+  output_dir: "./reports/diffs"
+  formats:
+    - "png"
+    - "jpeg"
+  compression: 85  # JPEG quality 0-100
+  ignore_regions: []  # List of selectors to ignore in diff
+    # - ".timestamp"
+    # - ".dynamic-content"
+
+# Accessibility Testing Configuration
+a11y:
+  enabled: true
+  standard: "WCAG2AA"  # WCAG2A, WCAG2AA, WCAG2AAA
+  rules:
+    # Critical
+    - "color-contrast"
+    - "image-alt"
+    # Important
+    - "label"
+    - "button-name"
+    - "link-name"
+    - "aria-required-attr"
+    - "aria-valid-attr"
+    - "duplicate-id"
+    # Moderate
+    - "heading-order"
+    - "region"
+    - "tab-index"
+    - "empty-heading"
+    - "button-has-visible-text"
+    # Best Practice
+    - "document-title"
+    - "html-has-lang"
+    - "html-lang-valid"
+  impact_levels:
+    # Which violations to fail on
+    include_critical: true
+    include_serious: true
+    include_moderate: false  # Warn but don't fail
+    include_minor: false      # Info only
+  report_format: "html"  # html, json, markdown
+  output_dir: "./reports/a11y"
+
+# Interaction Testing Configuration
+interaction:
+  enabled: true
+  wait_for_selectors:
+    timeout: 5000
+    state: "visible"  # attached, detached, visible, hidden
+  retry_attempts: 3
+  retry_delay: 1000  # ms
+  screenshot_on_error: true
+  screenshot_dir: "./reports/screenshots"
+  # Default step timeouts (ms)
+  timeouts:
+    click: 5000
+    fill: 3000
+    select: 3000
+    hover: 2000
+    drag: 5000
+    scroll: 2000
+    press: 2000
+    wait_for_selector: 10000
+    wait_for_navigation: 30000
+
+# Test Configuration
+tests:
+  discovery:
+    pattern: "tests/**/*.json"
+    recursive: true
+  parallel: false  # Run tests in parallel (requires thread-safe setup)
+  max_workers: 4
+  continue_on_failure: false  # Stop at first failure
+
+# Reporting Configuration
+reporting:
+  formats:
+    - "html"
+    - "json"
+    - "markdown"
+    # - "sarif"  # For GitHub Actions integration
+  output_dir: "./reports"
+  include_screenshots: true
+  include_console_errors: true
+  include_network_errors: false
+  template: "default"  # default, detailed, minimal
+
+# CI/CD Integration
+ci:
+  # GitHub Actions
+  github:
+    artifact_retention_days: 30
+    upload_screenshots: true
+    upload_reports: true
+  # GitLab CI
+  gitlab:
+    artifacts:
+      expire_in: "30 days"
+      paths:
+        - reports/
+        - reports/screenshots/
+        - reports/diffs/
+  # Jenkins
+  jenkins:
+    archive_artifacts: true
+    fingerprint: true
+
+# Environment Variables
+env:
+  # Browser
+  PLAYWRIGHT_BROWSERS_PATH: "~/.cache/ms-playwright"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "false"
+
+  # API Keys (for cloud services)
+  # EYESOUL_API_KEY: "${EYESOUL_API_KEY}"
+  # PERPLEXITY_API_KEY: "${PERPLEXITY_API_KEY}"
+
+# Debugging
+debug:
+  enabled: false
+  verbose: false
+  trace: false  # Playwright tracing
+  video: false   # Record video on failure
+  screenshot: "only-on-failure"  # always, only-on-failure, never

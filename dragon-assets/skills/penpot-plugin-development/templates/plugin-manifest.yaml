@@ -1,0 +1,99 @@
+# Penpot Plugin Manifest
+# https://help.penpot.app/reference/plugins/
+
+name: "{{plugin_name}}"
+version: "{{version}}"
+description: "{{description}}"
+author: "{{author}}"
+homepage: "{{homepage}}"
+license: "{{license}}"
+
+{{#if icon}}
+icon: "assets/icon.svg"
+{{/if}}
+
+permissions:
+  {{#each permissions}}
+  - "{{this}}"
+  {{/each}}
+
+{{#if shortkey}}
+shortkey:
+  modifiers: {{shortkey.modifiers}}
+  key: "{{shortkey.key}}"
+{{/if}}
+
+entryPoints:
+  contentScript: "{{content_script}}"
+  {{#if background}}
+  background: "{{background}}"
+  {{/if}}
+  {{#if sidePanel}}
+  sidePanel:
+    url: "{{sidePanel.url}}"
+    title: "{{sidePanel.title}}"
+    icon: "{{sidePanel.icon}}"
+  {{/if}}
+  {{#if modal}}
+  modal:
+    url: "{{modal.url}}"
+    title: "{{modal.title}}"
+    width: {{modal.width}}
+    height: {{modal.height}}
+  {{/if}}
+
+{{#if menus}}
+menus:
+  {{#each menus}}
+  - name: "{{name}}"
+    {{#if description}}
+    description: "{{description}}"
+    {{/if}}
+    {{#if icon}}
+    icon: "{{icon}}"
+    {{/if}}
+    {{#if shortcut}}
+    shortcut: "{{shortcut}}"
+    {{/if}}
+    action: "{{action}}"
+  {{/each}}
+{{/if}}
+
+{{#if widgets}}
+widgets:
+  {{#each widgets}}
+  - id: "{{id}}"
+    name: "{{name}}"
+    {{#if description}}
+    description: "{{description}}"
+    {{/if}}
+    {{#if icon}}
+    icon: "{{icon}}"
+    {{/if}}
+    {{#if componentId}}
+    componentId: "{{componentId}}"
+    {{/if}}
+  {{/each}}
+{{/if}}
+
+{{#if settings}}
+settings:
+  {{#each settings}}
+  - id: "{{id}}"
+    type: "{{type}}"
+    name: "{{name}}"
+    {{#if description}}
+    description: "{{description}}"
+    {{/if}}
+    {{#if default}}
+    default: {{default}}
+    {{/if}}
+    {{#if options}}
+    options:
+      {{#each options}}
+      - value: "{{value}}"
+        label: "{{label}}"
+      {{/each}}
+    {{/if}}
+  {{/each}}
+{{/if}}

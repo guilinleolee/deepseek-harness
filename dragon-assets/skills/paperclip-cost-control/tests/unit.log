@@ -1,0 +1,12 @@
+test_50_50_split (test_cost_trajectory.TestEstimateMath.test_50_50_split) ... ok
+test_basic_deepseek (test_cost_trajectory.TestEstimateMath.test_basic_deepseek) ... ok
+test_zero_tokens_handling (test_cost_trajectory.TestEstimateMath.test_zero_tokens_handling) ... ok
+test_mock_returns_sensible (test_cost_trajectory.TestMockFallback.test_mock_returns_sensible) ... ok
+test_compare_with_mocked_rpc (test_cost_trajectory.TestMonthlyCompare.test_compare_with_mocked_rpc) ... ok
+test_quote_markdown_contains_session (test_cost_trajectory.TestQuote.test_quote_markdown_contains_session) ... ok
+test_real_rpc_returns_perf_data (test_cost_trajectory.TestRPCSuccess.test_real_rpc_returns_perf_data) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.033s
+
+OK

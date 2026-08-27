@@ -1,0 +1,280 @@
+# 发牌协议
+# Card Dealing Protocol
+# 决策层协议，定义何时发牌、发什么牌、如何发牌
+# 基于三大原则：降低不确定性、提升行动清晰度、不过度打断
+
+version: "1.0.0"
+protocol_name: "card-dealing-protocol"
+category: "decision_layer"
+description: "AI Agent信息发布决策协议"
+
+# ============================================================
+# 第一原则：降低不确定性
+# ============================================================
+uncertainty_reduction:
+  description: "只有当信息能显著降低用户认知不确定性时才发牌"
+
+  thresholds:
+    uncertainty_delta:
+      min_threshold: 0.3  # 不确定性降低需超过30%才发牌
+      measure_unit: "percentage"
+    confidence_boost:
+      min_threshold: 0.2  # 用户决策信心提升需超过20%才发牌
+      measure_unit: "percentage"
+
+  card_types_for_uncertainty:
+    - information_card      # 信息卡：提供背景知识
+    - confirmation_card   # 确认卡：验证用户理解
+    - recommendation_card  # 建议卡：提供多个选项
+
+  evaluation_formula: |
+    uncertainty_value = current_uncertainty - post_card_uncertainty
+    should_deal = uncertainty_value >= threshold
+    deal_priority = uncertainty_value / threshold
+
+# ============================================================
+# 第二原则：提升行动清晰度
+# ============================================================
+action_clarity:
+  description: "发牌应帮助用户明确下一步行动，而非制造更多选择"
+
+  thresholds:
+    action_clarity_score:
+      min_threshold: 0.6  # 行动清晰度需超过60%才发牌
+      measure_unit: "percentage"
+    next_step_defined:
+      required: true  # 必须有明确的下一个行动
+
+  card_types_for_clarity:
+    - action_card        # 行动卡：明确的下一步
+    - confirmation_card  # 确认卡：确认理解正确
+    - warning_card       # 警告卡：识别潜在风险
+
+  clarity_boost_formula: |
+    clarity_score = action_defined * 0.6 + options_clearly_presented * 0.4
+    should_deal = clarity_score >= 0.6 AND next_step_defined == true
+    deal_priority = clarity_score / 0.6
+
+# ============================================================
+# 第三原则：不过度打断
+# ============================================================
+interruption_control:
+  description: "发牌频率应与沉默协议协同，避免过度打断用户心流"
+
+  constraints:
+    max_cards_per_hour:
+      value: 3
+      unit: "cards/hour"
+      applies_to: "all_card_types"
+    min_interval:
+      value: 15
+      unit: "minutes"
+      applies_to: "high_priority_cards"
+    burst_limit:
+      value: 2
+      unit: "cards"
+      description: "单次爆发最多连续发牌数
+
+  cooldowns:
+    information_card:
+      min_interval: 30  # 信息卡至少间隔30分钟
+    confirmation_card:
+      min_interval: 10  # 确认卡至少间隔10分钟
+    recommendation_card:
+      min_interval: 20  # 建议卡至少间隔20分钟
+    action_card:
+      min_interval: 15  # 行动卡至少间隔15分钟
+    warning_card:
+      min_interval: 5   # 警告卡至少间隔5分钟（紧急情况例外）
+
+  silence_protocol_integration:
+    respect_silence: true
+    during_flow_state: "queue_cards"  # 心流状态下：队列等待
+    during_deep_work: "delay_until_break"  # 深度工作：延迟到休息点
+    during_meeting: "urgent_only"  # 会议中：仅紧急
+
+# ============================================================
+# 发牌卡片类型定义
+# ============================================================
+card_types:
+  information_card:
+    priority: "low"
+    interrupt_level: "minimal"
+    timing: "idle_moment"
+    content_requirements:
+      - title: "string, max 50 chars"
+      - summary: "string, max 200 chars"
+      - detail: "string, optional, max 500 chars"
+      - source: "string, optional"
+      - relevance_score: "float 0-1"
+    delivery:
+      mode: "passive"  # 静默展示，用户主动查看
+      require_acknowledgment: false
+
+  confirmation_card:
+    priority: "medium"
+    interrupt_level: "low"
+    timing: "natural_break"
+    content_requirements:
+      - question: "string, max 100 chars"
+      - context: "string, max 200 chars"
+      - options: "array of 2-4 strings"
+      - default_response: "string, optional"
+    delivery:
+      mode: "active"
+      require_acknowledgment: true
+      timeout: 300  # 5分钟自动失效
+
+  recommendation_card:
+    priority: "medium"
+    interrupt_level: "medium"
+    timing: "decision_point"
+    content_requirements:
+      - situation: "string, max 150 chars"
+      - options: "array of 3-5 objects"
+      - each_option:
+          - label: "string"
+          - pros: "string"
+          - cons: "string"
+          - risk_level: "low/medium/high"
+      - recommendation: "string, recommended option label"
+      - reasoning: "string, max 300 chars"
+    delivery:
+      mode: "active"
+      require_acknowledgment: false
+      display_duration: 600  # 显示10分钟
+
+  action_card:
+    priority: "high"
+    interrupt_level: "high"
+    timing: "immediate"
+    content_requirements:
+      - action: "string, max 100 chars"
+      - reason: "string, max 200 chars"
+      - deadline: "datetime, optional"
+      - consequence: "string, optional, max 150 chars"
+      - estimated_effort: "string, optional"
+    delivery:
+      mode: "urgent"
+      require_acknowledgment: true
+      timeout: 180  # 3分钟确认，超时升级
+
+  warning_card:
+    priority: "critical"
+    interrupt_level: "critical"
+    timing: "immediate_override"
+    content_requirements:
+      - issue: "string, max 100 chars"
+      - severity: "critical/high/medium"
+      - impact: "string, max 200 chars"
+      - recommendation: "string, max 150 chars"
+      - escalation_path: "string, optional"
+    delivery:
+      mode: "override_all"
+      require_acknowledgment: true
+      timeout: 60  # 1分钟确认
+      bypass_silence: true  # 绕过沉默协议
+
+# ============================================================
+# 发牌决策矩阵
+# ============================================================
+decision_matrix:
+  rows:
+    - condition: "user_idle AND uncertainty_high AND clarity_low"
+      card_type: "recommendation_card"
+      priority_override: "high"
+
+    - condition: "user_idle AND action_blocked"
+      card_type: "action_card"
+      priority_override: "medium"
+
+    - condition: "user_idle AND misunderstanding_detected"
+      card_type: "confirmation_card"
+      priority_override: "low"
+
+    - condition: "user_flow_state AND uncertainty_critical"
+      card_type: "information_card"
+      priority_override: "low"
+      delivery_mode: "queued"
+
+    - condition: "any_state AND risk_detected"
+      card_type: "warning_card"
+      priority_override: "critical"
+      bypass_all: true
+
+    - condition: "deep_work AND critical_information"
+      card_type: "action_card"
+      priority_override: "high"
+      delivery_mode: "delayed_until_break"
+
+# ============================================================
+# 质量门控
+# ============================================================
+quality_gates:
+  must_pass_all:
+    - id: "gate_uncertainty"
+      check: "uncertainty_delta >= 0.3 OR action_clarity >= 0.6"
+      fail_action: "do_not_deal"
+
+    - id: "gate_frequency"
+      check: "cards_last_hour < 3 AND cooldown_respected"
+      fail_action: "delay_deal"
+
+    - id: "gate_silence_protocol"
+      check: "not_in_forced_silence OR bypass_allowed"
+      fail_action: "queue_deal"
+
+    - id: "gate_user_preference"
+      check: "not_in_user_silence_list"
+      fail_action: "do_not_deal"
+
+  must_pass_any:
+    - id: "gate_value"
+      check: "uncertainty_delta > 0 OR action_clarity > 0"
+      fail_action: "do_not_deal"
+
+    - id: "gate_urgency"
+      check: "severity == critical OR deadline_approaching"
+      fail_action: "evaluate_soft_deal"
+
+# ============================================================
+# 发牌效果评估
+# ============================================================
+effectiveness:
+  metrics:
+    - name: "acknowledgment_rate"
+      target: "> 0.8"
+      measure: "acknowledged_cards / delivered_cards"
+
+    - name: "action_completion_rate"
+      target: "> 0.7"
+      measure: "completed_actions / action_cards"
+
+    - name: "decision_speed"
+      target: "< 5 minutes"
+      measure: "avg_time_to_decision"
+      applies_to: "recommendation_cards"
+
+    - name: "silence_protocol_compliance"
+      target: "> 0.95"
+      measure: "properly_delayed / total_delays"
+
+    - name: "false_positive_rate"
+      target: "< 0.2"
+      measure: "unnecessary_cards / total_cards"
+
+    - name: "user_satisfaction"
+      target: "> 0.7"
+      measure: "feedback_score"
+      source: "user_feedback"
+
+  evaluation_schedule:
+    daily:
+      - acknowledgment_rate
+      - silence_protocol_compliance
+    weekly:
+      - action_completion_rate
+      - false_positive_rate
+    monthly:
+      - decision_speed
+      - user_satisfaction

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "skill": "global-stock-data-bridge",
+  "upstream_version": "V1.0.1",
+  "modified": "2026-07-27",
+  "principle": "Yahoo Finance 优先（覆盖最广）→ Alpha Vantage（需 key 但数据规整）→ SEC EDGAR / HKEXnews 官方权威 → FRED 兜底",
+  "comment": "数据源优先级映射 · 与上游 V1.0.1 source_priority 字段对齐",
+  "sources": {
+    "yahoo_finance": {
+      "tier": 1,
+      "rationale": "覆盖最广（美股/港股/中概股/全球），历史稳定",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "alpha_vantage": {
+      "tier": 2,
+      "rationale": "数据规整，含分钟级，需 API key（免费层 5 calls/min）",
+      "auth_required": true,
+      "auth_via": "ALPHA_VANTAGE_KEY env",
+      "rate_limit_hint": "5 calls/min 免费层"
+    },
+    "sec_edgar": {
+      "tier": 3,
+      "tier_name": "SEC EDGAR",
+      "rationale": "美股官方权威（10-K/10-Q/8-K），零反爬",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "hkexnews": {
+      "tier": 3,
+      "tier_name": "HKEXnews",
+      "rationale": "港股官方权威（披露易），零反爬",
+      "auth_required": false,
+      "rate_limit_hint": "建议 ≥1s"
+    },
+    "fred": {
+      "tier": 4,
+      "tier_name": "FRED",
+      "rationale": "经济数据官方权威（BSP/CPI/利率），用于 Beta 计算",
+      "auth_required": false,
+      "rate_limit_hint": "无明确限制"
+    },
+    "reuters": {
+      "tier": 1,
+      "tier_name": "Reuters",
+      "rationale": "全球财经新闻聚合",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "bloomberg_rss": {
+      "tier": 1,
+      "tier_name": "Bloomberg RSS",
+      "rationale": "全球财经新闻 RSS",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "company_ir": {
+      "tier": 3,
+      "tier_name": "Company IR",
+      "rationale": "公司投资者关系页面（财报原文）",
+      "auth_required": false,
+      "rate_limit_hint": "≥1s"
+    },
+    "compute_layer": {
+      "tier": 0,
+      "tier_name": "本地计算层",
+      "rationale": "基于 L1 历史数据的技术指标计算（MA/MACD/RSI/KDJ/布林带）",
+      "auth_required": false,
+      "rate_limit_hint": "无（纯计算）"
+    }
+  }
+}

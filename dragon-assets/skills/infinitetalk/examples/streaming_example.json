@@ -1,0 +1,112 @@
+{
+  "description": "InfiniteTalk流式模式示例 - 长音频流式生成口播视频，支持无限时长",
+  "version": "1.0",
+  "date": "2026-05-02",
+  "example_type": "streaming_mode",
+
+  "input": {
+    "image_path": "./examples/refs/lecturer_portrait.jpg",
+    "audio_path": "./examples/audio/lecture_30min.wav"
+  },
+
+  "generation_config": {
+    "mode": "streaming",
+    "size": "infinitetalk-480",
+    "motion_frame": 9,
+    "max_frame_num": 1000,
+    "sample_steps": 40,
+    "sample_text_guide_scale": 5.0,
+    "sample_audio_guide_scale": 4.0,
+    "use_teacache": true,
+    "teacache_thresh": 0.6,
+    "num_persistent_param_in_dit": 14,
+    "dtype": "bf16"
+  },
+
+  "streaming_config": {
+    "chunk_duration": 30,
+    "overlap_frames": 8,
+    "enable_motion_smooth": true,
+    "checkpoint_interval": 150,
+    "resume_from_checkpoint": true
+  },
+
+  "reference_image_requirements": {
+    "format": "jpg/png/webp",
+    "resolution": "推荐 512x512 或更高",
+    "face_coverage": "面部占图片 30%-70% 效果最佳",
+    "lighting": "正面光或三点布光，避免强烈侧光",
+    "expression": "中性或微笑表情，避免夸张表情",
+    "background": "简洁背景效果更好，避免复杂背景",
+    "stability_note": "流式模式对参考图稳定性要求更高，建议使用正面清晰照"
+  },
+
+  "audio_requirements": {
+    "format": "WAV (16kHz, 16bit, mono 推荐)",
+    "duration": "支持5分钟以上超长音频，推荐分段30-60秒",
+    "content": "清晰人声，无背景音乐干扰效果更佳",
+    "language": "支持中文/英文/日文/韩文等多语言",
+    "preprocessing": "建议音频降噪处理，提升唇形同步质量"
+  },
+
+  "output": {
+    "directory": "./outputs/infinite_talk_streaming",
+    "filename": "streaming_i2v_{timestamp}.mp4",
+    "format": "mp4",
+    "fps": 25,
+    "checkpoint_dir": "./outputs/infinite_talk_streaming/checkpoints"
+  },
+
+  "usage": {
+    "command": "python scripts/generate_infinite.py --input_json examples/streaming_example.json --audio_file {audio_path}",
+    "alternative": "python scripts/generate_infinite.py --input_image {image_path} --audio_file {audio_path} --mode streaming --output_dir ./outputs"
+  },
+
+  "use_cases": [
+    {
+      "name": "培训课程视频",
+      "image": "讲师正面照",
+      "audio": "30-60分钟培训课程录音",
+      "prompt_template": "一位专业培训师，认真教学表情，适度手势，正面稳定视角，办公室背景，专业培训讲解风格",
+      "streaming_tips": "建议30秒分片，checkpoint保存间隔150帧"
+    },
+    {
+      "name": "演讲视频生成",
+      "image": "演讲者照片",
+      "audio": "完整演讲录音",
+      "prompt_template": "一位自信演讲者，激情洋溢表情，适当手势，正面稳定视角，演讲舞台背景，TED演讲风格",
+      "streaming_tips": "长音频建议预处理降噪，motion_frame可适当提高至11-13"
+    },
+    {
+      "name": "知识分享视频",
+      "image": "知识博主照片",
+      "audio": "知识分享录音（10-30分钟）",
+      "prompt_template": "一位知识型博主，思考表情，适度点头，正面/侧面切换视角，书房背景，知识讲解风格",
+      "streaming_tips": "chunk_duration设为30-45秒效果最佳"
+    },
+    {
+      "name": "多语言口播",
+      "image": "形象代言人",
+      "audio": "各语言版本配音",
+      "prompt_template": "根据语言选择对应模板：中文用自然口语，英文用标准播报，日文用温柔语调",
+      "streaming_tips": "每种语言独立生成，保证唇形同步质量"
+    }
+  ],
+
+  "troubleshooting": {
+    "poor_lip_sync": "降低sample_audio_guide_scale到3.0，增加sample_steps到50",
+    "face_deformation": "使用正面照，控制motion_frame在7-9之间",
+    "low_quality": "确保输入图片清晰，避免过度压缩的JPEG",
+    "artifacts": "增加negative_prompt中的质量相关词汇",
+    "streaming_glitch": "检查overlap_frames设置，8-12帧效果最佳",
+    "memory_issue": "启用checkpoint，num_persistent_param_in_dit设为0低显存模式",
+    "teacache_skip": "降低teacache_thresh到0.4或禁用teacache"
+  },
+
+  "performance_tips": {
+    "speed": "启用TeaCache可提速约30%",
+    "memory": "16GB显存使用num_persistent_param_in_dit=0",
+    "quality": "sample_steps 40-50效果最佳，低于30可能出现伪影",
+    "streaming": "chunk_duration越小内存占用越低，建议30-60秒"
+  }
+}

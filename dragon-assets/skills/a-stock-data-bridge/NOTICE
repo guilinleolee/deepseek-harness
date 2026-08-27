@@ -1,0 +1,58 @@
+a-stock-data-bridge
+Copyright 2026 天龙引擎 dragon-engine (modified work)
+
+This product includes software developed by simonlin1212
+(https://github.com/simonlin1212/a-stock-data), licensed under the Apache
+License, Version 2.0 (the "License"). You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+─────────────────────────────────────────────
+上游归属声明（upstream attribution）
+─────────────────────────────────────────────
+
+Powered by simonlin1212/a-stock-data V3.4.0 (Apache-2.0)
+Copyright 2026 simonlin1212 (https://github.com/simonlin1212/a-stock-data)
+Source: https://github.com/simonlin1212/a-stock-data
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+本项目 (a-stock-data-bridge V1.0) 修改：
+1. 包装 43 端点为 Python wrapper，统一返回 Markdown + JSON 双产物
+2. 新增 em_get() 统一节流入口（≥1s + 抖动 + 会话复用）
+3. 新增 source_priority.json（数据源优先级映射）
+4. 新增 fallback.yaml（3 官方备胎 + 错误码决策树）
+5. 新增 4 类底稿模板（个股 / 行业 / 资金 / 公告）
+6. 新增 em_check.py（5 必检 + 3 推荐质检）
+
+Modified by 天龙引擎 dragon-engine, 2026-07-21.
+
+This product includes software developed by simonlin1212
+(https://github.com/simonlin1212).
+
+─────────────────────────────────────────────
+商标声明（Trademark notice, Apache-2.0 §6）
+─────────────────────────────────────────────
+
+"a-stock-data" 是 simonlin1212 的项目名。本 skill ("a-stock-data-bridge")
+为天龙引擎基于该项目的二次包装，**非**上游官方背书 / 隶属关系。
+未经授权不得使用上游商标暗示背书。
+
+─────────────────────────────────────────────
+第三方数据源声明（Third-party API, 不受 Apache-2.0 约束）
+─────────────────────────────────────────────
+
+本 skill 调用以下第三方数据源，**这些数据源的协议不受 Apache-2.0 保护**：
+
+- mootdx / 通达信 —— 客户端协议，公开开源
+- 腾讯 / 百度 / 新浪 财经 —— 公开网页 API（仅投研底稿用）
+- 东方财富 datacenter/push2 —— 公开 API + 反爬
+- 同花顺 / iwencai —— 公开 API + 反爬
+- 巨潮 cninfo —— 官方公告源
+- 雪球评论 —— 需 cookie（走 agent-reach 账号态通路）
+
+合规边界：所有数据**仅作投研底稿用**，不得直接外发原始 HTML/PDF。

@@ -1,0 +1,89 @@
+{
+  "platforms": {
+    "googleMaps": {
+      "enabled": true,
+      "region": "cn",
+      "language": "zh-CN"
+    },
+    "xiaohongshu": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/xiaohongshu.json"
+    },
+    "douyin": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/douyin.json"
+    },
+    "bilibili": {
+      "enabled": true
+    },
+    "instagram": {
+      "enabled": true,
+      "useProxy": true
+    },
+    "youtube": {
+      "enabled": true
+    },
+    "jd": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/jd.json"
+    },
+    "taobao": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/taobao.json"
+    }
+  },
+  "monitoring": {
+    "interval": "daily",
+    "checkHour": 8,
+    "competitorLevels": {
+      "direct": {
+        "frequency": "daily",
+        "alertThreshold": "any_change"
+      },
+      "indirect": {
+        "frequency": "weekly",
+        "alertThreshold": "major_change"
+      },
+      "potential": {
+        "frequency": "monthly",
+        "alertThreshold": "significant_change"
+      }
+    }
+  },
+  "analysis": {
+    "pricingStrategy": true,
+    "adMonitoring": true,
+    "contentAnalysis": true,
+    "sentimentAnalysis": true,
+    "benchmarkComparison": true
+  },
+  "alerts": {
+    "priceChange": true,
+    "newProduct": true,
+    "viralContent": true,
+    "significantMovement": true
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "~/.claude/data/competitor.db",
+    "historyRetention": 365
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "recipients": []
+    },
+    "dingtalk": {
+      "enabled": false,
+      "webhook": ""
+    },
+    "wecom": {
+      "enabled": false,
+      "webhook": ""
+    }
+  }
+}
