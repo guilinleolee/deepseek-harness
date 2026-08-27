@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "name": "healthcare-pii",
+  "description": "医疗行业PII扩展模式库",
+  "author": "security-team",
+  "created": "2026-05-01",
+  "patterns": [
+    {
+      "id": "medical_record_id",
+      "type": "private_medical",
+      "priority": "critical",
+      "match": {
+        "regex": "\\b(MR|mr|HIS|his|病历)[_]?\\d{6,12}\\b",
+        "context_keywords": ["病历号", "就诊号", "住院号", "门诊号"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_MEDICAL_ID>",
+        "untyped": "<PII>",
+        "redacted": "MR**********"
+      },
+      "test_cases": [
+        {"input": "患者病历号MR12345678", "should_match": true},
+        {"input": "HIS202600123456", "should_match": true}
+      ]
+    },
+    {
+      "id": "health_insurance_card",
+      "type": "private_medical",
+      "priority": "critical",
+      "match": {
+        "regex": "\\b\\d{16,18}\\b",
+        "context_keywords": ["医保卡号", "社保卡号", "医保账户"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_HEALTH_INSURANCE>",
+        "untyped": "<PII>",
+        "redacted": "****-****-********"
+      }
+    },
+    {
+      "id": "prescription_id",
+      "type": "private_medical",
+      "priority": "high",
+      "match": {
+        "regex": "\\b(RX|RP|CT|MRI|BC)\\d{8,12}\\b",
+        "context_keywords": ["处方号", "检验单号", "检查报告"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_PRESCRIPTION>",
+        "untyped": "<PII>",
+        "redacted": "RX********"
+      }
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+version: '3.9'
+
+# ============================================================
+# 客服工作台 V0.1 · 本地部署骨架（Docker Compose）
+# 适用：Windows 10 专业版 · Docker Desktop (WSL2 后端）
+# 作者：天龙引擎 dragon-engine V2.5
+# 协议：MIT（编排）+ 各服务自带的开源协议
+# ============================================================
+
+services:
+  # ========== PostgreSQL（客服独立数据库）==========
+  postgres:
+    image: postgres:16-alpine
+    container_name: cs-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: customer_service
+      POSTGRES_USER: cs_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cs_secret_2026}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cs_admin -d customer_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cs-network
+
+  # ========== MinIO（音频 / 文件对象存储）==========
+  minio:
+    image: minio/minio:latest
+    container_name: cs-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secret_2026}
+    volumes:
+      - miniodata:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - cs-network
+
+  # ========== FastGPT（RAG 知识库底座）==========
+  fastgpt:
+    image: fastgpt/fastgpt:latest
+    container_name: cs-fastgpt
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: postgresql://cs_admin:${POSTGRES_PASSWORD:-cs_secret_2026}@postgres:5432/customer_service
+      DEFAULT_ROOT_PSW: ${FASTGPT_ROOT_PASSWORD:-fastgpt_secret_2026}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CHAT_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - fastgptdata:/app/data
+    networks:
+      - cs-network
+
+  # ========== faster-whisper（本地 ASR 服务）==========
+  faster-whisper:
+    image: ghcr.io/guillaumekln/faster-whisper-server:latest-cpu
+    container_name: cs-whisper
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      WHISPER_LANGUAGE: zh
+      WHISPER_COMPUTE_TYPE: int8
+    volumes:
+      - whispercache:/root/.cache/huggingface
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    networks:
+      - cs-network
+
+  # ========== 客服后端服务（Fastify）==========
+  customer-service-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cs-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      fastgpt:
+        condition: service_started
+    environment:
+      PORT: 8080
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://cs_admin:${POSTGRES_PASSWORD:-cs_secret_2026}@postgres:5432/customer_service
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-MiniMax-M3}
+      FASTGPT_BASE_URL: http://fastgpt:3000
+      FASTGPT_API_KEY: ${FASTGPT_API_KEY:-fastgpt}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secret_2026}
+      MINIO_BUCKET: ${MINIO_BUCKET:-cs-audio}
+      WHISPER_BASE_URL: http://faster-whisper:8000
+      TTS_PROVIDER: edge
+      TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-zh-CN-XiaoxiaoNeural}
+      AUTO_REPLY_THRESHOLD: ${AUTO_REPLY_THRESHOLD:-0.75}
+      TRANSFER_HUMAN_THRESHOLD: ${TRANSFER_HUMAN_THRESHOLD:-0.40}
+    networks:
+      - cs-network
+
+volumes:
+  pgdata:
+    driver: local
+  miniodata:
+    driver: local
+  fastgptdata:
+    driver: local
+  whispercache:
+    driver: local
+
+networks:
+  cs-network:
+    driver: bridge

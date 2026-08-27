@@ -1,0 +1,10 @@
+{
+  "slug": "tianlong-report",
+  "name": "天龙自动化报告生成",
+  "version": "1.0.0",
+  "description": "基于天龙引擎交付标准的企业级 Word 执行周报自动编排系统",
+  "author": "李依依（一一）",
+  "license": "MIT",
+  "tags": ["报告生成", "自动化", "Word", "企业级", "天龙引擎"],
+  "changelog": "初始发布 - 天龙引擎产品化 Day 1"
+}

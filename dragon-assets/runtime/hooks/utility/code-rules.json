@@ -1,0 +1,113 @@
+
+{
+  "$schema": "./code-rules.schema.json",
+  "version": "1.0",
+  "project": "九部天龙",
+  "description": "强制代码质量标准配置",
+
+  "rules": {
+    "comment_coverage": {
+      "enabled": true,
+      "minCoverage": 0.2,
+      "excludePatterns": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.test.js",
+        "**/*.spec.js",
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**"
+      ],
+      "message": "代码注释覆盖率不足20%"
+    },
+
+    "test_coverage": {
+      "enabled": false,
+      "minCoverage": 80,
+      "threshold": 80,
+      "message": "测试覆盖率不足80%"
+    },
+
+    "lint_strict": {
+      "enabled": false,
+      "command": "npm run lint",
+      "message": "ESLint检查失败"
+    },
+
+    "type_check": {
+      "enabled": false,
+      "command": "npm run type-check",
+      "message": "TypeScript类型检查失败"
+    },
+
+    "unit_tests": {
+      "enabled": false,
+      "command": "npm test -- --passWithNoTests",
+      "message": "单元测试失败"
+    },
+
+    "static_analysis": {
+      "enabled": true,
+      "mode": "basic",
+      "blocking": {
+        "critical": true,
+        "error": true,
+        "warning": false
+      },
+      "checks": {
+        "code_review": {
+          "enabled": true,
+          "rules": [
+            "function_length",
+            "line_length",
+            "magic_numbers",
+            "console_log",
+            "any_type"
+          ]
+        },
+        "security": {
+          "enabled": true,
+          "rules": [
+            "eval_usage",
+            "xss_risk",
+            "hardcoded_secrets",
+            "sql_injection",
+            "redos_risk"
+          ]
+        }
+      },
+      "message": "静态代码分析发现问题"
+    },
+
+    "security_check": {
+      "enabled": false,
+      "agent": "05-security-reviewer",
+      "blocking": true,
+      "message": "安全检查未通过"
+    },
+
+    "code_review": {
+      "enabled": false,
+      "agent": "06code-reviewer",
+      "blocking": true,
+      "message": "代码审查未通过"
+    }
+  },
+
+  "hooks": {
+    "pre-commit": [
+      "comment_coverage",
+      "static_analysis"
+    ],
+    "pre-push": [
+      "unit_tests",
+      "test_coverage"
+    ]
+  },
+
+  "metadata": {
+    "created": "2025-02-08",
+    "lastUpdated": "2025-02-08",
+    "maintainer": "九部天龙系统"
+  }
+}

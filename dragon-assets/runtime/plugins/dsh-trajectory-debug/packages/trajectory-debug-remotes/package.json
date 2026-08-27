@@ -1,0 +1,37 @@
+{
+  "name": "dsh-trajectory-debug-remotes",
+  "version": "0.1.0",
+  "description": "Trajectory Debug Workbench: dual-face typert Remote bridge (Host endpoints + Client mount)",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "corepack pnpm run build",
+    "publish:package": "corepack pnpm publish --no-git-checks"
+  },
+  "dependencies": {
+    "dsh-trajectory-debug": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}

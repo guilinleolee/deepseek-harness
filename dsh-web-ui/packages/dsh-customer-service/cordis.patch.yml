@@ -1,0 +1,8 @@
+# dsh-customer-service bundle patch
+# Inserts the dual-face plugin row into the web profile roster.
+# Activate:
+#   dsh plugin --profile <name> add link:~/code/deepseek-harness/dsh-web-ui/packages/dsh-customer-service
+
+- insert:
+    - id: ui-customer-service
+      name: '@linxin666/dsh-client-ui-customer-service'

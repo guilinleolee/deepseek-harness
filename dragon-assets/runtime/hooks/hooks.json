@@ -1,0 +1,655 @@
+
+{
+  "$schema": "../hooks-schema.json",
+  "hookVersion": "2.1.0",
+  "description": "🐉 天龙引擎Hook配置 V8.56 - GSD P2集成（TDD工作流融合 + 并行波次执行）",
+
+  "hooks": {
+    "postToolUse": ["./postToolUse/nine-dragons-log-watcher.js", "./postToolUse/nine-dragons-task-manager-hook.js", "./postToolUse/lessons-logger.js"],
+    "preResponse": [],
+    "userPromptSubmit": ["./userPromptSubmit/dragon-shortcut-syntax-hook.js"],
+    "preToolUse": ["./postToolUse/nine-dragons-log-watcher.js"],
+    "Stop": [],
+    "SessionEnd": ["./session-end/shared-memory-session-end.js"]
+  },
+
+  "on_demand": {
+    "openclaw-backup-restore": {
+      "command": "./skills/openclaw-backup/scripts/restore.sh",
+      "confirm": "⚠️ 确定要恢复备份吗？这将覆盖当前数据！",
+      "requireUserApproval": true,
+      "suggestDryRun": true,
+      "dryRunFlag": "--dry-run"
+    },
+    "paperclip-governance-rollback": {
+      "command": "./skills/paperclip-governance/scripts/rollback.sh",
+      "confirm": "⚠️ 确定要回滚到指定版本吗？此操作不可逆！",
+      "requireUserApproval": true
+    },
+    "paperclip-heartbeat-modify": {
+      "command": "./skills/paperclip-heartbeat/scripts/heartbeat.ts",
+      "confirm": "⏰ 确定要修改心跳调度吗？可能影响生产任务。",
+      "level": "medium"
+    },
+    "x-publisher-post": {
+      "command": "./skills/x-publisher/scripts/publish.sh",
+      "confirm": "📤 确定要发布到X/Twitter吗？内容将公开可见。",
+      "requireUserApproval": true
+    },
+    "baoyu-post-to-wechat": {
+      "command": "./skills/baoyu-post-to-wechat/scripts/post_to_wechat.py",
+      "confirm": "📤 确定要发布到微信公众号吗？",
+      "requireUserApproval": true
+    },
+    "baoyu-post-to-weibo": {
+      "command": "./skills/baoyu-post-to-weibo/scripts/post_to_weibo.py",
+      "confirm": "📤 确定要发布到微博吗？内容将公开可见。",
+      "requireUserApproval": true
+    },
+    "scrapy-anti-ban-spider": {
+      "command": "./skills/scrapy-anti-ban/scripts/spider.py",
+      "confirm": "🕷️ 确定要启动爬虫吗？请确保符合目标网站服务条款。",
+      "level": "medium"
+    }
+  },
+
+  "settings": {
+    "dragonCommander": {
+      "enabled": true,
+      "commanderName": "李依依",
+      "nickname": "一一",
+      "autoAnalysis": true,
+      "autoDecomposition": true,
+      "parallelTasks": 3,
+      "maxRetries": 3,
+      "promptRef": "../prompts/liyiyi-commander-system-prompt.md"
+    },
+    "completionEnforcer": {
+      "enabled": true,
+      "maxRetries": 3,
+      "checkConversationalMode": true,
+      "conversationalWindow": 5,
+      "tokenLimitThreshold": 0.8,
+      "warnOnUserPrompt": true
+    },
+    "logWatcher": {
+      "enabled": true,
+      "errorLogDir": ".claude/logs/errors",
+      "dangerousCommandWarning": true,
+      "earlyErrorDetection": true,
+      "longRunningCommandWatch": true,
+      "errorCategories": [
+        "api",
+        "dependency",
+        "permission",
+        "syntax",
+        "test",
+        "build",
+        "git"
+      ]
+    },
+    "taskManager": {
+      "enabled": true,
+      "maxParallelTasks": 3,
+      "maxRetries": 3,
+      "autoInferPriority": true,
+      "autoInferDependencies": true,
+      "persistencePath": ".claude/task-queue.json"
+    },
+    "claudeception": {
+      "enabled": true,
+      "autoEvaluate": true,
+      "qualityGates": {
+        "requiresDiscovery": true,
+        "mustBeReusable": true,
+        "mustBeVerified": true,
+        "specificTriggers": true
+      },
+      "extractionCriteria": [
+        "non_obvious_solutions",
+        "project_specific_patterns",
+        "tool_integration_knowledge",
+        "error_resolution",
+        "workflow_optimizations"
+      ],
+      "skillOutputPath": "~/.claude/skills/learned/"
+    },
+    "planHealthChecker": {
+      "enabled": true,
+      "autoReplan": true,
+      "checkInterval": 60000,
+      "replanCooldown": 300000,
+      "thresholds": {
+        "completionRate": { "healthy": 0.5, "warning": 0.3 },
+        "errorRate": { "healthy": 0.2, "warning": 0.4 },
+        "timeDeviation": { "healthy": 1.5, "warning": 2.0 }
+      }
+    },
+    "lessonsLogger": {
+      "enabled": true,
+      "minRetryCount": 3,
+      "checkUserCorrections": true,
+      "checkRepetitiveErrors": true,
+      "maxLessonsPerSession": 5,
+      "lessonsPath": ".claude/lessons.md"
+    },
+    "staffReviewTrigger": {
+      "enabled": true,
+      "thresholds": {
+        "maxFiles": 5,
+        "maxLines": 200,
+        "maxComplexity": 15
+      },
+      "autoTrigger": {
+        "high": false,
+        "medium": false,
+        "low": false
+      }
+    },
+    "openclawZeroPolling": {
+      "enabled": true,
+      "stateDir": "~/.openclaw/workspace/state",
+      "dedupWindow": 5000,
+      "lockTimeout": 30000,
+      "maxFileTreeLines": 30,
+      "wakeEventEnabled": false,
+      "logLevel": "info"
+    },
+    "limeiSecretary": {
+      "enabled": true,
+      "version": "8.0",
+      "thinkingEngines": {
+        "kahnemann_s1": "卡尼曼系统1（快思考）",
+        "kahnemann_s2": "卡尼曼系统2（慢思考）",
+        "munger": "芒格多元思维",
+        "musk": "马斯克第一性原理",
+        "buffett": "巴菲特能力圈",
+        "drucker": "德鲁克目标管理"
+      },
+      "autoMemoryUpdate": true,
+      "autoLessonRecording": true,
+      "styleMatchingThreshold": 95
+    },
+    "sessionManager": {
+      "enabled": true,
+      "version": "7.5",
+      "autoArchiveHours": 1,
+      "maxActiveSessions": 10,
+      "statePath": "~/.claude/.session-state.json"
+    },
+    "tokenTracker": {
+      "enabled": true,
+      "version": "7.5",
+      "pricing": {
+        "claude-opus-4-6": { "input": 15, "output": 75 },
+        "claude-sonnet-4-6": { "input": 3, "output": 15 },
+        "claude-sonnet-4": { "input": 3, "output": 15 },
+        "claude-haiku-4-5": { "input": 0.80, "output": 4 },
+        "claude-haiku": { "input": 0.80, "output": 4 }
+      },
+      "maxRecords": 1000,
+      "tokenPath": "~/.claude/.token-usage.json"
+    },
+    "tokenEstimator": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "CJK感知的Token估算器 - Phase 1.1",
+      "ratios": {
+        "cjk": 1.0,
+        "ascii": 4.0,
+        "mixed": 3.0
+      },
+      "truncateSuffix": "...[已截断]",
+      "budgetThresholds": {
+        "warning": 0.7,
+        "critical": 0.85
+      }
+    },
+    "obsidianTruncator": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "Obsidian记忆截断器 - Phase 1.2",
+      "maxTokens": 8000,
+      "budgetsByType": {
+        "lesson": 4000,
+        "decision": 2000,
+        "concept": 2000
+      },
+      "timeDecay": {
+        "enabled": true,
+        "decayDays": 30,
+        "decayFactor": 0.5
+      }
+    },
+    "skillRouter": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "Skill快速路由 - Phase 1.3",
+      "cacheEnabled": true,
+      "cacheTTL": 3600000,
+      "maxResults": 5,
+      "minMatchScore": 0.3
+    },
+    "lazySkillLoader": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "按需Skill加载 - Phase 1.4",
+      "maxCacheSize": 10,
+      "maxCacheBytes": 524288,
+      "budgetThreshold": 0.3
+    },
+    "contextBudgetGovernor": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "上下文预算治理 - Phase 2.1",
+      "warningThreshold": 0.6,
+      "criticalThreshold": 0.85,
+      "contextReserveFloor": 20000,
+      "smallModelReserveRatio": 0.125,
+      "largeContextThreshold": 64000
+    },
+    "toolCompressor": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "工具输出压缩 - Phase 2.2",
+      "truncateChars": 16000,
+      "summarizeChars": 50000
+    },
+    "sessionCompactor": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "会话压缩 - Phase 2.3",
+      "preserveRatio": 0.3,
+      "minPreserve": 3,
+      "maxPreserve": 50
+    },
+    "promptCache": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "Prompt缓存延续 - Phase 2.4",
+      "cacheTTL": 3600000
+    },
+    "modelRouter": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "模型路由 - Phase 3.1",
+      "tiers": {
+        "c0": "qwen3.7-flash",
+        "c1": "deepseek-v4-flash",
+        "c2": "glm-5.2",
+        "c3": "claude-opus-4-6"
+      },
+      "complexityThresholds": {
+        "low": 0.2,
+        "medium": 0.5,
+        "high": 0.8
+      }
+    },
+    "tokenAudit": {
+      "enabled": true,
+      "version": "1.0.0",
+      "description": "Token优化审计 - Phase 3.2",
+      "maxEntries": 10000,
+      "retentionDays": 30
+    },
+    "interactionMode": {
+      "enabled": true,
+      "version": "7.5",
+      "modes": ["code", "plan", "ask"],
+      "defaultMode": "code",
+      "statePath": "~/.claude/.interaction-mode.json"
+    },
+    "modelSwitcher": {
+      "enabled": true,
+      "version": "7.5",
+      "models": ["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5", "qwen3.5-plus"],
+      "configPath": "~/.claude/.model-config.json"
+    },
+    "metaReview": {
+      "enabled": true,
+      "version": "8.14",
+      "maxDepth": 3,
+      "triggerWeights": {
+        "reviewer_blind_spot": { "weight": 0.9, "priority": "HIGH" },
+        "high_risk_decision": { "weight": 0.85, "priority": "HIGH" },
+        "user_dissatisfaction": { "weight": 0.6, "priority": "MEDIUM" },
+        "governance_incomplete": { "weight": 0.7, "priority": "MEDIUM" },
+        "triple_failure": { "weight": 0.95, "priority": "HIGH" }
+      },
+      "highRiskThreshold": {
+        "cost": 1000,
+        "duration": 14,
+        "files": 10
+      },
+      "metaLessonsPath": "~/.claude/memory/meta-lessons.yaml"
+    },
+    "obsidianMemory": {
+      "enabled": true,
+      "version": "1.0.0",
+      "vaultPath": "C:/Users/li/Documents/Obsidian Vault",
+      "writerScript": "./utility/obsidian-writer.js",
+      "mirrorPath": "C:/Users/li/.claude/projects/dragon-engine/memory/obsidian-mirror",
+      "schemaVersion": "1.0",
+      "autoFrontmatter": true,
+      "defaultArea": "Dragon-Engine",
+      "preserveManualEdits": true,
+      "dualWrite": true,
+      "maxRetries": 3,
+      "retryDelayMs": 200,
+      "rotationPolicy": "monthly-archive",
+      "templates": {
+        "concept": "90-Templates/Concept.md",
+        "decision": "90-Templates/Decision.md",
+        "lesson": "90-Templates/Lesson.md",
+        "person": "90-Templates/Person.md",
+        "project": "90-Templates/Project.md"
+      },
+      "templatesIndex": "99-MOCs/MOC-Memory-System.md"
+    },
+    "bridge": {
+      "enabled": true,
+      "version": "1.0.0",
+      "timeout": 300000,
+      "watchdogInterval": 30000,
+      "maxHeartbeatAge": 90000,
+      "heartbeatInterval": 10,
+      "maxRetries": 3,
+      "forceKill": false,
+      "unattended_mode": false,
+      "unattended_behavior": "default",
+      "stateDir": "~/.claude/state/bridge"
+    }
+  },
+
+  "commands": {
+    "warroom {问题}": "🏛️ V8.37 作战室6参谋辩论决策",
+    "business-decision {问题}": "💼 V8.37 商业决策SOP（Hormozi四要素）",
+    "check-bias {文本}": "🧠 V8.37 25偏误检查",
+    "commander-status": "🐉 查看指挥官状态和报告",
+    "commander-report": "🐉 生成详细任务报告",
+    "queue-status": "查看任务队列状态",
+    "queue": "查看任务队列状态（别名）",
+    "queue-reset": "重置任务队列",
+    "queue-cancel <id>": "取消指定任务",
+    "queue-pause": "暂停任务队列",
+    "queue-resume": "恢复任务队列",
+    "plan-health": "查看Plan Mode健康度报告",
+    "plan-health-reset": "重置健康度检查器",
+    "status": "🐉 V7.5 系统状态总览",
+    "health": "🏥 V7.5 系统健康检查",
+    "report": "📊 V7.5 完整报告",
+    "mode": "🎯 V7.5 查看当前交互模式",
+    "mode <code|plan|ask>": "🎯 V7.5 切换交互模式",
+    "model": "🤖 V7.5 查看当前模型",
+    "model <name>": "🤖 V7.5 切换模型",
+    "model list": "🤖 V7.5 列出所有可用模型",
+    "model agent <id>": "🤖 V7.5 查看Agent推荐模型",
+    "cost": "💰 V7.5 查看模型成本对比",
+    "cost <input> <output>": "💰 V7.5 计算指定token成本",
+    "session-status": "📋 V7.5 查看当前会话状态",
+    "session-list": "📋 V7.5 列出所有会话",
+    "session-new": "📋 V7.5 创建新会话",
+    "session-switch <id>": "📋 V7.5 切换到指定会话",
+    "session-archive": "📋 V7.5 归档当前会话",
+    "token-stats": "📊 V7.5 查看 Token 使用统计",
+    "token-cost": "💰 V7.5 查看成本报告",
+    "token-daily": "📅 V7.5 查看每日统计",
+    "mcp": "📡 V7.5 列出MCP服务器",
+    "mcp-templates": "📡 V7.5 列出MCP模板",
+    "mcp-enable <name>": "📡 V7.5 启用MCP服务器",
+    "mcp-disable <name>": "📡 V7.5 禁用MCP服务器",
+    "mcp-remove <name>": "📡 V7.5 删除MCP服务器",
+    "tasks": "📝 V7.5 显示任务队列",
+    "tasks-visual": "📊 V7.5 任务队列可视化",
+    "tasks-add <title>": "📝 V7.5 添加任务",
+    "tasks-clear": "🧹 V7.5 清理已完成任务",
+    "monitor": "📊 V7.5 实时监控",
+    "openclaw-status": "📡 查看OpenClaw零轮询状态",
+    "openclaw-result": "📡 查看最近的任务结果",
+    "openclaw-reset": "📡 重置OpenClaw状态",
+    "lessons": "查看已记录的经验教训",
+    "lessons-stats": "查看经验教训统计信息",
+    "agents": "查看所有可用代理列表",
+    "agent-info <id>": "查看指定代理的详细信息",
+    "staff-review": "🔍 触发Staff Engineer战略审查",
+    "staff-review-config": "生成Staff审查配置文件",
+    "limei-status": "🤖 查看李秘V8.0状态和核心文件",
+    "limei-sync": "🤖 同步李秘任务到OpenClaw",
+    "limei-test-engine": "🤖 测试李秘思维引擎推断 <task>",
+    "limei-test-style": "🤖 测试李总沟通风格匹配 <response>",
+    "critical-evidence [fact-id]": "🧠 V7.4 验证知识证据质量",
+    "critical-check <agent-id>": "🧠 V7.4 Agent批判性思维检查",
+    "devils-advocate [decision-id]": "🎭 V7.4 魔鬼代言人（协作层）",
+    "recommend <task>": "🎯 V7.5 智能Agent推荐",
+    "recommend-team <task>": "🎯 V7.5 推荐Agent团队",
+    "template-list": "📑 V7.5 列出任务模板",
+    "template-show <id>": "📑 V7.5 查看模板详情",
+    "template-use <id>": "📑 V7.5 从模板创建计划",
+    "dashboard": "📊 V7.5 打开Web Dashboard",
+    "bridge-status": "🌉 V8.2 查看Bridge状态",
+    "bridge-run <task>": "🌉 V8.2 通过Bridge执行任务",
+    "bridge-abort <task-id>": "🌉 V8.2 中止任务",
+    "bridge-logs": "🌉 V8.2 查看Bridge日志",
+    "bridge-config": "🌉 V8.2 查看Bridge配置",
+    "bridge-set-response <key> <value>": "🌉 V8.2 设置预设响应",
+    "skill-stats": "📊 V8.39 查看Skill使用统计",
+    "skill-popular": "🏆 V8.39 查看最常用Skills",
+    "skill-unused": "🗑️ V8.39 查看未使用Skills",
+    "skill-cleanup": "🧹 V8.39 清理未使用Skills",
+    "skill-marketplace": "📦 V8.39 Skills市场管理",
+    "skill-feedback <skill>": "📝 V8.39 提交Skill反馈",
+    "danger-check <command>": "🛡️ V8.39 检查命令是否危险",
+    "gsd-sync-all": "🔄 V8.55 GSD全量同步（STATE.md ↔ lessons.md）",
+    "gsd-sync-state": "📊 V8.55 GSD状态同步",
+    "gsd-sync-roadmap": "📋 V8.55 GSD路线图同步",
+    "gsd-status": "📈 V8.55 查看GSD项目状态",
+    "gsd-verify-work": "✅ V8.55 GSD目标回溯验证",
+    "gsd-tdd start <feature>": "🔴 V8.56 GSD TDD开始新周期",
+    "gsd-tdd red <test-case>": "🔴 V8.56 GSD TDD RED阶段（创建失败测试）",
+    "gsd-tdd red-commit": "🔴 V8.56 GSD TDD RED阶段提交",
+    "gsd-tdd green": "🟢 V8.56 GSD TDD GREEN阶段（实现代码）",
+    "gsd-tdd green-commit": "🟢 V8.56 GSD TDD GREEN阶段提交",
+    "gsd-tdd refactor": "🟣 V8.56 GSD TDD REFACTOR阶段（清理优化）",
+    "gsd-tdd refactor-commit": "🟣 V8.56 GSD TDD REFACTOR阶段提交",
+    "gsd-tdd verify": "✅ V8.56 GSD TDD验证当前状态",
+    "gsd-tdd status": "📊 V8.56 GSD TDD查看周期状态",
+    "gsd-tdd complete": "🎉 V8.56 GSD TDD完成周期",
+    "gsd-tdd abort": "❌ V8.56 GSD TDD中止周期",
+    "gsd-workstreams list": "📋 V8.56 GSD工作流列表",
+    "gsd-workstreams create <name>": "➕ V8.56 GSD创建新工作流",
+    "gsd-workstreams switch <name|id>": "🔄 V8.56 GSD切换工作流",
+    "gsd-workstreams complete <name|id>": "✅ V8.56 GSD完成工作流",
+    "gsd-workstreams status": "📊 V8.56 GSD工作流状态",
+    "gsd-workstreams wave add --parallel <tasks>": "⚡ V8.56 GSD添加并行波次",
+    "gsd-workstreams wave add --serial <tasks>": "🔗 V8.56 GSD添加串行波次",
+    "remember {topic} {details}": "🧠 V8.72 保存到共享记忆（Obsidian）",
+    "记得 {topic} {details}": "🧠 V8.72 保存到共享记忆（中文别名）",
+    "shared-memory": "🧠 V8.72 查看共享记忆状态",
+    "shared-memory list": "📋 V8.72 列出所有记忆条目",
+    "调查研究 <主题>": "🔍 V8.86 求是调查研究五步流程",
+    "qiushi-survey <主题>": "🔍 V8.86 求是调研简化版",
+    "maodun <问题>": "⚖️ V8.86 矛盾分析法（主要矛盾识别）",
+    "矛盾分析 <现象>": "⚖️ V8.86 矛盾分析法应用",
+    "调研检查 <报告>": "✅ V8.86 七注意事项质量检查",
+    "统筹兼顾 <需求>": "⚖️ V8.86 统筹兼顾架构设计",
+    "arch-design --approach balanced": "⚖️ V8.86 平衡当前与长远架构",
+    "持久战略 <阶段>": "⏳ V8.86 持久战略架构规划",
+    "arch-evolution --phase <阶段>": "⏳ V8.86 阶段适配架构",
+    "集中兵力 <模块>": "🎯 V8.86 资源聚焦优先实现",
+    "arch-priority --p0 <模块>": "🎯 V8.86 P0优先级模块",
+    "实事求是 <问题>": "📋 V8.86 实事求是的决策",
+    "qiushi-arch <方案>": "📋 V8.86 求是方法论架构评估",
+    "星火燎原 <假设>": "🔥 V8.86 星火燎原MVP验证",
+    "mvp-check": "🔥 V8.86 MVP快速验证检查",
+    "批评 <对象> <事实> <建议>": "🎭 V8.86 批评流程（对事不对人）",
+    "自我批评 <问题>": "🎭 V8.86 自我批评流程"
+  },
+
+  "metadata": {
+    "version": "7.4.0",
+    "engineName": "天龙引擎",
+    "commander": "李依依（一一）",
+    "createdAt": "2026-02-23",
+    "updatedAt": "2026-02-28",
+    "author": "天龙引擎 - 指挥官李依依",
+    "description": "🐉 天龙引擎指挥官系统 V7.4 - 集成CompletionEnforcer、LogWatcher、TaskManager、DragonCommanderV2、Claudeception、ThoughtDiversityChecker、PlanHealthChecker、LessonsLogger、StaffReviewTrigger、MemoryLayerV9、CriticalThinkingMemoryLayer和ShortcutSyntax，提供完整的任务生命周期管理、智能代理调度、持续学习、思维多样性、战略审查能力、智能记忆层、批判性思维和简化调用语法。指挥官系统提示词：prompts/liyiyi-commander-system-prompt.md",
+    "features": {
+      "指挥官V2": {
+        "DragonCommanderV2": "智能需求解析（多维度评分）、任务分解（依赖管理）、代理调度（推荐引擎）、进度监控（性能追踪）"
+      },
+      "Phase2增强": {
+        "能力标签系统": "每个代理4个能力，每个能力有标签和权重",
+        "依赖关系管理": "自动化代理依赖关系检查",
+        "多维度评分": "触发词(40%) + 能力标签(30%) + 历史性能(20%) + 成本(10%)",
+        "代理推荐引擎": "基于能力、模型、成本、成功率的智能推荐",
+        "性能追踪": "实时追踪每个代理的成功率、响应时间、任务数"
+      },
+      "P0": {
+        "CompletionEnforcer": "任务完成强制器",
+        "LogWatcher": "早期错误检测",
+        "OpenClawZeroPolling": "OpenClaw零轮询集成（事件驱动、状态同步、去重机制）"
+      },
+      "P1": {
+        "TaskManager": "任务队列管理（优先级、依赖、重试）",
+        "PlanHealthChecker": "Plan Mode健康度检查（完成率、错误率、时间偏差、自动重规划）"
+      },
+      "P1.5": {
+        "Claudeception": "持续学习系统（混合模式：实时提醒 + 会话总结）",
+        "LessonsLogger": "经验教训自动记录器（用户纠正、重复错误、三次失败、质量门槛）"
+      },
+      "P2": {
+        "StaffReviewTrigger": "Staff Engineer战略审查触发器（技术债务评估、长期可维护性分析、第三问制检查）"
+      },
+      "V7.0": {
+        "ThoughtDiversityChecker": "思维多样性检查器（九大思维模型、思维盲区覆盖+85%、决策质量+35%）"
+      },
+      "V7.2": {
+        "MemoryLayerV9": "智能记忆层（BM25检索、时间衰减、自动知识提取、持续学习、意图预测基础）"
+      },
+      "V7.3": {
+        "ShortcutSyntax": "简化调用语法（[00]数字编号、[@分析师]中文名称、[task:research]任务分类）"
+      },
+      "V7.4": {
+        "CriticalThinkingMemoryLayer": "批判性思维记忆层（可证伪化知识图谱、证据质量评分、生命周期管理、三层架构）",
+        "CriticalThinkingAgentLayer": "批判性思维Agent层（6大批判性思维维度、自动检查器）",
+        "CriticalThinkingCollaborationLayer": "批判性思维协作层（09-01魔鬼代言人、双线协作协议）"
+      },
+      "李秘V8.0": {
+        "李秘核心系统": "身份+行为准则+五大思维引擎集成（芒格、卡尼曼、马斯克、巴菲特、德鲁克）",
+        "李总深度档案": "德鲁克式用户理解（认知风格、决策偏好、沟通语言库）",
+        "工作引擎系统": "四步锤法+五笔拆字+思维引擎智能路由+安全等级",
+        "心跳检测系统": "五维健康度检查（身份一致性、思维引擎状态、风格匹配度、能力圈边界、安全等级）",
+        "OpenClaw集成": "任务自动分类、思维引擎智能路由、记忆自动更新、Lessons Learned记录"
+      },
+      "V7.5": {
+        "SessionManager": "会话管理（SQLite持久化、会话命名、归档/恢复、快速切换）",
+        "TokenTracker": "Token追踪（实时统计、成本计算、按模型/Agent/日期聚合、可视化报告）",
+        "InteractionMode": "三模式切换（Code/Plan/Ask - 快速执行/规划/问答）",
+        "ModelSwitcher": "模型管理（运行时切换、Agent推荐、成本对比）",
+        "McpManager": "MCP配置管理（可视化配置、模板库、状态监控）",
+        "TaskVisualizer": "任务队列可视化（ASCII图表、优先级分组、实时监控）",
+        "Dashboard": "统一仪表板（系统状态总览、健康检查、实时监控）",
+        "RecommendEngine": "智能推荐引擎（任务特征分析、Agent能力画像、自动匹配）",
+        "TemplateSystem": "任务模板系统（8个预置模板、自定义模板、快速启动）"
+      },
+      "V8.10.1": {
+        "ClaudeCodeCliMonitor": "Claude Code CLI进程监控器（心跳检测、交互阻塞检测、会话恢复、自动重试）",
+        "FullstackDevSkill": "全栈开发Skill（PM-Engineer分离模式、PTY模式调用、5阶段开发流程）"
+      },
+      "V8.2": {
+        "Bridge": "任务可靠执行系统（三层保险：EXIT trap自动善后 + BaseException万能兜底 + Watchdog看门狗）",
+        "Watchdog": "看门狗进程（心跳检测、死锁检测、父进程存活检测、超时恢复）",
+        "AskUserQuestionInterceptor": "AskUserQuestion拦截器（预设响应、无人值守模式、延迟处理）"
+      },
+      "V8.37": {
+        "WarroomDecision": "作战室6参谋辩论决策（战略师/实战官/财务官/风控官/创新官/用户官）",
+        "BusinessDecisionSOP": "商业决策SOP（Hormozi四要素、假设压力测试、事前验尸）",
+        "MentalModelsChecker": "25偏误检查+跨学科思维模型",
+        "FourLayerAnalysis": "四层分析模型（表象→机理→原理→公理）",
+        "DecisionRouting": "决策复杂度路由（金额×时间×可逆性三维判断）"
+      },
+      "V8.55": {
+        "GSDDeviationHandler": "GSD偏差处理规则（Rule 1-3自动修复 + Rule 4架构变更询问）",
+        "GSDGoalBackwardVerification": "GSD目标回溯验证（Must-Haves三要素 + 差距分析）",
+        "GSDScientificDebugging": "GSD科学方法调试（假设驱动 + 检查点协议 + 调试铁律）",
+        "GSDDragonBridge": "GSD-天龙文件系统融合（STATE.md ↔ lessons.md + ROADMAP.md ↔ plans/）"
+      },
+      "V8.56": {
+        "GSDTDDWorkflow": "GSD TDD工作流融合（Red-Green-Refactor三阶段原子化提交）",
+        "GSDWorkstreams": "GSD并行波次执行（独立任务并行、依赖任务串行、检查点协议）",
+        "GSDWaveExecution": "波次执行架构（Wave Parallel/Serial + Checkpoint + 04验证师协同）"
+      },
+      "V9.0": {
+        "ObsidianMemoryWriter": "统一记忆写入器（4 API：write/append/link/query + 自动 frontmatter + EBUSY 重试 + 父目录自动 mkdir）",
+        "PARAStructure": "Vault PARA + Daily Notes + MOC 索引（00-Inbox/10-Areas/20-Resources/30-Projects/90-Templates/99-MOCs）",
+        "DualWriteStrategy": "Obsidian Vault 主存 + 本地镜像（preserveManualEdits 保留用户手工编辑）",
+        "SharedMemoryBridge": "shared-memory-commands 双写桥接（既有 /remember + /记得 命令无缝升级）",
+        "LessonsLoggerBridge": "lessons-logger 双写桥接（既有 .claude/lessons.md + 自动同步到 Vault Lessons 目录）"
+      }
+    },
+    "continuousLearning": {
+      "mode": "hybrid",
+      "realTime": {
+        "hook": "claudeception-activator.sh",
+        "trigger": "userPromptSubmit",
+        "purpose": "任务完成时实时评估是否提取技能"
+      },
+      "batch": {
+        "hook": "continuous-learning/evaluate-session.sh",
+        "trigger": "Stop",
+        "purpose": "会话结束时批量总结可复用模式"
+      },
+      "academicBasis": [
+        "Voyager (Wang et al., 2023)",
+        "CASCADE (2024)",
+        "SEAgent (2025)",
+        "Reflexion (Shinn et al., 2023)"
+      ]
+    },
+    "expectedImpact": {
+      "taskCompletionRate": "+40%",
+      "errorDetectionLatency": "-96%",
+      "contextEfficiency": "+60%",
+      "userSatisfaction": "+70%",
+      "agentSelectionAccuracy": "+35%",
+      "costOptimization": "+15%",
+      "knowledgeRetention": "+300%",
+      "repeatProblemResolutionTime": "-92%",
+      "technicalDebtPrevention": "+65%",
+      "longTermMaintainability": "+50%",
+      "decisionRecordCompleteness": "+85%",
+      "thoughtBlindnessCoverage": "+85%",
+      "decisionQuality": "+200%",
+      "sessionSwitchTime": "-98%",
+      "tokenVisibility": "+100%",
+      "costAwareness": "+80%",
+      "businessAnalysisEfficiency": "+300%",
+      "biasDetection": "5维度→25偏误"
+    },
+    "version": "9.0.0",
+    "updatedAt": "2026-08-07",
+    "skillsUpgrade": {
+      "dangerOperationProtection": {
+        "on_demand_hooks": "危险操作保护机制（7个高风险Skill）",
+        "audit_log": "审计日志记录",
+        "confirmation_levels": "4级确认机制（critical/high/medium/low）"
+      },
+      "usageTracking": {
+        "skill_usage_tracker": "Skill使用度量系统",
+        "daily_stats": "每日统计",
+        "popular_skills": "最常用Skills排行",
+        "unused_detection": "未使用Skills检测"
+      },
+      "marketManagement": {
+        "skill_marketplace": "Skills市场管理工具",
+        "skill_cleanup": "自动清理脚本（30天未使用）",
+        "skill_feedback": "反馈收集系统"
+      },
+      "securityDocs": {
+        "security_templates": "SECURITY.md模板",
+        "gotchas_templates": "gotchas.md模板",
+        "high_risk_skills": "5个高风险Skill已补充安全文档"
+      }
+    }
+  }
+}

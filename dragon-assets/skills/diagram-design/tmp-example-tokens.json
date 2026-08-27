@@ -1,0 +1,12 @@
+{
+  "source_url": "https://example.com",
+  "variant": "minimal-light",
+  "paper": "#ffffff",
+  "ink": "#1a1a2e",
+  "muted": "#6b7280",
+  "paper_2": "#f8fafc",
+  "accent": "#eee",
+  "title_font": "'Instrument Serif', Georgia, serif",
+  "node_font": "'Inter', system-ui, sans-serif",
+  "sublabel_font": "'JetBrains Mono', 'Fira Code', monospace"
+}

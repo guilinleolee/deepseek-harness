@@ -1,0 +1,22 @@
+# dsh-tui-bridge · cordis patch 模板（借鉴自 dsh-TUI V0.9.2 通用 schema）
+#
+# Stage 47 借鉴档：标注 `borrowed: true` 与上游版本号以示区别
+
+patch:
+  - insert:
+      - id: dsh-tui-bridge
+        name: dsh-tui-bridge
+        config:
+          upstream: "@deepseek-harness-tui/dsh-tui"
+          upstream_version: "0.9.2"
+          bridge_version: "V1.0"
+          bridge: "dsh_tui_bridge.py"
+          borrowed: true            # 关键标注：借鉴档非原创
+          integration_stage: 47
+          upstream_repo: "https://github.com/ccch1mneyyy/dsh-TUI"
+          license: "MIT"
+          protocol_borrowed:
+            - "TUI 状态机（Ink + React）"
+            - "DSH TUI Channel Protocol（6 类消息）"
+            - "Plugin Lifecycle（cordis patch）"
+            - "Settings Auto-save（commit #575 设计）"

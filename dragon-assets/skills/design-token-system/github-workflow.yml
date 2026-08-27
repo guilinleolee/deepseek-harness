@@ -1,0 +1,111 @@
+# Design Tokens Sync GitHub Actions Workflow
+# 将此文件复制到 .github/workflows/design-tokens.yml
+
+name: Design Tokens Sync
+
+on:
+  # 定时执行：每4小时
+  schedule:
+    - cron: '0 */4 * * *'
+
+  # 手动触发
+  workflow_dispatch:
+
+  # Figma Webhook触发（可选）
+  repository_dispatch:
+    types: [figma-update]
+
+jobs:
+  sync-design-tokens:
+    name: Sync Design Tokens from Figma
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. 设置Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. 同步Design Token
+      - name: Sync Design Tokens
+        id: sync
+        run: |
+          npx design-token-system sync
+          echo "status=$?" >> $GITHUB_OUTPUT
+        env:
+          FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 5. 上传生成的文件（如果有变更）
+      - name: Upload token files
+        if: steps.sync.outputs.status == '0'
+        uses: actions/upload-artifact@v3
+        with:
+          name: design-tokens
+          path: |
+            src/styles/tokens.css
+            src/styles/tokens.scss
+            tailwind.config.js
+            src/types/tokens.ts
+          retention-days: 30
+
+      # 6. 运行测试
+      - name: Run tests
+        if: steps.sync.outputs.status == '0'
+        run: |
+          npm run test:coverage
+          npm run lint
+          npm run type-check
+
+      # 7. 生成变更报告
+      - name: Generate change report
+        if: steps.sync.outputs.status == '0'
+        run: |
+          echo "## Design Tokens Update" > changes.md
+          echo "" >> changes.md
+          echo "### Changes" >> changes.md
+          echo "- Synced at: $(date)" >> changes.md
+          echo "- Figma version: $(git log -1 --pretty=%B | grep -oP 'Figma-Version: \K[^ ]+')" >> changes.md
+        continue-on-error: true
+
+      # 8. 创建PR（如果有变更）
+      - name: Create Pull Request
+        if: steps.sync.outputs.status == '0'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'chore: update design tokens'
+          body-path: changes.md
+          branch: design-tokens/update-${{ github.run_number }}
+          base: main
+          labels: |
+            design-tokens
+            automated
+          delete-branch: true
+          draft: false
+
+      # 9. 通知团队（可选）
+      - name: Notify team
+        if: steps.sync.outputs.status == '0'
+        run: |
+          echo "Design tokens sync completed successfully"
+          # 可以添加Slack/Discord通知
+        continue-on-error: true
+
+      # 10. 失败处理
+      - name: Handle failure
+        if: failure()
+        run: |
+          echo "Design tokens sync failed"
+          # 可以添加错误通知

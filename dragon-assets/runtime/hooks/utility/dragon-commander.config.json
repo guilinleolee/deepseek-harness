@@ -1,0 +1,131 @@
+
+{
+  "version": "1.0.0",
+  "commander": {
+    "name": "李依依",
+    "nickname": "一一",
+    "title": "天龙引擎指挥官",
+    "motto": "高效、精准、使命必达",
+    "promptRef": "../../prompts/liyiyi-commander-system-prompt.md"
+  },
+  "engine": {
+    "name": "天龙引擎",
+    "version": "6.2",
+    "homepage": "https://github.com/anthropics/claude-code"
+  },
+  "settings": {
+    "autoAnalysis": true,
+    "autoDecomposition": true,
+    "parallelTasks": 3,
+    "maxRetries": 3,
+    "timeout": 120000,
+    "logLevel": "info"
+  },
+  "departments": {
+    "核心九部": {
+      "id": "00",
+      "agents": ["00-analyst", "01-investigator", "02-architect", "03-builder", "04-validator", "05-security-reviewer", "06code-reviewer", "07-scribe", "08-publisher"]
+    },
+    "技术中心": {
+      "id": "10",
+      "subdepartments": {
+        "研发部": "10-12",
+        "设计部": "13-15",
+        "运维部": "16-18",
+        "数据工程部": "19"
+      }
+    },
+    "企划中心": {
+      "id": "20",
+      "subdepartments": {
+        "企划管理": "20-21",
+        "战略企划": "22-24",
+        "营销企划": "25-27",
+        "企划支持": "28-29"
+      }
+    },
+    "营销中心": {
+      "id": "30",
+      "subdepartments": {
+        "营销管理": "30-31",
+        "市场洞察": "32-34",
+        "数字营销": "35-37",
+        "渠道销售": "38-39"
+      }
+    },
+    "运营中心": {
+      "id": "40",
+      "subdepartments": {
+        "用户运营": "40-42",
+        "电商运营": "45-46",
+        "活动与公关": "47-49"
+      }
+    },
+    "产品中心": {
+      "id": "50",
+      "subdepartments": {
+        "产品企划": "50-52"
+      }
+    },
+    "法务中心": {
+      "id": "70",
+      "subdepartments": {
+        "合规与风控": "73-75",
+        "知识产权": "76-77",
+        "争议解决": "78-79"
+      }
+    },
+    "财务中心": {
+      "id": "80",
+      "subdepartments": {
+        "财务管理": "80-82",
+        "会计核算": "83-85",
+        "资金与投融": "86-87",
+        "财务系统与分析": "88-89"
+      }
+    },
+    "人事中心": {
+      "id": "90",
+      "subdepartments": {
+        "人事管理": "90-92",
+        "招聘与配置": "93-95",
+        "培训与发展": "96-97",
+        "薪酬与关系": "98-99"
+      }
+    }
+  },
+  "taskComplexity": {
+    "simple": {
+      "keywords": ["简单", "快速", "帮我", "改个"],
+      "estimatedTime": "1-2分钟",
+      "maxSteps": 2
+    },
+    "medium": {
+      "keywords": ["实现", "开发", "设计", "分析"],
+      "estimatedTime": "5-10分钟",
+      "maxSteps": 5
+    },
+    "complex": {
+      "keywords": ["系统", "架构", "重构", "完整", "整个项目"],
+      "estimatedTime": "15-30分钟",
+      "maxSteps": 10
+    }
+  },
+  "priorityLevels": {
+    "high": {
+      "keywords": ["紧急", "关键", "bug", "安全", "线上问题"],
+      "color": "🔴",
+      "weight": 3
+    },
+    "normal": {
+      "keywords": [],
+      "color": "🟡",
+      "weight": 2
+    },
+    "low": {
+      "keywords": ["优化", "文档", "清理", "可选"],
+      "color": "🟢",
+      "weight": 1
+    }
+  }
+}

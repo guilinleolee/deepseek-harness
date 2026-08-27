@@ -1,0 +1,84 @@
+{
+  "version": "1.0",
+  "name": "social-pii",
+  "description": "社交媒体PII扩展模式库",
+  "author": "security-team",
+  "created": "2026-05-01",
+  "patterns": [
+    {
+      "id": "device_id",
+      "type": "private_device",
+      "priority": "medium",
+      "match": {
+        "regex": "\\b(?:IMEI|IMSI)[_:]?\\d{15,16}\\b",
+        "context_keywords": ["设备号", "IMEI", "IMSI"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_DEVICE_ID>",
+        "untyped": "<PII>",
+        "redacted": "IMEI**************"
+      },
+      "test_cases": [
+        {"input": "设备IMEI:861234567890123", "should_match": true},
+        {"input": "IMSI:460001234567890", "should_match": true}
+      ]
+    },
+    {
+      "id": "mac_address",
+      "type": "private_device",
+      "priority": "low",
+      "match": {
+        "regex": "\\b[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}\\b",
+        "context_keywords": ["MAC", "mac_address"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_MAC>",
+        "untyped": "<PII>",
+        "redacted": "XX:XX:XX:XX:XX:XX"
+      }
+    },
+    {
+      "id": "ip_address",
+      "type": "private_infrastructure",
+      "priority": "medium",
+      "match": {
+        "regex": "\\b(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\b",
+        "context_keywords": ["IP", "地址", "ip_address"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_IP>",
+        "untyped": "<PII>",
+        "redacted": "xxx.xxx.xxx.xxx"
+      }
+    },
+    {
+      "id": "api_key_generic",
+      "type": "secret",
+      "priority": "critical",
+      "match": {
+        "regex": "(?i)(?:api[_-]?key|apikey|api[_-]?secret|api[_-]?token|secret[_-]?key|access[_-]?token)\\s*[:=]\\s*['\"]?([a-zA-Z0-9_\\-]{20,64})['\"]?",
+        "context_keywords": [],
+        "group": 1
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_API_KEY>",
+        "untyped": "<SECRET>",
+        "redacted": "sk-*******"
+      }
+    },
+    {
+      "id": "jwt_token",
+      "type": "secret",
+      "priority": "critical",
+      "match": {
+        "regex": "eyJ[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+",
+        "context_keywords": ["jwt", "bearer", "token"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_JWT>",
+        "untyped": "<SECRET>",
+        "redacted": "eyJxxx.xxx.xxx"
+      }
+    }
+  ]
+}

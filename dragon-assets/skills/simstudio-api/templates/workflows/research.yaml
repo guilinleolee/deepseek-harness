@@ -1,0 +1,78 @@
+name: ai-research-workflow
+description: AI驱动的深度调研工作流（天龙引擎版）
+
+nodes:
+  - id: planner
+    type: agent
+    config:
+      model: claude-sonnet-4-5
+      role: research-planner
+      prompt: |
+        你是一个研究规划专家。将以下研究主题分解为3-5个子问题：
+
+        主题: {{input.topic}}
+
+        要求:
+        1. 每个子问题应该独立且互补
+        2. 覆盖不同角度（技术、市场、应用，案例等）
+        3. 按优先级排序
+
+  - id: web_searcher
+    type: tool
+    config:
+      tool: web-search
+      params:
+        engine: google
+        num_results: 10
+
+  - id: github_searcher
+    type: tool
+    config:
+      tool: github-search
+      params:
+        type: repositories
+
+  - id: docs_searcher
+    type: tool
+    config:
+      tool: docs-search
+      params:
+        sources: [github, npm, pypi]
+
+  - id: synthesizer
+    type: agent
+    config:
+      model: claude-sonnet-4-5
+      role: research-synthesizer
+      prompt: |
+        你是一个研究综合专家。根据收集到的信息，撰写一份完整的研究报告。
+
+        研究主题: {{input.topic}}
+
+        报告结构:
+        1. 执行摘要
+        2. 技术分析
+        3. 市场现状
+        4. 应用案例
+        5. 未来趋势
+        6. 参考资料
+
+edges:
+  - id: plan_to_search
+    from: planner
+    to: [web_searcher, github_searcher, docs_searcher]
+    type: parallel
+
+  - id: search_to_synth
+    from: [web_searcher, github_searcher, docs_searcher]
+    to: synthesizer
+    type: merge
+
+variables:
+  input:
+    - topic: string (required)
+    - depth: enum [shallow, medium, deep] = medium
+  output:
+    - report: markdown
+    - sources: array
+    - confidence: float

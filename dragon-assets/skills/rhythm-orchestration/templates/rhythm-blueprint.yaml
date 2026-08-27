@@ -1,0 +1,154 @@
+# 节奏蓝图模板
+
+```yaml
+rhythm_blueprint:
+  version: "1.0"
+  created: "YYYY-MM-DD"
+
+  # ===== 元数据 =====
+  metadata:
+    blueprint_id: "RB-YYYYMMDD-XXX"
+    name: "节奏蓝图名称"
+    description: "简要描述"
+    designer: "设计者"
+    applicable_scenarios:
+      - "场景1"
+      - "场景2"
+
+  # ===== 任务分析 =====
+  task_analysis:
+    complexity_score: 0.0  # 0.0-1.0
+    complexity_level: "simple/medium/complex/super_complex"
+    characteristics:
+      compute_intensive: true/false
+      communication_intensive: true/false
+      waiting_sensitive: true/false
+      deadline_critical: true/false
+
+  # ===== Agent分配 =====
+  agent_allocation:
+    total_agents: 0
+    agents:
+      - id: "agent_id"
+        name: "Agent名称"
+        type: "01调研师/02架构师/..."
+        allocation_ratio: 0.0  # 0.0-1.0
+        max_parallel: 0
+        priority: "high/medium/low"
+
+  # ===== 依赖结构 =====
+  dependency_structure:
+    graph_type: "dag/linear/parallel/mixed"
+    nodes:
+      - id: "node_1"
+        name: "节点名称"
+        type: "task/milestone/gate"
+        duration_estimate: "5m"
+        depends_on: []
+        optional: false
+
+      - id: "node_2"
+        name: "节点名称"
+        type: "task"
+        duration_estimate: "10m"
+        depends_on: ["node_1"]
+        optional: false
+
+    critical_path:
+      - "node_1"
+      - "node_3"
+      - "node_5"
+    critical_path_duration: "30m"
+
+  # ===== 节奏配置 =====
+  rhythm_config:
+    intensity: "lightweight/standard/heavy/custom"
+
+    timing:
+      trigger_interval: "5s"      # 新任务触发检查间隔
+      poll_interval: "30s"        # 状态轮询间隔
+      timeout_threshold: "5m"      # 超时阈值
+      heartbeat_interval: "30s"    # 心跳间隔
+
+    concurrency:
+      max_parallel_tasks: 5
+      queue_size: 10
+      backpressure_threshold: 8
+
+    retry:
+      max_retries: 3
+      backoff_strategy: "exponential"
+      initial_interval: "1s"
+      max_interval: "60s"
+
+  # ===== 协调模式 =====
+  coordination:
+    mode: "centralized/distributed/hybrid"
+
+    centralized:
+      coordinator: "agent_id"
+      decision_latency: "100ms"
+
+    distributed:
+      consensus_protocol: "raft/paxos/gossip"
+      consensus_timeout: "5s"
+
+    hybrid:
+      local_coordinator: "agent_group_id"
+      global_coordinator: "top_level_id"
+
+  # ===== 监控指标 =====
+  monitoring:
+    metrics:
+      - name: "throughput"
+        unit: "tasks/min"
+        alert_threshold: 0
+        critical_threshold: 0
+
+      - name: "avg_latency"
+        unit: "seconds"
+        alert_threshold: 30
+        critical_threshold: 60
+
+      - name: "resource_utilization"
+        unit: "percent"
+        alert_threshold: 80
+        critical_threshold: 95
+
+      - name: "queue_depth"
+        unit: "count"
+        alert_threshold: 10
+        critical_threshold: 20
+
+    dashboards:
+      - name: "实时监控"
+        refresh_interval: "5s"
+        charts:
+          - "吞吐量趋势"
+          - "延迟分布"
+          - "队列深度"
+
+  # ===== 异常处理 =====
+  exception_handling:
+    timeout_strategy: "retry/escalate/skip"
+    failure_threshold: 3
+    escalation_target: "agent_id/metadata_orchestrator"
+
+    recovery_strategies:
+      - condition: "agent_failure"
+        action: "reassign/queue/pause"
+
+      - condition: "resource_exhaustion"
+        action: "scale_down/backpressure/retry_later"
+
+      - condition: "deadlock"
+        action: "detect/timeout/intervene"
+
+  # ===== 预期效果 =====
+  expected_outcomes:
+    throughput_target: "50 tasks/min"
+    latency_p50: "< 5s"
+    latency_p99: "< 30s"
+    success_rate: "> 99%"
+    resource_efficiency: "> 80%"
+```

@@ -1,0 +1,68 @@
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bridge Configuration",
+  "description": "天龙引擎Bridge系统配置文件 V1.0",
+
+  "enabled": true,
+  "version": "1.0.0",
+
+  "timeout": 300000,
+  "watchdogInterval": 30000,
+  "maxHeartbeatAge": 90000,
+  "heartbeatInterval": 10,
+
+  "maxRetries": 3,
+  "commandTimeout": 60,
+
+  "forceKill": false,
+
+  "unattended_mode": false,
+  "unattended_behavior": "default",
+
+  "preset_responses": {
+    "continue?": "yes",
+    "continue": "yes",
+    "proceed?": "yes",
+    "proceed": "yes",
+    "confirm delete": "no",
+    "delete?": "no",
+    "overwrite?": "no",
+    "overwrite": "no",
+    "regex:.*是否继续.*": "是",
+    "regex:.*是否确认.*": "否",
+    "regex:.*proceed\\?.*": "yes",
+    "regex:.*continue\\?.*": "yes",
+    "target_language": "Chinese",
+    "output_format": "markdown"
+  },
+
+  "timeout_behavior": "default",
+
+  "log_interceptions": true,
+  "logLevel": "info",
+
+  "notificationCallbacks": {
+    "openclaw": true,
+    "dragon": true,
+    "github": false,
+    "webhook": null
+  },
+
+  "stateDir": "~/.claude/state/bridge",
+  "historyRetentionDays": 30,
+
+  "errorHandling": {
+    "retryOnTimeout": true,
+    "retryOnNetworkError": true,
+    "retryOnAPIError": false,
+    "retryDelay": 5000
+  },
+
+  "metadata": {
+    "createdAt": "2026-03-08",
+    "updatedAt": "2026-03-08",
+    "author": "天龙引擎",
+    "description": "Bridge系统配置 - 三层保险机制确保任务可靠执行"
+  }
+}
