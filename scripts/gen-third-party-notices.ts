@@ -165,6 +165,12 @@ function loadWorkspaceManifests(): { manifests: Map<string, Manifest>; names: Se
   for (const pattern of patterns) {
     for (const path of globSync(pattern, { cwd: root })) {
       const normalized = path.replaceAll('\\', '/')
+      // The dragon-assets mirror carries upstream project manifests (every
+      // synced skill ships a package.json) that are not part of this repo's
+      // first-party closure. Skip them so the generator does not have to
+      // walk 20k+ mirrored files on every commit and so the resulting
+      // disclosure table stays scoped to what this repository ships.
+      if (normalized.startsWith('dragon-assets/')) continue
       const manifest = readManifest(normalized)
       manifests.set(normalized, manifest)
       if (manifest.name !== undefined) names.add(manifest.name)
