@@ -1,0 +1,60 @@
+{
+  "schema": "dragon-index/1.0",
+  "generated_at": "2026-08-24T03:34:48Z",
+  "root": "C:\\Users\\li\\.claude\\projects\\dragon-engine",
+  "counts": {
+    "skill": 784,
+    "agent": 187,
+    "hook": 90,
+    "command": 156,
+    "plugin": 7
+  },
+  "total": 1224,
+  "files": {
+    "skill": "SKILLS.jsonl",
+    "agent": "AGENTS.jsonl",
+    "hook": "HOOKS.jsonl",
+    "command": "COMMANDS.jsonl",
+    "plugin": "PLUGINS.jsonl"
+  },
+  "layers": {
+    "hot": "CLAUDE.md §3 触发词路由表",
+    "warm": [
+      "SKILLS.jsonl",
+      "AGENTS.jsonl",
+      "HOOKS.jsonl",
+      "COMMANDS.jsonl",
+      "PLUGINS.jsonl"
+    ],
+    "cold": "skills/<id>/SKILL.md · agents/<id>.md · hooks/<id>.{sh,js,py} · commands/<id>.md · plugins/<id>/README.md"
+  },
+  "schema_definition": {
+    "required": [
+      "schema",
+      "id",
+      "kind",
+      "status",
+      "path"
+    ],
+    "optional": [
+      "version",
+      "license",
+      "license_raw",
+      "license_source",
+      "upstream.{name,version,url,stars}",
+      "size_kb",
+      "mtime",
+      "last_used",
+      "hash",
+      "triggers",
+      "phrases",
+      "tags",
+      "pitfalls",
+      "department",
+      "category",
+      "modified",
+      "modified_by",
+      "doc_one_liner"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+# 天龙引擎 dragon-engine 版本号
+# 格式：V<major>.<minor>
+# 每次升级 +1（minor），破坏性变更 +1（major）
+V2.0
