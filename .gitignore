@@ -39,3 +39,27 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# 天龙引擎资产镜像（21,225 文件 · 289 MB · 数据层不进入 DSH release）
+# 详见 dragon-assets/README.md
+dragon-assets/skills/**/__pycache__/
+dragon-assets/**/.git/
+dragon-assets/**/node_modules/
+dragon-assets/**/.pytest_cache/
+dragon-assets/**/.cache/
+dragon-assets/**/.streamlit/
+dragon-assets/**/.vscode/
+dragon-assets/**/*.pyc
+dragon-assets/**/*.wasm
+dragon-assets/**/*.map
+dragon-assets/**/*.node
+dragon-assets/**/*.gif
+dragon-assets/**/*.png
+dragon-assets/**/*.jpg
+dragon-assets/**/*.jpeg
+dragon-assets/**/*.webp
+dragon-assets/**/*.pdf
+dragon-assets/**/*.mp4
+dragon-assets/**/*.wav
+dragon-assets/**/*.mp3
+dragon-assets/skill-updater/reports/

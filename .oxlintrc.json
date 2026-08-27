@@ -24,6 +24,8 @@
     "website/.generated/**",
     "vendor/**", // Vendored source keeps upstream style and idioms.
     "native/**", // The imported landlock-run subtree has its own gates; see native/README.md.
+    "dragon-assets/**", // Dragon Engine asset mirror — kept for lookup, not part of the harness program set.
+    "dragon-engine/**", // Unrelated third-party repo dropped alongside the dragon-assets mirror.
     "**/*.js",
     "**/*.mjs",
     "**/*.config.ts", // Tool and app configs are outside the repository TypeScript programs.
