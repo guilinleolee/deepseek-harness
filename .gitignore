@@ -63,3 +63,7 @@ dragon-assets/**/*.mp4
 dragon-assets/**/*.wav
 dragon-assets/**/*.mp3
 dragon-assets/skill-updater/reports/
+# 镜像内嵌的 GitHub Actions workflow / actions —— GitHub OAuth token 没有 `workflow`
+# scope 不能 push 修改 workflow 文件，所以从镜像排除
+dragon-assets/**/.github/workflows/
+dragon-assets/**/.github/actions/
