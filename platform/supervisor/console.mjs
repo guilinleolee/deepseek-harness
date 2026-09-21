@@ -286,7 +286,7 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         return
       }
       case '/console/api/member/models': {
-        const models = Array.isArray(body.models) ? body.models.filter((m) => typeof m === 'string') : []
+        const models = body.models === '*' ? '*' : Array.isArray(body.models) ? body.models.filter((m) => typeof m === 'string') : []
         setVkeyModels(dataDir, { account, models })
         json(res, 200, { ok: true, models })
         return
