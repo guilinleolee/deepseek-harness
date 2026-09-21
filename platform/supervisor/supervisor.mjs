@@ -25,7 +25,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { platform } from 'node:os'
 import { randomBytes } from 'node:crypto'
-import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens } from './gateway.mjs'
+import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens, setPassword } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
@@ -679,6 +679,22 @@ async function main() {
     console.log(`已吊销 ${value} 的 ${n} 把虚拟钥匙`)
     return
   }
+  if (cmd === 'set-password') {
+    // set-password --account <email> [--password <pw>]：重哈希并 epoch+1 踢掉全部旧会话。
+    const opts = {}
+    for (let i = 3; i < process.argv.length; i += 2) {
+      if (process.argv[i] === '--account') opts.account = process.argv[i + 1]
+      else if (process.argv[i] === '--password') opts.password = process.argv[i + 1]
+    }
+    if (!opts.account) throw new Error('用法: set-password --account <email> [--password <pw>]（不给密码则自动生成）')
+    if (opts.password === undefined) {
+      opts.password = randomBytes(9).toString('base64url')
+      console.log(`自动生成密码: ${opts.password}  （请立即转交本人）`)
+    }
+    const epoch = setPassword(DATA, opts.account, opts.password)
+    console.log(`已重置 ${opts.account} 的密码（tokenEpoch → ${epoch}，全部旧会话已下线）`)
+    return
+  }
   if (cmd === 'set-quota') {
     // set-quota --account <email> --tokens <N> | --unlimited
     const opts = {}
@@ -900,6 +916,7 @@ async function main() {
   list-vkeys        列出虚拟钥匙（只有哈希，token 不可见）
   revoke-vkey --account <email>   吊销该账号全部虚拟钥匙
   set-quota --account <email> --tokens <N> | --unlimited   月度 Token 额度（硬停）
+  set-password --account <email> [--password <pw>]   重置密码并踢掉全部旧会话
   list-usage [--month YYYY-MM]    当月用量对照额度`)
 }
 
