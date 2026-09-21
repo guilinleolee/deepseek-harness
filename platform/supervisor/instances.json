@@ -1,0 +1,52 @@
+{
+  "portalPort": 8460,
+  "gatewayHost": "localhost",
+  "gatewayBindHost": "127.0.0.1",
+  "relayPort": 9400,
+  "repoRoot": "../..",
+  "driftStaleHours": 24,
+  "launch": {
+    "command": "pnpm",
+    "args": [
+      "dsh",
+      "web",
+      "--no-open",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}",
+      "--trusted-host",
+      "{gatewayAuthority}"
+    ]
+  },
+  "instances": [
+    {
+      "id": "e01",
+      "account": "admin@dreamspace.work",
+      "uid": 30000,
+      "port": 3181,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      }
+    },
+    {
+      "id": "e02",
+      "account": "member-a@dreamspace.work",
+      "uid": 30001,
+      "port": 3182,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      }
+    },
+    {
+      "id": "e03",
+      "account": "member-b@dreamspace.work",
+      "uid": 30002,
+      "port": 3183,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      }
+    }
+  ],
+  "precheckTimeoutSeconds": 600
+}
