@@ -1,0 +1,31 @@
+# Agent Note: 落云宗漂移对齐以 home 内省为生效事实，插件治理以真启动预检为投放闸门
+
+Status: implemented
+
+[中文](2026-09-21-luoyunzong-drift-plugin-governance.zh.md) | English
+
+## Problem
+
+Task-book stages 5–6 close the loop on configuration truth and third-party code. Stage 5 (drift alignment): the GrantedSet (what the admin granted — model allowlist, desired plugins) must be compared against the EffectiveSet (what the instance actually serves), with diffs aging to red past a deadline. Stage 6 (plugin governance): npm/Git/bundle plugins install per instance (global or targeted), stage-then-activate-on-restart, mandatory isolated real-boot precheck for global pushes, automatic rollback, and disable that removes the employee-visible entry. Constraints carried from earlier stages: zero harness modifications, zero third-party dependencies, instances are stock DSH processes that cannot self-report via custom endpoints, and the only upstreams have no balance — so anything requiring a real model turn needs a keyless verification strategy.
+
+## Decision
+
+**Stage 5 — the instance home is the EffectiveSet.** Stock DSH cannot host a custom self-report endpoint, but its home directory is exactly the composition source of truth: models come from the provider routes declared in `settings.yaml`, plugins from the web profile's `package.json` dependencies (the `dsh plugin` forwarder reconciles `dsh.profile.bundles` against installed state there). `drift` compares this against the GrantedSet — the account's virtual-key model allowlist (`*` expands over the upstream catalog) plus the desired-plugin store from stage 6 — and persists diffs in `data/drift.json`, preserving each diff's FIRST detection time across checks; diffs older than `driftStaleHours` (default 24) print as 【红-超时未消除】, fresh ones as 【黄-新发现】, and repairs drop them. Bare-name desired specs compare existence only (pnpm persists the resolved version string, so string equality would false-positive).
+
+**Stage 6 — precheck is a real boot in an isolated clone.** `plugin-precheck` creates a throwaway DSH home, runs the same `dsh plugin --profile web add` install, boots a real instance on a free loopback port with the standard launch template, and health-polls; install failure, boot crash, or exceeding `precheckTimeoutSeconds` (task-book default 120s; this dev manifest sets 600s because tsx source-mode cold boots run 2–4 minutes) all fail. `plugin-push` runs the precheck first and refuses to touch any real instance on FAIL; on pass it installs into each target instance's live profile — safe staging, because composition happens only at boot — and records desired state. `plugin-activate` restarts (生效); `plugin-remove` uninstalls plus restarts, which is both rollback primitive and disable (the employee-visible entry disappears with the restarted composition); `plugin-rollback` reinstalls the previous known-good spec from the desired store's history. Per-instance env injection (`instances[].env`, `{dataDir}` placeholder) lands task-book item 6a: all three instances receive `CREATOR_WORKBENCH_SKILLS_PATH` pointing at `data/assets/creator-skills`, a server-side admin-maintained read-only skill library replacing the plugin's Windows-local default.
+
+**Verification without balance.** The broken-plugin case needs no network: a fixture package whose bundle patch is malformed YAML crashes composition, precheck FAILs, and push is intercepted with the real instance untouched (e02's profile byte-identical). The happy path used a real npm package (`@weibaohui/dsh-file-share`, the same one in the product screenshots): precheck PASS (isolated boot healthy), push staged (dependency + reconciled bundles entry, running instance unaffected), activate → drift aligned, remove → profile zero-residue and drift aligned. Stage 5's detector proved itself on first run by catching real drift (leftover minimax provider routes granting unauthorized models), and the manufactured-drift script (rogue model + stale plugin dependency) reproduced yellow→red (detection time backdated 48h)→repaired cycles, including red persisting across an instance restart.
+
+## Alternatives considered
+
+**A self-report RPC inside the instance.** Rejected: requires harness changes or a plugin on every instance before governance exists — the drift checker must work on day zero; home introspection is the same fact source composition reads, just observed from the server.
+
+**Marking diffs by re-detection time.** Rejected: aging needs the first-seen timestamp, so `mergeDiffs` keeps `detectedAt` for surviving diffs and drops resolved ones; red means "granted, seen drifting, unfixed for N hours."
+
+**Precheck as static analysis (lint the patch, dry-run the loader).** Rejected: the task book's term is 真启动预检 — a real boot catches composition crashes, peer-resolution failures, and boot-time throws that static checks cannot see. A `--full-turn` variant (one real model turn) awaits a funded upstream and is recorded as the production hardening item.
+
+**Killing the precheck boot on timeout before deciding.** Fixed after load testing: `killTree` fires an exit event that re-classified a timeout as an early crash; the outcome is now captured before the kill.
+
+## Consequences
+
+Stages 5–6 acceptance all hold: real drift caught unprompted, manufactured drift cycles yellow→red→repaired, broken plugin intercepted with zero instance impact, and the full stage→activate→disable lifecycle verified against a real registry package including drift convergence at every step. Costs: drift is disk-truth, so a plugin that installs cleanly but throws at first model call is invisible until a session exercises it (the precheck's full-turn variant is the intended catch); precheck boots cost a full cold compile (minutes under tsx — production built-output boots shrink this); `plugin-remove` with `--no-restart` leaves the plugin active until the next restart, which the command output states. The restart-based activate/disable semantics rely on DSH's boot-time composition and are the reason staging is safe on a live profile. Also fixed en route: a scoped-package spec (`@scope/name`) was misjudged as a filesystem path by the leading-`@` heuristic now in `isLocalPathSpec`, and `main()`'s completion callback clobbered `process.exitCode` set by failing commands.
