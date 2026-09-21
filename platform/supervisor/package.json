@@ -1,0 +1,14 @@
+{
+  "name": "@luoyunzong/supervisor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "落云宗企业平台 · 实例编排 supervisor MVP（阶段 1）：一人一实例的拉起/健康检查/崩溃重启/回收与实例页数据。",
+  "engines": { "node": ">=22.19" },
+  "bin": { "lyz-supervisor": "./supervisor.mjs" },
+  "scripts": {
+    "up": "node supervisor.mjs up",
+    "status": "node supervisor.mjs status",
+    "stop": "node supervisor.mjs stop"
+  }
+}
