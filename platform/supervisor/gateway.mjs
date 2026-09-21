@@ -19,6 +19,8 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { handleConsole } from './console.mjs'
+
 const COOKIE_NAME = 'lyz_session'
 const TOKEN_TTL_SECONDS = 30 * 60
 const ROLE_RANK = { employee: 1, auditor: 2, admin: 3 }
@@ -163,6 +165,7 @@ function authFromRequest(secret, accountsStore, req) {
   if (!record) return { error: 'unauthenticated' }
   // epoch 不匹配 = 令牌已被撤销；绑定实时校验，改绑立即生效。
   if (payload.epoch !== record.tokenEpoch) return { error: 'revoked' }
+  if (record.disabled) return { error: 'disabled' }
   return { record, payload }
 }
 
@@ -196,76 +199,6 @@ async function login(ev){ev.preventDefault();
    body:JSON.stringify({account:acc.value,password:pw.value})});
  if(r.ok){location.reload()}else{document.querySelector('.err').textContent='账号或密码错误'}}
 </script>`
-
-/**
- * 管理台总览页：服务端渲染四个数据面的元数据——实例状态、当月用量、
- * 漂移摘要、Relay 元数据日志尾。全部只读聚合，不触碰任何正文。
- */
-function renderConsole({ manifest, getState, dataDir }) {
-  const readJson = (file, fallback) => {
-    try {
-      return JSON.parse(readFileSync(join(dataDir, file), 'utf8'))
-    } catch {
-      return fallback
-    }
-  }
-  const now = new Date()
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const state = getState()
-  const usageMonth = readJson('usage.json', { months: {} }).months[month] ?? {}
-  const accounts = readJson('accounts.json', { accounts: [] }).accounts
-  const drift = readJson('drift.json', { checks: {} }).checks
-  const fmtBytes = (n) => (n === null || n === undefined) ? '—' : `${(n / 1024 / 1024).toFixed(1)} MB`
-
-  const instanceRows = manifest.instances.map((spec) => {
-    const rec = state.instances[spec.id] ?? {}
-    const mem = rec.memoryKB ? `${(rec.memoryKB / 1024).toFixed(1)} MB` : '—'
-    const disk = rec.diskBytes !== null && rec.diskBytes !== undefined ? fmtBytes(rec.diskBytes) : '—'
-    return `<tr><td>${spec.id}</td><td>${spec.account}</td><td>${rec.state ?? '—'}</td><td>${rec.pid ?? '—'}</td><td>${spec.port}</td><td>${spec.uid}</td><td>${mem}</td><td>${disk}</td><td>重启 ${rec.restarts ?? 0} 次</td></tr>`
-  }).join('')
-
-  const usageRows = accounts.map((a) => {
-    const e = usageMonth[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0 }
-    const used = e.tokensIn + e.tokensOut
-    const quota = a.monthlyTokens
-    const quotaText = Number.isFinite(quota) ? `${used}/${quota}` : `${used}/不限`
-    const over = Number.isFinite(quota) && used >= quota
-    return `<tr><td>${a.account}</td><td>${e.tokensIn}</td><td>${e.tokensOut}</td><td>${e.requests}</td><td>${over ? '🔴 ' : ''}${quotaText}</td></tr>`
-  }).join('')
-
-  const driftRows = manifest.instances.map((spec) => {
-    const c = drift[spec.id]
-    if (c === undefined) return `<tr><td>${spec.id}</td><td>未检查</td></tr>`
-    const stale = c.diffs.filter((d) => d.stale).length
-    const fresh = c.diffs.length - stale
-    const badge = c.diffs.length === 0 ? '✅ 对齐' : `🔴 ${stale} 超时 / 🟡 ${fresh} 新发现`
-    return `<tr><td>${spec.id}</td><td>${badge}</td><td>${c.diffs.map((d) => `${d.kind}: ${d.detail}`).join('<br>') || '—'}</td><td>${c.checkedAt}</td></tr>`
-  }).join('')
-
-  let relayRows = ''
-  try {
-    const log = readFileSync(join(dataDir, 'logs', 'relay.log'), 'utf8').trim().split('\n').slice(-10)
-    relayRows = log.map((line) => {
-      try {
-        const e = JSON.parse(line)
-        return `<tr><td>${e.at}</td><td>${e.account}</td><td>${e.model}</td><td>${e.upstream}</td><td>${e.status}</td><td>${e.ms} ms</td><td>${e.tokensIn ?? '—'} / ${e.tokensOut ?? '—'}</td></tr>`
-      } catch { return '' }
-    }).join('')
-  } catch { relayRows = '<tr><td colspan="6">暂无转发记录</td></tr>' }
-
-  return `<!doctype html><meta charset="utf-8"><title>落云宗 · 管理台总览</title>
-<style>body{font-family:system-ui;background:#101426;color:#e8eaf6;margin:2rem}
-h1,h2{color:#c5cae9}table{border-collapse:collapse;margin:.6rem 0 1.6rem}
-td,th{border:1px solid #39406e;padding:.45rem .8rem;font-size:.92rem}
-a{color:#8ab4ff}.mut{color:#9fa8da;font-size:.9rem}</style>
-<h1>落云宗 · 管理台总览 <span class="mut">${month} · 服务器本地时区</span></h1>
-<p><a href="http://${manifest.gatewayHost}:${manifest.portalPort}/">← 员工入口</a></p>
-<h2>实例</h2><table><tr><th>实例</th><th>账号</th><th>状态</th><th>pid</th><th>端口</th><th>uid</th><th>内存</th><th>磁盘</th><th>重启</th></tr>${instanceRows}</table>
-<h2>当月用量</h2><table><tr><th>账号</th><th>入 tokens</th><th>出 tokens</th><th>请求</th><th>已用/额度</th></tr>${usageRows}</table>
-<h2>漂移（授权集 vs 实际生效集）</h2><table><tr><th>实例</th><th>状态</th><th>差异</th><th>最近检查</th></tr>${driftRows}</table>
-<h2>Relay 转发（最近 10 条元数据）</h2><table><tr><th>时间</th><th>账号</th><th>模型</th><th>上游</th><th>状态</th><th>耗时</th><th>tokens 入/出</th></tr>${relayRows}</table>
-<p class="mut">隐私边界：本页只聚合元数据，不包含任何会话或内容正文（任务书决定 5）。</p>`
-}
 
 /**
  * 创建网关服务器。依赖注入：
@@ -304,6 +237,11 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
           password = String(parsed.password ?? '')
         } catch { /* 当作空凭据处理 */ }
         const record = accountsStore.accounts.find((a) => a.account === account)
+        if (record?.disabled) {
+          res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: '账号已禁用，请联系管理员' }))
+          return
+        }
         if (!record || !verifyPassword(record, password)) {
           res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
           res.end(JSON.stringify({ error: 'invalid credentials' }))
@@ -345,23 +283,11 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         res.end(JSON.stringify(getState()))
         return
       }
-      // 管理台总览（阶段 4a 增量）：仅 admin，聚合四个已就绪数据面——
-      // 实例状态、当月用量、漂移摘要、Relay 元数据日志尾。
-      // 只读渲染元数据，不触碰会话/内容正文（任务书决定 5）。
-      if (url.pathname === '/console') {
+      // 管理台（总览 + 成员/模型/实例/插件操作页）统一委托 console.mjs：
+      // 仅 admin；页面未登录回登录页；POST API 另校验 Origin 同源。
+      if (url.pathname === '/console' || url.pathname.startsWith('/console/')) {
         const auth = authFromRequest(secret, accountsStore, req)
-        if (auth.error !== undefined) {
-          res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
-          res.end(LOGIN_PAGE())
-          return
-        }
-        if (auth.record.role !== 'admin') {
-          res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
-          res.end('管理台仅限平台管理员。')
-          return
-        }
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-        res.end(renderConsole({ manifest, getState, dataDir }))
+        handleConsole({ req, res, url, auth, loginPage: LOGIN_PAGE, manifest, getState, dataDir })
         return
       }
       const ports = instancePortById()
@@ -384,6 +310,11 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
 
     // 3) 实例子域：必须已登录，且账号绑定该实例。
     const auth = authFromRequest(secret, accountsStore, req)
+    if (auth.error === 'disabled') {
+      res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end('账号已禁用，请联系管理员。')
+      return
+    }
     if (auth.error !== undefined) {
       res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
       res.end(LOGIN_PAGE())
