@@ -1,5 +1,5 @@
 /**
- * 落云宗企业平台 · 管理台（视觉层按 5 页设计图打磨）。
+ * 卡巴格企业平台 · 管理台（视觉层按 5 页设计图打磨）。
  *
  * 页面与操作 API（逻辑与上一增量一致，仅升级视觉与少量只读增强：
  * 成员搜索、实例筛选标签与日志查看、模型展示元数据、实例页授权/生效对比）：
@@ -186,13 +186,13 @@ ${item('系统状态', '/console/instances', ICONS.pulse, false)}
 <div class="spacer"></div>
 ${item('员工工作区', `http://${manifest.gatewayHost}:${manifest.portalPort}/`, ICONS.user, false)}
 <div class="me">${avatar(admin?.displayName ?? '管')}<div><div style="font-size:.86rem">${esc(admin?.displayName ?? '管理员')}</div><div style="font-size:.72rem;color:var(--faint)">${esc(admin?.role === 'admin' ? '管理员 · 平台' : '')}</div></div></div>`
-  return `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>落云宗 · ${title}</title><style>${CSS}</style></head>
+  return `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>卡巴格 · ${title}</title><style>${CSS}</style></head>
 <body>
-<nav><div class="brand"><span class="mark">落</span><div><div class="name">落云宗</div><div class="sub">DASHBOARD CONSOLE</div></div></div>${nav}</nav>
+<nav><div class="brand"><span class="mark">卡</span><div><div class="name">卡巴格</div><div class="sub">DASHBOARD CONSOLE</div></div></div>${nav}</nav>
 <main>
 <div class="pagehead"><div><h1>${title}</h1><div class="sub">${esc(SUBTITLES[title] ?? '')}</div></div><div class="statusbadge">${badge}<span>${nowStamp()}</span></div></div>
 ${body}
-<footer>落云宗 · 企业 AI 管理台</footer>
+<footer>卡巴格 · 企业 AI 管理台</footer>
 </main></body></html>`
 }
 

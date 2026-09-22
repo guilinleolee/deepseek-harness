@@ -1,5 +1,5 @@
 /**
- * 落云宗企业平台 · 认证网关（任务书阶段 2）。
+ * 卡巴格企业平台 · 认证网关（任务书阶段 2）。
  *
  * 职责：登录签发 JWT（HttpOnly Cookie）；按 Host 头把已认证请求反代到
  * 该账号绑定的实例（<实例id>.<portal 主机名> → 127.0.0.1:<实例端口>，
@@ -191,13 +191,13 @@ function instanceIdFromHost(hostHeader, manifest) {
 /* ── 网关服务器 ─────────────────────────────────────────────────────────── */
 
 const LOGIN_PAGE = (error = '') => `<!doctype html><meta charset="utf-8">
-<title>落云宗 · 登录</title>
+<title>卡巴格 · 登录</title>
 <style>body{font-family:system-ui;background:#101426;color:#e8eaf6;display:grid;place-items:center;height:100vh;margin:0}
 form{background:#1a2038;padding:2rem 2.5rem;border-radius:12px;min-width:280px}
 input,button{display:block;width:100%;margin:.5rem 0;padding:.6rem;border-radius:6px;border:1px solid #39406e;background:#0c101f;color:#e8eaf6;box-sizing:border-box}
 button{background:#4f6ef7;border:none;cursor:pointer;font-weight:600}
 .err{color:#ff8a80;font-size:.9rem;min-height:1.2em}</style>
-<form onsubmit="login(event)"><h2 style="margin-top:0">落云宗 · 登录</h2>
+<form onsubmit="login(event)"><h2 style="margin-top:0">卡巴格 · 登录</h2>
 <input id="acc" placeholder="账号（邮箱）" autocomplete="username">
 <input id="pw" type="password" placeholder="密码" autocomplete="current-password">
 <div class="err">${error}</div><button>登录</button></form>
@@ -313,9 +313,9 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         return `<tr><td>${spec.id}</td><td>${spec.account}</td><td>${info.state}</td><td>${link}</td></tr>`
       }).join('')
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(`<!doctype html><meta charset="utf-8"><title>落云宗 · 入口</title>
+      res.end(`<!doctype html><meta charset="utf-8"><title>卡巴格 · 入口</title>
 <style>body{font-family:system-ui;background:#101426;color:#e8eaf6;margin:2rem}table{border-collapse:collapse}td,th{border:1px solid #39406e;padding:.5rem .9rem}a{color:#8ab4ff}</style>
-<h1>落云宗 · 员工入口</h1><table>
+<h1>卡巴格 · 员工入口</h1><table>
 <tr><th>实例</th><th>账号</th><th>状态</th><th>入口</th></tr>${rows}</table>
 <p style="color:#9fa8da">首次进入工作区会先要求登录（账号由管理员发放）。</p>
 <p><a href="/console">管理台总览（管理员）</a></p>`)
