@@ -17,9 +17,17 @@ import { createServer, request as httpRequest } from 'node:http'
 import { connect as netConnect } from 'node:net'
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 import { handleConsole } from './console.mjs'
+import { createJobRunner } from './plugins-gov.mjs'
+
+const json = (res, status, value) => {
+  try {
+    res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(value))
+  } catch { /* 已响应 */ }
+}
 
 const COOKIE_NAME = 'lyz_session'
 const TOKEN_TTL_SECONDS = 30 * 60
@@ -208,6 +216,7 @@ async function login(ev){ev.preventDefault();
  */
 export function createGatewayServer({ manifest, getState, dataDir }) {
   const secret = getOrCreateSecret(dataDir)
+  const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
   const accountsFile = join(dataDir, 'accounts.json')
   const portalHost = manifest.gatewayHost ?? 'localhost'
   const instancePortById = () => {
@@ -287,8 +296,13 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       // 仅 admin；页面未登录回登录页；POST API 另校验 Origin 同源。
       if (url.pathname === '/console' || url.pathname.startsWith('/console/')) {
         const auth = authFromRequest(secret, accountsStore, req)
-        handleConsole({ req, res, url, auth, loginPage: LOGIN_PAGE, manifest, getState, dataDir })
-        return
+        try {
+          if (handleConsole({ req, res, url, auth, loginPage: LOGIN_PAGE, manifest, getState, dataDir, runner: pluginRunner })) return
+        } catch (error) {
+          console.error('[gateway] console handler error:', error?.message ?? error)
+          try { json(res, 500, { error: 'console error' }) } catch { /* 已响应 */ }
+          return
+        }
       }
       const ports = instancePortById()
       const rows = manifest.instances.map((spec) => {

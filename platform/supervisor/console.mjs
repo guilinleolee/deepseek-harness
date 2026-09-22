@@ -431,7 +431,7 @@ function instanceLogPage({ manifest, dataDir, query }) {
 
 /* ── 页面：插件管理 ──────────────────────────────────────────────────────── */
 
-function pluginsPage({ dataDir, manifest, getState }) {
+function pluginsPage({ dataDir, manifest, getState, runner }) {
   const desired = readJson(dataDir, 'plugins.json', { instances: {} })
   const state = getState()
   const names = new Set()
@@ -453,9 +453,9 @@ function pluginsPage({ dataDir, manifest, getState }) {
   })()
   const stats = `<div class="statgrid">
 <div class="stat"><div class="k">已接入插件</div><div class="v">${names.size} 个</div><div class="n">第三方插件与平台共享一个进程树</div></div>
-<div class="stat"><div class="k">需要安装</div><div class="v">${staged} 个实例</div><div class="n">平台默认认为新增实例自动生效</div></div>
-<div class="stat"><div class="k">待生效</div><div class="v">${staged} 个实例</div><div class="n">暂存后等待重启的改动</div></div>
-<div class="stat"><div class="k">投放方式</div><div class="v" style="font-size:1rem">CLI</div><div class="n">真启动预检强制 · 装坏自动拦截</div></div>
+<div class="stat"><div class="k">待生效实例</div><div class="v">${staged}</div><div class="n">暂存后等待重启的改动</div></div>
+<div class="stat"><div class="k">投放方式</div><div class="v" style="font-size:1rem">页面 / CLI</div><div class="n">真启动预检强制 · 装坏自动拦截</div></div>
+<div class="stat"><div class="k">执行模型</div><div class="v" style="font-size:1rem">串行队列</div><div class="n">任务落盘，页面轮询取状态</div></div>
 </div>`
   const rows = manifest.instances.map((spec) => {
     const list = desired.instances[spec.id] ?? []
@@ -466,13 +466,53 @@ function pluginsPage({ dataDir, manifest, getState }) {
     return `<tr><td>${spec.id}</td><td>${running ? '<span class="chip green">运行中</span>' : stateChip(state.instances[spec.id]?.state)}</td>${items}</tr>`
   }).join('')
   const bundles = profileBundles.map((b) => `<span class="chip blue">${esc(b)}</span>`).join(' ')
+  const instanceChecks = manifest.instances.map((s) => `<label style="margin-right:.8rem"><input type="checkbox" name="id-${s.id}" checked> ${s.id}</label>`).join('')
+  const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}</option>`).join('')
   return `
 ${stats}
+<h2 class="sect">投放插件（npm / Git / 本地路径）</h2>
+<form class="panel" onsubmit="pushPlugin(event)">
+<div style="margin-bottom:.5rem">插件 <input name="spec" size="44" placeholder="@weibaohui/dsh-file-share 或本地路径" required></div>
+<div style="margin-bottom:.5rem">目标实例 ${instanceChecks} ｜ <label><input type="checkbox" name="skip-precheck"> 跳过预检（不推荐）</label></div>
+<button class="primary">预检并暂存（异步执行）</button>
+</form>
+<form class="panel" onsubmit="removePlugin(event)">
+卸载插件 <input name="spec" size="30" placeholder="插件名"> 实例 <select name="ids"><option value="all">全部</option>${instanceOptions}</select>
+<button class="warn">卸载并重启</button>
+</form>
+<h2 class="sect">投放任务（每 4 秒自动刷新）</h2>
+<table><tr><th>任务</th><th>类型</th><th>目标</th><th>状态</th><th>输出</th><th>更新时间</th></tr><tbody id="jobsbody"><tr><td colspan="6">加载中…</td></tr></tbody></table>
 <h2 class="sect">平台默认插件集</h2>
 <p class="mut" style="font-size:.85rem">每个实例 profile 在此集合之上叠加第三方插件。<span style="font-size:.85rem">${bundles || '—'}</span></p>
 <h2 class="sect">插件 × 实例（期望态）</h2>
 <table><tr><th>实例</th><th>实例状态</th><th>插件</th><th>版本 / 状态</th></tr>${rows}</table>
-<p class="mut" style="font-size:.82rem">插件投放（含真启动预检）当前经 CLI：<code>node supervisor.mjs plugin-push --plugin &lt;spec&gt; --ids &lt;id&gt;</code>；暂存后重启生效，装坏由预检拦截。异步投放任务队列落地后，此页将接管安装/暂存/预检/回滚操作。</p>`
+<p class="mut" style="font-size:.82rem">投放为异步任务（串行执行）：预检失败自动拦截、任何实例均不安装；暂存后在实例管理页重启生效；卸载自带重启。</p>
+<pre id="out2" class="mut"></pre>
+<script>
+const STATE_CHIP={queued:['排队中','gray'],running:['执行中','yellow'],done:['完成','green'],failed:['失败','red']}
+function escJs(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function chipJs(s){const pair=STATE_CHIP[s]||[s,'gray'];return '<span class="chip '+pair[1]+'">'+pair[0]+'</span>'}
+async function refreshJobs(){
+ try{const r=await fetch('/console/api/plugin/jobs');if(!r.ok)return;
+  const jobs=(await r.json()).jobs||[];const tb=document.getElementById('jobsbody');if(!tb)return;
+  tb.innerHTML=jobs.length===0?'<tr><td colspan="6">暂无任务</td></tr>':jobs.map(function(j){
+   const out=escJs((j.error?('[失败] '+j.error+'\\n'):'')+(j.output||'').slice(-280))
+   return '<tr><td>'+escJs(j.id)+'</td><td>'+escJs(j.type)+'</td><td>'+escJs((j.spec||'')+(j.ids?' → '+j.ids:''))+'</td><td>'+chipJs(j.state)+'</td>'+
+    '<td style="max-width:380px;white-space:pre-wrap;font-size:.74rem">'+out+'</td><td style="font-size:.74rem">'+escJs(j.updatedAt||'')+'</td></tr>'
+  }).join('')
+ }catch{}
+}
+async function postJob(payload){const r=await fetch('/console/api/plugin/job',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const t=await r.text();document.getElementById('out2').textContent='HTTP '+r.status+' '+t;
+ if(r.ok){refreshJobs();setInterval(refreshJobs,4000)}else{refreshJobs()}}
+async function pushPlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ const ids=${'${'}manifest.instances.map(function(x){return x.id}).filter(function(id){return f.get('id-'+id)==='on'})${'}'};
+ if(ids.length===0){document.getElementById('out2').textContent='至少选择一个目标实例';return}
+ await postJob({type:'push',spec:f.get('spec'),ids:ids,skipPrecheck:f.get('skip-precheck')==='on'})}
+async function removePlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ await postJob({type:'remove',spec:f.get('spec'),ids:f.get('ids')})}
+setInterval(refreshJobs,4000);refreshJobs()
+</script>`
 }
 
 /* ── 路由入口 ────────────────────────────────────────────────────────────── */
@@ -579,7 +619,7 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
  * 并在带 Origin 时校验同源（配合 SameSite=Strict 双重 CSRF 防线）。
  * @returns true 表示已响应，gateway 不再处理。
  */
-export function handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir }) {
+export function handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner }) {
   if (!url.pathname.startsWith('/console')) return false
   const path = url.pathname
   const query = url.searchParams
@@ -595,6 +635,10 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       res.end('管理台仅限平台管理员。')
       return true
     }
+    if (path === '/console/api/plugin/jobs') {
+      json(res, 200, { jobs: runner.list() })
+      return true
+    }
     const ctx = { dataDir, manifest, getState, query }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     if (path === '/console') res.end(SHELL('总览', '', manifest, getState, dataDir, overviewPage(ctx)))
@@ -602,7 +646,7 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     else if (path === '/console/models') res.end(SHELL('模型与权限', 'models', manifest, getState, dataDir, modelsPage(ctx)))
     else if (path === '/console/instances') res.end(SHELL('实例管理', 'instances', manifest, getState, dataDir, instancesPage(ctx)))
     else if (path === '/console/instances/log') res.end(SHELL('实例日志', 'instances', manifest, getState, dataDir, instanceLogPage(ctx)))
-    else if (path === '/console/plugins') res.end(SHELL('插件管理', 'plugins', manifest, getState, dataDir, pluginsPage(ctx)))
+    else if (path === '/console/plugins') res.end(SHELL('插件管理', 'plugins', manifest, getState, dataDir, pluginsPage({ ...ctx, runner })))
     else { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('unknown console page') }
     return true
   }
@@ -615,6 +659,17 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       try {
         if (new URL(origin).host !== (req.headers.host ?? '')) { json(res, 403, { error: 'cross-origin refused' }); return true }
       } catch { json(res, 403, { error: 'bad origin' }); return true }
+    }
+    if (path === '/console/api/plugin/job') {
+      void readBody(req).then((body) => {
+        try {
+          const job = runner.enqueue({ type: body.type, spec: body.spec, ids: body.ids, skipPrecheck: body.skipPrecheck })
+          json(res, 200, { ok: true, job: { id: job.id, state: job.state } })
+        } catch (error) {
+          json(res, 409, { error: String(error?.message ?? error) })
+        }
+      })
+      return true
     }
     void handleApi({ req, res, path, dataDir, manifest }).catch(() => json(res, 500, { error: 'console api crashed' }))
     return true

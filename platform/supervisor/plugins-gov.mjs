@@ -17,7 +17,7 @@ import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync, renameSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { get } from 'node:http'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 const PLUGINS_FILE = 'plugins.json'
 const INSTALL_TIMEOUT_MS = 10 * 60_000
@@ -138,5 +138,186 @@ export async function precheck({ repoRoot, dataDir, spec, launchTemplate, timeou
     return { pass: false, output: `真启动未通过（${crashed ? `进程早退 ${crashDetail}` : '超时'}）:\n${bootOutput.slice(-2_000)}` }
   } finally {
     try { rmSync(tempHome, { recursive: true, force: true }) } catch { /* 临时目录清理失败不阻塞 */ }
+  }
+}
+
+/* ── 异步投放任务队列（控制台插件页）────────────────────────────────────────
+ * 投放/预检是分钟级操作，HTTP 请求-响应装不下：任务落 data/jobs.json，
+ * 串行执行（同一时刻至多一个 pnpm/预检启动），控制台轮询取状态。
+ * 运行于 daemon 进程内；实例重启经 control.json 复用既有控制通道。 */
+
+import { readdirSync as _readdir, renameSync as _rename } from 'node:fs'
+
+/** 从安装 spec 推导插件名：本地路径读其 package.json 的 name；npm spec 取最后一个 @ 前段。 */
+function specName(spec) {
+  if (spec.startsWith('.') || /^[a-zA-Z]:[\/]/.test(spec) || spec.startsWith('/')) {
+    return JSON.parse(readFileSync(resolve(spec, 'package.json'), 'utf8')).name
+  }
+  if (spec.startsWith('@')) return spec.split('@').length > 2 ? spec.slice(0, spec.lastIndexOf('@')) : spec
+  const at = spec.lastIndexOf('@')
+  return at > 0 ? spec.slice(0, at) : spec
+}
+
+export function createJobRunner({ dataDir, manifest, repoRoot }) {
+  const jobsFile = join(dataDir, 'jobs.json')
+  const JOBS_TIMEOUT_MS = 20 * 60_000
+  let queue = Promise.resolve()
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+  const loadJobs = () => {
+    try { return JSON.parse(readFileSync(jobsFile, 'utf8')) } catch { return { jobs: [] } }
+  }
+  const saveJobs = (store) => {
+    const tmp = `${jobsFile}.tmp`
+    writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
+    _rename(tmp, jobsFile)
+  }
+  const patchJob = (id, patch) => {
+    const store = loadJobs()
+    const job = store.jobs.find((j) => j.id === id)
+    if (job === undefined) return
+    Object.assign(job, patch)
+    job.updatedAt = new Date().toISOString()
+    saveJobs(store)
+  }
+  const appendOutput = (id, text) => {
+    const store = loadJobs()
+    const job = store.jobs.find((j) => j.id === id)
+    if (job === undefined) return
+    job.output = `${job.output ?? ''}${text}`.slice(-4_000)
+    saveJobs(store)
+  }
+
+  async function execute(job) {
+    const homeOf = (id) => join(dataDir, 'homes', id)
+    const targets = job.ids === 'all' ? manifest.instances.map((s) => s.id) : job.ids
+    for (const id of targets) {
+      if (!manifest.instances.some((s) => s.id === id)) throw new Error(`未知实例: ${id}`)
+    }
+    switch (job.type) {
+      case 'precheck': {
+        const result = await precheck({ repoRoot, dataDir, spec: job.spec, launchTemplate: manifest.launch })
+        appendOutput(job.id, `\n${result.pass ? 'PASS' : 'FAIL'}: ${result.output}`)
+        if (!result.pass) throw new Error('预检未通过')
+        return
+      }
+      case 'push': {
+        if (job.skipPrecheck !== true) {
+          appendOutput(job.id, '\n[precheck] 隔离真启动预检中…')
+          const result = await precheck({ repoRoot, dataDir, spec: job.spec, launchTemplate: manifest.launch })
+          appendOutput(job.id, `\n[precheck] ${result.pass ? 'PASS' : 'FAIL'}: ${result.output}`)
+          if (!result.pass) throw new Error('预检未通过，已拦截（任何实例均未安装）')
+        }
+        const name = job.name
+        for (const id of targets) {
+          appendOutput(job.id, `\n[install] ${id}: 安装到 profile（暂存）…`)
+          const install = await runPluginCommand({ repoRoot, home: homeOf(id), action: 'add', spec: job.spec })
+          if (!install.ok) {
+            appendOutput(job.id, `\n[install] ${id} 失败:\n${install.output.slice(-1_000)}`)
+            const store = loadDesired(dataDir)
+            const entry = (store.instances[id] ??= []).find((p) => p.name === name)
+            if (entry !== undefined) entry.state = 'failed'
+            saveDesired(dataDir, store)
+            throw new Error(`实例 ${id} 安装失败`)
+          }
+          const store = loadDesired(dataDir)
+          const list = (store.instances[id] ??= [])
+          const prev = list.find((p) => p.name === name)
+          const history = prev?.history ?? []
+          if (prev?.spec !== undefined && prev.spec !== job.spec) history.unshift(prev.spec)
+          const record = { name, spec: job.spec, state: 'staged', since: new Date().toISOString(), history }
+          const idx = list.findIndex((p) => p.name === name)
+          if (idx >= 0) list[idx] = record
+          else list.push(record)
+          saveDesired(dataDir, store)
+          appendOutput(job.id, `\n[install] ${id}: 已暂存（plugin-activate 或实例管理页重启生效）`)
+        }
+        return
+      }
+      case 'remove': {
+        for (const id of targets) {
+          appendOutput(job.id, `\n[remove] ${id}: 卸载…`)
+          const install = await runPluginCommand({ repoRoot, home: homeOf(id), action: 'remove', spec: job.name })
+          if (!install.ok) throw new Error(`实例 ${id} 卸载失败:\n${install.output.slice(-500)}`)
+          const store = loadDesired(dataDir)
+          const entry = (store.instances[id] ?? []).find((p) => p.name === job.name)
+          if (entry !== undefined) entry.state = 'removed'
+          saveDesired(dataDir, store)
+          appendOutput(job.id, `\n[remove] ${id}: 已卸载，写入重启控制`)
+          writeFileSync(join(dataDir, 'control.json'), `${JSON.stringify({ action: 'restart', id, at: Date.now() })}\n`)
+        }
+        return
+      }
+      case 'activate': {
+        for (const id of targets) {
+          writeFileSync(join(dataDir, 'control.json'), `${JSON.stringify({ action: 'restart', id, at: Date.now() })}\n`)
+          appendOutput(job.id, `\n[activate] ${id}: 已请求重启`)
+          await sleep(3_000)
+        }
+        return
+      }
+      default:
+        throw new Error(`未知任务类型: ${job.type}`)
+    }
+  }
+
+  // 启动清理：daemon 重启会打断执行中的任务，僵尸 queued/running 记录转为失败
+  {
+    const store = loadJobs()
+    let dirty = false
+    for (const j of store.jobs) {
+      if (j.state === 'queued' || j.state === 'running') {
+        j.state = 'failed'
+        j.error = 'daemon 重启导致任务中断'
+        dirty = true
+      }
+    }
+    if (dirty) saveJobs(store)
+  }
+
+  return {
+    /** 入队一个投放任务；串行执行，立即返回任务记录。 */
+    enqueue({ type, spec, ids, skipPrecheck }) {
+      const store = loadJobs()
+      if (store.jobs.find((j) => j.state === 'queued' || j.state === 'running')) {
+        throw new Error('已有任务在执行中（串行队列），请稍后再试')
+      }
+      const name = specName(spec)
+      const job = {
+        id: `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        type, spec, name,
+        ids: ids ?? 'all',
+        skipPrecheck: skipPrecheck === true,
+        state: 'queued',
+        output: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      store.jobs.push(job)
+      if (store.jobs.length > 50) store.jobs = store.jobs.slice(-50)
+      saveJobs(store)
+      this._kick()
+      return job
+    },
+    list() {
+      return loadJobs().jobs.slice(-20).reverse()
+    },
+    _kick() {
+      const store = loadJobs()
+      const next = [...store.jobs].reverse().find((j) => j.state === 'queued')
+      if (next === undefined) return
+      queue = queue.then(async () => {
+        const current = loadJobs().jobs.find((j) => j.id === next.id)
+        if (current === undefined || current.state !== 'queued') return
+        patchJob(next.id, { state: 'running', startedAt: new Date().toISOString() })
+        try {
+          await execute({ ...next })
+          patchJob(next.id, { state: 'done', finishedAt: new Date().toISOString() })
+        } catch (error) {
+          patchJob(next.id, { state: 'failed', error: String(error?.message ?? error), finishedAt: new Date().toISOString() })
+        }
+      })
+      return queue
+    },
   }
 }
