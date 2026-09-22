@@ -165,6 +165,10 @@ export function createRelayServer({ dataDir }) {
       // 用量只存在服务端 usage.json，实例内没有任何可篡改的配额状态。
       const accountRecord = cachedJson(join(dataDir, ACCOUNTS_FILE), accountsCache)?.accounts
         ?.find((a) => a.account === vkey.account)
+      if (accountRecord?.disabled) {
+        openAiError(res, 401, '账号已禁用，请联系管理员', 'account_disabled')
+        return
+      }
       const quota = accountRecord?.monthlyTokens
       const used = usedTokensThisMonth(vkey.account)
       if (Number.isFinite(quota) && used >= quota) {
@@ -352,6 +356,16 @@ export function revokeVkey(dataDir, { account }) {
   if (n === 0) throw new Error(`账号 ${account} 没有有效的虚拟钥匙`)
   writeStore(dataDir, VKEYS_FILE, store)
   return n
+}
+
+/** 更新账号活跃虚拟钥匙的模型白名单（控制台矩阵编辑）。 */
+export function setVkeyModels(dataDir, { account, models }) {
+  const store = readStore(dataDir, VKEYS_FILE, { vkeys: [] })
+  const active = store.vkeys.filter((v) => v.account === account && !v.revoked)
+  if (active.length === 0) throw new Error(`账号 ${account} 没有有效的虚拟钥匙`)
+  for (const v of active) v.models = models
+  writeStore(dataDir, VKEYS_FILE, store)
+  return models
 }
 
 export function listVkeys(dataDir) {
