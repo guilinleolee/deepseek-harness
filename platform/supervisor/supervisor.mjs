@@ -25,7 +25,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { platform } from 'node:os'
 import { randomBytes } from 'node:crypto'
-import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens, setPassword } from './gateway.mjs'
+import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
@@ -602,6 +602,7 @@ async function main() {
       else if (flag === '--role') opts.role = value
       else if (flag === '--password') opts.password = value
       else if (flag === '--name') opts.displayName = value
+      else if (flag === '--department') opts.department = value
     }
     if (!opts.instanceId || !MANIFEST.instances.some((s) => s.id === opts.instanceId)) {
       throw new Error(`--instance 必须是清单中的实例 id: ${MANIFEST.instances.map((s) => s.id).join(', ')}`)
@@ -693,6 +694,14 @@ async function main() {
     }
     const epoch = setPassword(DATA, opts.account, opts.password)
     console.log(`已重置 ${opts.account} 的密码（tokenEpoch → ${epoch}，全部旧会话已下线）`)
+    return
+  }
+  if (cmd === 'set-role') {
+    if (flag !== '--account' || !value) throw new Error('用法: set-role --account <email> --role <admin|auditor|employee>')
+    const role = process.argv[6]
+    if (!['admin', 'auditor', 'employee'].includes(role)) throw new Error('--role 必须是 admin | auditor | employee')
+    updateAccount(DATA, value, { role })
+    console.log(`已将 ${value} 的角色改为 ${role}`)
     return
   }
   if (cmd === 'set-quota') {
@@ -916,6 +925,7 @@ async function main() {
   list-vkeys        列出虚拟钥匙（只有哈希，token 不可见）
   revoke-vkey --account <email>   吊销该账号全部虚拟钥匙
   set-quota --account <email> --tokens <N> | --unlimited   月度 Token 额度（硬停）
+  set-role --account <email> --role <role>   修改账号角色
   set-password --account <email> [--password <pw>]   重置密码并踢掉全部旧会话
   list-usage [--month YYYY-MM]    当月用量对照额度`)
 }

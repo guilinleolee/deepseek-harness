@@ -167,6 +167,11 @@ function specName(spec) {
   return at > 0 ? spec.slice(0, at) : spec
 }
 
+/** 可授权插件目录：push 登记的最新 spec（成员×插件矩阵的数据源）。 */
+export function pluginCatalog(dataDir) {
+  return loadDesired(dataDir).catalog ?? []
+}
+
 export function createJobRunner({ dataDir, manifest, repoRoot }) {
   const jobsFile = join(dataDir, 'jobs.json')
   const JOBS_TIMEOUT_MS = 20 * 60_000
@@ -288,8 +293,9 @@ export function createJobRunner({ dataDir, manifest, repoRoot }) {
     /** 入队一个投放任务；串行执行，立即返回任务记录。 */
     enqueue({ type, spec, ids, skipPrecheck }) {
       const store = loadJobs()
-      if (store.jobs.find((j) => j.state === 'queued' || j.state === 'running')) {
-        throw new Error('已有任务在执行中（串行队列），请稍后再试')
+      const pending = store.jobs.filter((j) => j.state === 'queued' || j.state === 'running').length
+      if (pending >= 10) {
+        throw new Error('队列中待处理任务过多（10），请等当前任务完成后再试')
       }
       const name = specName(spec)
       const job = {

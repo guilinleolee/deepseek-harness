@@ -13,8 +13,9 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword } from './gateway.mjs'
+import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
 import { issueVkey, listUpstreams, revokeVkey, setQuota, setVkeyModels } from './relay.mjs'
+import { pluginCatalog } from './plugins-gov.mjs'
 
 const PAGES = ['members', 'models', 'instances', 'plugins']
 const PAGE_TITLES = { members: '成员与额度', models: '模型与权限', instances: '实例管理', plugins: '插件管理' }
@@ -251,12 +252,18 @@ ${stats}
 
 function membersPage({ dataDir, manifest, getState, query }) {
   const q = (query.get('q') ?? '').trim().toLowerCase()
+  const depFilter = query.get('dep') ?? ''
   const d = new Date()
   const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   const usage = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
   const state = getState()
   const all = listAccounts(dataDir)
-  const accounts = q === '' ? all : all.filter((a) => a.account.toLowerCase().includes(q) || String(a.displayName ?? '').toLowerCase().includes(q))
+  const departments = [...new Set(all.map((a) => a.department ?? '未分配'))]
+  const accounts = all.filter((a) => {
+    if (q !== '' && !a.account.toLowerCase().includes(q) && !String(a.displayName ?? '').toLowerCase().includes(q)) return false
+    if (depFilter !== '' && (a.department ?? '未分配') !== depFilter) return false
+    return true
+  })
   const rows = accounts.map((a) => {
     const e = usage[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0 }
     const used = e.tokensIn + e.tokensOut
@@ -265,25 +272,43 @@ function membersPage({ dataDir, manifest, getState, query }) {
       ? '<span class="chip teal">全部模型</span>'
       : vk.models.slice(0, 3).map((m) => `<span class="chip teal">${esc(m)}</span>`).join('') + (vk.models.length > 3 ? `<span class="chip gray">+${vk.models.length - 3}</span>` : '')
     const quota = a.monthlyTokens
-    return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td><td>${roleChip(a.role)}</td><td>${esc(a.instanceId)}</td>
+    const roleOptions = ['admin', 'auditor', 'employee'].map((r) => {
+      const [label] = { admin: ['管理员'], auditor: ['审计员'], employee: ['成员'] }[r]
+      return `<option value="${r}" ${a.role === r ? 'selected' : ''}>${label}</option>`
+    }).join('')
+    return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td>
+<td>${esc(a.department ?? '未分配')}</td><td>${roleChip(a.role)}</td><td>${esc(a.instanceId)}</td>
 <td>${chips}</td><td>${a.disabled ? '<span class="chip red">已禁用</span>' : '<span class="chip green">正常</span>'}</td>
 <td>${quotaCell(used, Number.isFinite(quota) ? quota : Number.POSITIVE_INFINITY)}</td><td>${e.requests}</td>
 <td>
+<form class="inline" onsubmit="api(event,'/console/api/member/update',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="department" size="6" value="${esc(a.department ?? '未分配')}" title="部门"><button>改部门</button></form>
+<form class="inline" onsubmit="api(event,'/console/api/member/update',this)"><input type="hidden" name="account" value="${esc(a.account)}"><select name="role">${roleOptions}</select><button>改角色</button></form>
 <form class="inline" onsubmit="api(event,'/console/api/member/quota',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="tokens" size="8" placeholder="额度/空=不限"><button>改额度</button></form>
 <form class="inline" onsubmit="api(event,'/console/api/member/reset-password',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>重置密码</button></form>
 ${a.disabled
     ? `<form class="inline" onsubmit="api(event,'/console/api/member/enable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>启用</button></form>`
     : `<form class="inline" onsubmit="api(event,'/console/api/member/disable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button class="warn">禁用</button></form>`}</td></tr>`
   }).join('')
-  const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}（${esc(s.account)} · ${state.instances[s.id]?.state ?? '—'}）</option>`).join('')
+  const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}（${state.instances[s.id]?.state ?? '—'}）</option>`).join('')
+  const depOptions = departments.map((dep) => `<option value="${esc(dep)}">${esc(dep)}</option>`).join('')
   return `
-<form class="searchbox" method="get"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button>${q !== '' ? `<a class="btn" href="/console/members">清除</a>` : ''}</form>
-<table><tr><th>成员</th><th>账号</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="9">无匹配成员</td></tr>'}</table>
+<div class="searchbox" method="get">
+<form class="searchbox" method="get" style="margin:0"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
+</div>
+<table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="10">无匹配成员</td></tr>'}</table>
 <h2 class="sect">添加成员</h2>
 <form class="panel" onsubmit="createMember(event)">
-<div style="margin-bottom:.5rem">账号 <input name="account" placeholder="name@company" required> 显示名 <input name="displayName"> 角色 <select name="role"><option value="employee">成员</option><option value="auditor">审计员</option></select></div>
-<div>实例 <select name="instance">${instanceOptions}</select> 密码 <input name="password" placeholder="留空自动生成"> <button class="primary">创建</button></div>
+<div style="margin-bottom:.5rem">账号 <input name="account" placeholder="name@company" required> 显示名 <input name="displayName"> 部门 <input name="department" placeholder="如 设计部"></div>
+<div style="margin-bottom:.5rem">角色 <select name="role"><option value="employee">成员</option><option value="auditor">审计员</option><option value="admin">管理员</option></select> 实例 <select name="instance">${instanceOptions}</select></div>
+<div>密码 <input name="password" placeholder="留空自动生成"> <button class="primary">创建</button></div>
 </form>
+<h2 class="sect">IdP 名册同步</h2>
+<form class="panel" onsubmit="importIdp(event)">
+<div style="margin-bottom:.5rem"><span class="mut">粘贴 IdP/HR 导出的名册 JSON（字段：account、displayName、department、role、instance）：</span></div>
+<textarea name="roster" rows="6" style="width:100%" placeholder='[{"account":"wang@company","displayName":"小王","department":"设计部","role":"employee","instance":"e02"}]'></textarea>
+<div style="margin:.5rem 0">默认实例 <select name="instance">${instanceOptions}</select> ｜ <label><input type="checkbox" name="disable-missing"> 名册中不存在的账号自动禁用</label> <button class="primary">导入同步</button></div>
+</form>
+<p class="mut" style="font-size:.82rem">同步对账：名册中没有的账号创建（随机密码，需转交）；已有的更新部门/角色/显示名；勾选自动禁用后，名册缺失的非管理员账号将被禁用并下线。OIDC/LDAP 直连属待接入（接口已留）。</p>
 <pre id="out" class="log" style="max-height:none"></pre>
 <p class="mut" style="font-size:.82rem">禁用 = 立即下线 + 吊销虚拟钥匙（Relay 同步拒绝）；启用 = 重新签发钥匙（模型白名单沿用历史）。重置/创建的密码只显示一次。</p>
 <script>
@@ -295,10 +320,15 @@ async function api(ev,path,form){ev.preventDefault();
  document.getElementById('out').textContent='HTTP '+r.status+' '+msg;
  if(r.ok)setTimeout(()=>location.reload(),800)}
 async function createMember(ev){await api(ev,'/console/api/member/create',true)}
+async function importIdp(ev){ev.preventDefault();
+ let members=[];try{members=JSON.parse(ev.target.roster.value||'[]')}catch{document.getElementById('out').textContent='名册 JSON 格式错误';return}
+ const payload={members,defaultInstance:ev.target.instance.value,disableMissing:ev.target['disable-missing'].checked};
+ const r=await fetch('/console/api/idp/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const j=await r.json();
+ if(r.ok){document.getElementById('out').textContent='同步完成：新建 '+j.created.length+'、更新 '+j.updated.length+'、无变化 '+j.unchanged+'、禁用缺失 '+(j.missingDisabled||[]).length+(j.created.length?('\\n新账号凭证：\\n'+j.created.map(c=>c.account+' / '+c.password).join('\\n')):'');
+ if(j.created.length===0)setTimeout(()=>location.reload(),1200)}else{document.getElementById('out').textContent='HTTP '+r.status+' '+JSON.stringify(j)}}
 </script>`
 }
-
-/* ── 页面：模型与权限 ────────────────────────────────────────────────────── */
 
 function modelsPage({ dataDir }) {
   const upstreams = listUpstreams(dataDir).filter((x) => !x.revoked)
@@ -433,7 +463,9 @@ function instanceLogPage({ manifest, dataDir, query }) {
 
 function pluginsPage({ dataDir, manifest, getState, runner }) {
   const desired = readJson(dataDir, 'plugins.json', { instances: {} })
+  const catalog = pluginCatalog(dataDir)
   const state = getState()
+  const accounts = listAccounts(dataDir)
   const names = new Set()
   let staged = 0
   for (const list of Object.values(desired.instances)) {
@@ -452,9 +484,9 @@ function pluginsPage({ dataDir, manifest, getState, runner }) {
     return []
   })()
   const stats = `<div class="statgrid">
+<div class="stat"><div class="k">可授权插件</div><div class="v">${catalog.length} 个</div><div class="n">成员×插件矩阵按人分配</div></div>
 <div class="stat"><div class="k">已接入插件</div><div class="v">${names.size} 个</div><div class="n">第三方插件与平台共享一个进程树</div></div>
 <div class="stat"><div class="k">待生效实例</div><div class="v">${staged}</div><div class="n">暂存后等待重启的改动</div></div>
-<div class="stat"><div class="k">投放方式</div><div class="v" style="font-size:1rem">页面 / CLI</div><div class="n">真启动预检强制 · 装坏自动拦截</div></div>
 <div class="stat"><div class="k">执行模型</div><div class="v" style="font-size:1rem">串行队列</div><div class="n">任务落盘，页面轮询取状态</div></div>
 </div>`
   const rows = manifest.instances.map((spec) => {
@@ -468,8 +500,24 @@ function pluginsPage({ dataDir, manifest, getState, runner }) {
   const bundles = profileBundles.map((b) => `<span class="chip blue">${esc(b)}</span>`).join(' ')
   const instanceChecks = manifest.instances.map((s) => `<label style="margin-right:.8rem"><input type="checkbox" name="id-${s.id}" checked> ${s.id}</label>`).join('')
   const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}</option>`).join('')
+  const instanceOf = (account) => (accounts.find((a) => a.account === account) ?? {}).instanceId
+  const matrixRows = accounts.map((a) => {
+    const target = instanceOf(a.account)
+    const cells = catalog.map((c) => {
+      const list = desired.instances[target] ?? []
+      const on = list.some((p) => p.name === c.name && p.state !== 'removed')
+      return `<td><input type="checkbox" form="pmatrix" name="${esc(a.account)}|${esc(c.name)}" data-target="${target}" data-was="${on ? '1' : '0'}" ${on ? 'checked' : ''}></td>`
+    }).join('')
+    return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td><td><span class="chip gray">${esc(target ?? '—')}</span></td>${cells}</tr>`
+  }).join('')
+  const matrixHead = catalog.map((c) => `<th>${esc(c.name)}</th>`).join('')
   return `
 ${stats}
+<h2 class="sect">成员 × 插件授权矩阵 <span class="mut" style="font-size:.8rem">一人一实例：勾选即向该成员实例异步投放，取消即卸载（均经队列执行，状态见下方任务表）</span></h2>
+${catalog.length === 0 ? '<p class="mut">目录为空：先用下方投放表单预检并接入第一个插件。</p>' : `
+<form id="pmatrix" onsubmit="savePluginMatrix(event)">
+<table><tr><th>成员</th><th>账号</th><th>实例</th>${matrixHead}</tr>${matrixRows}</table>
+<button class="primary">保存矩阵（异步投放/卸载）</button></form>`}
 <h2 class="sect">投放插件（npm / Git / 本地路径）</h2>
 <form class="panel" onsubmit="pushPlugin(event)">
 <div style="margin-bottom:.5rem">插件 <input name="spec" size="44" placeholder="@weibaohui/dsh-file-share 或本地路径" required></div>
@@ -486,7 +534,7 @@ ${stats}
 <p class="mut" style="font-size:.85rem">每个实例 profile 在此集合之上叠加第三方插件。<span style="font-size:.85rem">${bundles || '—'}</span></p>
 <h2 class="sect">插件 × 实例（期望态）</h2>
 <table><tr><th>实例</th><th>实例状态</th><th>插件</th><th>版本 / 状态</th></tr>${rows}</table>
-<p class="mut" style="font-size:.82rem">投放为异步任务（串行执行）：预检失败自动拦截、任何实例均不安装；暂存后在实例管理页重启生效；卸载自带重启。</p>
+<p class="mut" style="font-size:.82rem">首次接入的插件必须经投放表单（强制真启动预检），通过后自动进入授权目录；矩阵再分配跳过重复预检（已验证过能启动）。投放为异步任务，串行执行。</p>
 <pre id="out2" class="mut"></pre>
 <script>
 const STATE_CHIP={queued:['排队中','gray'],running:['执行中','yellow'],done:['完成','green'],failed:['失败','red']}
@@ -506,11 +554,27 @@ async function postJob(payload){const r=await fetch('/console/api/plugin/job',{m
  const t=await r.text();document.getElementById('out2').textContent='HTTP '+r.status+' '+t;
  if(r.ok){refreshJobs();setInterval(refreshJobs,4000)}else{refreshJobs()}}
 async function pushPlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
- const ids=${'${'}manifest.instances.map(function(x){return x.id}).filter(function(id){return f.get('id-'+id)==='on'})${'}'};
+ const ALL_IDS=${'${'}JSON.stringify(manifest.instances.map(function(x){return x.id}))${'}'};
+ const ids=ALL_IDS.filter(function(id){return f.get('id-'+id)==='on'});
  if(ids.length===0){document.getElementById('out2').textContent='至少选择一个目标实例';return}
  await postJob({type:'push',spec:f.get('spec'),ids:ids,skipPrecheck:f.get('skip-precheck')==='on'})}
 async function removePlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
  await postJob({type:'remove',spec:f.get('spec'),ids:f.get('ids')})}
+async function savePluginMatrix(ev){ev.preventDefault();
+ var changes=[];
+ document.querySelectorAll('#pmatrix input[type=checkbox]').forEach(function(cb){
+  var parts=cb.name.split('|');var account=parts[0],plugin=parts[1];
+  var was=cb.dataset.was==='1';var now=cb.checked;
+  if(was!==now)changes.push({account:account,plugin:plugin,was:was,now:now,target:cb.dataset.target})
+ })
+ if(changes.length===0){document.getElementById('out2').textContent='矩阵无变化';return}
+ var CATALOG=${'${'}JSON.stringify(catalog)${'}'};
+ for(const ch of changes){
+  if(ch.now){var spec=(CATALOG.find(function(c){return c.name===ch.plugin})||{}).spec||ch.plugin;
+   await postJob({type:'push',spec:spec,ids:ch.target,skipPrecheck:true})}
+  else{await postJob({type:'remove',spec:ch.plugin,ids:ch.target})}
+ }
+ setTimeout(()=>location.reload(),1200)}
 setInterval(refreshJobs,4000);refreshJobs()
 </script>`
 }
@@ -587,6 +651,63 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         const models = history.at(-1)?.models ?? '*'
         issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
         json(res, 200, { ok: true, models })
+        return
+      }
+      case '/console/api/member/update': {
+        const record = updateAccount(dataDir, account, {
+          role: body.role,
+          department: body.department,
+          displayName: body.displayName,
+        })
+        json(res, 200, { ok: true, role: record.role, department: record.department ?? '未分配' })
+        return
+      }
+      case '/console/api/idp/import': {
+        const members = Array.isArray(body.members) ? body.members : []
+        if (members.length === 0) { json(res, 400, { error: 'members 不能为空' }); return }
+        const defaultInstance = typeof body.defaultInstance === 'string' ? body.defaultInstance : manifest.instances[0].id
+        const result = { created: [], updated: [], unchanged: 0, missingDisabled: [] }
+        const seen = new Set()
+        for (const m of members) {
+          if (!m.account) continue
+          seen.add(m.account)
+          const role = ['admin', 'auditor', 'employee'].includes(m.role) ? m.role : 'employee'
+          const store = loadAccounts(dataDir)
+          const rec = store.accounts.find((a) => a.account === m.account)
+          if (rec === undefined) {
+            const password = `LyZ-${Math.random().toString(36).slice(2, 11)}`
+            const record = addAccount(dataDir, {
+              account: m.account,
+              instanceId: m.instance ?? defaultInstance,
+              role,
+              displayName: m.displayName || undefined,
+              department: m.department ?? '未分配',
+              password,
+            })
+            const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models: '*' })
+            result.created.push({ account: record.account, password, vkey: token, instance: record.instanceId })
+          } else {
+            let changed = false
+            if (m.department !== undefined && m.department !== rec.department) { rec.department = m.department; changed = true }
+            if (role !== rec.role) { rec.role = role; changed = true }
+            if (m.displayName !== undefined && m.displayName !== rec.displayName) { rec.displayName = m.displayName; changed = true }
+            if (rec.disabled === true) { rec.disabled = false; changed = true }
+            if (changed) { saveAccounts(dataDir, store); result.updated.push({ account: m.account }) } else result.unchanged += 1
+          }
+        }
+        if (body.disableMissing === true) {
+          const store = loadAccounts(dataDir)
+          for (const rec of store.accounts) {
+            if (!seen.has(rec.account) && !rec.disabled && rec.role !== 'admin') {
+              rec.disabled = true
+              rec.tokenEpoch = (rec.tokenEpoch ?? 0) + 1
+              try { revokeVkey(dataDir, { account: rec.account }) } catch { /* 无钥匙 */ }
+              result.missingDisabled.push(rec.account)
+            }
+          }
+          saveAccounts(dataDir, store)
+        }
+        json(res, 200, { ok: true, ...result })
         return
       }
       case '/console/api/member/models': {

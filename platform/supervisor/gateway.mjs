@@ -83,7 +83,7 @@ export function verifyPassword(account, password) {
   return actual.length === expected.length && timingSafeEqual(actual, expected)
 }
 
-export function addAccount(dataDir, { account, instanceId, role, displayName, password }) {
+export function addAccount(dataDir, { account, instanceId, role, displayName, department, password }) {
   const store = loadAccounts(dataDir)
   if (store.accounts.some((a) => a.account === account)) {
     throw new Error(`账号已存在: ${account}`)
@@ -93,12 +93,30 @@ export function addAccount(dataDir, { account, instanceId, role, displayName, pa
     account,
     displayName: displayName ?? account.split('@')[0],
     role,
+    department: department ?? '未分配',
     instanceId,
     tokenEpoch: 0,
     createdAt: new Date().toISOString(),
     passwordHash: hashPassword(password),
   }
   store.accounts.push(record)
+  saveAccounts(dataDir, store)
+  return record
+}
+
+const VALID_ROLES = ['admin', 'auditor', 'employee']
+
+/** 受控变更账号属性（角色/部门/显示名）：角色即时影响控制台与管理员权限。 */
+export function updateAccount(dataDir, account, patch) {
+  const store = loadAccounts(dataDir)
+  const record = store.accounts.find((a) => a.account === account)
+  if (record === undefined) throw new Error(`账号不存在: ${account}`)
+  if (patch.role !== undefined) {
+    if (!VALID_ROLES.includes(patch.role)) throw new Error(`非法角色: ${patch.role}`)
+    record.role = patch.role
+  }
+  if (patch.department !== undefined) record.department = patch.department
+  if (patch.displayName !== undefined) record.displayName = patch.displayName
   saveAccounts(dataDir, store)
   return record
 }
