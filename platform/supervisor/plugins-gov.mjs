@@ -14,7 +14,7 @@
  */
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync, renameSync } from 'node:fs'
+import { mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { get } from 'node:http'
 import { join, resolve } from 'node:path'
@@ -101,7 +101,8 @@ export async function precheck({ repoRoot, dataDir, spec, launchTemplate, timeou
   mkdirSync(tempHome, { recursive: true })
   try {
     const install = await runPluginCommand({ repoRoot, home: tempHome, action: 'add', spec })
-    if (!install.ok) return { pass: false, output: `安装失败:\n${install.output}` }
+    if (!install.ok) return { pass: false, output: `安装失败:
+${install.output}` }
 
     const port = await freePort()
     const commandLine = [launchTemplate.command, ...launchTemplate.args]
@@ -109,23 +110,30 @@ export async function precheck({ repoRoot, dataDir, spec, launchTemplate, timeou
         .replaceAll('{id}', 'precheck')
         .replaceAll('{gatewayAuthority}', `precheck.local:${port}`))
       .join(' ')
+    // detached + 日志落文件：本机沙箱会收割 daemon 晚生成的子进程并使管道
+    // 随父进程失效；脱离进程组 + 文件输出让启动结果始终可查。
+    const bootLog = join(tempHome, 'boot.log')
+    const out = openSync(bootLog, 'a')
+    const spawnedAt = Date.now()
+    let crashed = false
+    let crashDetail = ''
     const child = spawn(commandLine, {
       cwd: repoRoot,
       env: { ...process.env, DSH_HOME: tempHome },
+      detached: true,
       windowsHide: true,
       shell: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', out, out],
     })
-    const spawnedAt = Date.now()
-    let bootOutput = ''
-    child.stdout.on('data', (d) => { bootOutput += d })
-    child.stderr.on('data', (d) => { bootOutput += d })
-    let crashed = false
-    let crashDetail = ''
-    child.on('exit', (code, signal) => { crashed = true; crashDetail = `exit code=${code} signal=${signal} at ${new Date().toISOString()} (spawned ${new Date(spawnedAt).toISOString()})`; bootOutput += `
-[exit] ${crashDetail}
-` })
+    child.unref()
+    child.on('exit', (code, signal) => {
+      crashed = true
+      crashDetail = `exit code=${code} signal=${signal} at ${new Date().toISOString()} (spawned ${new Date(spawnedAt).toISOString()})`
+    })
 
+    const readBootLog = () => {
+      try { return readFileSync(bootLog, 'utf8') } catch { return '' }
+    }
     const deadline = Date.now() + bootTimeoutMs
     let healthy = false
     while (Date.now() < deadline) {
@@ -134,8 +142,10 @@ export async function precheck({ repoRoot, dataDir, spec, launchTemplate, timeou
       await sleep(2_000)
     }
     await killTree(child.pid)
+    const bootOutput = readBootLog()
     if (healthy) return { pass: true, output: `隔离启动健康（port ${port}，${Math.round((Date.now() - (deadline - bootTimeoutMs)) / 1000)}s）` }
-    return { pass: false, output: `真启动未通过（${crashed ? `进程早退 ${crashDetail}` : '超时'}）:\n${bootOutput.slice(-2_000)}` }
+    return { pass: false, output: `真启动未通过（${crashed ? `进程早退 ${crashDetail}` : '超时'}）:
+${bootOutput.slice(-2_000)}` }
   } finally {
     try { rmSync(tempHome, { recursive: true, force: true }) } catch { /* 临时目录清理失败不阻塞 */ }
   }
@@ -146,7 +156,6 @@ export async function precheck({ repoRoot, dataDir, spec, launchTemplate, timeou
  * 串行执行（同一时刻至多一个 pnpm/预检启动），控制台轮询取状态。
  * 运行于 daemon 进程内；实例重启经 control.json 复用既有控制通道。 */
 
-import { readdirSync as _readdir, renameSync as _rename } from 'node:fs'
 
 /** 从安装 spec 推导插件名：本地路径读其 package.json 的 name；npm spec 取最后一个 @ 前段。 */
 function specName(spec) {
@@ -170,7 +179,7 @@ export function createJobRunner({ dataDir, manifest, repoRoot }) {
   const saveJobs = (store) => {
     const tmp = `${jobsFile}.tmp`
     writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-    _rename(tmp, jobsFile)
+    renameSync(tmp, jobsFile)
   }
   const patchJob = (id, patch) => {
     const store = loadJobs()
