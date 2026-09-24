@@ -335,6 +335,15 @@ export function removeModel(dataDir, { upstream, model }) {
   writeStore(dataDir, UPSTREAMS_FILE, store)
 }
 
+/** 删除整个上游供应商（含其模型与展示元数据）。 */
+export function removeUpstream(dataDir, { name }) {
+  const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
+  const before = store.upstreams.length
+  store.upstreams = store.upstreams.filter((x) => x.name !== name)
+  if (store.upstreams.length === before) throw new Error(`上游不存在: ${name}`)
+  writeStore(dataDir, UPSTREAMS_FILE, store)
+}
+
 export function setUpstream(dataDir, { name, baseURL, models, apiKey, note, website, apiFormat, authEnv, modelMapping, fallbackModel, configJSON, fullUrl }) {
   const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
   const existing = store.upstreams.find((u) => u.name === name)

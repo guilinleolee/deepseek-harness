@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
-import { addModel, issueVkey, listUpstreams, removeModel, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
+import { addModel, issueVkey, listUpstreams, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 
 const PAGES = ['members', 'models', 'instances', 'plugins']
@@ -539,26 +539,31 @@ function modelsPage({ dataDir }) {
     return null
   }
   const accounts = listAccounts(dataDir)
-  const upstreamRows = upstreams.map((u) => `
-<tr><td>${esc(u.name)}</td><td>${esc(u.baseURL)}</td><td><span class="chip gray">${esc(u.keyFingerprint ?? '—')}</span></td><td>${u.models.length}</td><td><span class="chip green">已接入</span></td></tr>`).join('')
-  const modelRows = catalog.map((m) => {
-    const u = upstreams.find((x) => x.models.includes(m))
-    const meta = metaFor(m)
-    const usedBy = accounts.filter((a) => {
-      const vk = activeVkeyFor(dataDir, a.account)
-      return vk !== undefined && (vk.models === '*' || vk.models.includes(m))
-    }).length
-    const del = `<button class="warn" onclick="removeModel('${esc(u?.name ?? '')}','${esc(m)}',${usedBy})">删除</button>`
-    return `<tr><td>${esc(m)}</td><td>${esc(u?.name ?? '—')}</td><td>${meta ? esc(meta.context) : '—'} / ${meta ? esc(meta.maxOutput) : '—'}</td>
-<td>${meta ? esc(meta.mIn) : '—'}</td><td>${meta ? esc(meta.mOut) : '—'}</td><td>${meta ? esc(meta.mCacheR) : '—'}</td><td>${meta ? esc(meta.mCacheW) : '—'}</td>
-<td>${usedBy}</td><td><span class="chip green">已启用</span></td><td>${del}</td></tr>`
-  }).join('')
-  const upstreamOptions = upstreams.map((u) => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join('')
+  const P_COLORS = ['#43d6c5', '#6f9bff', '#ffd166', '#ff9d9d', '#b388ff', '#7ef0c0', '#f5a623']
+  const providerCards = upstreams.map((u) => {
+    const sum = [...u.name].reduce((a, c) => a + c.codePointAt(0), 0)
+    const color = P_COLORS[sum % P_COLORS.length]
+    return `<div class="pcard">
+      <span class="picon" style="background:${color}">${esc([...u.name][0].toUpperCase())}</span>
+      <div class="pinfo"><div class="pname">${esc(u.name)}</div><a class="plink" href="${esc(u.website || u.baseURL)}" target="_blank" rel="noopener">${esc(u.baseURL)}</a></div>
+      <div class="pmeta"><span class="chip gray">模型 ${u.models.length} 个</span> <span class="chip gray">${esc(u.keyFingerprint ?? '—')}</span></div>
+      <div class="pacts">
+        <form class="inline" onsubmit="addModelTo(event,'${esc(u.name)}')"><input name="model" size="12" placeholder="模型 ID"><button class="btn">＋ 添加模型</button></form>
+        <form class="inline" onsubmit="delProvider(event,'${esc(u.name)}')"><button class="btn warn" title="删除供应商">🗑</button></form>
+      </div>
+    </div>`
+  }).join('\n')
+  const providerCardsBlock = `
+  <div class="pcardlist">${providerCards || '<div class="pcard">暂无供应商</div>'}</div>
+  <form class="panel" onsubmit="addProvider(event)" style="margin-top:.8rem">
+  <div>供应商名称 <input name="name" size="28" placeholder="例如：Zhipu GLM" required> ｜ 请求地址 <input name="baseURL" size="40" placeholder="https://…" required> ｜ API Key <input name="apiKey" size="24" placeholder="sk-…" required> ｜ 模型 <input name="models" size="20" placeholder="逗号分隔"> <button class="primary">添加供应商</button></div>
+  </form>
+  <h2 class="sect">可用模型</h2>`
   const matrix = modelsMatrix({ dataDir, accounts, catalog })
   return `
 <div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new">＋ 新建模型供应商</a></div>
-<h2 class="sect">上游提供方 <span class="mut" style="font-size:.8rem">真实 Key 只存在于 Relay 进程</span></h2>
-<table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${upstreamRows}</table>
+<h2 class="sect">模型供应商列表</h2>
+<table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${providerCardsBlock}</table>
 <h2 class="sect">可用模型</h2>
 <table><tr><th>模型</th><th>提供方</th><th>上下文 / 最大输出</th><th>输入倍率</th><th>输出倍率</th><th>缓存读</th><th>缓存写</th><th>成员可见</th><th>状态</th><th>操作</th></tr>${modelRows}</table>
 <h2 class="sect">成员实际可见的模型矩阵</h2>
@@ -581,6 +586,15 @@ function modelsMatrix({ dataDir, accounts, catalog }) {
 <button class="primary">保存矩阵</button></form>
 <pre id="out" class="log" style="max-height:none"></pre>
 <script>
+async function addModelTo(ev, upstream) {ev.preventDefault();
+ const f = new FormData(ev.target); const payload = { upstream, model: f.get('model') }
+ if (!payload.model) { alert('请填写模型 ID'); return }
+ const r = await fetch('/console/api/model/add', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+ const t = await r.text(); alert((r.ok ? '已添加: ' : '失败: ') + t); if (r.ok) setTimeout(() => location.reload(), 600)}
+async function delProvider(ev, name) {ev.preventDefault();
+ if (!confirm('删除供应商 ' + name + '？其模型将一并移除')) return
+ const r = await fetch('/console/api/provider/remove', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) })
+ if (r.ok) setTimeout(() => location.reload(), 600); else alert('删除失败: ' + await r.text())}
 async function saveMatrix(ev){ev.preventDefault();
  const f=new FormData(ev.target);const byAccount={};
  for(const [k,v] of f.entries()){if(!v)continue;const [account,model]=k.split('|');(byAccount[account]??=[]).push(model)}
@@ -761,6 +775,16 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
             fullUrl: body.fullUrl === true,
           })
           json(res, 200, { ok: true, name, models })
+        } catch (error) {
+          json(res, 400, { error: String(error?.message ?? error) })
+        }
+        return
+      }
+      case '/console/api/provider/remove': {
+        const name = typeof body.name === 'string' ? body.name : ''
+        try {
+          removeUpstream(dataDir, { name })
+          json(res, 200, { ok: true })
         } catch (error) {
           json(res, 400, { error: String(error?.message ?? error) })
         }
