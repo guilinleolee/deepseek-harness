@@ -103,6 +103,19 @@ pre.log{background:#0a0e1e;border:1px solid var(--line);border-radius:8px;paddin
 font-size:.78rem;line-height:1.5;max-height:60vh}
 footer{margin-top:3rem;text-align:center;color:var(--faint);font-size:.8rem;letter-spacing:.1em}
 a{color:var(--blue)}
+.flabel{font-size:.85rem;color:var(--muted);margin:.3rem 0 .25rem}
+.hinttext{font-size:.78rem;color:var(--faint);margin:.15rem 0 .5rem}
+select{min-width:220px}
+.chip.purple{background:rgba(179,136,255,.12);color:#d5b8ff;border:1px solid rgba(179,136,255,.35)}
+.mmtable input[type=text],.mmtable input:not([type]){width:100%}
+.adv{margin-top:1rem}
+.adv summary{cursor:pointer;color:#c5cae9;font-size:.92rem;list-style:none}
+.adv summary::before{content:'▸ '}.adv[open] summary::before{content:'▾ '}
+.advbody{border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;margin-top:.5rem;background:rgba(20,26,51,.6)}
+.cfgrow{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.6rem .9rem;margin:.5rem 0;font-size:.9rem}
+.editorwrap{display:flex;background:#0a0e1e;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.gutter{padding:.7rem .5rem;color:var(--faint);font-family:Consolas,monospace;font-size:.85rem;text-align:right;user-select:none;min-width:2rem;white-space:pre}
+.editorwrap textarea{flex:1;border:none;resize:vertical;font-family:Consolas,monospace;font-size:.85rem;line-height:1.5}
 .searchbox{display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem}
 .searchbox input{width:220px}
 `
@@ -420,10 +433,36 @@ function newProviderPage() {
 <div><input name="baseURL" style="width:100%" placeholder="https://your-api-endpoint.com" id="baseurl-input"></div>
 <div class="hint">💡 填写兼容 OpenAI Chat Completions 的服务端点地址，不要以斜杠结尾</div>
 <div style="margin-top:.9rem"><div class="flabel">模型列表（逗号分隔）</div><input name="models" style="width:100%" placeholder="如 glm-4.7,glm-5.2（供成员矩阵授权）"></div>
-<details class="adv"><summary>▶ 高级选项</summary>
+<details class="adv"><summary>∨ 高级选项</summary>
 <div class="advbody">
 <p class="mut" style="font-size:.85rem;margin:.2rem 0 .6rem">包含 API 格式、认证字段、模型映射等配置。大多数场景下保持默认即可。</p>
-<div style="display:flex;align-items:center;justify-content:space-between">
+<div class="flabel">API 格式</div>
+<select name="apiFormat" id="apifmt" onchange="onApiFmt(this.value)">
+<option value="anthropic" selected>Anthropic Messages（原生）</option>
+<option value="openai">OpenAI Chat Completions（兼容）</option>
+</select>
+<p class="hinttext">选择供应商 API 的输入格式</p>
+<div class="flabel">认证字段</div>
+<select name="authEnv">
+<option value="ANTHROPIC_AUTH_TOKEN">ANTHROPIC_AUTH_TOKEN（默认）</option>
+<option value="ANTHROPIC_API_KEY">ANTHROPIC_API_KEY</option>
+<option value="OPENAI_API_KEY">OPENAI_API_KEY</option>
+</select>
+<p class="hinttext">选择写入配置的认证环境变量名</p>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:.9rem">
+<div class="flabel" style="margin:0">模型映射</div>
+<div><button type="button" class="btn" onclick="mmQuick()">一键设置</button><button type="button" class="btn" onclick="alert('获取模型列表：需供应商支持 /models 接口，待接入')">获取模型列表</button></div>
+</div>
+<p class="mut" style="font-size:.82rem;margin:.2rem 0 .4rem">显示名称只影响 /model 菜单；1M 只是给 Claude Code 的上下文能力声明。</p>
+<table class="mmtable"><tr><th>模型角色</th><th>显示名称</th><th>实际请求模型</th><th>声明支持 1M</th></tr>
+<tr><td><span class="chip blue">Sonnet</span></td><td><input name="mm-display-sonnet" placeholder="MiniMax-M3"></td><td><input name="mm-actual-sonnet" placeholder="MiniMax-M3"></td><td><input type="checkbox" name="mm-1m-sonnet"></td></tr>
+<tr><td><span class="chip purple">Opus</span></td><td><input name="mm-display-opus" placeholder="MiniMax-M2.7-highspeed"></td><td><input name="mm-actual-opus" placeholder="MiniMax-M2.7-highspeed"></td><td><input type="checkbox" name="mm-1m-opus"></td></tr>
+<tr><td><span class="chip gray">Haiku</span></td><td><input name="mm-display-haiku" placeholder="MiniMax-M2.7"></td><td><input name="mm-actual-haiku" placeholder="MiniMax-M2.7"></td><td><input type="checkbox" name="mm-1m-haiku"></td></tr>
+</table>
+<div class="flabel" style="margin-top:.9rem">默认兜底模型</div>
+<input name="fallbackModel" style="width:100%" placeholder="MiniMax-M3">
+<p class="hinttext">仅在请求没有明确落到 Sonnet、Opus 或 Haiku 角色时使用；通常可以留空。</p>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem">
 <div style="font-weight:600">配置 JSON</div>
 <div style="display:flex;align-items:center;gap:.6rem"><label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" checked> 写入通用配置</label><a href="#" onclick="return false" style="font-size:.85rem">编辑通用配置</a></div>
 </div>
@@ -434,13 +473,13 @@ function newProviderPage() {
 <label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="maxThinking" onchange="cfgKey(this)"> 最大强度思考</label>
 <label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="disableAutoUpdate" onchange="cfgKey(this)"> 禁用自动升级</label>
 </div>
-<textarea id="cfgjson" rows="6" style="width:100%;font-family:Consolas,monospace;font-size:.85rem;background:#0a0e1e;color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:.7rem">{
+<div class="editorwrap"><div class="gutter" id="gutter">1</div><textarea id="cfgjson" rows="8" spellcheck="false">{
   "env": {},
   "includeCoAuthoredBy": false
-}</textarea>
+}</textarea></div>
 <div style="margin:.4rem 0 1rem"><a href="#" onclick="fmtJson();return false" style="font-size:.85rem">⚡ 格式化</a></div>
-<div class="cfgrow"><span>🧪 模型测试配置</span><span class="mut">使用单独配置</span></div>
-<div class="cfgrow"><span>💰 计费配置</span><span class="mut">使用单独配置</span></div>
+<div class="cfgrow"><span>🧪 模型测试配置</span><span class="mut">使用单独配置（待接入）</span></div>
+<div class="cfgrow"><span>💰 计费配置</span><span class="mut">使用单独配置（待接入）</span></div>
 </div>
 </details>
 <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1.2rem">
@@ -460,11 +499,19 @@ document.querySelectorAll('.preset').forEach(function(b){
   f.name.focus()})
 })
 function cfgKey(cb){try{var o=JSON.parse(document.getElementById('cfgjson').value||'{}');o[cb.dataset.key]=cb.checked;document.getElementById('cfgjson').value=JSON.stringify(o,null,2)}catch(e){cb.checked=!cb.checked;alert('JSON 格式错误，无法修改')}}
-function fmtJson(){try{var o=JSON.parse(document.getElementById('cfgjson').value);document.getElementById('cfgjson').value=JSON.stringify(o,null,2)}catch(e){alert('JSON 格式错误')}}
+function fmtJson(){try{var o=JSON.parse(document.getElementById('cfgjson').value);document.getElementById('cfgjson').value=JSON.stringify(o,null,2);syncGutter()}catch(e){alert('JSON 格式错误')}}
+function syncGutter(){var t=document.getElementById('cfgjson');var g=document.getElementById('gutter');if(!t||!g)return;
+ var n=t.value.split('
+').length;var s='';for(var i=1;i<=n;i++)s+=i+'
+';g.textContent=s}
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='cfgjson')syncGutter()});
 async function addProvider(ev){ev.preventDefault();
  var f=document.getElementById('pform');var fd=new FormData(f);var payload={};fd.forEach(function(v,k){payload[k]=v});
  payload.fullUrl=document.getElementById('fullurl').checked;
  payload.configJSON=document.getElementById('cfgjson').value;
+ payload.modelMapping=['sonnet','opus','haiku'].map(function(role){
+  return {role:role,display:f.elements['mm-display-'+role]?f.elements['mm-display-'+role].value:'',actual:f.elements['mm-actual-'+role]?f.elements['mm-actual-'+role].value:'',support1M:f.elements['mm-1m-'+role]?f.elements['mm-1m-'+role].checked:false}
+ }).filter(function(m){return m.display||m.actual});
  var r=await fetch('/console/api/provider/add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
  if(r.ok){location.href='/console/models'}else{document.getElementById('out2').textContent='HTTP '+r.status+' '+await r.text()}}
 </script>`
@@ -688,7 +735,18 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
         if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在模型页“增加模型”补充——该表单已移除，重新添加即可）' }); return }
         try {
-          setUpstream(dataDir, { name, baseURL, models, apiKey: body.apiKey, note: body.note || undefined, website: body.website || undefined, configJSON: body.configJSON, fullUrl: body.fullUrl === true })
+          setUpstream(dataDir, {
+            name, baseURL, models,
+            apiKey: body.apiKey,
+            note: body.note || undefined,
+            website: body.website || undefined,
+            apiFormat: body.apiFormat === 'openai' ? 'openai' : 'anthropic',
+            authEnv: typeof body.authEnv === 'string' ? body.authEnv : undefined,
+            modelMapping: Array.isArray(body.modelMapping) ? body.modelMapping : undefined,
+            fallbackModel: typeof body.fallbackModel === 'string' ? body.fallbackModel : undefined,
+            configJSON: typeof body.configJSON === 'string' ? body.configJSON : undefined,
+            fullUrl: body.fullUrl === true,
+          })
           json(res, 200, { ok: true, name, models })
         } catch (error) {
           json(res, 400, { error: String(error?.message ?? error) })

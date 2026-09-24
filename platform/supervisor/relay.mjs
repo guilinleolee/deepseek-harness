@@ -119,7 +119,8 @@ export function createRelayServer({ dataDir }) {
   }
 
   return createServer((req, res) => {
-    if (req.method !== 'POST' || !(req.url === '/v1/chat/completions' || req.url === '/v1/completions')) {
+    const incoming = req.url
+    if (req.method !== 'POST' || !(incoming === '/v1/chat/completions' || incoming === '/v1/completions' || incoming === '/v1/messages')) {
       openAiError(res, 404, `unknown relay route ${req.method} ${req.url}`, 'not_found')
       return
     }
@@ -179,6 +180,14 @@ export function createRelayServer({ dataDir }) {
       const upstream = upstreams.find((u) => !u.revoked && u.models.includes(model))
       if (upstream === undefined) {
         openAiError(res, 403, `model "${model}" has no upstream configured on the relay`, 'no_upstream')
+        return
+      }
+      // 按供应商 API 格式映射转发路径：openai 格式走 /chat/completions，anthropic 原生走 /v1/messages
+      const upstreamPath = (upstream.apiFormat === 'anthropic')
+        ? '/v1/messages'
+            : incoming.replace('/v1', '')
+      if (!['/v1/messages', '/chat/completions', '/completions'].includes(upstreamPath)) {
+        openAiError(res, 400, `unsupported path for upstream "${upstream.name}": ${upstreamPath}`, 'bad_path')
         return
       }
 
@@ -326,7 +335,7 @@ export function removeModel(dataDir, { upstream, model }) {
   writeStore(dataDir, UPSTREAMS_FILE, store)
 }
 
-export function setUpstream(dataDir, { name, baseURL, models, apiKey, note, website }) {
+export function setUpstream(dataDir, { name, baseURL, models, apiKey, note, website, apiFormat, authEnv, modelMapping, fallbackModel, configJSON, fullUrl }) {
   const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
   const existing = store.upstreams.find((u) => u.name === name)
   if (existing) {
@@ -335,9 +344,15 @@ export function setUpstream(dataDir, { name, baseURL, models, apiKey, note, webs
     if (apiKey !== undefined) existing.apiKey = apiKey
     if (note !== undefined) existing.note = note
     if (website !== undefined) existing.website = website
+    if (apiFormat !== undefined) existing.apiFormat = apiFormat
+    if (authEnv !== undefined) existing.authEnv = authEnv
+    if (modelMapping !== undefined) existing.modelMapping = modelMapping
+    if (fallbackModel !== undefined) existing.fallbackModel = fallbackModel
+    if (configJSON !== undefined) existing.configJSON = configJSON
+    if (fullUrl !== undefined) existing.fullUrl = fullUrl
   } else {
     if (apiKey === undefined) throw new Error(`上游 ${name} 不存在，首次创建必须提供 --key`)
-    store.upstreams.push({ name, baseURL, models, apiKey, revoked: false, note, website, createdAt: new Date().toISOString() })
+    store.upstreams.push({ name, baseURL, models, apiKey, revoked: false, note, website, apiFormat: apiFormat ?? 'openai', authEnv, modelMapping, fallbackModel, configJSON, fullUrl, createdAt: new Date().toISOString() })
   }
   writeStore(dataDir, UPSTREAMS_FILE, store)
 }
@@ -353,6 +368,12 @@ export function listUpstreams(dataDir) {
     modelMeta: u.modelMeta ?? {},
     note: u.note ?? '',
     website: u.website ?? '',
+    apiFormat: u.apiFormat ?? 'openai',
+    authEnv: u.authEnv ?? '',
+    modelMapping: u.modelMapping ?? [],
+    fallbackModel: u.fallbackModel ?? '',
+    configJSON: u.configJSON ?? '',
+    fullUrl: u.fullUrl === true,
   }))
 }
 
