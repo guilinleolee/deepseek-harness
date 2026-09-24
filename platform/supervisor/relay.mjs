@@ -301,6 +301,31 @@ function writeStore(dataDir, file, value) {
   renameSync(tmp, path)
 }
 
+/** 上游增加模型：写入 models 列表与展示元数据（modelMeta）。已存在则报错。 */
+export function addModel(dataDir, { upstream, model, meta }) {
+  const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
+  const u = store.upstreams.find((x) => x.name === upstream)
+  if (u === undefined) throw new Error(`上游不存在: ${upstream}`)
+  if (u.models.includes(model)) throw new Error(`模型已存在: ${model}`)
+  u.models.push(model)
+  if (meta && typeof meta === 'object') {
+    u.modelMeta ??= {}
+    u.modelMeta[model] = meta
+  }
+  writeStore(dataDir, UPSTREAMS_FILE, store)
+}
+
+/** 上游删除模型：从 models 列表与展示元数据中移除。 */
+export function removeModel(dataDir, { upstream, model }) {
+  const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
+  const u = store.upstreams.find((x) => x.name === upstream)
+  if (u === undefined) throw new Error(`上游不存在: ${upstream}`)
+  if (!u.models.includes(model)) throw new Error(`模型不存在: ${model}`)
+  u.models = u.models.filter((m) => m !== model)
+  if (u.modelMeta !== undefined) delete u.modelMeta[model]
+  writeStore(dataDir, UPSTREAMS_FILE, store)
+}
+
 export function setUpstream(dataDir, { name, baseURL, models, apiKey }) {
   const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
   const existing = store.upstreams.find((u) => u.name === name)
@@ -323,6 +348,7 @@ export function listUpstreams(dataDir) {
     revoked: u.revoked === true,
     // 只回显指纹，绝不回显真实 Key。
     keyFingerprint: u.apiKey === undefined ? '—' : `${u.apiKey.slice(0, 4)}…${u.apiKey.slice(-4)}（${u.apiKey.length} 字符）`,
+    modelMeta: u.modelMeta ?? {},
   }))
 }
 
