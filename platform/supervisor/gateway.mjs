@@ -7,8 +7,10 @@
  * 实例侧零改动——实例通过自身 `--trusted-host` 信任围栏接受网关转发的
  * Host，且只绑定 127.0.0.1，生产环境员工物理上绕不过网关。
  *
- * 安全语义（对齐任务书决定 5 与阶段 0 矩阵）：
+ * 安全语义（对齐任务书决定 5 与阶段 0 矩阵 + 栏目规划 v2 第五节）：
  * - 密码 scrypt 加盐哈希存储；JWT HS256，30 分钟过期；
+ * - 登录限速：按「账号+IP」滑动窗口失败计数，达阈值锁定（参数在
+ *   data/security.json，security.mjs），成败/限流三种结果都写审计（audit.mjs）；
  * - 撤销 = 账号 tokenEpoch 递增，旧令牌全部失效（设备级撤销走阶段 3 控制面）；
  * - 实时校验账号↔实例绑定：改绑立即生效，无需等令牌过期；
  * - 网关只做身份与绑定判定，不读任何会话/内容正文。
@@ -16,11 +18,13 @@
 import { createServer, request as httpRequest } from 'node:http'
 import { connect as netConnect } from 'node:net'
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 import { handleConsole } from './console.mjs'
 import { createJobRunner } from './plugins-gov.mjs'
+import { auditAppend, clientIp, initAudit } from './audit.mjs'
+import { createLoginRateGuard, loadSecurityConfig } from './security.mjs'
 
 const json = (res, status, value) => {
   try {
@@ -49,9 +53,12 @@ export function listAccounts(dataDir) {
     account: a.account,
     displayName: a.displayName,
     role: a.role,
+    department: a.department,
     instanceId: a.instanceId,
     tokenEpoch: a.tokenEpoch,
     createdAt: a.createdAt,
+    disabled: a.disabled === true,
+    monthlyTokens: a.monthlyTokens,
   }))
 }
 
@@ -67,7 +74,15 @@ export function setPassword(dataDir, account, password) {
 }
 
 export function saveAccounts(dataDir, store) {
-  writeFileSync(join(dataDir, 'accounts.json'), `${JSON.stringify(store, null, 2)}\n`)
+  const path = join(dataDir, 'accounts.json')
+  const tmp = `${path}.tmp`
+  writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
+  renameSync(tmp, path)
+}
+
+/** 账号/部门等实体名白名单：字母数字、@._- 与中文，1–64 字符（收敛注入面）。 */
+export function isValidEntityName(value) {
+  return typeof value === 'string' && /^[\w@.\-\u4e00-\u9fa5]{1,64}$/.test(value)
 }
 
 export function hashPassword(password) {
@@ -84,6 +99,12 @@ export function verifyPassword(account, password) {
 }
 
 export function addAccount(dataDir, { account, instanceId, role, displayName, department, password }) {
+  if (!isValidEntityName(account)) {
+    throw new Error('账号格式非法（允许字母数字、@._- 与中文，1–64 字符）')
+  }
+  if (department !== undefined && !isValidEntityName(department)) {
+    throw new Error('部门名格式非法（允许字母数字、@._- 与中文，1–64 字符）')
+  }
   const store = loadAccounts(dataDir)
   if (store.accounts.some((a) => a.account === account)) {
     throw new Error(`账号已存在: ${account}`)
@@ -115,7 +136,12 @@ export function updateAccount(dataDir, account, patch) {
     if (!VALID_ROLES.includes(patch.role)) throw new Error(`非法角色: ${patch.role}`)
     record.role = patch.role
   }
-  if (patch.department !== undefined) record.department = patch.department
+  if (patch.department !== undefined) {
+    if (!isValidEntityName(patch.department)) {
+      throw new Error('部门名格式非法（允许字母数字、@._- 与中文，1–64 字符）')
+    }
+    record.department = patch.department
+  }
   if (patch.displayName !== undefined) record.displayName = patch.displayName
   saveAccounts(dataDir, store)
   return record
@@ -233,7 +259,17 @@ async function login(ev){ev.preventDefault();
  * @param dataDir - data/ 目录（accounts.json、auth-secret.key 所在）
  */
 export function createGatewayServer({ manifest, getState, dataDir }) {
+  initAudit(dataDir)
   const secret = getOrCreateSecret(dataDir)
+  // 登录限速参数每次判定时从 security.json 现读：管理台改动即时生效。
+  const loginGuard = createLoginRateGuard(() => {
+    const config = loadSecurityConfig(dataDir)
+    return {
+      windowMs: config.loginWindowMinutes * 60_000,
+      maxFails: config.loginMaxFails,
+      lockoutMs: config.lockoutMinutes * 60_000,
+    }
+  })
   const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
   const accountsFile = join(dataDir, 'accounts.json')
   const portalHost = manifest.gatewayHost ?? 'localhost'
@@ -252,6 +288,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     const url = new URL(req.url, `http://${hostHeader || 'localhost'}`)
 
     // 1) 登录接口：任何主机名上都可登录（登录发生在目标子域上，Cookie 才有效）。
+    // 三种结果（成功/失败/被限流）都写审计；速率限制先于密码校验。
     if (url.pathname === '/api/auth/login' && req.method === 'POST') {
       let body = ''
       req.on('data', (chunk) => { body += chunk })
@@ -263,17 +300,32 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
           account = String(parsed.account ?? '')
           password = String(parsed.password ?? '')
         } catch { /* 当作空凭据处理 */ }
+        const ip = clientIp(req)
         const record = accountsStore.accounts.find((a) => a.account === account)
+        const actor = { account, role: record?.role ?? null, ip }
+        const verdict = loginGuard.check(account, ip)
+        if (!verdict.allowed) {
+          void auditAppend({ actor, action: 'auth.login_rate_limited', target: account, result: 'deny', detail: { retryAfterMinutes: verdict.retryAfterMinutes } })
+          res.writeHead(429, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: `登录尝试过于频繁，账号已临时锁定，请约 ${verdict.retryAfterMinutes} 分钟后再试` }))
+          return
+        }
         if (record?.disabled) {
+          loginGuard.fail(account, ip)
+          void auditAppend({ actor, action: 'auth.login_fail', target: account, result: 'deny', detail: { reason: 'disabled' } })
           res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
           res.end(JSON.stringify({ error: '账号已禁用，请联系管理员' }))
           return
         }
         if (!record || !verifyPassword(record, password)) {
+          loginGuard.fail(account, ip)
+          void auditAppend({ actor, action: 'auth.login_fail', target: account, result: 'fail', detail: { reason: 'bad_credentials' } })
           res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
           res.end(JSON.stringify({ error: 'invalid credentials' }))
           return
         }
+        loginGuard.success(account, ip)
+        void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok' })
         const token = signToken(secret, {
           sub: record.id,
           acc: record.account,

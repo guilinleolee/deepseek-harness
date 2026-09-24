@@ -86,6 +86,30 @@ node supervisor.mjs logs --id e02
 - **每实例 env 注入**（任务书 6a）：清单 `instances[].env` 支持 `{dataDir}` 占位符；三实例已注入 `CREATOR_WORKBENCH_SKILLS_PATH` 指向 `data/assets/creator-skills`（服务器侧管理员统一维护的技能库，员工只读），替代插件内 Windows 本机默认路径。
 - 试点说明：分发/预检/生效/禁用链路用真实 npm 包 `@weibaohui/dsh-file-share` 验证；内容创作工作站为仓库内树插件（不经 npm 分发），其治理面 = 每实例 env 配置（6a 已落地）+ 后续控制台的启用开关。6b 的跨平台脚本移植与 6d 合规门禁上报属部署清单与控制台阶段事项。
 
+## 安全与审计（栏目规划 v2 一期）
+
+- **审计日志**：`data/audit.jsonl` 只追加 JSONL（谁/何时/对谁/动作/结果/标量 detail），永不落会话正文、密码原文、密钥原文。覆盖：登录成败/限流（`auth.*`，gateway）、成员/供应商/模型/实例/插件全部变更端点（`member.*`/`provider.*`/`model.*`/`instance.*`/`plugin.*`，ok/deny/fail 都留痕）、配额硬停（`quota.exceeded`，relay 与网关同进程直接共享 audit.mjs）、审计导出（`audit.export`）与安全设置修改（`security.config_change`，含旧值→新值）。
+- **安全与审计页** `/console/audit`：审计日志按 action 前缀/账号关键词/结果筛选（倒序、500 条封顶），导出 JSONL 不限量（`/console/api/audit/export`）；下半页安全设置表单（`/console/api/security/config`，admin-only）。总览页新增告警卡：额度将尽成员数、24h 失败登录数、最近 5 条审计事件。
+- **登录安全**：`data/security.json` 缺省自动生成（窗口 15 分钟内 10 次失败锁 15 分钟、密码最小 8 位 3 类字符）；速率限制按「账号+IP」内存滑动窗口（daemon 重启清零），成功登录清零，参数改动即时生效；密码策略作用于控制台建号与重置（弱密码 400 中文文案并留痕）。
+- **角色门禁**：管理台页面与只读 GET API（含审计查询/导出、投放任务查询）放行 admin/auditor；全部变更 POST 仅 admin，auditor 得 403「审计员为只读角色」（拒绝也留 deny），employee 拒入。
+- **测试**：`node test/security-audit-smoke.mjs`（单元冒烟：密码策略/限流全路径/审计查询/配置生成，临时目录）；`node test/auth-audit-http-verify.mjs`（HTTP 集成：随机端口 + mock 上游验证登录三路径审计、auditor 门禁、配额硬停审计，自动清理）。
+
+## 配额点数模型（栏目规划 v2 六节）
+
+- **公式**：`消耗点 = (输入 tokens × 模型倍率 + 输出 tokens × 模型倍率 × 补全倍率) × 分组倍率`；倍率未配置时模型倍率=1、补全倍率=`defaultCompletionRatio`（缺省 3，对齐主流对话模型输出/输入价格比）、分组倍率=1。倍率存 `data/ratios.json`，mtime 缓存，改动下一请求即生效：
+
+```json
+{
+  "models": { "glm-5.3": { "ratio": 2, "completionRatio": 3 } },
+  "defaultCompletionRatio": 3,
+  "groups": { "设计部": 1.5 }
+}
+```
+
+- **扣减流程**（Relay 每请求，认证 → 模型授权 → 配额判定 → 预扣 → 转发）：预扣 = 估输入（`ceil(消息+system 字符数/4)`）× 模型倍率 + 估输出（`max_tokens` 缺省 1024）× 模型倍率 × 补全倍率，再乘分组倍率，转发前入账；实结 = 响应 usage（流式取 `include_usage` 终值）按实际 tokens 计点，与预扣多退少补（差值可负即返还）；请求失败/上游错误全额返还预扣；成功但 usage 抽取失败时保留预扣作为本次费用（防刷）。全部账目操作走同一 promise-mutex 串行链。
+- **配额判定**：`account.monthlyPoints`（缺省 = 不限、0 = 即停）账面点数到线即拒（429 `insufficient_quota`，中文点数文案）；`monthlyPoints` 未定义而存在旧 `monthlyTokens` 时走旧 tokens 判据（「旧制」，控制台标注）；并存以 `monthlyPoints` 为准。`usage.json` 每账号每月新增 `points` 累计，tokens 进/出照旧累计。
+- **控制台**：模型页每模型行内编辑「倍率/补全倍率」（`POST /console/api/model/ratio`，审计 `model.ratio_change` 旧值→新值）；「部门与角色」页编辑分组倍率（`POST /console/api/department/group-ratio`，审计 `quota.group_ratio_change`）并只读展示三角色权限矩阵；成员页额度列/改额度表单为点数口径（旧制账号显示「旧制 tokens」标注）；总览告警卡额度口径切换为点数（旧制并入）。`list-usage` CLI 输出点数列。
+
 ## 已验证（本机 Windows，2026-09-20/21）
 
 阶段 1：一键拉起 3 实例全部 running（HTTP 200）；`taskkill` 强杀实例进程树 → daemon 2–6 秒内重新拉起（到 HTTP 200 约 165 秒，开销在 dsh tsx 源码冷启动，生产换构建产物可数量级缩短）；会话/配置/凭证按 home 隔离；崩溃重启后会话文件原样保留。

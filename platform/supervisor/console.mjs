@@ -1,26 +1,36 @@
 /**
- * 卡巴格企业平台 · 管理台（视觉层按 5 页设计图打磨）。
+ * 卡巴格企业平台 · 管理台（视觉层按 5 页设计图打磨 + 栏目规划 v2 一期）。
  *
- * 页面与操作 API（逻辑与上一增量一致，仅升级视觉与少量只读增强：
- * 成员搜索、实例筛选标签与日志查看、模型展示元数据、实例页授权/生效对比）：
- * - /console            总览：统计卡 + 实例与用量 + Relay 元日志尾
- * - /console/members    成员与额度：搜索、建号、改额度、重置密码、禁用/启用
- * - /console/models     模型与权限：上游提供方、可用模型（含展示元数据）、授权矩阵
+ * 页面与操作 API：
+ * - /console            总览：统计卡 + 告警卡（额度将尽/失败登录/审计摘要）+ 实例与用量
+ * - /console/members    成员与额度：搜索、建号、点数额度、重置密码、禁用/启用
+ * - /console/roles      部门与角色：分组倍率编辑 + 角色权限矩阵只读展示（栏目 v2 六节）
+ * - /console/models     模型与权限：上游提供方、可用模型（含倍率行内编辑）、授权矩阵
  * - /console/instances  实例管理：统计卡 + 筛选标签 + 日志查看 + 重启/停止/启动
  * - /console/plugins    插件管理：统计卡 + 平台默认插件集 + 期望态视图
- * 全部仅限平台管理员（网关 JWT 门禁，POST 另校验 Origin 同源）；
- * 页面只渲染元数据，不触碰会话/内容正文（任务书决定 5）。
+ * - /console/audit      安全与审计：审计日志筛选/导出 + 登录安全设置（栏目 v2 一期）
+ * 页面与只读 GET API 放行 admin/auditor（employee 拒入）；变更类 POST 仅 admin，
+ * auditor 得 403「审计员为只读角色」。全部变更端点与登录/配额/导出/安全设置
+ * 事件在 data/audit.jsonl 留痕（audit.mjs，result=ok/deny/fail）。
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
 import { addModel, issueVkey, listUpstreams, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
+import { auditAppend, auditQuery, clientIp } from './audit.mjs'
+import { checkPasswordPolicy, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
+import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
 
-const PAGES = ['members', 'models', 'instances', 'plugins']
-const PAGE_TITLES = { members: '成员与额度', models: '模型与权限', instances: '实例管理', plugins: '插件管理' }
+const PAGES = ['members', 'roles', 'models', 'instances', 'plugins', 'audit']
+const PAGE_TITLES = { members: '成员与额度', roles: '部门与角色', models: '模型与权限', instances: '实例管理', plugins: '插件管理', audit: '安全与审计' }
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const esc = (s) => String(s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
 
 function readJson(dataDir, file, fallback) {
   try {
@@ -125,10 +135,6 @@ select{min-width:220px}
 .switch .slider::after{content:'';position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s}
 .switch input:checked+.slider{background:var(--accent)}
 .switch input:checked+.slider::after{left:16px}
-footer{margin-top:3rem;text-align:center;color:var(--faint);font-size:.8rem;letter-spacing:.1em}
-a{color:var(--accent)}
-.searchbox{display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem}
-.searchbox input{width:220px}
 .presetbox{background:#fff;border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1rem}
 .preset{border:1px solid var(--line2);background:#fff;color:#374151}
 .preset.on{background:#eff6ff;border-color:var(--accent);color:var(--accent)}`
@@ -159,15 +165,29 @@ const avatar = (name) => {
 const roleChip = (role) => {
   const map = { admin: ['管理员', 'red'], auditor: ['审计员', 'yellow'], employee: ['成员', 'blue'] }
   const [label, cls] = map[role] ?? [role, 'gray']
-  return `<span class="chip ${cls}">${label}</span>`
+  return `<span class="chip ${cls}">${esc(label)}</span>`
 }
 
-const quotaCell = (used, quota) => {
-  if (!Number.isFinite(quota)) return `${used} <span class="chip gray">不限</span>`
+const auditResultChip = (result) => {
+  const map = { ok: ['成功', 'green'], deny: ['拒绝', 'yellow'], fail: ['失败', 'red'] }
+  const [label, cls] = map[result] ?? [result ?? '—', 'gray']
+  return `<span class="chip ${cls}">${esc(label)}</span>`
+}
+
+/** 审计 detail 的表格摘要：JSON 序列化并截断，只含标量元数据。 */
+const detailSummary = (detail) => {
+  if (detail === null || detail === undefined) return '—'
+  const text = JSON.stringify(detail)
+  return text.length > 160 ? `${text.slice(0, 157)}…` : text
+}
+
+/** 用量进度条（点数 / 旧制 tokens 共用渲染）；quota 非有限数 = 不限。 */
+const usageCell = (used, quota) => {
+  if (!Number.isFinite(quota)) return `${fmtPoints(used)} <span class="chip gray">不限</span>`
   const pct = Math.min(100, Math.round((used / Math.max(1, quota)) * 100))
   const color = pct >= 100 ? 'var(--red)' : pct >= 70 ? 'var(--yellow)' : 'var(--green)'
   const mark = pct >= 100 ? ' 🔴' : ''
-  return `<span class="bar"><i style="width:${pct}%;background:${color}"></i></span> <span style="font-size:.82rem">${used}/${quota}${mark}</span>`
+  return `<span class="bar"><i style="width:${pct}%;background:${color}"></i></span> <span style="font-size:.82rem">${fmtPoints(used)}/${fmtPoints(quota)}${mark}</span>`
 }
 
 const nowStamp = () => {
@@ -189,6 +209,8 @@ const SUBTITLES = {
   模型与权限: '企业允许的模型及角色可见性',
   实例管理: '所有 DSH 实例的进程、资源与配置对齐（含实例设置）',
   插件管理: '第三方插件的安装范围、版本与生效状态',
+  安全与审计: '审计日志查询导出与登录安全设置',
+  部门与角色: '部门分组倍率与角色权限矩阵',
   实例日志: '实例运行日志（最近 80 行）',
 }
 
@@ -230,7 +252,6 @@ function overviewPage({ manifest, getState, dataDir }) {
   const state = getState()
   const usageMonth = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
   const accounts = listAccounts(dataDir)
-  console.error('[models] B-accounts')
   const drift = readJson(dataDir, 'drift.json', { checks: {} }).checks
   const running = manifest.instances.filter((s) => state.instances[s.id]?.state === 'running').length
   const monthTokens = accounts.reduce((sum, a) => {
@@ -244,6 +265,23 @@ function overviewPage({ manifest, getState, dataDir }) {
 <div class="stat"><div class="k">配置漂移</div><div class="v">${driftBad === 0 ? '✅' : driftBad}</div><div class="n">${driftBad === 0 ? '授权集与生效集对齐' : '个实例存在差异'}</div></div>
 <div class="stat"><div class="k">账号</div><div class="v">${accounts.length}</div><div class="n">成员与管理员</div></div>
 </div>`
+  // 告警卡（栏目 v2 一期）：额度将尽成员（点数口径，旧制 tokens 账号按旧口径并入）
+  // + 24h 失败登录计数 + 最近 5 条审计事件摘要。
+  const exhausted = accounts.filter((a) => {
+    const e = usageMonth[a.account]
+    if (Number.isFinite(a.monthlyPoints)) return (e?.points ?? 0) >= a.monthlyPoints
+    if (Number.isFinite(a.monthlyTokens)) return (e ? e.tokensIn + e.tokensOut : 0) >= a.monthlyTokens
+    return false
+  })
+  const dayAgoMs = Date.now() - 24 * 3_600_000
+  const recentFails = auditQuery({ actionPrefix: 'auth.login_fail', limit: 2000 })
+  const fail24h = recentFails.filter((e) => Date.parse(e.ts ?? '') >= dayAgoMs).length
+  const recentEvents = auditQuery({ limit: 5 })
+  const alertStats = `<div class="statgrid">
+<div class="stat"><div class="k">额度将尽成员</div><div class="v">${exhausted.length}</div><div class="n">本月用量已达月度额度（点数 · 旧制 tokens 并入）</div></div>
+<div class="stat"><div class="k">24 小时失败登录</div><div class="v">${fail24h}</div><div class="n">auth.login_fail 审计事件</div></div>
+</div>
+<h2 class="sect">最近审计事件</h2><table><tr><th>时间</th><th>账号</th><th>动作</th><th>对象</th><th>结果</th></tr>${recentEvents.map((e) => `<tr><td>${esc(String(e.ts ?? '').replace('T', ' ').slice(0, 19))}</td><td>${esc(e.actor?.account ?? '—')}</td><td><span class="chip gray">${esc(e.action ?? '—')}</span></td><td>${esc(e.target ?? '—')}</td><td>${auditResultChip(e.result)}</td></tr>`).join('') || '<tr><td colspan="5">暂无审计事件</td></tr>'}</table>`
   const rows = manifest.instances.map((spec) => {
     const rec = state.instances[spec.id] ?? {}
     const mem = rec.memoryKB ? `${(rec.memoryKB / 1024).toFixed(1)} MB` : '—'
@@ -270,6 +308,7 @@ function overviewPage({ manifest, getState, dataDir }) {
   } catch { /* 无日志文件 */ }
   return `
 ${stats}
+${alertStats}
 <h2 class="sect">实例与用量</h2><table><tr><th>成员</th><th>状态</th><th>端口</th><th>内存</th><th>磁盘</th><th>本月 tokens</th><th>漂移</th><th></th></tr>${rows}</table>
 <h2 class="sect">Relay 转发（最近 8 条元数据）</h2><table><tr><th>时间</th><th>账号</th><th>模型</th><th>上游</th><th>状态</th></tr>${relayTail}</table>
 <p class="mut" style="font-size:.82rem">隐私边界：本页只聚合元数据，不包含任何会话或内容正文（任务书决定 5）。</p>`
@@ -292,13 +331,20 @@ function membersPage({ dataDir, manifest, getState, query }) {
     return true
   })
   const rows = accounts.map((a) => {
-    const e = usage[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0 }
-    const used = e.tokensIn + e.tokensOut
+    const e = usage[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0, points: 0 }
+    const usedPoints = e.points ?? 0
+    const usedTokens = e.tokensIn + e.tokensOut
+    // 额度列点数口径（蓝图六）；monthlyPoints 未定义而存在旧 monthlyTokens 的
+    // 账号按旧 tokens 判据展示并标注「旧制」。
+    const quotaCellHtml = Number.isFinite(a.monthlyPoints)
+      ? usageCell(usedPoints, a.monthlyPoints)
+      : Number.isFinite(a.monthlyTokens)
+        ? `${usageCell(usedTokens, a.monthlyTokens)} <span class="chip yellow" title="未设点数额度，按旧制 monthlyTokens 判定">旧制 tokens</span>`
+        : `${usageCell(usedPoints, Number.NaN)} <span class="chip gray">点数</span>`
     const vk = activeVkeyFor(dataDir, a.account)
     const chips = vk === undefined ? '<span class="chip gray">无钥匙</span>' : vk.models === '*'
       ? '<span class="chip teal">全部模型</span>'
       : vk.models.slice(0, 3).map((m) => `<span class="chip teal">${esc(m)}</span>`).join('') + (vk.models.length > 3 ? `<span class="chip gray">+${vk.models.length - 3}</span>` : '')
-    const quota = a.monthlyTokens
     const roleOptions = ['admin', 'auditor', 'employee'].map((r) => {
       const [label] = { admin: ['管理员'], auditor: ['审计员'], employee: ['成员'] }[r]
       return `<option value="${r}" ${a.role === r ? 'selected' : ''}>${label}</option>`
@@ -306,11 +352,11 @@ function membersPage({ dataDir, manifest, getState, query }) {
     return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td>
 <td>${esc(a.department ?? '未分配')}</td><td>${roleChip(a.role)}</td><td>${esc(a.instanceId)}</td>
 <td>${chips}</td><td>${a.disabled ? '<span class="chip red">已禁用</span>' : '<span class="chip green">正常</span>'}</td>
-<td>${quotaCell(used, Number.isFinite(quota) ? quota : Number.POSITIVE_INFINITY)}</td><td>${e.requests}</td>
+<td>${quotaCellHtml}</td><td>${e.requests}</td>
 <td>
 <form class="inline" onsubmit="api(event,'/console/api/member/update',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="department" size="6" value="${esc(a.department ?? '未分配')}" title="部门"><button>改部门</button></form>
 <form class="inline" onsubmit="api(event,'/console/api/member/update',this)"><input type="hidden" name="account" value="${esc(a.account)}"><select name="role">${roleOptions}</select><button>改角色</button></form>
-<form class="inline" onsubmit="api(event,'/console/api/member/quota',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="tokens" size="8" placeholder="额度/空=不限"><button>改额度</button></form>
+<form class="inline" onsubmit="api(event,'/console/api/member/quota',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="points" size="8" placeholder="点数额度/空=不限"><button>改额度</button></form>
 <form class="inline" onsubmit="api(event,'/console/api/member/reset-password',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>重置密码</button></form>
 ${a.disabled
     ? `<form class="inline" onsubmit="api(event,'/console/api/member/enable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>启用</button></form>`
@@ -319,10 +365,8 @@ ${a.disabled
   const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}（${state.instances[s.id]?.state ?? '—'}）</option>`).join('')
   const depOptions = departments.map((dep) => `<option value="${esc(dep)}">${esc(dep)}</option>`).join('')
   return `
-<div class="searchbox" method="get">
-<form class="searchbox" method="get" style="margin:0"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
-</div>
-<table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="10">无匹配成员</td></tr>'}</table>
+<form class="searchbox" method="get" style="margin:0 0 .6rem"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
+<table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月点数 已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="10">无匹配成员</td></tr>'}</table>
 <h2 class="sect">添加成员</h2>
 <form class="panel" onsubmit="createMember(event)">
 <div style="margin-bottom:.5rem">账号 <input name="account" placeholder="name@company" required> 显示名 <input name="displayName"> 部门 <input name="department" placeholder="如 设计部"></div>
@@ -354,6 +398,49 @@ async function importIdp(ev){ev.preventDefault();
  const j=await r.json();
  if(r.ok){document.getElementById('out').textContent='同步完成：新建 '+j.created.length+'、更新 '+j.updated.length+'、无变化 '+j.unchanged+'、禁用缺失 '+(j.missingDisabled||[]).length+(j.created.length?('\\n新账号凭证：\\n'+j.created.map(c=>c.account+' / '+c.password).join('\\n')):'');
  if(j.created.length===0)setTimeout(()=>location.reload(),1200)}else{document.getElementById('out').textContent='HTTP '+r.status+' '+JSON.stringify(j)}}
+</script>`
+}
+
+/* ── 页面：部门与角色 ────────────────────────────────────────────────────── */
+
+function rolesPage({ dataDir }) {
+  initQuotas(dataDir)
+  const accounts = listAccounts(dataDir)
+  const departments = [...new Set(accounts.map((a) => a.department ?? '未分配'))].sort()
+  const ratios = loadRatios()
+  const rows = departments.map((dep) => {
+    const count = accounts.filter((a) => (a.department ?? '未分配') === dep).length
+    const configured = ratios.groups[dep] !== undefined
+    return `<tr><td>${esc(dep)}</td><td>${count}</td>
+<td>${configured ? '<span class="chip blue">自定义</span>' : '<span class="chip gray">缺省 1</span>'}</td>
+<td><form class="inline" onsubmit="setGroupRatio(event,'${esc(dep)}')"><input name="ratio" size="6" value="${ratios.groups[dep] ?? 1}" title="分组倍率"><button class="${configured ? 'btn' : 'primary'}">保存倍率</button></form></td></tr>`
+  }).join('')
+  // 角色权限点矩阵（蓝图第三节，本期只读展示）
+  const MATRIX = [
+    ['管理台登录', ['✅', '✅（本期落地）', '❌（仅实例子域）']],
+    ['总览 / 实例 / 模型 / 插件页', ['读写', '只读', '—']],
+    ['成员列表查看', ['读写', '只读', '—']],
+    ['成员变更操作', ['✅', '❌', '—']],
+    ['审计日志查看 / 导出', ['✅', '✅（核心职责）', '—']],
+    ['安全设置修改', ['✅', '❌（只读展示）', '—']],
+    ['实例内工具组（阶段 9+ 生效）', ['全开', '按 audit 需要最小化', '按角色权限点']],
+  ]
+  const matrixRows = MATRIX.map(([point, cells]) =>
+    `<tr><td>${esc(point)}</td>${cells.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')
+  return `
+<h2 class="sect">部门与分组倍率</h2>
+<table><tr><th>部门</th><th>成员数</th><th>倍率来源</th><th>分组倍率（消耗点 × 分组倍率）</th></tr>${rows || '<tr><td colspan="4">暂无部门</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">分组倍率存于 data/ratios.json（groups），保存后 Relay 下一请求即按新倍率计点；成员所属部门在成员页维护。中小企业平铺部门，不做部门树。</p>
+<h2 class="sect">角色权限点矩阵（只读展示）</h2>
+<table><tr><th>权限点</th><th>admin 管理员</th><th>auditor 审计员</th><th>employee 成员</th></tr>${matrixRows}</table>
+<p class="mut" style="font-size:.82rem">本期固定三角色（admin/auditor/employee），矩阵只读展示；「实例内工具组」按角色下发生在阶段 9（实例内 guard 插件）落地。</p>
+<pre id="out" class="log" style="max-height:none"></pre>
+<script>
+async function setGroupRatio(ev, dep){ev.preventDefault();
+ const f=new FormData(ev.target);
+ const r=await fetch('/console/api/department/group-ratio',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({department:dep,ratio:Number(f.get('ratio'))})});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
 </script>`
 }
 
@@ -532,8 +619,8 @@ async function addProvider(ev){ev.preventDefault();
 }
 
 function modelsPage({ dataDir }) {
+  initQuotas(dataDir)
   const upstreams = listUpstreams(dataDir).filter((x) => !x.revoked)
-  console.error('[models] A-upstreams')
   const catalog = []
   for (const u of upstreams) for (const m of u.models) if (!catalog.includes(m)) catalog.push(m)
   const metaFor = (m) => {
@@ -543,7 +630,6 @@ function modelsPage({ dataDir }) {
   const accounts = listAccounts(dataDir)
   const P_COLORS = ['#43d6c5', '#6f9bff', '#ffd166', '#ff9d9d', '#b388ff', '#7ef0c0', '#f5a623']
   const providerCards = upstreams.map((u) => {
-  console.error('[models] C-providerCards')
     const sum = [...u.name].reduce((a, c) => a + c.codePointAt(0), 0)
     const color = P_COLORS[sum % P_COLORS.length]
     return `<div class="pcard">
@@ -565,33 +651,31 @@ function modelsPage({ dataDir }) {
   const modelRows = catalog.map((m) => {
     const u = upstreams.find((x) => x.models.includes(m))
     const meta = metaFor(m)
+    const ratio = resolveRatios(m, undefined)
     const usedBy = accounts.filter((a) => {
       const vk = activeVkeyFor(dataDir, a.account)
       return vk !== undefined && (vk.models === '*' || vk.models.includes(m))
     }).length
     const del = `<button class="warn" onclick="removeModel('${esc(u?.name ?? '')}','${esc(m)}',${usedBy})">删除</button>`
+    const ratioForm = `<form class="inline" onsubmit="setRatio(event,'${esc(m)}')"><input name="ratio" size="3" value="${ratio.ratio}" title="模型倍率">/<input name="completionRatio" size="3" value="${ratio.completionRatio}" title="补全倍率"><button class="btn">存</button></form>`
     return `<tr><td>${esc(m)}</td><td>${esc(u?.name ?? '—')}</td><td>${meta ? esc(meta.context) : '—'} / ${meta ? esc(meta.maxOutput) : '—'}</td>
 <td>${meta ? esc(meta.mIn) : '—'}</td><td>${meta ? esc(meta.mOut) : '—'}</td><td>${meta ? esc(meta.mCacheR) : '—'}</td><td>${meta ? esc(meta.mCacheW) : '—'}</td>
-<td>${usedBy}</td><td><span class="chip green">已启用</span></td><td>${del}</td></tr>`
+<td>${ratioForm}</td><td>${usedBy}</td><td><span class="chip green">已启用</span></td><td>${del}</td></tr>`
   }).join('')
   const matrix = modelsMatrix({ dataDir, accounts, catalog })
-  console.error('[models] D-matrix')
   return `
-<div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new"
-  console.error('[models] E-return')>＋ 新建模型供应商</a></div>
+<div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new">＋ 新建模型供应商</a></div>
 <h2 class="sect">模型供应商列表</h2>
 <table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${providerCardsBlock}</table>
 <h2 class="sect">可用模型</h2>
-<table><tr><th>模型</th><th>提供方</th><th>上下文 / 最大输出</th><th>输入倍率</th><th>输出倍率</th><th>缓存读</th><th>缓存写</th><th>成员可见</th><th>状态</th><th>操作</th></tr>${modelRows}</table>
+<table><tr><th>模型</th><th>提供方</th><th>上下文 / 最大输出</th><th>输入倍率</th><th>输出倍率</th><th>缓存读</th><th>缓存写</th><th>计费倍率/补全（编辑）</th><th>成员可见</th><th>状态</th><th>操作</th></tr>${modelRows}</table>
 <h2 class="sect">成员实际可见的模型矩阵</h2>
 ${matrix}
 <p class="mut" style="font-size:.82rem">改授权不用碰员工电脑：保存替换该成员虚拟钥匙的白名单，Relay 下一请求即强制生效。</p>`
 }
 
 function modelsMatrix({ dataDir, accounts, catalog }) {
-  console.error('[mm] enter: accounts =', accounts.length, 'catalog =', catalog.length)
   const rows = accounts.map((a) => {
-    console.error('[mm] row:', a.account)
     const vk = activeVkeyFor(dataDir, a.account)
     const cells = catalog.map((m) => {
       const on = vk !== undefined && (vk.models === '*' || vk.models.includes(m))
@@ -599,7 +683,7 @@ function modelsMatrix({ dataDir, accounts, catalog }) {
     }).join('')
     return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td>${cells}</tr>`
   }).join('')
-  console.error('[mm] rows done:', rows.length)((m) => `<th>${esc(m)}</th>`).join('')
+  const head = catalog.map((m) => `<th>${esc(m)}</th>`).join('')
   return `<form id="matrix" onsubmit="saveMatrix(event)">
 <table><tr><th>成员</th><th>账号</th>${head}</tr>${rows}</table>
 <button class="primary">保存矩阵</button></form>
@@ -625,6 +709,10 @@ async function removeModel(upstream,model,usedBy){
  if(!confirm('删除模型 '+model+'？'+(usedBy>0?('（'+usedBy+' 个成员的白名单仍引用它，调用将收到"无上游"提示）'):'')))return;
  const r=await fetch('/console/api/model/remove',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({upstream:upstream,model:model})});
  if(r.ok)setTimeout(()=>location.reload(),600);else alert('删除失败: '+await r.text())}
+async function setRatio(ev,model){ev.preventDefault();
+ const f=new FormData(ev.target);
+ const r=await fetch('/console/api/model/ratio',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:model,ratio:Number(f.get('ratio')),completionRatio:Number(f.get('completionRatio'))})});
+ const t=await r.text();alert((r.ok?'倍率已保存（下一请求生效）: ':'失败: ')+t);if(r.ok)setTimeout(()=>location.reload(),600)}
 </script>`
 }
 
@@ -650,6 +738,7 @@ function enqueueInstanceControl(dataDir, action, id) {
 
 function instancesPage({ manifest, getState, dataDir, query }) {
   const state = getState()
+  const drift = readJson(dataDir, 'drift.json', { checks: {} }).checks
   const filter = query.get('state') ?? 'all'
   const needsAttention = (s) => ['crashed', 'unhealthy', 'failed', 'restarting'].includes(s)
   const match = (s) => filter === 'all' || (filter === 'attention' ? needsAttention(s) : filter === s)
@@ -798,123 +887,278 @@ setInterval(refreshJobs,4000);refreshJobs()
 </script>`
 }
 
-async function handleApi({ req, res, path, dataDir, manifest }) {
+/* ── 审计埋点映射（蓝图第四节 action 命名）────────────────────────────────── */
+
+/** 变更端点 → 审计 action。 */
+const AUDIT_ACTION_BY_PATH = {
+  '/console/api/member/create': 'member.create',
+  '/console/api/member/update': 'member.update',
+  '/console/api/member/quota': 'member.quota_change',
+  '/console/api/member/reset-password': 'member.reset_password',
+  '/console/api/member/disable': 'member.disable',
+  '/console/api/member/enable': 'member.enable',
+  '/console/api/idp/import': 'member.idp_import',
+  '/console/api/provider/add': 'provider.add',
+  '/console/api/provider/remove': 'provider.remove',
+  '/console/api/model/add': 'model.add',
+  '/console/api/model/remove': 'model.remove',
+  '/console/api/model/ratio': 'model.ratio_change',
+  '/console/api/department/group-ratio': 'quota.group_ratio_change',
+  '/console/api/member/models': 'member.models_change',
+  '/console/api/instance/start': 'instance.start',
+  '/console/api/instance/stop': 'instance.stop',
+  '/console/api/instance/restart': 'instance.restart',
+  '/console/api/security/config': 'security.config_change',
+}
+
+/** 端点（+请求体）→ 审计 action：member/update 带角色时记 role_change，
+ *  plugin/job 按任务类型细分；未知路径返回 null（不审计）。 */
+function auditActionFor(path, body = {}) {
+  if (path === '/console/api/plugin/job') {
+    return ['push', 'remove', 'activate'].includes(body.type) ? `plugin.${body.type}` : 'plugin.job'
+  }
+  if (path === '/console/api/member/update' && body.role !== undefined) return 'member.role_change'
+  return AUDIT_ACTION_BY_PATH[path] ?? null
+}
+
+/** 审计 target：供应商名 / 模型 id / 实例 id / 插件 spec / 部门名 / 成员账号。 */
+function auditTargetFor(path, body = {}) {
+  if (path.startsWith('/console/api/provider/')) return typeof body.name === 'string' ? body.name : null
+  if (path === '/console/api/model/add' || path === '/console/api/model/remove' || path === '/console/api/model/ratio') return typeof body.model === 'string' ? body.model : null
+  if (path === '/console/api/department/group-ratio') return typeof body.department === 'string' ? body.department : null
+  if (path.startsWith('/console/api/instance/')) return typeof body.id === 'string' ? body.id : null
+  if (path === '/console/api/plugin/job') return typeof body.spec === 'string' ? body.spec : null
+  return typeof body.account === 'string' && body.account !== '' ? body.account : null
+}
+
+/** 审计页/审计 API 的查询串 → auditQuery 过滤参数。 */
+const auditFiltersFromQuery = (query) => ({
+  actionPrefix: query.get('action') ?? '',
+  actor: query.get('actor') ?? '',
+  result: query.get('result') ?? '',
+})
+
+// 账号/钥匙类变更（建号、额度、密码、禁启用、属性、IdP 同步）串行执行：
+// 它们是 accounts.json/vkeys.json 的读改写热点，HTTP 并发下不做队列会丢更新。
+let accountQueue = Promise.resolve()
+const withAccountLock = (fn) => {
+  const next = accountQueue.then(fn, fn)
+  accountQueue = next.catch(() => {})
+  return next
+}
+
+/* ── 页面：安全与审计 ────────────────────────────────────────────────────── */
+
+function auditPage({ dataDir, query, role }) {
+  const filters = auditFiltersFromQuery(query)
+  const events = auditQuery({ ...filters, limit: 500 })
+  const config = loadSecurityConfig(dataDir)
+  const isAdmin = role === 'admin'
+  const actionOptions = [
+    ['', '全部动作'], ['auth', 'auth · 登录'], ['member', 'member · 成员'], ['provider', 'provider · 供应商'],
+    ['model', 'model · 模型'], ['instance', 'instance · 实例'], ['plugin', 'plugin · 插件'],
+    ['quota', 'quota · 配额'], ['audit', 'audit · 审计'], ['security', 'security · 安全'],
+  ].map(([value, label]) => `<option value="${value}" ${filters.actionPrefix === value ? 'selected' : ''}>${label}</option>`).join('')
+  const resultOptions = [['ok', '成功'], ['deny', '拒绝'], ['fail', '失败']]
+    .map(([value, label]) => `<option value="${value}" ${filters.result === value ? 'selected' : ''}>${label}</option>`).join('')
+  const rows = events.map((e) => `<tr><td style="white-space:nowrap">${esc(String(e.ts ?? '').replace('T', ' ').slice(0, 19))}</td>
+<td>${esc(e.actor?.account ?? '—')}</td><td>${esc(e.actor?.ip ?? '—')}</td>
+<td><span class="chip gray">${esc(e.action ?? '—')}</span></td><td>${esc(e.target ?? '—')}</td>
+<td>${auditResultChip(e.result)}</td>
+<td style="max-width:340px;word-break:break-all;font-size:.76rem">${esc(detailSummary(e.detail))}</td></tr>`).join('')
+  const exportParams = new URLSearchParams()
+  if (filters.actionPrefix) exportParams.set('action', filters.actionPrefix)
+  if (filters.actor) exportParams.set('actor', filters.actor)
+  if (filters.result) exportParams.set('result', filters.result)
+  const exportHref = `/console/api/audit/export${exportParams.size > 0 ? `?${exportParams}` : ''}`
+  const secField = (name, label, max) =>
+    `<div class="flabel">${label}</div><input name="${name}" type="number" min="1" ${max ? `max="${max}"` : ''} value="${config[name]}" ${isAdmin ? '' : 'disabled'}>`
+  return `
+<form class="searchbox" method="get" style="margin:0 0 .6rem">
+<select name="action">${actionOptions}</select>
+<input name="actor" value="${esc(filters.actor)}" placeholder="账号关键词" style="width:180px">
+<select name="result"><option value="">全部结果</option>${resultOptions}</select>
+<button class="primary">筛选</button>
+<a class="btn" href="${exportHref}">导出 JSONL</a>
+</form>
+<table><tr><th>时间</th><th>账号</th><th>IP</th><th>动作</th><th>对象</th><th>结果</th><th>详情</th></tr>${rows || '<tr><td colspan="7">暂无审计事件</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">审计日志只追加（data/audit.jsonl）、不可删改；此处倒序展示，单次最多 500 条；导出不受 500 限制，含全部命中事件。</p>
+<h2 class="sect">安全设置</h2>
+<form class="panel" onsubmit="saveSecurity(event)" style="padding:1rem">
+<div style="display:flex;gap:1.4rem;flex-wrap:wrap">
+<div>${secField('loginWindowMinutes', '登录失败统计窗口（分钟）', 1440)}</div>
+<div>${secField('loginMaxFails', '窗口内最大失败次数', 100)}</div>
+<div>${secField('lockoutMinutes', '锁定时长（分钟）', 1440)}</div>
+<div>${secField('passwordMinLength', '密码最小长度', 128)}</div>
+<div>${secField('passwordMinClasses', '密码最少字符类别', 3)}</div>
+</div>
+<div style="margin-top:.9rem">${isAdmin
+    ? '<button class="primary">保存安全设置</button>'
+    : '<span class="chip gray">审计员为只读角色，安全设置仅管理员可改</span>'}</div>
+</form>
+<pre id="out" class="log" style="max-height:none"></pre>
+<script>
+async function saveSecurity(ev){ev.preventDefault();
+ const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>{if(v!=='')payload[k]=Number(v)});
+ const r=await fetch('/console/api/security/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
+</script>`
+}
+
+async function handleApi({ req, res, path, dataDir, manifest, actor }) {
   const body = await readBody(req)
   const account = typeof body.account === 'string' ? body.account : ''
+  const action = auditActionFor(path, body)
+  const target = auditTargetFor(path, body)
+  // 变更端点 result=ok/fail 都留痕（蓝图验收 1）；detail 只放标量元数据，
+  // 密码与 API Key 原文绝不入审计（隐私红线）。
+  const audit = (result, detail = null) => {
+    if (action !== null) void auditAppend({ actor, action, target, result, detail })
+  }
+  const ok = (value, detail) => { audit('ok', detail ?? null); json(res, 200, value) }
+  const fail = (status, message) => { audit('fail', { error: message }); json(res, status, { error: message }) }
+  // 账号/钥匙类变更进串行队列（accounts.json/vkeys.json 读改写热点）；
+  // 任务内部自带 try/catch 保证请求必被响应，队列链不吞错。
+  const runLocked = (fn) => withAccountLock(async () => {
+    try {
+      await fn()
+    } catch (error) {
+      audit('fail', { error: String(error?.message ?? error) })
+      json(res, 400, { error: String(error?.message ?? error) })
+    }
+  })
   try {
     switch (path) {
       case '/console/api/member/create': {
-        const password = body.password || `LyZ-${Math.random().toString(36).slice(2, 11)}`
-        const record = addAccount(dataDir, {
-          account,
-          instanceId: body.instance,
-          role: body.role === 'auditor' ? 'auditor' : 'employee',
-          displayName: body.displayName || undefined,
-          password,
+        runLocked(async () => {
+          const password = body.password || generatePassword()
+          const policy = checkPasswordPolicy(password, account, loadSecurityConfig(dataDir))
+          if (!policy.ok) { fail(400, policy.message); return }
+          const created = addAccount(dataDir, {
+            account,
+            instanceId: body.instance,
+            role: body.role === 'auditor' ? 'auditor' : 'employee',
+            displayName: body.displayName || undefined,
+            password,
+          })
+          const { token } = issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
+          ok({ ok: true, account: created.account, instance: created.instanceId, password, vkey: token }, { role: created.role, instanceId: created.instanceId })
         })
-        const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models: '*' })
-        json(res, 200, { ok: true, account: record.account, instance: record.instanceId, password, vkey: token })
         return
       }
       case '/console/api/member/quota': {
-        const tokens = body.tokens === '' || body.tokens === undefined || body.tokens === null ? null : Number(body.tokens)
-        if (!Number.isInteger(tokens) || tokens < 0) { json(res, 400, { error: 'tokens 必须是非负整数，留空 = 不限' }); return }
-        setQuota(dataDir, { account, monthlyTokens: tokens })
-        json(res, 200, { ok: true, quota: tokens ?? '不限' })
+        runLocked(async () => {
+          const points = body.points === '' || body.points === undefined || body.points === null ? null : Number(body.points)
+          if (!Number.isInteger(points) || points < 0) { fail(400, 'points 必须是非负整数，留空 = 不限'); return }
+          const before = loadAccounts(dataDir).accounts.find((a) => a.account === account)?.monthlyPoints ?? null
+          setQuota(dataDir, { account, monthlyPoints: points })
+          ok({ ok: true, quota: points ?? '不限', unit: 'points' }, { from: before, to: points })
+        })
         return
       }
       case '/console/api/member/reset-password': {
-        const password = `LyZ-${Math.random().toString(36).slice(2, 11)}`
-        setPassword(dataDir, account, password)
-        json(res, 200, { ok: true, password })
+        runLocked(async () => {
+          const password = generatePassword()
+          setPassword(dataDir, account, password)
+          ok({ ok: true, password })
+        })
         return
       }
       case '/console/api/member/disable': {
-        const store = loadAccounts(dataDir)
-        const rec = store.accounts.find((a) => a.account === account)
-        if (rec === undefined) { json(res, 404, { error: '账号不存在' }); return }
-        rec.disabled = true
-        saveAccounts(dataDir, store)
-        try { revokeVkey(dataDir, { account }) } catch { /* 本就没有钥匙 */ }
-        json(res, 200, { ok: true })
+        runLocked(async () => {
+          const store = loadAccounts(dataDir)
+          const rec = store.accounts.find((a) => a.account === account)
+          if (rec === undefined) { fail(404, '账号不存在'); return }
+          rec.disabled = true
+          saveAccounts(dataDir, store)
+          try { revokeVkey(dataDir, { account }) } catch { /* 本就没有钥匙 */ }
+          ok({ ok: true })
+        })
         return
       }
       case '/console/api/member/enable': {
-        const store = loadAccounts(dataDir)
-        const rec = store.accounts.find((a) => a.account === account)
-        if (rec === undefined) { json(res, 404, { error: '账号不存在' }); return }
-        rec.disabled = false
-        saveAccounts(dataDir, store)
-        const history = readJson(dataDir, 'vkeys.json', { vkeys: [] }).vkeys.filter((v) => v.account === account)
-        const models = history.at(-1)?.models ?? '*'
-        issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
-        json(res, 200, { ok: true, models })
+        runLocked(async () => {
+          const store = loadAccounts(dataDir)
+          const rec = store.accounts.find((a) => a.account === account)
+          if (rec === undefined) { fail(404, '账号不存在'); return }
+          rec.disabled = false
+          saveAccounts(dataDir, store)
+          const history = readJson(dataDir, 'vkeys.json', { vkeys: [] }).vkeys.filter((v) => v.account === account)
+          const models = history.at(-1)?.models ?? '*'
+          issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
+          ok({ ok: true, models })
+        })
         return
       }
       case '/console/api/member/update': {
-        const record = updateAccount(dataDir, account, {
-          role: body.role,
-          department: body.department,
-          displayName: body.displayName,
+        runLocked(async () => {
+          const patch = {}
+          if (body.role !== undefined) patch.role = body.role
+          if (body.department !== undefined) patch.department = body.department
+          if (body.displayName !== undefined) patch.displayName = body.displayName
+          const updated = updateAccount(dataDir, account, patch)
+          ok({ ok: true, role: updated.role, department: updated.department ?? '未分配' }, { fields: patch })
         })
-        json(res, 200, { ok: true, role: record.role, department: record.department ?? '未分配' })
         return
       }
       case '/console/api/idp/import': {
-        const members = Array.isArray(body.members) ? body.members : []
-        if (members.length === 0) { json(res, 400, { error: 'members 不能为空' }); return }
-        const defaultInstance = typeof body.defaultInstance === 'string' ? body.defaultInstance : manifest.instances[0].id
-        const result = { created: [], updated: [], unchanged: 0, missingDisabled: [] }
-        const seen = new Set()
-        for (const m of members) {
-          if (!m.account) continue
-          seen.add(m.account)
-          const role = ['admin', 'auditor', 'employee'].includes(m.role) ? m.role : 'employee'
-          const store = loadAccounts(dataDir)
-          const rec = store.accounts.find((a) => a.account === m.account)
-          if (rec === undefined) {
-            const password = `LyZ-${Math.random().toString(36).slice(2, 11)}`
-            const record = addAccount(dataDir, {
-              account: m.account,
-              instanceId: m.instance ?? defaultInstance,
-              role,
-              displayName: m.displayName || undefined,
-              department: m.department ?? '未分配',
-              password,
-            })
-            const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models: '*' })
-            result.created.push({ account: record.account, password, vkey: token, instance: record.instanceId })
-          } else {
-            let changed = false
-            if (m.department !== undefined && m.department !== rec.department) { rec.department = m.department; changed = true }
-            if (role !== rec.role) { rec.role = role; changed = true }
-            if (m.displayName !== undefined && m.displayName !== rec.displayName) { rec.displayName = m.displayName; changed = true }
-            if (rec.disabled === true) { rec.disabled = false; changed = true }
-            if (changed) { saveAccounts(dataDir, store); result.updated.push({ account: m.account }) } else result.unchanged += 1
-          }
-        }
-        if (body.disableMissing === true) {
-          const store = loadAccounts(dataDir)
-          for (const rec of store.accounts) {
-            if (!seen.has(rec.account) && !rec.disabled && rec.role !== 'admin') {
-              rec.disabled = true
-              rec.tokenEpoch = (rec.tokenEpoch ?? 0) + 1
-              try { revokeVkey(dataDir, { account: rec.account }) } catch { /* 无钥匙 */ }
-              result.missingDisabled.push(rec.account)
+        runLocked(async () => {
+          const members = Array.isArray(body.members) ? body.members : []
+          if (members.length === 0) { fail(400, 'members 不能为空'); return }
+          const defaultInstance = typeof body.defaultInstance === 'string' ? body.defaultInstance : manifest.instances[0].id
+          const result = { created: [], updated: [], unchanged: 0, missingDisabled: [] }
+          const seen = new Set()
+          for (const m of members) {
+            if (!m.account) continue
+            seen.add(m.account)
+            const role = ['admin', 'auditor', 'employee'].includes(m.role) ? m.role : 'employee'
+            const store = loadAccounts(dataDir)
+            const rec = store.accounts.find((a) => a.account === m.account)
+            if (rec === undefined) {
+              const password = generatePassword()
+              const record = addAccount(dataDir, {
+                account: m.account,
+                instanceId: m.instance ?? defaultInstance,
+                role,
+                displayName: m.displayName || undefined,
+                department: m.department ?? '未分配',
+                password,
+              })
+              const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models: '*' })
+              result.created.push({ account: record.account, password, vkey: token, instance: record.instanceId })
+            } else {
+              let changed = false
+              if (m.department !== undefined && m.department !== rec.department) { rec.department = m.department; changed = true }
+              if (role !== rec.role) { rec.role = role; changed = true }
+              if (m.displayName !== undefined && m.displayName !== rec.displayName) { rec.displayName = m.displayName; changed = true }
+              if (rec.disabled === true) { rec.disabled = false; changed = true }
+              if (changed) { saveAccounts(dataDir, store); result.updated.push({ account: m.account }) } else result.unchanged += 1
             }
           }
-          saveAccounts(dataDir, store)
-        }
-        json(res, 200, { ok: true, ...result })
+          if (body.disableMissing === true) {
+            const store = loadAccounts(dataDir)
+            for (const rec of store.accounts) {
+              if (!seen.has(rec.account) && !rec.disabled && rec.role !== 'admin') {
+                rec.disabled = true
+                rec.tokenEpoch = (rec.tokenEpoch ?? 0) + 1
+                try { revokeVkey(dataDir, { account: rec.account }) } catch { /* 无钥匙 */ }
+                result.missingDisabled.push(rec.account)
+              }
+            }
+            saveAccounts(dataDir, store)
+          }
+          ok({ ok: true, ...result }, { created: result.created.length, updated: result.updated.length, unchanged: result.unchanged, missingDisabled: result.missingDisabled.length })
+        })
         return
       }
       case '/console/api/provider/add': {
         const name = typeof body.name === 'string' ? body.name.trim() : ''
         const baseURL = typeof body.baseURL === 'string' ? body.baseURL.trim() : ''
-        if (name === '' || baseURL === '') { json(res, 400, { error: '供应商名称与请求地址必填' }); return }
-        if (listUpstreams(dataDir).some((u) => u.name === name)) { json(res, 409, { error: '供应商已存在: ' + name }); return }
+        if (name === '' || baseURL === '') { fail(400, '供应商名称与请求地址必填'); return }
+        if (listUpstreams(dataDir).some((u) => u.name === name)) { fail(409, '供应商已存在: ' + name); return }
         const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
-        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在模型页“增加模型”补充——该表单已移除，重新添加即可）' }); return }
+        if (models.length === 0) { fail(400, '至少提供一个模型 ID（后续可在模型页“增加模型”补充——该表单已移除，重新添加即可）'); return }
         try {
           setUpstream(dataDir, {
             name, baseURL, models,
@@ -928,9 +1172,9 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
             configJSON: typeof body.configJSON === 'string' ? body.configJSON : undefined,
             fullUrl: body.fullUrl === true,
           })
-          json(res, 200, { ok: true, name, models })
+          ok({ ok: true, name, models }, { models })
         } catch (error) {
-          json(res, 400, { error: String(error?.message ?? error) })
+          fail(400, String(error?.message ?? error))
         }
         return
       }
@@ -938,15 +1182,15 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         const name = typeof body.name === 'string' ? body.name : ''
         try {
           removeUpstream(dataDir, { name })
-          json(res, 200, { ok: true })
+          ok({ ok: true })
         } catch (error) {
-          json(res, 400, { error: String(error?.message ?? error) })
+          fail(400, String(error?.message ?? error))
         }
         return
       }
       case '/console/api/model/add': {
         if (typeof body.upstream !== 'string' || typeof body.model !== 'string' || body.model === '') {
-          json(res, 400, { error: 'upstream 与 model 必填' })
+          fail(400, 'upstream 与 model 必填')
           return
         }
         const meta = {}
@@ -955,59 +1199,108 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         }
         try {
           addModel(dataDir, { upstream: body.upstream, model: body.model, meta: Object.keys(meta).length ? meta : undefined })
-          json(res, 200, { ok: true, upstream: body.upstream, model: body.model })
+          ok({ ok: true, upstream: body.upstream, model: body.model }, { upstream: body.upstream })
         } catch (error) {
-          json(res, 400, { error: String(error?.message ?? error) })
+          fail(400, String(error?.message ?? error))
         }
         return
       }
       case '/console/api/model/remove': {
         if (typeof body.upstream !== 'string' || typeof body.model !== 'string') {
-          json(res, 400, { error: 'upstream 与 model 必填' })
+          fail(400, 'upstream 与 model 必填')
           return
         }
         try {
           removeModel(dataDir, { upstream: body.upstream, model: body.model })
-          json(res, 200, { ok: true })
+          ok({ ok: true })
         } catch (error) {
-          json(res, 400, { error: String(error?.message ?? error) })
+          fail(400, String(error?.message ?? error))
         }
         return
       }
       case '/console/api/member/models': {
         const models = body.models === '*' ? '*' : Array.isArray(body.models) ? body.models.filter((m) => typeof m === 'string') : []
         setVkeyModels(dataDir, { account, models })
-        json(res, 200, { ok: true, models })
+        ok({ ok: true, models }, { count: models === '*' ? '全部' : models.length })
         return
       }
       case '/console/api/instance/restart':
       case '/console/api/instance/stop':
       case '/console/api/instance/start': {
         const id = typeof body.id === 'string' ? body.id : ''
-        if (!manifest.instances.some((s) => s.id === id)) { json(res, 404, { error: '未知实例' }); return }
-        const action = path.split('/').at(-1)
-        enqueueInstanceControl(dataDir, action, id)
-        json(res, 200, { ok: true, action, id })
+        if (!manifest.instances.some((s) => s.id === id)) { fail(404, '未知实例'); return }
+        const op = path.split('/').at(-1)
+        enqueueInstanceControl(dataDir, op, id)
+        ok({ ok: true, action: op, id })
+        return
+      }
+      case '/console/api/model/ratio': {
+        initQuotas(dataDir)
+        const model = typeof body.model === 'string' ? body.model.trim() : ''
+        if (model === '') { fail(400, '模型 ID 必填'); return }
+        const old = resolveRatios(model, undefined)
+        try {
+          const next = setModelRatio(dataDir, model, { ratio: Number(body.ratio), completionRatio: Number(body.completionRatio) })
+          ok({ ok: true, model, ratio: next.ratio, completionRatio: next.completionRatio }, { old: { ratio: old.ratio, completionRatio: old.completionRatio }, new: next })
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+        }
+        return
+      }
+      case '/console/api/department/group-ratio': {
+        initQuotas(dataDir)
+        const department = typeof body.department === 'string' ? body.department.trim() : ''
+        if (department === '') { fail(400, '部门名必填'); return }
+        const old = resolveRatios(undefined, department)
+        try {
+          const groupRatio = setGroupRatio(dataDir, department, Number(body.ratio))
+          ok({ ok: true, department, groupRatio }, { old: { groupRatio: old.groupRatio }, new: { groupRatio } })
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+        }
+        return
+      }
+      case '/console/api/security/config': {
+        const patch = {}
+        for (const key of ['loginWindowMinutes', 'loginMaxFails', 'lockoutMinutes', 'passwordMinLength', 'passwordMinClasses']) {
+          if (body[key] !== undefined) patch[key] = Number(body[key])
+        }
+        if (Object.keys(patch).length === 0) { fail(400, '未提供任何要修改的安全参数'); return }
+        const old = loadSecurityConfig(dataDir)
+        let next
+        try {
+          next = saveSecurityConfig(dataDir, patch)
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+          return
+        }
+        ok({ ok: true, config: next }, { old, new: next })
         return
       }
       default:
         json(res, 404, { error: 'unknown console api' })
     }
   } catch (error) {
+    audit('fail', { error: String(error?.message ?? error) })
     json(res, 400, { error: String(error?.message ?? error) })
   }
 }
 
 /**
  * 处理 /console 路径的全部请求（gateway 在裸 portal 分支里调用）。
- * 认证由 gateway 计算后传入；页面需登录且仅 admin；POST API 仅 admin，
- * 并在带 Origin 时校验同源（配合 SameSite=Strict 双重 CSRF 防线）。
+ * 认证由 gateway 计算后传入；页面与只读 GET API 放行 admin/auditor，
+ * employee 拒入；变更类 POST 仅 admin（auditor 得 403「审计员为只读角色」，
+ * 拒绝也以 result=deny 留痕）。带 Origin 的 POST 校验同源
+ * （配合 SameSite=Strict 双重 CSRF 防线），跨源拒绝同样留痕。
  * @returns true 表示已响应，gateway 不再处理。
  */
 export function handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner }) {
   if (!url.pathname.startsWith('/console')) return false
   const path = url.pathname
   const query = url.searchParams
+  const actor = auth.error === undefined
+    ? { account: auth.record.account, role: auth.record.role, ip: clientIp(req) }
+    : null
 
   if (req.method === 'GET') {
     if (auth.error !== undefined) {
@@ -1015,9 +1308,9 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       res.end(loginPage())
       return true
     }
-    if (auth.record.role !== 'admin') {
+    if (auth.record.role !== 'admin' && auth.record.role !== 'auditor') {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
-      res.end('管理台仅限平台管理员。')
+      res.end('管理台仅限平台管理员与审计员。')
       return true
     }
     if (path === '/console/providers/new') {
@@ -1029,45 +1322,80 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       json(res, 200, { jobs: runner.list() })
       return true
     }
+    if (path === '/console/api/audit') {
+      const limitParam = Number.parseInt(query.get('limit') ?? '', 10)
+      json(res, 200, { events: auditQuery({ ...auditFiltersFromQuery(query), limit: Number.isInteger(limitParam) && limitParam > 0 ? limitParam : undefined }) })
+      return true
+    }
+    if (path === '/console/api/audit/export') {
+      const filters = auditFiltersFromQuery(query)
+      const events = auditQuery({ ...filters, limit: 1_000_000 })
+      // 导出动作本身入审计（auditor 也可导出，是其核心职责）。
+      void auditAppend({ actor, action: 'audit.export', target: 'audit.jsonl', result: 'ok', detail: { actionPrefix: filters.actionPrefix || null, actor: filters.actor || null, result: filters.result || null, count: events.length } })
+      res.writeHead(200, {
+        'content-type': 'application/x-ndjson; charset=utf-8',
+        'content-disposition': 'attachment; filename="audit-export.jsonl"',
+      })
+      res.end(events.map((e) => JSON.stringify(e)).join('\n') + (events.length > 0 ? '\n' : ''))
+      return true
+    }
     const ctx = { dataDir, manifest, getState, query }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     if (path === '/console') res.end(SHELL('总览', '', manifest, getState, dataDir, overviewPage(ctx)))
     else if (path === '/console/members') res.end(SHELL('成员与额度', 'members', manifest, getState, dataDir, membersPage(ctx)))
+    else if (path === '/console/roles') res.end(SHELL('部门与角色', 'roles', manifest, getState, dataDir, rolesPage(ctx)))
     else if (path === '/console/models') {
-      console.error('[console] models render start')
-      const t0 = Date.now()
       const html = SHELL('模型与权限', 'models', manifest, getState, dataDir, modelsPage(ctx))
-      console.error('[console] models render done', Date.now() - t0, 'ms')
       res.end(html)
     }
     else if (path === '/console/instances') res.end(SHELL('实例管理', 'instances', manifest, getState, dataDir, instancesPage(ctx)))
     else if (path === '/console/instances/log') res.end(SHELL('实例日志', 'instances', manifest, getState, dataDir, instanceLogPage(ctx)))
     else if (path === '/console/plugins') res.end(SHELL('插件管理', 'plugins', manifest, getState, dataDir, pluginsPage({ ...ctx, runner })))
+    else if (path === '/console/audit') res.end(SHELL('安全与审计', 'audit', manifest, getState, dataDir, auditPage({ ...ctx, role: auth.record.role })))
     else { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('unknown console page') }
     return true
   }
 
   if (req.method === 'POST' && path.startsWith('/console/api/')) {
     if (auth.error !== undefined) { json(res, 401, { error: 'unauthenticated' }); return true }
-    if (auth.record.role !== 'admin') { json(res, 403, { error: 'admin only' }); return true }
+    if (auth.record.role !== 'admin') {
+      const deniedAction = auditActionFor(path)
+      if (deniedAction !== null) {
+        void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: auth.record.role === 'auditor' ? 'auditor-readonly' : 'role-forbidden' } })
+      }
+      json(res, 403, { error: auth.record.role === 'auditor' ? '审计员为只读角色' : '仅平台管理员可执行变更操作' })
+      return true
+    }
     const origin = req.headers.origin
     if (origin !== undefined) {
+      let sameOrigin = true
       try {
-        if (new URL(origin).host !== (req.headers.host ?? '')) { json(res, 403, { error: 'cross-origin refused' }); return true }
-      } catch { json(res, 403, { error: 'bad origin' }); return true }
+        sameOrigin = new URL(origin).host === (req.headers.host ?? '')
+      } catch { sameOrigin = false }
+      if (!sameOrigin) {
+        const deniedAction = auditActionFor(path)
+        if (deniedAction !== null) {
+          void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: 'origin-check' } })
+        }
+        json(res, 403, { error: 'cross-origin refused' })
+        return true
+      }
     }
     if (path === '/console/api/plugin/job') {
       void readBody(req).then((body) => {
+        const jobAction = auditActionFor(path, body)
         try {
           const job = runner.enqueue({ type: body.type, spec: body.spec, ids: body.ids, skipPrecheck: body.skipPrecheck })
+          void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'ok', detail: { type: body.type, ids: body.ids ?? 'all' } })
           json(res, 200, { ok: true, job: { id: job.id, state: job.state } })
         } catch (error) {
+          void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'fail', detail: { type: body.type, error: String(error?.message ?? error) } })
           json(res, 409, { error: String(error?.message ?? error) })
         }
       })
       return true
     }
-    void handleApi({ req, res, path, dataDir, manifest }).catch((error) => {
+    void handleApi({ req, res, path, dataDir, manifest, actor }).catch((error) => {
       console.error('[console] api crashed:', error?.stack ?? error)
       try { json(res, 500, { error: 'console api crashed' }) } catch { /* 已响应 */ }
     })

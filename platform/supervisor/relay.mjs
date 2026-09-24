@@ -1,20 +1,32 @@
 /**
- * 落云宗企业平台 · Relay 密钥代理（任务书阶段 3 + 计量配额阶段 4）。
+ * 落云宗企业平台 · Relay 密钥代理（任务书阶段 3 + 计量配额阶段 4 + 栏目 v2 六节点数模型）。
  *
  * 职责：持有真实上游 Key（真实 Key 唯一容身处）；对实例暴露 OpenAI 兼容的
  * `POST /v1/chat/completions`；用虚拟钥匙（vk-…，只存 SHA-256）认证调用方，
- * per-request 校验模型授权与月度 Token 配额，然后把 Authorization 换成真实
- * Key 转发上游，并从响应抽取 token 用量入账。实例侧零改动——provider 路由
- * 的 baseURL 指向 Relay、apiKeyEnv 指向虚拟钥匙。
+ * per-request 校验模型授权与月度配额，然后把 Authorization 换成真实 Key 转发
+ * 上游，并从响应抽取 token 用量与点数入账。实例侧零改动——provider 路由的
+ * baseURL 指向 Relay、apiKeyEnv 指向虚拟钥匙。
+ *
+ * 配额点数模型（蓝图第六节）：
+ * - 消耗点 = (输入×模型倍率 + 输出×模型倍率×补全倍率) × 分组倍率（quotas.mjs）；
+ * - 预扣：转发前按估算 tokens（输入=ceil(消息字符数/4)、输出=max_tokens 缺省 1024、
+ *   上限 32768）计点，只记内存 pending、不落账面 points；pending 计入配额判定
+ *   （账面 + 未实结预扣 ≥ 月度点数即拒）；实结：响应 usage（流式取 include_usage
+ *   终值）到达后按实际计点直入账面并清退 pending；客户端断连与上游失败全额返还
+ *   预扣（断连 = 返还预扣 + requests 计 1 + tokens 不计 + relay.log 记 aborted）；
+ *   成功但 usage 抽取失败时预扣转正入账面（防刷）；
+ * - 配额判定：account.monthlyPoints（缺省=不限、0=即停）；monthlyPoints 未定义而
+ *   存在旧 monthlyTokens 时走旧 tokens 判据（「旧制」）；并存以 monthlyPoints 为准；
+ * - usage.json 每账号每月 tokens 进/出照旧累计，另加 points 累计（promise-mutex
+ *   串行读改写）。
  *
  * 安全语义（任务书决定 2/5/6 + 安全设计原则）：
  * - 服务端强制：认证、模型授权、配额在本进程 per-request 校验，不信任实例
  *   自律；用量与额度只存在服务端，实例内没有任何可篡改的配额状态；
- * - 硬停：本月用量 ≥ 额度即拒新请求（可读 429），已转发的 in-flight 请求
- *   放行至完成；额度不设（undefined）= 不限（如管理员账号）；
+ * - 硬停：到线即拒新请求（可读 429），已转发的 in-flight 请求放行至完成；
  * - 月键取部署服务器本地时区（决定 6），无 per-tenant 时区；
  * - 虚拟钥匙吊销即时生效（每次请求按 mtime 缓存重读 vkeys.json）；
- * - 日志只记元数据（谁/何时/哪个模型/哪个上游/状态/耗时/token 数），
+ * - 日志只记元数据（谁/何时/哪个模型/哪个上游/状态/耗时/token 数/点数），
  *   绝不落 prompt、completion 或任何消息正文。
  */
 import { createServer, request as httpRequest } from 'node:http'
@@ -22,6 +34,9 @@ import { request as httpsRequest } from 'node:https'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { auditAppend, clientIp, initAudit } from './audit.mjs'
+import { estimatePoints, fmtPoints, initQuotas, isUnsafeKey, resolveRatios, tokensToPoints } from './quotas.mjs'
 
 const UPSTREAMS_FILE = 'upstreams.json'
 const VKEYS_FILE = 'vkeys.json'
@@ -31,6 +46,9 @@ const BODY_LIMIT_BYTES = 32 * 1024 * 1024
 const UPSTREAM_TIMEOUT_MS = 300_000
 /** 从响应抽取 usage 的缓冲上限：超过即放弃抽取（只影响计量精度，不影响转发）。 */
 const TAP_LIMIT_BYTES = 8 * 1024 * 1024
+/** 预扣估输出的缺省值与上限：上限防 max_tokens 极端值沉淀巨额占账。 */
+const DEFAULT_ESTIMATED_OUTPUT_TOKENS = 1024
+const MAX_ESTIMATED_OUTPUT_TOKENS = 32768
 
 const hashToken = (token) => createHash('sha256').update(token).digest('hex')
 
@@ -64,12 +82,35 @@ const openAiError = (res, status, message, code) => {
   res.end(JSON.stringify({ error: { message, type, code } }))
 }
 
+/** 预扣估输入：messages 各条 content 字符数合计（/v1/completions 兼容 prompt 字段）。 */
+const promptCharCount = (body) => {
+  if (Array.isArray(body?.messages)) {
+    return body.messages.reduce((sum, m) => {
+      const content = m?.content
+      if (typeof content === 'string') return sum + content.length
+      if (content === undefined || content === null) return sum
+      try {
+        return sum + JSON.stringify(content).length
+      } catch {
+        return sum
+      }
+    }, 0)
+  }
+  const prompt = body?.prompt
+  if (typeof prompt === 'string') return prompt.length
+  if (Array.isArray(prompt)) return prompt.reduce((n, p) => n + (typeof p === 'string' ? p.length : 0), 0)
+  return 0
+}
+
 /**
  * 创建 Relay 服务器。
  * @param manifest - instances.json 内容（读 relayPort 之外的实例映射仅用于日志归属）
  * @param dataDir  - data/ 目录（upstreams.json、vkeys.json、logs/relay.log）
  */
 export function createRelayServer({ dataDir }) {
+  // 与网关同进程（supervisor daemon 统一拉起）：审计与倍率直接共享模块。
+  initAudit(dataDir)
+  initQuotas(dataDir)
   const upstreamsCache = {}
   const vkeysCache = {}
   const accountsCache = {}
@@ -102,14 +143,39 @@ export function createRelayServer({ dataDir }) {
     writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
     renameSync(tmp, path)
   }
-  const recordUsage = (account, tokensIn, tokensOut) => withUsageLock(() => {
-    if (!Number.isFinite(tokensIn) && !Number.isFinite(tokensOut)) return
-    const store = readUsage()
+  const round6 = (x) => Math.round(x * 1e6) / 1e6
+  const entryFor = (store, account) => {
     const month = monthKey()
     store.months[month] ??= {}
-    const entry = store.months[month][account] ??= { tokensIn: 0, tokensOut: 0, requests: 0 }
-    entry.tokensIn += Number.isFinite(tokensIn) ? tokensIn : 0
-    entry.tokensOut += Number.isFinite(tokensOut) ? tokensOut : 0
+    return (store.months[month][account] ??= { tokensIn: 0, tokensOut: 0, requests: 0, points: 0 })
+  }
+  // 未实结预扣合计（内存 Map，daemon 重启清零）：只用于配额判定占位，不落账面
+  // points。账面 points 只含实结费用与「无 usage 保留的预扣」，断连/失败返还零痕迹。
+  const pendingPrecharge = new Map()
+  const addPending = (account, delta) => {
+    const next = (pendingPrecharge.get(account) ?? 0) + delta
+    if (next > 0) pendingPrecharge.set(account, next)
+    else pendingPrecharge.delete(account)
+  }
+  /** 实结：tokens 进/出与请求数累计，pointsDelta 直接入账面 points（实结费用）。 */
+  const settleUsage = (account, tokensIn, tokensOut, pointsDelta) => withUsageLock(() => {
+    const hasTokens = Number.isFinite(tokensIn) || Number.isFinite(tokensOut)
+    const hasPoints = Number.isFinite(pointsDelta) && pointsDelta !== 0
+    if (!hasTokens && !hasPoints) return
+    const store = readUsage()
+    const entry = entryFor(store, account)
+    if (hasTokens) {
+      entry.tokensIn += Number.isFinite(tokensIn) ? tokensIn : 0
+      entry.tokensOut += Number.isFinite(tokensOut) ? tokensOut : 0
+      entry.requests += 1
+    }
+    if (hasPoints) entry.points = round6((entry.points ?? 0) + pointsDelta)
+    writeUsage(store)
+  })
+  /** 断连收口：requests 计 1（请求确实发生），tokens/points 不计（usage 不可得，预扣已返还）。 */
+  const settleAborted = (account) => withUsageLock(() => {
+    const store = readUsage()
+    const entry = entryFor(store, account)
     entry.requests += 1
     writeUsage(store)
   })
@@ -117,6 +183,7 @@ export function createRelayServer({ dataDir }) {
     const entry = readUsage().months[monthKey()]?.[account]
     return entry ? entry.tokensIn + entry.tokensOut : 0
   }
+  const usedPointsThisMonth = (account) => readUsage().months[monthKey()]?.[account]?.points ?? 0
 
   return createServer((req, res) => {
     const incoming = req.url
@@ -162,18 +229,42 @@ export function createRelayServer({ dataDir }) {
         openAiError(res, 403, `model "${model}" is not authorized for this virtual key`, 'model_not_authorized')
         return
       }
-      // 配额硬停（阶段 4）：账号设了 monthlyTokens 且本月用量已到线，拒新请求。
-      // 用量只存在服务端 usage.json，实例内没有任何可篡改的配额状态。
       const accountRecord = cachedJson(join(dataDir, ACCOUNTS_FILE), accountsCache)?.accounts
         ?.find((a) => a.account === vkey.account)
       if (accountRecord?.disabled) {
         openAiError(res, 401, '账号已禁用，请联系管理员', 'account_disabled')
         return
       }
-      const quota = accountRecord?.monthlyTokens
-      const used = usedTokensThisMonth(vkey.account)
-      if (Number.isFinite(quota) && used >= quota) {
-        openAiError(res, 429, `本月 Token 额度已用完（${used}/${quota}）。请联系管理员调整额度。`, 'insufficient_quota')
+      // 配额硬停：点数口径（monthlyPoints 缺省=不限、0=即停）判定含未实结预扣——
+      // 账面 usedPoints + pending 预扣 ≥ 月度点数即拒；monthlyPoints 未定义而存在
+      // 旧 monthlyTokens 时走旧 tokens 判据（不动）；并存以 monthlyPoints 为准。
+      const usedPoints = usedPointsThisMonth(vkey.account)
+      const pendingPoints = pendingPrecharge.get(vkey.account) ?? 0
+      const usedTokens = usedTokensThisMonth(vkey.account)
+      const monthlyPoints = accountRecord?.monthlyPoints
+      const legacyTokens = accountRecord?.monthlyTokens
+      let denial = null
+      if (Number.isFinite(monthlyPoints)) {
+        if (usedPoints + pendingPoints >= monthlyPoints) {
+          denial = { mode: 'points', used: usedPoints + pendingPoints, quota: monthlyPoints }
+        }
+      } else if (Number.isFinite(legacyTokens) && usedTokens >= legacyTokens) {
+        denial = { mode: 'tokens', used: usedTokens, quota: legacyTokens }
+      }
+      if (denial !== null) {
+        void auditAppend({
+          actor: { account: vkey.account, role: accountRecord?.role ?? null, ip: clientIp(req) },
+          action: 'quota.exceeded',
+          target: vkey.account,
+          result: 'deny',
+          detail: denial.mode === 'points'
+            ? { model, usedPoints: round6(denial.used), quotaPoints: denial.quota }
+            : { model, used: denial.used, quota: denial.quota, legacyTokens: true },
+        })
+        const message = denial.mode === 'points'
+          ? `本月点数额度已用完（${fmtPoints(denial.used)}/${denial.quota} 点）。请联系管理员调整额度。`
+          : `本月 Token 额度已用完（${denial.used}/${denial.quota}）。请联系管理员调整额度。`
+        openAiError(res, 429, message, 'insufficient_quota')
         return
       }
       const upstreams = cachedJson(join(dataDir, UPSTREAMS_FILE), upstreamsCache)?.upstreams ?? []
@@ -185,11 +276,45 @@ export function createRelayServer({ dataDir }) {
       // 按供应商 API 格式映射转发路径：openai 格式走 /chat/completions，anthropic 原生走 /v1/messages
       const upstreamPath = (upstream.apiFormat === 'anthropic')
         ? '/v1/messages'
-            : incoming.replace('/v1', '')
+        : incoming.replace('/v1', '')
       if (!['/v1/messages', '/chat/completions', '/completions'].includes(upstreamPath)) {
         openAiError(res, 400, `unsupported path for upstream "${upstream.name}": ${upstreamPath}`, 'bad_path')
         return
       }
+
+      // 计费预扣（蓝图六，转发前一刻）：估输入 = ceil(消息+system 字符数/4)、估输出 =
+      // max_tokens（缺省 1024，上限 32768）。预扣只记内存 pending（不落账面 points），
+      // 计入上面的配额判定；实结按实际 usage 直接入账，断连/上游失败全额返还（账面
+      // 零痕迹）；成功但 usage 抽取失败时预扣转正入账面（防刷）。no_upstream/bad_path
+      // 等前置拒绝发生在预扣前，不产生任何账目。
+      const ratios = resolveRatios(model, accountRecord?.department)
+      const estIn = Math.ceil(promptCharCount(body) / 4)
+      const estOut = Number.isFinite(body.max_tokens) && body.max_tokens > 0
+        ? Math.min(Math.ceil(body.max_tokens), MAX_ESTIMATED_OUTPUT_TOKENS)
+        : DEFAULT_ESTIMATED_OUTPUT_TOKENS
+      const reservedPoints = estimatePoints(estIn, estOut, ratios)
+      addPending(vkey.account, reservedPoints)
+      // 账已了结标记：实结 / 失败返还 / 断连返还三选一，防 res close 与 upstream end 双记。
+      let settled = false
+      const refundReserved = () => {
+        if (settled) return
+        settled = true
+        addPending(vkey.account, -reservedPoints)
+      }
+      // 客户端断连（含流式中途断开）：中断上游（取消生成即停止上游计费）、全额返还
+      // 预扣、requests 计 1、tokens 不计（拿不到 usage）。账目语义统一为「断连=返还预扣」。
+      res.on('close', () => {
+        if (settled) return
+        settled = true
+        addPending(vkey.account, -reservedPoints)
+        void settleAborted(vkey.account)
+        try { upstreamReq?.destroy() } catch { /* 上游请求已结束 */ }
+        logMeta({
+          at: new Date().toISOString(), account: vkey.account, instance: vkey.instanceId,
+          vkeyId: vkey.id, model, upstream: upstream.name, status: 499, ms: Date.now() - started,
+          aborted: true,
+        })
+      })
 
       // 流式请求补 stream_options.include_usage：上游会在末块带 usage，供计量抽取。
       if (body.stream === true && (typeof body.stream_options !== 'object' || body.stream_options === null)) {
@@ -252,10 +377,23 @@ export function createRelayServer({ dataDir }) {
             }
             upstreamRes.pipe(res)
             upstreamRes.on('end', () => {
+              if (settled) return // 客户端已断连：账目已在 close 收口（返还预扣），tokens 不计
+              settled = true
               const tokensIn = Number(usage?.prompt_tokens)
               const tokensOut = Number(usage?.completion_tokens)
               if (Number.isFinite(tokensIn) || Number.isFinite(tokensOut)) {
-                void recordUsage(vkey.account, tokensIn, tokensOut)
+                // 实结：按实际 usage 计点直入账面（预扣只占判定额度，未落账面）。
+                const actualPoints = tokensToPoints(
+                  Number.isFinite(tokensIn) ? tokensIn : 0,
+                  Number.isFinite(tokensOut) ? tokensOut : 0,
+                  ratios,
+                )
+                addPending(vkey.account, -reservedPoints)
+                void settleUsage(vkey.account, tokensIn, tokensOut, round6(actualPoints))
+              } else {
+                // 无 usage（抽取失败）：预扣转正入账面作为本次费用，不返还（防刷）。
+                addPending(vkey.account, -reservedPoints)
+                void settleUsage(vkey.account, undefined, undefined, round6(reservedPoints))
               }
               logMeta({
                 at: new Date().toISOString(), account: vkey.account, instance: vkey.instanceId,
@@ -269,7 +407,8 @@ export function createRelayServer({ dataDir }) {
           },
         )
       } catch (error) {
-        // 坏上游配置（URL 非法等）只影响这一笔请求，不拖垮整个控制进程。
+        // 坏上游配置（URL 非法等）只影响这一笔请求，不拖垮整个控制进程；预扣全额返还。
+        refundReserved()
         logMeta({
           at: new Date().toISOString(), account: vkey.account, instance: vkey.instanceId,
           vkeyId: vkey.id, model, upstream: upstream.name, status: 502, ms: Date.now() - started,
@@ -280,6 +419,8 @@ export function createRelayServer({ dataDir }) {
       }
       upstreamReq.on('timeout', () => upstreamReq.destroy(new Error('upstream timeout')))
       upstreamReq.on('error', (error) => {
+        // 上游错误全额返还预扣；断连触发的 destroy 已在 close 收口过，这里自动跳过。
+        refundReserved()
         logMeta({
           at: new Date().toISOString(), account: vkey.account, instance: vkey.instanceId,
           vkeyId: vkey.id, model, upstream: upstream.name, status: 502, ms: Date.now() - started,
@@ -312,6 +453,7 @@ function writeStore(dataDir, file, value) {
 
 /** 上游增加模型：写入 models 列表与展示元数据（modelMeta）。已存在则报错。 */
 export function addModel(dataDir, { upstream, model, meta }) {
+  if (typeof model !== 'string' || model === '' || isUnsafeKey(model)) throw new Error(`非法模型 ID: ${model}`)
   const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
   const u = store.upstreams.find((x) => x.name === upstream)
   if (u === undefined) throw new Error(`上游不存在: ${upstream}`)
@@ -435,13 +577,23 @@ export function listVkeys(dataDir) {
   }))
 }
 
-/** 设置月度 Token 额度：null = 不限（管理员）；数字 = 硬停线（0 = 立即停）。 */
-export function setQuota(dataDir, { account, monthlyTokens }) {
+/**
+ * 设置月度配额：monthlyPoints 为点数口径（null = 不限/删除，0 = 即停）；
+ * monthlyTokens 为旧制兼容口径（supervisor CLI set-quota 继续写它）。
+ * 两者并存时 Relay 判定以 monthlyPoints 为准。
+ */
+export function setQuota(dataDir, { account, monthlyTokens, monthlyPoints }) {
   const store = readStore(dataDir, ACCOUNTS_FILE, { accounts: [] })
   const record = store.accounts.find((a) => a.account === account)
   if (record === undefined) throw new Error(`账号不存在: ${account}`)
-  if (monthlyTokens === null) delete record.monthlyTokens
-  else record.monthlyTokens = monthlyTokens
+  if (monthlyPoints !== undefined) {
+    if (monthlyPoints === null) delete record.monthlyPoints
+    else record.monthlyPoints = monthlyPoints
+  }
+  if (monthlyTokens !== undefined) {
+    if (monthlyTokens === null) delete record.monthlyTokens
+    else record.monthlyTokens = monthlyTokens
+  }
   writeStore(dataDir, ACCOUNTS_FILE, store)
   return record
 }
@@ -452,8 +604,10 @@ export function listUsage(dataDir, month = monthKey()) {
   const months = readStore(dataDir, USAGE_FILE, { months: {} }).months
   const usage = months[month] ?? {}
   return accounts.map((a) => {
-    const entry = usage[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0 }
+    const entry = usage[a.account] ?? { tokensIn: 0, tokensOut: 0, requests: 0, points: 0 }
     const used = entry.tokensIn + entry.tokensOut
+    const points = entry.points ?? 0
+    const quotaMode = Number.isFinite(a.monthlyPoints) ? 'points' : Number.isFinite(a.monthlyTokens) ? 'legacy-tokens' : 'unlimited'
     return {
       account: a.account,
       instanceId: a.instanceId,
@@ -461,9 +615,13 @@ export function listUsage(dataDir, month = monthKey()) {
       tokensIn: entry.tokensIn,
       tokensOut: entry.tokensOut,
       requests: entry.requests,
+      points,
+      monthlyPoints: a.monthlyPoints ?? null,
       monthlyTokens: a.monthlyTokens ?? null,
+      quotaMode,
       used,
       remaining: Number.isFinite(a.monthlyTokens) ? Math.max(0, a.monthlyTokens - used) : null,
+      remainingPoints: Number.isFinite(a.monthlyPoints) ? Math.max(0, a.monthlyPoints - points) : null,
     }
   })
 }

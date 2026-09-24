@@ -27,6 +27,7 @@ import { platform } from 'node:os'
 import { randomBytes } from 'node:crypto'
 import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
+import { fmtPoints } from './quotas.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
 
@@ -726,7 +727,9 @@ async function main() {
     console.log(`月份 ${month}（服务器本地时区）`)
     for (const u of listUsage(DATA, month)) {
       const quota = u.monthlyTokens === null ? '不限' : String(u.monthlyTokens)
-      console.log(`${u.account}  实例=${u.instanceId}  入=${u.tokensIn}  出=${u.tokensOut}  请求=${u.requests}  已用=${u.used}/${quota}${u.remaining !== null ? `  剩余=${u.remaining}` : ''}`)
+      const points = `${fmtPoints(u.points)}${u.monthlyPoints !== null ? `/${u.monthlyPoints}` : ''}`
+      const legacy = u.quotaMode === 'legacy-tokens' ? '  （旧制 tokens）' : ''
+      console.log(`${u.account}  实例=${u.instanceId}  入=${u.tokensIn}  出=${u.tokensOut}  请求=${u.requests}  点数=${points}${legacy}  tokens已用=${u.used}/${quota}${u.remaining !== null ? `  剩余=${u.remaining}` : ''}`)
     }
     return
   }
