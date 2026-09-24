@@ -406,14 +406,6 @@ function modelsPage({ dataDir }) {
 <table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${upstreamRows}</table>
 <h2 class="sect">可用模型</h2>
 <table><tr><th>模型</th><th>提供方</th><th>上下文 / 最大输出</th><th>输入倍率</th><th>输出倍率</th><th>缓存读</th><th>缓存写</th><th>成员可见</th><th>状态</th><th>操作</th></tr>${modelRows}</table>
-<h2 class="sect">增加模型</h2>
-<form class="panel" onsubmit="addModel(event)">
-<div style="margin-bottom:.5rem">上游 <select name="upstream">${upstreamOptions}</select> 模型 ID <input name="model" placeholder="如 glm-5.5" required></div>
-<div style="margin-bottom:.5rem"><span class="mut">展示元数据（可选）：</span> 上下文 <input name="context" size="10" placeholder="1,000,000"> 最大输出 <input name="maxOutput" size="10" placeholder="131,072"></div>
-<div style="margin-bottom:.5rem"><span class="mut">计价倍率（可选）：</span> 输入 <input name="mIn" size="6" placeholder="1×"> 输出 <input name="mOut" size="6" placeholder="1×"> 缓存读 <input name="mCacheR" size="6" placeholder="0.1×"> 缓存写 <input name="mCacheW" size="6" placeholder="1.25×"></div>
-<button class="primary">增加模型</button>
-</form>
-<p class="mut" style="font-size:.82rem">删除模型 = 从该上游收回：成员白名单里残留的 ID 调用时会收到"无上游"提示；删除确认会显示仍引用它的成员数。新增模型后记得在下方矩阵勾选对成员可见。</p>
 <h2 class="sect">成员实际可见的模型矩阵</h2>
 ${matrix}
 <p class="mut" style="font-size:.82rem">改授权不用碰员工电脑：保存替换该成员虚拟钥匙的白名单，Relay 下一请求即强制生效。</p>`
@@ -441,10 +433,6 @@ async function saveMatrix(ev){ev.preventDefault();
   const r=await fetch('/console/api/member/models',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,models})});
   if(!r.ok){document.getElementById('out').textContent='保存失败: '+account;return}}
  document.getElementById('out').textContent='矩阵已保存，已生效';setTimeout(()=>location.reload(),600)}
-async function addModel(ev){ev.preventDefault();
- const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>{if(v!=='')payload[k]=v});
- const r=await fetch('/console/api/model/add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
- if(r.ok)setTimeout(()=>location.reload(),600);else alert('增加失败: '+await r.text())}
 async function removeModel(upstream,model,usedBy){
  if(!confirm('删除模型 '+model+'？'+(usedBy>0?('（'+usedBy+' 个成员的白名单仍引用它，调用将收到"无上游"提示）'):'')))return;
  const r=await fetch('/console/api/model/remove',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({upstream:upstream,model:model})});
@@ -588,7 +576,7 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         if (name === '' || baseURL === '') { json(res, 400, { error: '供应商名称与请求地址必填' }); return }
         if (listUpstreams(dataDir).some((u) => u.name === name)) { json(res, 409, { error: '供应商已存在: ' + name }); return }
         const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
-        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在“增加模型”里补充）' }); return }
+        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在供应商管理里补充）' }); return }
         try {
           setUpstream(dataDir, { name, baseURL, models, apiKey: body.apiKey, note: body.note || undefined, website: body.website || undefined })
           json(res, 200, { ok: true, name, models })
