@@ -230,6 +230,7 @@ function overviewPage({ manifest, getState, dataDir }) {
   const state = getState()
   const usageMonth = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
   const accounts = listAccounts(dataDir)
+  console.error('[models] B-accounts')
   const drift = readJson(dataDir, 'drift.json', { checks: {} }).checks
   const running = manifest.instances.filter((s) => state.instances[s.id]?.state === 'running').length
   const monthTokens = accounts.reduce((sum, a) => {
@@ -532,6 +533,7 @@ async function addProvider(ev){ev.preventDefault();
 
 function modelsPage({ dataDir }) {
   const upstreams = listUpstreams(dataDir).filter((x) => !x.revoked)
+  console.error('[models] A-upstreams')
   const catalog = []
   for (const u of upstreams) for (const m of u.models) if (!catalog.includes(m)) catalog.push(m)
   const metaFor = (m) => {
@@ -541,6 +543,7 @@ function modelsPage({ dataDir }) {
   const accounts = listAccounts(dataDir)
   const P_COLORS = ['#43d6c5', '#6f9bff', '#ffd166', '#ff9d9d', '#b388ff', '#7ef0c0', '#f5a623']
   const providerCards = upstreams.map((u) => {
+  console.error('[models] C-providerCards')
     const sum = [...u.name].reduce((a, c) => a + c.codePointAt(0), 0)
     const color = P_COLORS[sum % P_COLORS.length]
     return `<div class="pcard">
@@ -559,9 +562,23 @@ function modelsPage({ dataDir }) {
   <div>供应商名称 <input name="name" size="28" placeholder="例如：Zhipu GLM" required> ｜ 请求地址 <input name="baseURL" size="40" placeholder="https://…" required> ｜ API Key <input name="apiKey" size="24" placeholder="sk-…" required> ｜ 模型 <input name="models" size="20" placeholder="逗号分隔"> <button class="primary">添加供应商</button></div>
   </form>
   <h2 class="sect">可用模型</h2>`
+  const modelRows = catalog.map((m) => {
+    const u = upstreams.find((x) => x.models.includes(m))
+    const meta = metaFor(m)
+    const usedBy = accounts.filter((a) => {
+      const vk = activeVkeyFor(dataDir, a.account)
+      return vk !== undefined && (vk.models === '*' || vk.models.includes(m))
+    }).length
+    const del = `<button class="warn" onclick="removeModel('${esc(u?.name ?? '')}','${esc(m)}',${usedBy})">删除</button>`
+    return `<tr><td>${esc(m)}</td><td>${esc(u?.name ?? '—')}</td><td>${meta ? esc(meta.context) : '—'} / ${meta ? esc(meta.maxOutput) : '—'}</td>
+<td>${meta ? esc(meta.mIn) : '—'}</td><td>${meta ? esc(meta.mOut) : '—'}</td><td>${meta ? esc(meta.mCacheR) : '—'}</td><td>${meta ? esc(meta.mCacheW) : '—'}</td>
+<td>${usedBy}</td><td><span class="chip green">已启用</span></td><td>${del}</td></tr>`
+  }).join('')
   const matrix = modelsMatrix({ dataDir, accounts, catalog })
+  console.error('[models] D-matrix')
   return `
-<div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new">＋ 新建模型供应商</a></div>
+<div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new"
+  console.error('[models] E-return')>＋ 新建模型供应商</a></div>
 <h2 class="sect">模型供应商列表</h2>
 <table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${providerCardsBlock}</table>
 <h2 class="sect">可用模型</h2>
@@ -572,7 +589,9 @@ ${matrix}
 }
 
 function modelsMatrix({ dataDir, accounts, catalog }) {
+  console.error('[mm] enter: accounts =', accounts.length, 'catalog =', catalog.length)
   const rows = accounts.map((a) => {
+    console.error('[mm] row:', a.account)
     const vk = activeVkeyFor(dataDir, a.account)
     const cells = catalog.map((m) => {
       const on = vk !== undefined && (vk.models === '*' || vk.models.includes(m))
@@ -580,7 +599,7 @@ function modelsMatrix({ dataDir, accounts, catalog }) {
     }).join('')
     return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td>${cells}</tr>`
   }).join('')
-  const head = catalog.map((m) => `<th>${esc(m)}</th>`).join('')
+  console.error('[mm] rows done:', rows.length)((m) => `<th>${esc(m)}</th>`).join('')
   return `<form id="matrix" onsubmit="saveMatrix(event)">
 <table><tr><th>成员</th><th>账号</th>${head}</tr>${rows}</table>
 <button class="primary">保存矩阵</button></form>
@@ -627,6 +646,156 @@ function readBody(req) {
 function enqueueInstanceControl(dataDir, action, id) {
   writeFileSync(join(dataDir, 'control.json'), `${JSON.stringify({ action, id, at: Date.now() })}
 `)
+}
+
+function instancesPage({ manifest, getState, dataDir, query }) {
+  const state = getState()
+  const filter = query.get('state') ?? 'all'
+  const needsAttention = (s) => ['crashed', 'unhealthy', 'failed', 'restarting'].includes(s)
+  const match = (s) => filter === 'all' || (filter === 'attention' ? needsAttention(s) : filter === s)
+  const shown = manifest.instances.filter((spec) => match(state.instances[spec.id]?.state ?? 'stopped'))
+  const running = manifest.instances.filter((s) => state.instances[s.id]?.state === 'running').length
+  const attention = manifest.instances.filter((s) => needsAttention(state.instances[s.id]?.state ?? 'stopped')).length
+  const totalDisk = manifest.instances.reduce((sum, s) => sum + (state.instances[s.id]?.diskBytes ?? 0), 0)
+  const stats = `<div class="statgrid">
+<div class="stat"><div class="k">实例数</div><div class="v">${running} <span style="font-size:.85rem;color:var(--muted)">/ ${manifest.instances.length} 运行中</span></div><div class="n">一人一实例 · 独立目录</div></div>
+<div class="stat"><div class="k">需处理</div><div class="v">${attention}</div><div class="n">待重启或异常的实例</div></div>
+<div class="stat"><div class="k">异常实例</div><div class="v">${manifest.instances.filter((s) => ['crashed', 'failed'].includes(state.instances[s.id]?.state)).length}</div><div class="n">supervisor 自动重启守护</div></div>
+<div class="stat"><div class="k">磁盘占用</div><div class="v">${(totalDisk / 1024 / 1024).toFixed(1)} MB</div><div class="n">全部 home 合计</div></div>
+</div>`
+  const tab = (key, label) => `<a class="${filter === key ? 'on' : ''}" href="/console/instances${key === 'all' ? '' : `?state=${key}`}">${label}</a>`
+  const tabs = `<div class="tabs">${tab('all', `全部 (${manifest.instances.length})`)}${tab('running', '运行中')}${tab('attention', '需处理')}${tab('stopped', '已停止')}</div>`
+  const accounts = listAccounts(dataDir)
+  const rows = shown.map((spec) => {
+    const rec = state.instances[spec.id] ?? { state: '—' }
+    const mem = rec.memoryKB ? `${(rec.memoryKB / 1024).toFixed(1)} MB` : '—'
+    const disk = rec.diskBytes !== null && rec.diskBytes !== undefined ? `${(rec.diskBytes / 1024 / 1024).toFixed(1)} MB` : '—'
+    const a = accounts.find((x) => x.account === spec.account)
+    const vk = activeVkeyFor(dataDir, spec.account)
+    const granted = vk === undefined ? '—' : vk.models === '*' ? '全部' : `${vk.models.length} 个`
+    const effCount = drift[spec.id]?.effectiveSet?.models?.length
+    const driftMark = effCount !== undefined && vk !== undefined && vk.models !== '*' && vk.models.length !== effCount
+      ? ' <span class="chip red">差异</span>' : ''
+    const eff = effCount === undefined ? '—' : `${effCount} 个${driftMark}`
+    const uptime = rec.startedAt && rec.pid ? `${Math.round((Date.now() - rec.startedAt) / 60000)} 分钟` : '—'
+    const lastActivity = rec.health?.lastOkAt ? new Date(rec.health.lastOkAt).toISOString().slice(5, 16).replace('T', ' ') : '—'
+    const ops = ['restart', 'stop', 'start'].map((op) => {
+      const disabled = (op === 'start' && rec.pid) || (op === 'restart' && !rec.pid)
+      return `<form class="inline" onsubmit="api(event,'/console/api/instance/${op}')"><input type="hidden" name="id" value="${spec.id}"><button ${disabled ? 'disabled' : ''}>${op === 'restart' ? '重启' : op === 'stop' ? '停止' : '启动'}</button></form>`
+    }).join('')
+    return `<tr><td>${avatar(a?.displayName)}${esc(a?.displayName ?? spec.id)}<div style="font-size:.72rem;color:var(--faint)">${esc(spec.account)}</div></td>
+<td>${stateChip(rec.state)}</td>
+<td>:${spec.port}<div style="font-size:.72rem;color:var(--faint)">pid ${rec.pid ?? '—'} · uid ${spec.uid}</div><div style="font-size:.72rem;color:var(--faint)">隔离 ${spec.id}</div></td>
+<td>已授权 ${granted} → 实例内渲染 ${eff}</td>
+<td>内存 ${mem}<div style="font-size:.72rem;color:var(--faint)">磁盘 ${disk}</div></td>
+<td>${uptime}<div style="font-size:.72rem;color:var(--faint)">活动 ${lastActivity}</div></td>
+<td>${ops}<a class="btn" href="/console/instances/log?id=${spec.id}">日志</a></td></tr>`
+  }).join('')
+  return `
+${stats}
+${tabs}
+<table><tr><th>成员</th><th>状态</th><th>端口 · 进程 · 隔离</th><th>模型（已授权 → 实例内渲染）</th><th>资源</th><th>运行时长 · 最后活动</th><th>操作</th></tr>${rows || '<tr><td colspan="7">该筛选下无实例</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">「同步配置」与「重发说明」属插件治理生效链（阶段 6），当前经 CLI 投放后重启即对齐；日志为运行日志，不含会话内容。</p>
+<script>
+async function api(ev,path){ev.preventDefault();
+ const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>payload[k]=v);
+ const r=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ if(r.ok)setTimeout(()=>location.reload(),900)}
+</script>`
+}
+
+function instanceLogPage({ manifest, dataDir, query }) {
+  const id = query.get('id') ?? ''
+  if (!manifest.instances.some((s) => s.id === id)) return '<p class="bad">未知实例</p>'
+  let content = '(无日志)'
+  try {
+    content = readFileSync(join(dataDir, 'logs', `${id}.log`), 'utf8').trim().split('\n').slice(-80).map(esc).join('\n')
+  } catch { /* 尚无日志 */ }
+  return `<p><a href="/console/instances">← 实例管理</a></p><pre class="log">${content}</pre>`
+}
+
+function pluginsPage({ dataDir, manifest, getState, runner }) {
+  const desired = readJson(dataDir, 'plugins.json', { instances: {} })
+  const catalog = pluginCatalog(dataDir)
+  const state = getState()
+  const names = new Set()
+  let staged = 0
+  for (const list of Object.values(desired.instances)) {
+    for (const p of list) {
+      if (p.state !== 'removed') names.add(p.name)
+      if (p.state === 'staged') staged += 1
+    }
+  }
+  const profileBundles = (() => {
+    for (const spec of manifest.instances) {
+      const file = join(dataDir, 'homes', spec.id, 'profiles', 'web', 'package.json')
+      try { return JSON.parse(readFileSync(file, 'utf8')).dsh?.profile?.bundles ?? [] } catch { return [] }
+    }
+    return []
+  })()
+  const stats = `<div class="statgrid">
+<div class="stat"><div class="k">已接入插件</div><div class="v">${names.size} 个</div><div class="n">第三方插件与平台共享一个进程树</div></div>
+<div class="stat"><div class="k">待生效实例</div><div class="v">${staged}</div><div class="n">暂存后等待重启的改动</div></div>
+<div class="stat"><div class="k">投放方式</div><div class="v" style="font-size:1rem">页面 / CLI</div><div class="n">真启动预检强制 · 装坏自动拦截</div></div>
+<div class="stat"><div class="k">执行模型</div><div class="v" style="font-size:1rem">串行队列</div><div class="n">任务落盘，页面轮询取状态</div></div>
+</div>`
+  const rows = manifest.instances.map((spec) => {
+    const list = desired.instances[spec.id] ?? []
+    const items = list.length === 0
+      ? '<td colspan="2">—</td>'
+      : list.map((p) => `<td>${esc(p.name)}</td><td>${esc(p.spec === p.name ? '(最新)' : p.spec)} · ${p.state === 'removed' ? '<span class="chip gray">已移除</span>' : p.state === 'staged' ? '<span class="chip yellow">暂存（重启生效）</span>' : `<span class="chip green">${esc(p.state)}</span>`}</td>`).join('')
+    const running = state.instances[spec.id]?.state === 'running'
+    return `<tr><td>${spec.id}</td><td>${running ? '<span class="chip green">运行中</span>' : stateChip(state.instances[spec.id]?.state)}</td>${items}</tr>`
+  }).join('')
+  const bundles = profileBundles.map((b) => `<span class="chip blue">${esc(b)}</span>`).join(' ')
+  const instanceChecks = manifest.instances.map((s) => `<label style="margin-right:.8rem"><input type="checkbox" name="id-${s.id}" checked> ${s.id}</label>`).join('')
+  const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}</option>`).join('')
+  return `
+${stats}
+<h2 class="sect">投放插件（npm / Git / 本地路径）</h2>
+<form class="panel" onsubmit="pushPlugin(event)">
+<div style="margin-bottom:.5rem">插件 <input name="spec" size="44" placeholder="@weibaohui/dsh-file-share 或本地路径" required></div>
+<div style="margin-bottom:.5rem">目标实例 ${instanceChecks} ｜ <label><input type="checkbox" name="skip-precheck"> 跳过预检（不推荐）</label></div>
+<button class="primary">预检并暂存（异步执行）</button>
+</form>
+<form class="panel" onsubmit="removePlugin(event)">
+卸载插件 <input name="spec" size="30" placeholder="插件名"> 实例 <select name="ids"><option value="all">全部</option>${instanceOptions}</select>
+<button class="warn">卸载并重启</button>
+</form>
+<h2 class="sect">投放任务（每 4 秒自动刷新）</h2>
+<table><tr><th>任务</th><th>类型</th><th>目标</th><th>状态</th><th>输出</th><th>更新时间</th></tr><tbody id="jobsbody"><tr><td colspan="6">加载中…</td></tr></tbody></table>
+<h2 class="sect">平台默认插件集</h2>
+<p class="mut" style="font-size:.85rem">每个实例 profile 在此集合之上叠加第三方插件。<span style="font-size:.85rem">${bundles || '—'}</span></p>
+<h2 class="sect">插件 × 实例（期望态）</h2>
+<table><tr><th>实例</th><th>实例状态</th><th>插件</th><th>版本 / 状态</th></tr>${rows}</table>
+<p class="mut" style="font-size:.82rem">投放为异步任务（串行执行）：预检失败自动拦截、任何实例均不安装；暂存后在实例管理页重启生效；卸载自带重启。</p>
+<pre id="out2" class="mut"></pre>
+<script>
+const STATE_CHIP={queued:['排队中','gray'],running:['执行中','yellow'],done:['完成','green'],failed:['失败','red']}
+function escJs(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function chipJs(s){const pair=STATE_CHIP[s]||[s,'gray'];return '<span class="chip '+pair[1]+'">'+pair[0]+'</span>'}
+async function refreshJobs(){
+ try{const r=await fetch('/console/api/plugin/jobs');if(!r.ok)return;
+  const jobs=(await r.json()).jobs||[];const tb=document.getElementById('jobsbody');if(!tb)return;
+  tb.innerHTML=jobs.length===0?'<tr><td colspan="6">暂无任务</td></tr>':jobs.map(function(j){
+   const out=escJs((j.error?('[失败] '+j.error+'\\n'):'')+(j.output||'').slice(-280))
+   return '<tr><td>'+escJs(j.id)+'</td><td>'+escJs(j.type)+'</td><td>'+escJs((j.spec||'')+(j.ids?' → '+j.ids:''))+'</td><td>'+chipJs(j.state)+'</td>'+
+    '<td style="max-width:380px;white-space:pre-wrap;font-size:.74rem">'+out+'</td><td style="font-size:.74rem">'+escJs(j.updatedAt||'')+'</td></tr>'
+  }).join('')
+ }catch{}
+}
+async function postJob(payload){const r=await fetch('/console/api/plugin/job',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const t=await r.text();document.getElementById('out2').textContent='HTTP '+r.status+' '+t;
+ if(r.ok){refreshJobs();setInterval(refreshJobs,4000)}else{refreshJobs()}}
+async function pushPlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ const ALL_IDS=${JSON.stringify(manifest.instances.map(function(x){return x.id}))};
+ const ids=ALL_IDS.filter(function(id){return f.get('id-'+id)==='on'});
+ if(ids.length===0){document.getElementById('out2').textContent='至少选择一个目标实例';return}
+ await postJob({type:'push',spec:f.get('spec'),ids:ids,skipPrecheck:f.get('skip-precheck')==='on'})}
+async function removePlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ await postJob({type:'remove',spec:f.get('spec'),ids:f.get('ids')})}
+setInterval(refreshJobs,4000);refreshJobs()
+</script>`
 }
 
 async function handleApi({ req, res, path, dataDir, manifest }) {
@@ -737,21 +906,6 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
           saveAccounts(dataDir, store)
         }
         json(res, 200, { ok: true, ...result })
-        return
-      }
-      case '/console/api/provider/add': {
-        const name = typeof body.name === 'string' ? body.name.trim() : ''
-        const baseURL = typeof body.baseURL === 'string' ? body.baseURL.trim() : ''
-        if (name === '' || baseURL === '') { json(res, 400, { error: '供应商名称与请求地址必填' }); return }
-        if (listUpstreams(dataDir).some((u) => u.name === name)) { json(res, 409, { error: '供应商已存在: ' + name }); return }
-        const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
-        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在供应商管理里补充）' }); return }
-        try {
-          setUpstream(dataDir, { name, baseURL, models, apiKey: body.apiKey, note: body.note || undefined, website: body.website || undefined })
-          json(res, 200, { ok: true, name, models })
-        } catch (error) {
-          json(res, 400, { error: String(error?.message ?? error) })
-        }
         return
       }
       case '/console/api/provider/add': {
@@ -871,11 +1025,6 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage(), '/console/models'))
       return true
     }
-    if (path === '/console/providers/new') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage()))
-      return true
-    }
     if (path === '/console/api/plugin/jobs') {
       json(res, 200, { jobs: runner.list() })
       return true
@@ -884,7 +1033,13 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     if (path === '/console') res.end(SHELL('总览', '', manifest, getState, dataDir, overviewPage(ctx)))
     else if (path === '/console/members') res.end(SHELL('成员与额度', 'members', manifest, getState, dataDir, membersPage(ctx)))
-    else if (path === '/console/models') res.end(SHELL('模型与权限', 'models', manifest, getState, dataDir, modelsPage(ctx)))
+    else if (path === '/console/models') {
+      console.error('[console] models render start')
+      const t0 = Date.now()
+      const html = SHELL('模型与权限', 'models', manifest, getState, dataDir, modelsPage(ctx))
+      console.error('[console] models render done', Date.now() - t0, 'ms')
+      res.end(html)
+    }
     else if (path === '/console/instances') res.end(SHELL('实例管理', 'instances', manifest, getState, dataDir, instancesPage(ctx)))
     else if (path === '/console/instances/log') res.end(SHELL('实例日志', 'instances', manifest, getState, dataDir, instanceLogPage(ctx)))
     else if (path === '/console/plugins') res.end(SHELL('插件管理', 'plugins', manifest, getState, dataDir, pluginsPage({ ...ctx, runner })))
