@@ -397,6 +397,7 @@ function newProviderPage() {
   ]
   const chips = `<button type="button" class="chip gray preset on" data-i="-1">自定义配置</button>` +
     PRESETS.map((p, i) => `<button type="button" class="chip gray preset" data-i="${i}">${esc(p.name)}</button>`).join('')
+  const presetData = JSON.stringify(PRESETS)
   return `
 <div class="presetbox">
 <div class="k" style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">预设供应商 <span class="mut">（点选自动填充请求地址；自定义配置需手动填写所有必填字段）</span></div>
@@ -404,21 +405,52 @@ function newProviderPage() {
 <p style="color:#ffd166;font-size:.82rem;margin:.6rem 0 0">💡 自定义配置需手动填写所有必填字段</p>
 </div>
 <h2 class="sect">供应商信息</h2>
-<form id="pform" class="panel" style="display:block;max-width:860px" onsubmit="addProvider(event)">
-<div style="margin-bottom:.7rem">供应商名称 <input name="name" size="34" placeholder="例如：公司专用账号" required> ｜ 备注 <input name="note" size="30" placeholder="例如：公司专用账号"></div>
-<div style="margin-bottom:.7rem">官网链接 <input name="website" size="44" placeholder="https://example.com（可选）"></div>
-<div style="margin-bottom:.7rem">API Key <input name="apiKey" size="44" placeholder="只需要填这里，下方配置会自动填充" required></div>
-<div style="margin-bottom:.7rem">请求地址 <input name="baseURL" size="44" placeholder="https://your-api-endpoint.com" required>
-<span class="mut" style="font-size:.82rem">（兼容 OpenAI Chat Completions 的服务端点地址，不要以斜杠结尾）</span></div>
-<div style="margin-bottom:.7rem">模型列表（逗号分隔） <input name="models" size="44" placeholder="如 glm-4.7,glm-5.2（供成员矩阵授权）"></div>
-<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem">
+<form id="pform" class="panel" style="display:block;max-width:100%" onsubmit="addProvider(event)">
+<div class="formrow2">
+<div><div class="flabel">供应商名称</div><input name="name" style="width:100%" placeholder="例如：Claude 官方" required></div>
+<div><div class="flabel">备注</div><input name="note" style="width:100%" placeholder="例如：公司专用账号"></div>
+</div>
+<div style="margin-top:.9rem"><div class="flabel">官网链接</div><input name="website" style="width:100%" placeholder="https://example.com（可选）"></div>
+<div style="margin-top:.9rem"><div class="flabel">API Key</div><input name="apiKey" style="width:100%" placeholder="只需要填这里，下方配置会自动填充" required></div>
+<div style="margin-top:.9rem;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:.6rem"><span class="flabel" style="margin:0">请求地址</span>
+<label class="switch" title="开启后直接填写完整端点 URL（含 /chat/completions）"><input type="checkbox" id="fullurl"><span class="slider"></span><span style="font-size:.8rem;color:var(--muted)">完整 URL</span></label></div>
+<span class="mut" style="font-size:.85rem">⚙ 管理与测速</span>
+</div>
+<div><input name="baseURL" style="width:100%" placeholder="https://your-api-endpoint.com" id="baseurl-input"></div>
+<div class="hint">💡 填写兼容 OpenAI Chat Completions 的服务端点地址，不要以斜杠结尾</div>
+<div style="margin-top:.9rem"><div class="flabel">模型列表（逗号分隔）</div><input name="models" style="width:100%" placeholder="如 glm-4.7,glm-5.2（供成员矩阵授权）"></div>
+<details class="adv"><summary>▶ 高级选项</summary>
+<div class="advbody">
+<p class="mut" style="font-size:.85rem;margin:.2rem 0 .6rem">包含 API 格式、认证字段、模型映射等配置。大多数场景下保持默认即可。</p>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="font-weight:600">配置 JSON</div>
+<div style="display:flex;align-items:center;gap:.6rem"><label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" checked> 写入通用配置</label><a href="#" onclick="return false" style="font-size:.85rem">编辑通用配置</a></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:.9rem;margin:.6rem 0">
+<label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="includeCoAuthoredBy" onchange="cfgKey(this)"> 隐藏 AI 署名</label>
+<label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="teammatesMode" onchange="cfgKey(this)"> Teammates 模式</label>
+<label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="enableToolSearch" onchange="cfgKey(this)"> 启用 Tool Search</label>
+<label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="maxThinking" onchange="cfgKey(this)"> 最大强度思考</label>
+<label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem"><input type="checkbox" data-key="disableAutoUpdate" onchange="cfgKey(this)"> 禁用自动升级</label>
+</div>
+<textarea id="cfgjson" rows="6" style="width:100%;font-family:Consolas,monospace;font-size:.85rem;background:#0a0e1e;color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:.7rem">{
+  "env": {},
+  "includeCoAuthoredBy": false
+}</textarea>
+<div style="margin:.4rem 0 1rem"><a href="#" onclick="fmtJson();return false" style="font-size:.85rem">⚡ 格式化</a></div>
+<div class="cfgrow"><span>🧪 模型测试配置</span><span class="mut">使用单独配置</span></div>
+<div class="cfgrow"><span>💰 计费配置</span><span class="mut">使用单独配置</span></div>
+</div>
+</details>
+<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1.2rem">
 <button type="button" class="btn" onclick="location.href='/console/models'">取消</button>
-<button class="primary">＋ 添加</button>
+<button type="submit" class="btn primary">＋ 添加</button>
 </div>
 </form>
-<p class="mut" style="font-size:.82rem">添加后该供应商立即进入 Relay 上游表；成员可在“模型与权限”矩阵中被授权其模型。真实 Key 仅存于服务端，页面只显示指纹。</p>
+<p class="mut" style="font-size:.82rem">添加后该供应商立即进入 Relay 上游表；成员可在“模型与权限”矩阵中被授权其模型。真实 Key 仅存于服务端，页面只显示指纹。“模型测试/计费配置”为待接入项。</p>
 <script>
-const PRESETS=${'${'}JSON.stringify(PRESETS)${'}'};
+var PRESETS = ${JSON.stringify(PRESETS)};
 document.querySelectorAll('.preset').forEach(function(b){
  b.addEventListener('click',function(){
   document.querySelectorAll('.preset').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
@@ -427,6 +459,14 @@ document.querySelectorAll('.preset').forEach(function(b){
   var p=PRESETS[i];f.baseURL.value=p.baseURL;f.website.value=p.website;f.note.value=p.note||'';f.models.value=p.models||'';
   f.name.focus()})
 })
+function cfgKey(cb){try{var o=JSON.parse(document.getElementById('cfgjson').value||'{}');o[cb.dataset.key]=cb.checked;document.getElementById('cfgjson').value=JSON.stringify(o,null,2)}catch(e){cb.checked=!cb.checked;alert('JSON 格式错误，无法修改')}}
+function fmtJson(){try{var o=JSON.parse(document.getElementById('cfgjson').value);document.getElementById('cfgjson').value=JSON.stringify(o,null,2)}catch(e){alert('JSON 格式错误')}}
+async function addProvider(ev){ev.preventDefault();
+ var f=document.getElementById('pform');var fd=new FormData(f);var payload={};fd.forEach(function(v,k){payload[k]=v});
+ payload.fullUrl=document.getElementById('fullurl').checked;
+ payload.configJSON=document.getElementById('cfgjson').value;
+ var r=await fetch('/console/api/provider/add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ if(r.ok){location.href='/console/models'}else{document.getElementById('out2').textContent='HTTP '+r.status+' '+await r.text()}}
 </script>`
 }
 
@@ -640,6 +680,21 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         }
         return
       }
+      case '/console/api/provider/add': {
+        const name = typeof body.name === 'string' ? body.name.trim() : ''
+        const baseURL = typeof body.baseURL === 'string' ? body.baseURL.trim() : ''
+        if (name === '' || baseURL === '') { json(res, 400, { error: '供应商名称与请求地址必填' }); return }
+        if (listUpstreams(dataDir).some((u) => u.name === name)) { json(res, 409, { error: '供应商已存在: ' + name }); return }
+        const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
+        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在模型页“增加模型”补充——该表单已移除，重新添加即可）' }); return }
+        try {
+          setUpstream(dataDir, { name, baseURL, models, apiKey: body.apiKey, note: body.note || undefined, website: body.website || undefined, configJSON: body.configJSON, fullUrl: body.fullUrl === true })
+          json(res, 200, { ok: true, name, models })
+        } catch (error) {
+          json(res, 400, { error: String(error?.message ?? error) })
+        }
+        return
+      }
       case '/console/api/model/add': {
         if (typeof body.upstream !== 'string' || typeof body.model !== 'string' || body.model === '') {
           json(res, 400, { error: 'upstream 与 model 必填' })
@@ -714,6 +769,11 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     if (auth.record.role !== 'admin') {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
       res.end('管理台仅限平台管理员。')
+      return true
+    }
+    if (path === '/console/providers/new') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage()))
       return true
     }
     if (path === '/console/providers/new') {
