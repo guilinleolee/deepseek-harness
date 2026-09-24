@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
-import { addModel, issueVkey, listUpstreams, removeModel, revokeVkey, setQuota, setVkeyModels } from './relay.mjs'
+import { addModel, issueVkey, listUpstreams, removeModel, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 
 const PAGES = ['members', 'models', 'instances', 'plugins']
@@ -330,6 +330,51 @@ async function importIdp(ev){ev.preventDefault();
 </script>`
 }
 
+function newProviderPage() {
+  const PRESETS = [
+    { name: 'DeepSeek', baseURL: 'https://api.deepseek.com', website: 'https://platform.deepseek.com', note: 'DeepSeek 官方', models: 'deepseek-chat,deepseek-reasoner' },
+    { name: 'Zhipu GLM', baseURL: 'https://open.bigmodel.cn/api/paas/v4', website: 'https://open.bigmodel.cn', note: '智谱 GLM 官方', models: 'glm-4.7,glm-5.2,glm-5.3,glm-5.3-flash' },
+    { name: 'Kimi', baseURL: 'https://api.moonshot.cn/v1', website: 'https://platform.moonshot.cn', note: '月之暗面', models: 'kimi-k2-0905-preview' },
+    { name: 'MiniMax', baseURL: 'https://api.minimaxi.com/v1', website: 'https://platform.minimaxi.com', note: 'MiniMax 官方', models: 'MiniMax-M2' },
+    { name: 'SiliconFlow', baseURL: 'https://api.siliconflow.cn/v1', website: 'https://siliconflow.cn', note: '硅基流动', models: '' },
+    { name: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', website: 'https://openrouter.ai', note: '', models: '' },
+    { name: 'ModelScope', baseURL: 'https://api-inference.modelscope.cn/v1', website: 'https://modelscope.cn', note: '魔搭社区', models: '' },
+  ]
+  const chips = `<button type="button" class="chip gray preset on" data-i="-1">自定义配置</button>` +
+    PRESETS.map((p, i) => `<button type="button" class="chip gray preset" data-i="${i}">${esc(p.name)}</button>`).join('')
+  return `
+<div class="presetbox">
+<div class="k" style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">预设供应商 <span class="mut">（点选自动填充请求地址；自定义配置需手动填写所有必填字段）</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:.4rem">${chips}</div>
+<p style="color:#ffd166;font-size:.82rem;margin:.6rem 0 0">💡 自定义配置需手动填写所有必填字段</p>
+</div>
+<h2 class="sect">供应商信息</h2>
+<form id="pform" class="panel" style="display:block;max-width:860px" onsubmit="addProvider(event)">
+<div style="margin-bottom:.7rem">供应商名称 <input name="name" size="34" placeholder="例如：公司专用账号" required> ｜ 备注 <input name="note" size="30" placeholder="例如：公司专用账号"></div>
+<div style="margin-bottom:.7rem">官网链接 <input name="website" size="44" placeholder="https://example.com（可选）"></div>
+<div style="margin-bottom:.7rem">API Key <input name="apiKey" size="44" placeholder="只需要填这里，下方配置会自动填充" required></div>
+<div style="margin-bottom:.7rem">请求地址 <input name="baseURL" size="44" placeholder="https://your-api-endpoint.com" required>
+<span class="mut" style="font-size:.82rem">（兼容 OpenAI Chat Completions 的服务端点地址，不要以斜杠结尾）</span></div>
+<div style="margin-bottom:.7rem">模型列表（逗号分隔） <input name="models" size="44" placeholder="如 glm-4.7,glm-5.2（供成员矩阵授权）"></div>
+<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem">
+<button type="button" class="btn" onclick="location.href='/console/models'">取消</button>
+<button class="primary">＋ 添加</button>
+</div>
+</form>
+<p class="mut" style="font-size:.82rem">添加后该供应商立即进入 Relay 上游表；成员可在“模型与权限”矩阵中被授权其模型。真实 Key 仅存于服务端，页面只显示指纹。</p>
+<script>
+const PRESETS=${'${'}JSON.stringify(PRESETS)${'}'};
+document.querySelectorAll('.preset').forEach(function(b){
+ b.addEventListener('click',function(){
+  document.querySelectorAll('.preset').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  var i=parseInt(b.dataset.i);var f=document.getElementById('pform');
+  if(i<0){f.baseURL.value='';f.website.value='';f.note.value='';f.models.value='';return}
+  var p=PRESETS[i];f.baseURL.value=p.baseURL;f.website.value=p.website;f.note.value=p.note||'';f.models.value=p.models||'';
+  f.name.focus()})
+})
+</script>`
+}
+
 function modelsPage({ dataDir }) {
   const upstreams = listUpstreams(dataDir).filter((x) => !x.revoked)
   const catalog = []
@@ -356,6 +401,7 @@ function modelsPage({ dataDir }) {
   const upstreamOptions = upstreams.map((u) => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join('')
   const matrix = modelsMatrix({ dataDir, accounts, catalog })
   return `
+<div style="margin-bottom:.8rem;text-align:right"><a class="btn primary" href="/console/providers/new">＋ 新建模型供应商</a></div>
 <h2 class="sect">上游提供方 <span class="mut" style="font-size:.8rem">真实 Key 只存在于 Relay 进程</span></h2>
 <table><tr><th>提供方</th><th>端点（BaseURL）</th><th>上游 Key</th><th>模型数</th><th>状态</th></tr>${upstreamRows}</table>
 <h2 class="sect">可用模型</h2>
@@ -536,6 +582,21 @@ async function handleApi({ req, res, path, dataDir, manifest }) {
         json(res, 200, { ok: true, ...result })
         return
       }
+      case '/console/api/provider/add': {
+        const name = typeof body.name === 'string' ? body.name.trim() : ''
+        const baseURL = typeof body.baseURL === 'string' ? body.baseURL.trim() : ''
+        if (name === '' || baseURL === '') { json(res, 400, { error: '供应商名称与请求地址必填' }); return }
+        if (listUpstreams(dataDir).some((u) => u.name === name)) { json(res, 409, { error: '供应商已存在: ' + name }); return }
+        const models = typeof body.models === 'string' ? body.models.split(',').map((x) => x.trim()).filter(Boolean) : []
+        if (models.length === 0) { json(res, 400, { error: '至少提供一个模型 ID（后续可在“增加模型”里补充）' }); return }
+        try {
+          setUpstream(dataDir, { name, baseURL, models, apiKey: body.apiKey, note: body.note || undefined, website: body.website || undefined })
+          json(res, 200, { ok: true, name, models })
+        } catch (error) {
+          json(res, 400, { error: String(error?.message ?? error) })
+        }
+        return
+      }
       case '/console/api/model/add': {
         if (typeof body.upstream !== 'string' || typeof body.model !== 'string' || body.model === '') {
           json(res, 400, { error: 'upstream 与 model 必填' })
@@ -610,6 +671,11 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     if (auth.record.role !== 'admin') {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
       res.end('管理台仅限平台管理员。')
+      return true
+    }
+    if (path === '/console/providers/new') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage()))
       return true
     }
     if (path === '/console/api/plugin/jobs') {

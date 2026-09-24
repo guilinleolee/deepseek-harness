@@ -326,16 +326,18 @@ export function removeModel(dataDir, { upstream, model }) {
   writeStore(dataDir, UPSTREAMS_FILE, store)
 }
 
-export function setUpstream(dataDir, { name, baseURL, models, apiKey }) {
+export function setUpstream(dataDir, { name, baseURL, models, apiKey, note, website }) {
   const store = readStore(dataDir, UPSTREAMS_FILE, { upstreams: [] })
   const existing = store.upstreams.find((u) => u.name === name)
   if (existing) {
     existing.baseURL = baseURL
     existing.models = models
     if (apiKey !== undefined) existing.apiKey = apiKey
+    if (note !== undefined) existing.note = note
+    if (website !== undefined) existing.website = website
   } else {
     if (apiKey === undefined) throw new Error(`上游 ${name} 不存在，首次创建必须提供 --key`)
-    store.upstreams.push({ name, baseURL, models, apiKey, revoked: false, createdAt: new Date().toISOString() })
+    store.upstreams.push({ name, baseURL, models, apiKey, revoked: false, note, website, createdAt: new Date().toISOString() })
   }
   writeStore(dataDir, UPSTREAMS_FILE, store)
 }
@@ -349,6 +351,8 @@ export function listUpstreams(dataDir) {
     // 只回显指纹，绝不回显真实 Key。
     keyFingerprint: u.apiKey === undefined ? '—' : `${u.apiKey.slice(0, 4)}…${u.apiKey.slice(-4)}（${u.apiKey.length} 字符）`,
     modelMeta: u.modelMeta ?? {},
+    note: u.note ?? '',
+    website: u.website ?? '',
   }))
 }
 
