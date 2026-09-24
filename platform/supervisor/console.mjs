@@ -53,7 +53,9 @@ nav a.item.on{background:#eff6ff;color:var(--accent);box-shadow:inset 2px 0 0 va
 nav .spacer{flex:1}
 .me{display:flex;align-items:center;gap:.55rem;padding:.6rem .5rem;border-top:1px solid var(--line);margin-top:.8rem}
 main{flex:1;padding:1.5rem 2.2rem 2.5rem;min-width:0}
-.pagehead{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:.9rem;margin-bottom:1.3rem}
+.pagehead{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:.9rem;margin-bottom:1.3rem}
+.backbtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--line2);background:#fff;color:#374151;display:grid;place-items:center;text-decoration:none;font-size:1rem;flex-shrink:0}
+.backbtn:hover{border-color:var(--accent);color:var(--accent)}
 .pagehead h1{margin:0;font-size:1.4rem;color:#111827}
 .pagehead .sub{color:var(--muted);font-size:.9rem;margin-top:.3rem}
 .statusbadge{display:flex;align-items:center;gap:.45rem;font-size:.85rem;color:var(--muted);
@@ -190,7 +192,7 @@ const SUBTITLES = {
   实例日志: '实例运行日志（最近 80 行）',
 }
 
-function SHELL(title, active, manifest, getState, dataDir, body) {
+function SHELL(title, active, manifest, getState, dataDir, body, back) {
   const state = getState()
   const states = manifest.instances.map((s) => state.instances[s.id]?.state ?? 'stopped')
   const badge = states.every((s) => s === 'running')
@@ -215,7 +217,7 @@ ${item('员工工作区', `http://${manifest.gatewayHost}:${manifest.portalPort}
 <body>
 <nav><div class="brand"><span class="mark">卡</span><div><div class="name">卡巴格</div><div class="sub">DASHBOARD CONSOLE</div></div></div>${nav}</nav>
 <main>
-<div class="pagehead"><div><h1>${title}</h1><div class="sub">${esc(SUBTITLES[title] ?? '')}</div></div><div class="statusbadge">${badge}<span>${nowStamp()}</span></div></div>
+<div class="pagehead"><div style="display:flex;align-items:center;gap:.7rem">${back ? `<a class="backbtn" href="${back}" title="返回">←</a>` : ''}<div><h1>${title}</h1><div class="sub">${esc(SUBTITLES[title] ?? '')}</div></div></div><div class="statusbadge">${badge}<span>${nowStamp()}</span></div></div>
 ${body}
 <footer>卡巴格 · 企业 AI 管理台</footer>
 </main></body></html>`
@@ -842,7 +844,7 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     }
     if (path === '/console/providers/new') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage()))
+      res.end(SHELL('添加模型供应商', 'models', manifest, getState, dataDir, newProviderPage(), '/console/models'))
       return true
     }
     if (path === '/console/providers/new') {
