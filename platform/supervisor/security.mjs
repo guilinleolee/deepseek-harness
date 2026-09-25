@@ -16,6 +16,7 @@ export const DEFAULT_SECURITY = {
   lockoutMinutes: 15,
   passwordMinLength: 8,
   passwordMinClasses: 3,
+  require2faRoles: [],
 }
 
 /** 各参数的合法整数区间（保存时校验，越界即拒）。 */
@@ -27,8 +28,21 @@ const RANGES = {
   passwordMinClasses: [1, 3],
 }
 
+const SECURITY_ROLES = ['admin', 'auditor', 'employee']
+
 const validValue = (key, value) =>
   Number.isInteger(value) && value >= RANGES[key][0] && value <= RANGES[key][1]
+
+/** require2faRoles 归一化：只保留合法角色名并去重（保持传入顺序）。 */
+const normalizeRoles = (value) => {
+  if (!Array.isArray(value)) return null
+  const seen = new Set()
+  for (const role of value) {
+    if (!SECURITY_ROLES.includes(role)) return null
+    seen.add(role)
+  }
+  return SECURITY_ROLES.filter((role) => seen.has(role))
+}
 
 function writeConfig(dataDir, config) {
   const path = join(dataDir, 'security.json')
@@ -52,11 +66,16 @@ export function loadSecurityConfig(dataDir) {
     return { ...DEFAULT_SECURITY }
   }
   let dirty = false
-  const config = { ...DEFAULT_SECURITY }
-  for (const key of Object.keys(DEFAULT_SECURITY)) {
+  const config = { ...DEFAULT_SECURITY, require2faRoles: [] }
+  for (const key of Object.keys(RANGES)) {
     const value = stored[key]
     if (validValue(key, value)) config[key] = value
     else if (value !== undefined) dirty = true
+  }
+  if (stored.require2faRoles !== undefined) {
+    const roles = normalizeRoles(stored.require2faRoles)
+    if (roles !== null) config.require2faRoles = roles
+    else dirty = true
   }
   if (dirty) {
     console.error('[security] security.json 存在非法参数值，已回退缺省并重写')
@@ -73,6 +92,12 @@ export function saveSecurityConfig(dataDir, patch) {
   const current = loadSecurityConfig(dataDir)
   const next = { ...current }
   for (const [key, value] of Object.entries(patch ?? {})) {
+    if (key === 'require2faRoles') {
+      const roles = normalizeRoles(value)
+      if (roles === null) throw new Error('require2faRoles 必须是由 admin/auditor/employee 组成的数组')
+      next.require2faRoles = roles
+      continue
+    }
     if (!(key in DEFAULT_SECURITY)) throw new Error(`未知安全参数: ${key}`)
     if (!validValue(key, value)) {
       throw new Error(`${key} 必须是 ${RANGES[key][0]}–${RANGES[key][1]} 之间的整数`)

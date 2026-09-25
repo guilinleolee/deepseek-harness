@@ -15,12 +15,18 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { addAccount, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
-import { addModel, issueVkey, listUpstreams, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
+import { addAccount, getOrCreateSecret, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
+import { addModel, issueVkey, listUpstreams, monthKey, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
 import { checkPasswordPolicy, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
 import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
+import { denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
+import { createInvite, listOpenInvites, revokeInvite } from './invites.mjs'
+import { clearTwofa, deriveKey, isTwofaEnabled } from './totp.mjs'
+import { loadNotifyConfig, NOTIFY_SUBJECT_PREFIX, saveNotifyConfig, sendMail } from './notify.mjs'
+import { authenticateServiceToken } from './service-tokens.mjs'
+import { isValidEntityName } from './gateway.mjs'
 
 const PAGES = ['members', 'roles', 'models', 'instances', 'plugins', 'audit']
 const PAGE_TITLES = { members: '成员与额度', roles: '部门与角色', models: '模型与权限', instances: '实例管理', plugins: '插件管理', audit: '安全与审计' }
@@ -234,6 +240,7 @@ ${PAGES.map((p) => item(PAGE_TITLES[p], `/console/${p}`, ICONS.shield, active ==
 ${item('系统状态', '/console/instances', ICONS.pulse, false)}
 <div class="spacer"></div>
 ${item('员工工作区', `http://${manifest.gatewayHost}:${manifest.portalPort}/`, ICONS.user, false)}
+${item('个人中心', '/me', ICONS.user, false)}
 <div class="me">${avatar(admin?.displayName ?? '管')}<div><div style="font-size:.86rem">${esc(admin?.displayName ?? '管理员')}</div><div style="font-size:.72rem;color:var(--faint)">${esc(admin?.role === 'admin' ? '管理员 · 平台' : '')}</div></div></div>`
   return `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>卡巴格 · ${title}</title><style>${CSS}</style></head>
 <body>
@@ -324,6 +331,7 @@ function membersPage({ dataDir, manifest, getState, query }) {
   const usage = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
   const state = getState()
   const all = listAccounts(dataDir)
+  const twofaKey = deriveKey(getOrCreateSecret(dataDir))
   const departments = [...new Set(all.map((a) => a.department ?? '未分配'))]
   const accounts = all.filter((a) => {
     if (q !== '' && !a.account.toLowerCase().includes(q) && !String(a.displayName ?? '').toLowerCase().includes(q)) return false
@@ -360,10 +368,15 @@ function membersPage({ dataDir, manifest, getState, query }) {
 <form class="inline" onsubmit="api(event,'/console/api/member/reset-password',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>重置密码</button></form>
 ${a.disabled
     ? `<form class="inline" onsubmit="api(event,'/console/api/member/enable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button>启用</button></form>`
-    : `<form class="inline" onsubmit="api(event,'/console/api/member/disable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button class="warn">禁用</button></form>`}</td></tr>`
+    : `<form class="inline" onsubmit="api(event,'/console/api/member/disable',this)"><input type="hidden" name="account" value="${esc(a.account)}"><button class="warn">禁用</button></form>`}
+${isTwofaEnabled(dataDir, twofaKey, a.account)
+    ? `<form class="inline" onsubmit="resetTwofa(event,'${esc(a.account)}')"><button class="warn" title="账号丢失认证器时由管理员解除绑定">重置2FA</button></form>`
+    : ''}</td></tr>`
   }).join('')
   const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}（${state.instances[s.id]?.state ?? '—'}）</option>`).join('')
   const depOptions = departments.map((dep) => `<option value="${esc(dep)}">${esc(dep)}</option>`).join('')
+  // 待用邀请（未撤销/未用/未过期），过期时间升序（阶段 10）。
+  const inviteRows = listOpenInvites(dataDir).map((i) => `<tr><td><code>${esc(i.id)}</code></td><td>${esc(i.department)}</td><td>${roleChip(i.role)}</td><td>${esc(i.instanceId)}</td><td>${esc(String(i.expiresAt).replace('T', ' ').slice(0, 16))}</td><td><form class="inline" onsubmit="revokeInvite(event,'${esc(i.id)}')"><button class="warn">撤销</button></form></td></tr>`).join('')
   return `
 <form class="searchbox" method="get" style="margin:0 0 .6rem"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
 <table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月点数 已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="10">无匹配成员</td></tr>'}</table>
@@ -380,6 +393,12 @@ ${a.disabled
 <div style="margin:.5rem 0">默认实例 <select name="instance">${instanceOptions}</select> ｜ <label><input type="checkbox" name="disable-missing"> 名册中不存在的账号自动禁用</label> <button class="primary">导入同步</button></div>
 </form>
 <p class="mut" style="font-size:.82rem">同步对账：名册中没有的账号创建（随机密码，需转交）；已有的更新部门/角色/显示名；勾选自动禁用后，名册缺失的非管理员账号将被禁用并下线。OIDC/LDAP 直连属待接入（接口已留）。</p>
+<h2 class="sect">邀请注册（阶段 10）</h2>
+<form class="panel" onsubmit="createInvite(event)">
+<div style="margin-bottom:.5rem">部门 <input name="department" placeholder="如 设计部（留空=未分配）"> 角色 <select name="role"><option value="employee">成员</option><option value="auditor">审计员</option></select> 实例 <select name="instanceId">${instanceOptions}</select> 有效期 <input name="expiresInHours" size="4" value="72" title="小时"> 小时 <button class="primary">生成邀请链接</button></div>
+</form>
+<table><tr><th>邀请 ID</th><th>部门</th><th>角色</th><th>实例</th><th>过期时间</th><th>操作</th></tr>${inviteRows || '<tr><td colspan="6">暂无待用邀请</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">链接一次性（注册即作废）、含预设部门/角色/实例；明文链接只在生成响应里显示一次，平台只存哈希。撤销后链接立即失效。</p>
 <pre id="out" class="log" style="max-height:none"></pre>
 <p class="mut" style="font-size:.82rem">禁用 = 立即下线 + 吊销虚拟钥匙（Relay 同步拒绝）；启用 = 重新签发钥匙（模型白名单沿用历史）。重置/创建的密码只显示一次。</p>
 <script>
@@ -398,6 +417,20 @@ async function importIdp(ev){ev.preventDefault();
  const j=await r.json();
  if(r.ok){document.getElementById('out').textContent='同步完成：新建 '+j.created.length+'、更新 '+j.updated.length+'、无变化 '+j.unchanged+'、禁用缺失 '+(j.missingDisabled||[]).length+(j.created.length?('\\n新账号凭证：\\n'+j.created.map(c=>c.account+' / '+c.password).join('\\n')):'');
  if(j.created.length===0)setTimeout(()=>location.reload(),1200)}else{document.getElementById('out').textContent='HTTP '+r.status+' '+JSON.stringify(j)}}
+async function createInvite(ev){ev.preventDefault();
+ const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>payload[k]=v);
+ const r=await fetch('/console/api/invite/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const j=await r.json().catch(()=>({}));
+ if(r.ok){document.getElementById('out').textContent='邀请已创建（注册链接只显示一次，请立即复制转交）：\\n'+location.origin+j.registerUrl+'\\n过期时间：'+j.expiresAt}
+ else document.getElementById('out').textContent='HTTP '+r.status+' '+(j.error||'')}
+async function revokeInvite(ev,id){ev.preventDefault();
+ if(!confirm('撤销邀请 '+id+'？链接将立即失效'))return;
+ const r=await fetch('/console/api/invite/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id})});
+ if(r.ok)setTimeout(()=>location.reload(),600);else alert('撤销失败: '+await r.text())}
+async function resetTwofa(ev,account){ev.preventDefault();
+ if(!confirm('重置 '+account+' 的两步验证绑定？其下次登录将只需密码（丢失认证器的救援操作）'))return;
+ const r=await fetch('/console/api/member/2fa/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account})});
+ if(r.ok)setTimeout(()=>location.reload(),600);else alert('重置失败: '+await r.text())}
 </script>`
 }
 
@@ -415,7 +448,7 @@ function rolesPage({ dataDir }) {
 <td>${configured ? '<span class="chip blue">自定义</span>' : '<span class="chip gray">缺省 1</span>'}</td>
 <td><form class="inline" onsubmit="setGroupRatio(event,'${esc(dep)}')"><input name="ratio" size="6" value="${ratios.groups[dep] ?? 1}" title="分组倍率"><button class="${configured ? 'btn' : 'primary'}">保存倍率</button></form></td></tr>`
   }).join('')
-  // 角色权限点矩阵（蓝图第三节，本期只读展示）
+  // 角色权限点矩阵（蓝图第三节，本期只读展示）；实例内工具组已可编辑（阶段 9）。
   const MATRIX = [
     ['管理台登录', ['✅', '✅（本期落地）', '❌（仅实例子域）']],
     ['总览 / 实例 / 模型 / 插件页', ['读写', '只读', '—']],
@@ -423,22 +456,50 @@ function rolesPage({ dataDir }) {
     ['成员变更操作', ['✅', '❌', '—']],
     ['审计日志查看 / 导出', ['✅', '✅（核心职责）', '—']],
     ['安全设置修改', ['✅', '❌（只读展示）', '—']],
-    ['实例内工具组（阶段 9+ 生效）', ['全开', '按 audit 需要最小化', '按角色权限点']],
   ]
   const matrixRows = MATRIX.map(([point, cells]) =>
     `<tr><td>${esc(point)}</td>${cells.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')
+  // 实例内工具 RBAC（阶段 9）：勾选 = 允许该工具组；保存即写 data/toolpolicy.json
+  // 并全量下发实例 home 的 tool-policy.json（实例侧 guard 插件 mtime 热生效）。
+  const GROUP_LABELS = { command: '命令行', fs: '文件', network: '联网' }
+  const policy = loadToolPolicy(dataDir)
+  const roleSwitchRow = (role, label, editable) => {
+    const deny = denyForRole(policy, role)
+    const cells = TOOL_GROUPS.map((group) => editable
+      ? `<label style="margin-right:.9rem;white-space:nowrap"><input type="checkbox" name="${role}-${group}" ${deny.includes(group) ? '' : 'checked'}> ${GROUP_LABELS[group]}</label>`
+      : `<span class="chip gray">${GROUP_LABELS[group]}${deny.includes(group) ? ' 禁' : ' 允'}</span>`)
+    return `<tr><td>${roleChip(role)} ${esc(label)}</td>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`
+  }
+  const toolPolicySection = `
+<h2 class="sect">实例内工具组策略（保存即下发，热生效）</h2>
+<form class="panel" onsubmit="saveToolPolicy(event)" style="padding:1rem">
+<table style="margin:.4rem 0 .8rem"><tr><th>角色</th><th>命令行（bash/pwsh/terminal_*）</th><th>文件（read/write/edit/glob/grep 等）</th><th>联网（web_search/web_fetch）</th></tr>
+${roleSwitchRow('admin', '管理员', false)}
+${roleSwitchRow('auditor', '审计员', true)}
+${roleSwitchRow('employee', '成员', true)}
+</table>
+<button class="primary">保存工具策略并下发</button>
+<span class="mut" style="font-size:.82rem;margin-left:.8rem">勾选 = 允许；admin 固定全开。策略按实例归属账号的角色写到实例 home 的 tool-policy.json，实例内 guard 插件拒绝越权调用并回流审计（guard.deny）。</span>
+</form>`
   return `
 <h2 class="sect">部门与分组倍率</h2>
 <table><tr><th>部门</th><th>成员数</th><th>倍率来源</th><th>分组倍率（消耗点 × 分组倍率）</th></tr>${rows || '<tr><td colspan="4">暂无部门</td></tr>'}</table>
 <p class="mut" style="font-size:.82rem">分组倍率存于 data/ratios.json（groups），保存后 Relay 下一请求即按新倍率计点；成员所属部门在成员页维护。中小企业平铺部门，不做部门树。</p>
 <h2 class="sect">角色权限点矩阵（只读展示）</h2>
 <table><tr><th>权限点</th><th>admin 管理员</th><th>auditor 审计员</th><th>employee 成员</th></tr>${matrixRows}</table>
-<p class="mut" style="font-size:.82rem">本期固定三角色（admin/auditor/employee），矩阵只读展示；「实例内工具组」按角色下发生在阶段 9（实例内 guard 插件）落地。</p>
+<p class="mut" style="font-size:.82rem">本期固定三角色（admin/auditor/employee），矩阵只读展示；实例内工具组策略见下方可编辑面板（阶段 9 已落地）。</p>
+${toolPolicySection}
 <pre id="out" class="log" style="max-height:none"></pre>
 <script>
 async function setGroupRatio(ev, dep){ev.preventDefault();
  const f=new FormData(ev.target);
  const r=await fetch('/console/api/department/group-ratio',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({department:dep,ratio:Number(f.get('ratio'))})});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
+async function saveToolPolicy(ev){ev.preventDefault();
+ const GROUPS=['command','fs','network'];const ROLES=['auditor','employee'];const payload={roles:{}};
+ for(const role of ROLES){payload.roles[role]={deny:GROUPS.filter(function(g){return !document.querySelector('input[name="'+role+'-'+g+'"]').checked})}}
+ const r=await fetch('/console/api/toolpolicy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
  const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
  if(r.ok)setTimeout(()=>location.reload(),800)}
 </script>`
@@ -909,6 +970,11 @@ const AUDIT_ACTION_BY_PATH = {
   '/console/api/instance/stop': 'instance.stop',
   '/console/api/instance/restart': 'instance.restart',
   '/console/api/security/config': 'security.config_change',
+  '/console/api/toolpolicy': 'toolpolicy.change',
+  '/console/api/invite/create': 'invite.create',
+  '/console/api/invite/revoke': 'invite.revoke',
+  '/console/api/member/2fa/reset': 'security.2fa_reset',
+  '/console/api/notify/config': 'security.notify_change',
 }
 
 /** 端点（+请求体）→ 审计 action：member/update 带角色时记 role_change，
@@ -923,6 +989,8 @@ function auditActionFor(path, body = {}) {
 
 /** 审计 target：供应商名 / 模型 id / 实例 id / 插件 spec / 部门名 / 成员账号。 */
 function auditTargetFor(path, body = {}) {
+  if (path === '/console/api/toolpolicy') return 'tool-policy'
+  if (path.startsWith('/console/api/invite/')) return typeof body.id === 'string' && body.id !== '' ? body.id : null
   if (path.startsWith('/console/api/provider/')) return typeof body.name === 'string' ? body.name : null
   if (path === '/console/api/model/add' || path === '/console/api/model/remove' || path === '/console/api/model/ratio') return typeof body.model === 'string' ? body.model : null
   if (path === '/console/api/department/group-ratio') return typeof body.department === 'string' ? body.department : null
@@ -940,8 +1008,9 @@ const auditFiltersFromQuery = (query) => ({
 
 // 账号/钥匙类变更（建号、额度、密码、禁启用、属性、IdP 同步）串行执行：
 // 它们是 accounts.json/vkeys.json 的读改写热点，HTTP 并发下不做队列会丢更新。
+// 导出供 sso 绑定等跨模块写入复用同一把锁（阶段 12 审查 P2-3）。
 let accountQueue = Promise.resolve()
-const withAccountLock = (fn) => {
+export const withAccountLock = (fn) => {
   const next = accountQueue.then(fn, fn)
   accountQueue = next.catch(() => {})
   return next
@@ -954,10 +1023,12 @@ function auditPage({ dataDir, query, role }) {
   const events = auditQuery({ ...filters, limit: 500 })
   const config = loadSecurityConfig(dataDir)
   const isAdmin = role === 'admin'
+  const notifyConfig = loadNotifyConfig(dataDir)
   const actionOptions = [
     ['', '全部动作'], ['auth', 'auth · 登录'], ['member', 'member · 成员'], ['provider', 'provider · 供应商'],
     ['model', 'model · 模型'], ['instance', 'instance · 实例'], ['plugin', 'plugin · 插件'],
     ['quota', 'quota · 配额'], ['audit', 'audit · 审计'], ['security', 'security · 安全'],
+    ['guard', 'guard · 工具拦截'], ['invite', 'invite · 邀请'],
   ].map(([value, label]) => `<option value="${value}" ${filters.actionPrefix === value ? 'selected' : ''}>${label}</option>`).join('')
   const resultOptions = [['ok', '成功'], ['deny', '拒绝'], ['fail', '失败']]
     .map(([value, label]) => `<option value="${value}" ${filters.result === value ? 'selected' : ''}>${label}</option>`).join('')
@@ -973,6 +1044,10 @@ function auditPage({ dataDir, query, role }) {
   const exportHref = `/console/api/audit/export${exportParams.size > 0 ? `?${exportParams}` : ''}`
   const secField = (name, label, max) =>
     `<div class="flabel">${label}</div><input name="${name}" type="number" min="1" ${max ? `max="${max}"` : ''} value="${config[name]}" ${isAdmin ? '' : 'disabled'}>`
+  // 软强制两步验证（阶段 11A）：勾选角色登录且未绑定时仅提醒（不硬锁）。
+  const r2faCheck = (role, label) =>
+    `<label style="margin-right:.9rem"><input type="checkbox" name="r2fa-${role}" ${config.require2faRoles.includes(role) ? 'checked' : ''} ${isAdmin ? '' : 'disabled'}> ${label}</label>`
+  const r2faRow = ['admin', 'auditor', 'employee'].map((role) => r2faCheck(role, { admin: '管理员', auditor: '审计员', employee: '成员' }[role])).join('')
   return `
 <form class="searchbox" method="get" style="margin:0 0 .6rem">
 <select name="action">${actionOptions}</select>
@@ -996,17 +1071,52 @@ function auditPage({ dataDir, query, role }) {
     ? '<button class="primary">保存安全设置</button>'
     : '<span class="chip gray">审计员为只读角色，安全设置仅管理员可改</span>'}</div>
 </form>
+<h2 class="sect">两步验证（TOTP，阶段 11A）</h2>
+<form class="panel" onsubmit="saveSecurity(event)" style="padding:1rem">
+<p class="mut" style="margin:.2rem 0 .5rem">勾选的角色在登录但尚未绑定两步验证时会收到绑定提醒（软强制，不拒绝登录；成员在 /me 个人中心完成绑定，丢失认证器由成员页「重置2FA」救援）。硬强制属后续版本。</p>
+<div style="display:flex;align-items:center;flex-wrap:wrap">${r2faRow}</div>
+<div style="margin-top:.9rem">${isAdmin ? '<button class="primary">保存两步验证要求</button>' : '<span class="chip gray">审计员为只读角色</span>'}</div>
+</form>
+<h2 class="sect">邮件通知（阶段 11B）</h2>
+<form class="panel" onsubmit="saveNotify(event)" style="padding:1rem">
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:end">
+<div><div class="flabel">模式</div><select name="mode" ${isAdmin ? '' : 'disabled'}>
+${['off', 'file', 'smtp'].map((m) => `<option value="${m}" ${notifyConfig.mode === m ? 'selected' : ''}>${m === 'off' ? '关闭' : m === 'file' ? 'file（写 data/outbox/）' : 'smtp（真实发信）'}</option>`).join('')}
+</select></div>
+<div><div class="flabel">SMTP 主机</div><input name="host" value="${esc(notifyConfig.smtp.host)}" ${isAdmin ? '' : 'disabled'}></div>
+<div><div class="flabel">端口</div><input name="port" type="number" value="${notifyConfig.smtp.port}" style="width:90px" ${isAdmin ? '' : 'disabled'}></div>
+<div><label style="margin:0 0 .4rem"><input type="checkbox" name="secure" ${notifyConfig.smtp.secure ? 'checked' : ''} ${isAdmin ? '' : 'disabled'}> TLS 直连</label></div>
+<div><div class="flabel">发件人（From）</div><input name="from" value="${esc(notifyConfig.smtp.from)}" ${isAdmin ? '' : 'disabled'}></div>
+</div>
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.6rem;align-items:end">
+<div><div class="flabel">SMTP 用户名</div><input name="user" value="${esc(notifyConfig.smtp.auth.user)}" ${isAdmin ? '' : 'disabled'}></div>
+<div><div class="flabel">SMTP 密码（留空 = 不改；已保存${notifyConfig.smtp.auth.passEnc !== '' ? '：是' : '：否'}）</div><input name="pass" type="password" placeholder="••••••" ${isAdmin ? '' : 'disabled'}></div>
+<div style="flex:1;min-width:260px"><div class="flabel">管理员抄送（逗号分隔，配额告警同时抄送）</div><input name="adminNotify" value="${esc(notifyConfig.adminNotify.join(', '))}" ${isAdmin ? '' : 'disabled'}></div>
+</div>
+<div style="margin-top:.9rem">${isAdmin
+    ? '<button class="primary">保存通知设置</button>'
+    : '<span class="chip gray">审计员为只读角色</span>'} <span class="mut" style="font-size:.8rem;margin-left:.8rem">触发点：配额跨 80%（每账号每月一次，抄送管理员）、建号/禁用/重置密码（通知本人，绝不含密码原文）。</span></div>
+</form>
 <pre id="out" class="log" style="max-height:none"></pre>
 <script>
 async function saveSecurity(ev){ev.preventDefault();
  const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>{if(v!=='')payload[k]=Number(v)});
+ payload.require2faRoles=['admin','auditor','employee'].filter(function(r){var el=document.querySelector('input[name="r2fa-'+r+'"]');return el&&el.checked});
  const r=await fetch('/console/api/security/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
  const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
+async function saveNotify(ev){ev.preventDefault();
+ var f=new FormData(ev.target);
+ var r=await fetch('/console/api/notify/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+  mode:f.get('mode'),
+  smtp:{host:f.get('host'),port:Number(f.get('port')),secure:f.get('secure')==='on',user:f.get('user'),pass:f.get('pass'),from:f.get('from')},
+  adminNotify:String(f.get('adminNotify')||'').split(',').map(function(s){return s.trim()}).filter(Boolean)})});
+ var t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
  if(r.ok)setTimeout(()=>location.reload(),800)}
 </script>`
 }
 
-async function handleApi({ req, res, path, dataDir, manifest, actor }) {
+async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey }) {
   const body = await readBody(req)
   const account = typeof body.account === 'string' ? body.account : ''
   const action = auditActionFor(path, body)
@@ -1028,6 +1138,11 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
       json(res, 400, { error: String(error?.message ?? error) })
     }
   })
+  // 按清单 spec 重发某实例的工具策略文件（账号角色变更/建号后；阶段 9）。
+  const resyncHome = (instanceId) => {
+    const spec = manifest.instances.find((s) => s.id === instanceId)
+    if (spec !== undefined) syncInstanceHome(dataDir, spec)
+  }
   try {
     switch (path) {
       case '/console/api/member/create': {
@@ -1043,6 +1158,10 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
             password,
           })
           const { token } = issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
+          // 新账号落在已有实例上：按实例归属账号的当前角色补发策略文件（阶段 9）。
+          resyncHome(created.instanceId)
+          // 通知本人（阶段 11B）：建号邮件不含密码原文（密码只在本响应显示一次）。
+          void sendMail({ to: created.account, subject: `${NOTIFY_SUBJECT_PREFIX} 账号已创建`, text: `您的卡巴格企业平台账号 ${created.account} 已创建（实例 ${created.instanceId}）。请使用管理员发放的密码登录（本邮件不含密码）。` })
           ok({ ok: true, account: created.account, instance: created.instanceId, password, vkey: token }, { role: created.role, instanceId: created.instanceId })
         })
         return
@@ -1061,6 +1180,8 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
         runLocked(async () => {
           const password = generatePassword()
           setPassword(dataDir, account, password)
+          // 通知本人（阶段 11B）：重置邮件绝不包含新密码原文（密码只对管理员一次性显示）。
+          void sendMail({ to: account, subject: `${NOTIFY_SUBJECT_PREFIX} 密码已被重置`, text: `您的卡巴格企业平台账号 ${account} 的密码已被管理员重置，全部已登录设备已下线。新密码不在本邮件中，请联系管理员获取。` })
           ok({ ok: true, password })
         })
         return
@@ -1073,6 +1194,8 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
           rec.disabled = true
           saveAccounts(dataDir, store)
           try { revokeVkey(dataDir, { account }) } catch { /* 本就没有钥匙 */ }
+          // 通知本人（阶段 11B）：账号被禁用。
+          void sendMail({ to: account, subject: `${NOTIFY_SUBJECT_PREFIX} 账号已被禁用`, text: `您的卡巴格企业平台账号 ${account} 已被管理员禁用。如有疑问请联系管理员。` })
           ok({ ok: true })
         })
         return
@@ -1098,6 +1221,9 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
           if (body.department !== undefined) patch.department = body.department
           if (body.displayName !== undefined) patch.displayName = body.displayName
           const updated = updateAccount(dataDir, account, patch)
+          // 角色变更 → 该账号所在实例的策略文件立即按实例归属账号的新角色重写
+          // （实例侧 guard mtime 热生效，无需重启；阶段 9）。
+          if (patch.role !== undefined) resyncHome(updated.instanceId)
           ok({ ok: true, role: updated.role, department: updated.department ?? '未分配' }, { fields: patch })
         })
         return
@@ -1149,6 +1275,8 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
             saveAccounts(dataDir, store)
           }
           ok({ ok: true, ...result }, { created: result.created.length, updated: result.updated.length, unchanged: result.unchanged, missingDisabled: result.missingDisabled.length })
+          // 名册批量落了部门/角色：全量重发策略文件（幂等，三实例各一文件）。
+          if (result.created.length + result.updated.length > 0) syncAllHomes(dataDir, manifest)
         })
         return
       }
@@ -1265,6 +1393,7 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
         for (const key of ['loginWindowMinutes', 'loginMaxFails', 'lockoutMinutes', 'passwordMinLength', 'passwordMinClasses']) {
           if (body[key] !== undefined) patch[key] = Number(body[key])
         }
+        if (body.require2faRoles !== undefined) patch.require2faRoles = body.require2faRoles
         if (Object.keys(patch).length === 0) { fail(400, '未提供任何要修改的安全参数'); return }
         const old = loadSecurityConfig(dataDir)
         let next
@@ -1275,6 +1404,77 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
           return
         }
         ok({ ok: true, config: next }, { old, new: next })
+        return
+      }
+      case '/console/api/toolpolicy': {
+        const old = loadToolPolicy(dataDir)
+        let next
+        try {
+          next = saveToolPolicy(dataDir, body.roles)
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+          return
+        }
+        // 保存即下发：全量重写实例 home 的 tool-policy.json（实例侧 guard
+        // mtime 热生效）；写文件动作并入本条 toolpolicy.change 审计。
+        const synced = syncAllHomes(dataDir, manifest)
+        ok(
+          { ok: true, policy: next, synced },
+          { old, new: next, syncedInstances: synced.filter((r) => !r.skipped).map((r) => r.id) },
+        )
+        return
+      }
+      case '/console/api/invite/create': {
+        // 邀请只发放 employee/auditor（admin 由既有管理员在成员页创建）；
+        // 明文 code 只随本响应出现一次，审计与存储只落哈希。
+        const role = body.role === 'auditor' ? 'auditor' : 'employee'
+        const instanceId = typeof body.instanceId === 'string' ? body.instanceId : ''
+        if (!manifest.instances.some((s) => s.id === instanceId)) { fail(400, '未知实例'); return }
+        const department = typeof body.department === 'string' && body.department.trim() !== '' ? body.department.trim() : '未分配'
+        if (!isValidEntityName(department)) { fail(400, '部门名格式非法（允许字母数字、@._- 与中文，1–64 字符）'); return }
+        try {
+          const { id, code, expiresAt } = createInvite(dataDir, {
+            department,
+            role,
+            instanceId,
+            expiresInHours: body.expiresInHours === undefined || body.expiresInHours === '' ? undefined : Number(body.expiresInHours),
+          })
+          ok({ ok: true, id, registerUrl: `/register?code=${code}`, expiresAt }, { role, department, instanceId })
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+        }
+        return
+      }
+      case '/console/api/invite/revoke': {
+        const id = typeof body.id === 'string' ? body.id : ''
+        if (!revokeInvite(dataDir, id)) { fail(404, '邀请不存在或已使用/已撤销'); return }
+        ok({ ok: true })
+        return
+      }
+      case '/console/api/member/2fa/reset': {
+        // admin 救援：清指定账号的 2FA 绑定（账号丢失认证器时）。
+        if (account === '') { fail(400, 'account 必填'); return }
+        if (!loadAccounts(dataDir).accounts.some((a) => a.account === account)) { fail(404, '账号不存在'); return }
+        if (!clearTwofa(dataDir, account)) { fail(404, '该账号未绑定两步验证'); return }
+        ok({ ok: true, account })
+        return
+      }
+      case '/console/api/notify/config': {
+        // 通知设置（阶段 11B）：admin-only；pass 明文只在请求出现一次（回显打码）。
+        try {
+          const config = saveNotifyConfig(dataDir, {
+            mode: body.mode,
+            smtp: typeof body.smtp === 'object' && body.smtp !== null ? {
+              host: body.smtp.host, port: body.smtp.port, secure: body.smtp.secure,
+              user: body.smtp.user, pass: typeof body.smtp.pass === 'string' && body.smtp.pass !== '' ? body.smtp.pass : undefined,
+              from: body.smtp.from,
+            } : undefined,
+            adminNotify: body.adminNotify,
+          }, twofaKey)
+          ok({ ok: true, config: { ...config, smtp: { ...config.smtp, auth: { ...config.smtp.auth, passEnc: config.smtp.auth.passEnc !== '' ? '(已保存)' : '' } } } }, { mode: config.mode, host: config.smtp.host, from: config.smtp.from, adminNotify: config.adminNotify, hasPassword: config.smtp.auth.passEnc !== '' })
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+        }
         return
       }
       default:
@@ -1294,21 +1494,51 @@ async function handleApi({ req, res, path, dataDir, manifest, actor }) {
  * （配合 SameSite=Strict 双重 CSRF 防线），跨源拒绝同样留痕。
  * @returns true 表示已响应，gateway 不再处理。
  */
-export function handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner }) {
+/** service token（readonly）允许的只读 API 白名单（阶段 12：member 列表/用量、audit 查询、toolpolicy 读）。 */
+const SERVICE_READONLY_API_PATHS = new Set([
+  '/console/api/member/list',
+  '/console/api/member/usage',
+  '/console/api/audit',
+  '/console/api/toolpolicy',
+])
+
+export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifest, getState, dataDir, runner, twofaKey }) {
   if (!url.pathname.startsWith('/console')) return false
   const path = url.pathname
   const query = url.searchParams
+  // 服务令牌认证（阶段 12）：`Authorization: Bearer kbsvc-…` 命中即等价角色
+  // （admin=管理员、readonly=只读白名单）。mtime 缓存读取，撤销下一请求生效；
+  // actor.account 记 `svc:<名称>` 与人区分。仅对 /console/api/* 生效。
+  let auth = jwtAuth
+  let serviceAuth = null
+  const bearer = /^Bearer (kbsvc-[\w-]+)$/.exec(req.headers.authorization ?? '')?.[1]
+  if (bearer !== undefined) {
+    serviceAuth = authenticateServiceToken(dataDir, bearer)
+    if (serviceAuth !== null) auth = { record: { account: `svc:${serviceAuth.id}`, role: serviceAuth.role }, payload: null }
+  }
   const actor = auth.error === undefined
     ? { account: auth.record.account, role: auth.record.role, ip: clientIp(req) }
     : null
+  const isApiPath = path.startsWith('/console/api/')
 
   if (req.method === 'GET') {
+    // 服务令牌：页面路由一律 401；readonly 只放行白名单端点。
+    if (serviceAuth !== null && !isApiPath) {
+      json(res, 401, { error: 'service token 仅允许 /console/api/* 端点' })
+      return true
+    }
+    if (serviceAuth !== null && serviceAuth.role === 'readonly' && !SERVICE_READONLY_API_PATHS.has(path)) {
+      // 白名单外拒绝同样留 deny 痕（P2-8），actor 记 svc: 身份。
+      void auditAppend({ actor, action: 'security.service_token_denied', target: path, result: 'deny', detail: { role: 'readonly' } })
+      json(res, 403, { error: 'readonly 服务令牌仅允许只读白名单端点' })
+      return true
+    }
     if (auth.error !== undefined) {
       res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
       res.end(loginPage())
       return true
     }
-    if (auth.record.role !== 'admin' && auth.record.role !== 'auditor') {
+    if (serviceAuth === null && auth.record.role !== 'admin' && auth.record.role !== 'auditor') {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
       res.end('管理台仅限平台管理员与审计员。')
       return true
@@ -1320,6 +1550,51 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
     }
     if (path === '/console/api/plugin/jobs') {
       json(res, 200, { jobs: runner.list() })
+      return true
+    }
+    if (path === '/console/api/toolpolicy') {
+      json(res, 200, { policy: loadToolPolicy(dataDir) })
+      return true
+    }
+    // 成员列表（阶段 12 数据源：user_list 工具/服务令牌白名单端点）。
+    if (path === '/console/api/member/list') {
+      const d = new Date()
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const usage = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
+      const members = listAccounts(dataDir).map((a) => {
+        const e = usage[a.account] ?? {}
+        return {
+          account: a.account, displayName: a.displayName, department: a.department,
+          role: a.role, instanceId: a.instanceId, disabled: a.disabled,
+          monthlyPoints: a.monthlyPoints ?? null, pointsUsed: e.points ?? 0,
+          tokensIn: e.tokensIn ?? 0, tokensOut: e.tokensOut ?? 0, requests: e.requests ?? 0,
+        }
+      })
+      json(res, 200, { month, members })
+      return true
+    }
+    // 单成员当月用量（阶段 12 数据源：user_quota_query 工具）。
+    if (path === '/console/api/member/usage') {
+      const account = query.get('account') ?? ''
+      if (account === '') { json(res, 400, { error: 'account 查询参数必填' }); return true }
+      // loadAccounts（原始记录）而非 listAccounts 映射：monthlyPoints/monthlyTokens 在映射中被裁剪。
+      const record = loadAccounts(dataDir).accounts.find((a) => a.account === account)
+      if (record === undefined) { json(res, 404, { error: `账号不存在: ${account}` }); return true }
+      const d = new Date()
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const e = readJson(dataDir, 'usage.json', { months: {} }).months[month]?.[account] ?? {}
+      const points = e.points ?? 0
+      const tokens = (e.tokensIn ?? 0) + (e.tokensOut ?? 0)
+      const remainingPoints = Number.isFinite(record.monthlyPoints) ? Math.max(0, record.monthlyPoints - points) : null
+      json(res, 200, {
+        account, month,
+        points, monthlyPoints: record.monthlyPoints ?? null, remainingPoints,
+        tokensIn: e.tokensIn ?? 0, tokensOut: e.tokensOut ?? 0,
+        tokensUsed: tokens, monthlyTokens: record.monthlyTokens ?? null,
+        requests: e.requests ?? 0,
+        legacy: !(Number.isFinite(record.monthlyPoints) || Number.isFinite(record.monthlyTokens)) ? false : !Number.isFinite(record.monthlyPoints),
+        unlimited: !Number.isFinite(record.monthlyPoints) && !Number.isFinite(record.monthlyTokens),
+      })
       return true
     }
     if (path === '/console/api/audit') {
@@ -1395,7 +1670,7 @@ export function handleConsole({ req, res, url, auth, loginPage, manifest, getSta
       })
       return true
     }
-    void handleApi({ req, res, path, dataDir, manifest, actor }).catch((error) => {
+    void handleApi({ req, res, path, dataDir, manifest, actor, twofaKey }).catch((error) => {
       console.error('[console] api crashed:', error?.stack ?? error)
       try { json(res, 500, { error: 'console api crashed' }) } catch { /* 已响应 */ }
     })

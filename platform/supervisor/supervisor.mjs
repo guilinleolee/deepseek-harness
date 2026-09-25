@@ -25,11 +25,14 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { platform } from 'node:os'
 import { randomBytes } from 'node:crypto'
-import { addAccount, createGatewayServer, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
+import { addAccount, createGatewayServer, getOrCreateSecret, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
 import { fmtPoints } from './quotas.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
+import { auditAppend, initAudit } from './audit.mjs'
+import { syncAllHomes, transcribeGuardEvents } from './toolpolicy.mjs'
+import { createServiceToken, revokeServiceToken } from './service-tokens.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DATA = join(HERE, 'data')
@@ -50,6 +53,7 @@ const DISK_INTERVAL_MS = 120_000
 const RESTART_RESET_UPTIME_MS = 5 * 60_000
 const MAX_RESTARTS_IN_WINDOW = 5
 const DISK_WALK_ENTRY_CAP = 50_000
+const GUARD_TRANSCRIBE_INTERVAL_MS = 30_000
 
 const instanceHome = (id) => join(HOMES, id)
 const instanceLog = (id) => join(LOGS, `${id}.log`)
@@ -370,13 +374,23 @@ async function daemon() {
   })
   console.log(`[supervisor] gateway listening on ${MANIFEST.gatewayBindHost ?? '127.0.0.1'}:${MANIFEST.portalPort}`)
 
-  // Relay 密钥代理：真实上游 Key 的唯一容身处（阶段 3）。
-  const relay = createRelayServer({ dataDir: DATA })
+  // Relay 密钥代理：真实上游 Key 的唯一容身处（阶段 3）；authSecret 供通知
+  // 加密根复用（阶段 11B 邮件通知，与 2FA 密钥同一派生根）。
+  const relay = createRelayServer({ dataDir: DATA, authSecret: getOrCreateSecret(DATA) })
   await new Promise((resolveBind, rejectBind) => {
     relay.once('error', rejectBind)
     relay.listen(MANIFEST.relayPort ?? 9400, '127.0.0.1', resolveBind)
   })
   console.log(`[supervisor] relay listening on 127.0.0.1:${MANIFEST.relayPort ?? 9400}`)
+
+  // 工具 RBAC（阶段 9）：启动时按账号角色全量下发实例 home 的 tool-policy.json；
+  // 周期把 guard 插件的拒绝桥文件（<home>/guard-events.jsonl）转写成平台审计。
+  initAudit(DATA)
+  syncAllHomes(DATA, MANIFEST)
+  setInterval(() => {
+    void transcribeGuardEvents(DATA, MANIFEST, auditAppend)
+      .catch((error) => console.error('[toolpolicy] guard 事件转写失败:', error?.message ?? error))
+  }, GUARD_TRANSCRIBE_INTERVAL_MS)
 
   for (const spec of MANIFEST.instances) launchInstance(spec, state)
 
@@ -482,6 +496,17 @@ function humanBytes(n) {
   let i = 0
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i += 1 }
   return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+/**
+ * 账号创建/角色变更后全量重发实例工具策略（阶段 9）。策略文件是磁盘文件，
+ * CLI 进程直写、不依赖 daemon；daemon 未运行时提示生效时机。
+ */
+function resyncToolPolicyAfterAccountChange() {
+  for (const r of syncAllHomes(DATA, MANIFEST)) {
+    if (!r.skipped) console.log(`  策略下发 ${r.id}: ${r.role} deny=[${r.deny.join(',') || '无'}]`)
+  }
+  if (!isDaemonAlive()) console.log('  （daemon 未运行：策略文件已更新，实例下次启动生效）')
 }
 
 function printStatus() {
@@ -615,6 +640,7 @@ async function main() {
     }
     const record = addAccount(DATA, opts)
     console.log(`已创建账号 ${record.account}（${record.role}）→ 实例 ${record.instanceId}`)
+    resyncToolPolicyAfterAccountChange()
     return
   }
   if (cmd === 'list-accounts') {
@@ -703,6 +729,7 @@ async function main() {
     if (!['admin', 'auditor', 'employee'].includes(role)) throw new Error('--role 必须是 admin | auditor | employee')
     updateAccount(DATA, value, { role })
     console.log(`已将 ${value} 的角色改为 ${role}`)
+    resyncToolPolicyAfterAccountChange()
     return
   }
   if (cmd === 'set-quota') {
@@ -731,6 +758,43 @@ async function main() {
       const legacy = u.quotaMode === 'legacy-tokens' ? '  （旧制 tokens）' : ''
       console.log(`${u.account}  实例=${u.instanceId}  入=${u.tokensIn}  出=${u.tokensOut}  请求=${u.requests}  点数=${points}${legacy}  tokens已用=${u.used}/${quota}${u.remaining !== null ? `  剩余=${u.remaining}` : ''}`)
     }
+    return
+  }
+  if (cmd === 'sync-toolpolicy') {
+    // 手动触发阶段 9 的两件事：策略全量下发 + guard 拒绝桥文件转写。
+    // daemon 周期（30 秒）会自动做同样的事，此命令用于部署验收与即时生效。
+    initAudit(DATA)
+    for (const r of syncAllHomes(DATA, MANIFEST)) {
+      console.log(r.skipped
+        ? `${r.id}: 跳过（归属账号 ${MANIFEST.instances.find((s) => s.id === r.id)?.account} 不存在）`
+        : `${r.id}: ${r.role} deny=[${r.deny.join(',') || '无'}]`)
+    }
+    const t = await transcribeGuardEvents(DATA, MANIFEST, auditAppend)
+    console.log(`guard 拒绝事件转写 ${t.transcribed} 条${t.instances.length > 0 ? `（${t.instances.join(', ')}）` : ''}`)
+    return
+  }
+  if (cmd === 'add-service-token') {
+    // add-service-token <名称> [--readonly]：机器凭据（工具包用）。
+    // 明文 token 只显示一次；注入可信实例的 env（如 e01 的 KABAGE_SERVICE_TOKEN）。
+    const name = flag
+    if (!name) throw new Error('用法: add-service-token <名称> [--readonly]')
+    let role = 'admin'
+    for (let i = 4; i < process.argv.length; i++) {
+      if (process.argv[i] === '--readonly') role = 'readonly'
+    }
+    const { token } = createServiceToken(DATA, name, role)
+    initAudit(DATA)
+    // 短命 CLI：必须 await 落盘（void 会在进程退出前丢失事件）。
+    await auditAppend({ actor: { account: 'cli', role: 'admin', ip: null }, action: 'security.service_token_create', target: name, result: 'ok', detail: { role } })
+    console.log(`服务令牌已创建（${role}，只显示一次，请立即写入实例 env 或安全存储）:\n${token}`)
+    return
+  }
+  if (cmd === 'revoke-service-token') {
+    if (flag !== '--name' || !value) throw new Error('用法: revoke-service-token --name <名称>')
+    if (!revokeServiceToken(DATA, value)) throw new Error(`令牌不存在: ${value}`)
+    initAudit(DATA)
+    await auditAppend({ actor: { account: 'cli', role: 'admin', ip: null }, action: 'security.service_token_revoke', target: value, result: 'ok', detail: null })
+    console.log(`已撤销服务令牌 ${value}（下一请求即生效）`)
     return
   }
   if (cmd === 'drift') {
@@ -903,8 +967,11 @@ async function main() {
     console.log(`${value}: 已回装 ${plugin}@${previous} 并请求重启生效`)
     return
   }
-  console.log(`用法: supervisor.mjs <...|drift|plugin-precheck|plugin-push|plugin-activate|plugin-remove|plugin-rollback>
+  console.log(`用法: supervisor.mjs <...|drift|sync-toolpolicy|plugin-precheck|plugin-push|plugin-activate|plugin-remove|plugin-rollback>
   drift [--json]    授权集 vs 实际生效集比对（差异按时限标红）
+  sync-toolpolicy   工具策略全量下发到实例 home + guard 拒绝事件转写审计（阶段 9）
+  add-service-token <名称> [--readonly]   创建服务令牌（明文只显示一次；管理类 DSH 工具凭据）
+  revoke-service-token --name <名称>       撤销服务令牌（下一请求即生效）
   plugin-precheck --plugin <spec|本地路径>      隔离真启动预检（≤120 秒）
   plugin-push --plugin <spec|本地路径> [--ids all|e01,e02] [--skip-precheck]
                     预检通过后装进实例 profile（暂存，重启才生效）

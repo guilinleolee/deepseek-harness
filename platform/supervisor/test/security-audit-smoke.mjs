@@ -86,6 +86,16 @@ check('JSONL 逐行可解析', lines.every((l) => { try { JSON.parse(l); return 
 check('事件字段齐全（ts/actor/action/result）', lines.map((l) => JSON.parse(l)).every((e) => typeof e.ts === 'string' && 'actor' in e && typeof e.action === 'string' && typeof e.result === 'string'))
 check('文件恰好一个换行结尾', readFileSync(join(DATA, 'audit.jsonl'), 'utf8').endsWith('}\n') && !readFileSync(join(DATA, 'audit.jsonl'), 'utf8').endsWith('\n\n'))
 
+/* ── 3b. actor 全等匹配（exact，P1-2：子串账号不混入他人记录）───────────── */
+console.log('# actor exact 精确匹配')
+await auditAppend({ actor: { account: 'zz@x', role: 'employee', ip: '2.2.2.2' }, action: 'auth.login_success', target: 'zz@x', result: 'ok' })
+await auditAppend({ actor: { account: 'zzz@x', role: 'employee', ip: '2.2.2.2' }, action: 'auth.login_success', target: 'zzz@x', result: 'ok' })
+check('子串匹配：zz@x 命中 2 条（含 zzz@x）', auditQuery({ actor: 'zz@x' }).length === 2)
+const exactZz = auditQuery({ actor: 'zz@x', exact: true })
+check('exact 全等：zz@x 只命中 1 条且账号全等', exactZz.length === 1 && exactZz[0].actor.account === 'zz@x')
+check('exact 大小写不敏感全等', auditQuery({ actor: 'ZZ@X', exact: true }).length === 1)
+check('exact 不误伤长账号自身查询', auditQuery({ actor: 'zzz@x', exact: true }).every((e) => e.actor.account === 'zzz@x') && auditQuery({ actor: 'zzz@x', exact: true }).length === 1)
+
 /* ── 4. security.json 缺省生成与改写 ─────────────────────────────────────── */
 console.log('# 安全配置')
 const def = loadSecurityConfig(DATA)

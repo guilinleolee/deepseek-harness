@@ -69,10 +69,11 @@ export function auditAppend(entry) {
 
 /**
  * 倒序查询审计事件（最新在前）。过滤：actionPrefix 前缀、actor 账号子串
- * （大小写不敏感）、result 精确匹配；limit 默认 500。文件缺失或单行损坏
- * 只跳过，不抛错。
+ * （大小写不敏感；exact=true 时改为账号全等，供「只看本人」场景排除子串
+ * 账号混入，如 a@x 与 ba@x）、result 精确匹配；limit 默认 500。文件缺失
+ * 或单行损坏只跳过，不抛错。
  */
-export function auditQuery({ actionPrefix, actor, result, limit } = {}) {
+export function auditQuery({ actionPrefix, actor, result, limit, exact } = {}) {
   if (auditDir === null) return []
   let raw = ''
   try {
@@ -92,7 +93,10 @@ export function auditQuery({ actionPrefix, actor, result, limit } = {}) {
       continue
     }
     if (actionPrefix && !String(entry.action ?? '').startsWith(actionPrefix)) continue
-    if (needle !== null && !String(entry.actor?.account ?? '').toLowerCase().includes(needle)) continue
+    if (needle !== null) {
+      const account = String(entry.actor?.account ?? '').toLowerCase()
+      if (exact === true ? account !== needle : !account.includes(needle)) continue
+    }
     if (result && entry.result !== result) continue
     matched.push(entry)
   }

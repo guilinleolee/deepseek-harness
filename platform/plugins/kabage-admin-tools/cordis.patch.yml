@@ -1,0 +1,12 @@
+# kabage-admin-tools 的 patch 层：dsh plugin add 安装本包后自动追加到
+# web profile 的 dsh.profile.bundles 栈。config 用 `!!js` 在条目激活时求值
+# （仓库规则只允许 `!!js`）：token 与 baseUrl 由实例 env 注入（supervisor 的
+# instances[].env 机制，如 e01 的 KABAGE_SERVICE_TOKEN——由管理员
+# `add-service-token` 生成后手工填入，仓库不含任何真实令牌）。
+- insert:
+    - id: kabage-admin-tools
+      name: kabage-admin-tools
+      config:
+        baseUrl: !!js 'process.env.KABAGE_ADMIN_BASE_URL || "http://127.0.0.1:8460"'
+        token: !!js 'process.env.KABAGE_SERVICE_TOKEN || ""'
+        defaultInstance: !!js 'process.env.KABAGE_ADMIN_DEFAULT_INSTANCE || "e01"'

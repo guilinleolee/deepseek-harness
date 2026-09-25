@@ -37,6 +37,7 @@ import { join } from 'node:path'
 
 import { auditAppend, clientIp, initAudit } from './audit.mjs'
 import { estimatePoints, fmtPoints, initQuotas, isUnsafeKey, resolveRatios, tokensToPoints } from './quotas.mjs'
+import { initNotify, NOTIFY_SUBJECT_PREFIX, notifyAccountAndAdmins } from './notify.mjs'
 
 const UPSTREAMS_FILE = 'upstreams.json'
 const VKEYS_FILE = 'vkeys.json'
@@ -107,10 +108,13 @@ const promptCharCount = (body) => {
  * @param manifest - instances.json 内容（读 relayPort 之外的实例映射仅用于日志归属）
  * @param dataDir  - data/ 目录（upstreams.json、vkeys.json、logs/relay.log）
  */
-export function createRelayServer({ dataDir }) {
+export function createRelayServer({ dataDir, authSecret }) {
   // 与网关同进程（supervisor daemon 统一拉起）：审计与倍率直接共享模块。
   initAudit(dataDir)
   initQuotas(dataDir)
+  // 通知（阶段 11B）：authSecret 由调用方从 gateway 的 getOrCreateSecret 传入；
+  // 缺省不初始化（测试直连 relay 场景通知保持禁用）。
+  if (authSecret !== undefined) initNotify(dataDir, authSecret)
   const upstreamsCache = {}
   const vkeysCache = {}
   const accountsCache = {}
@@ -157,8 +161,10 @@ export function createRelayServer({ dataDir }) {
     if (next > 0) pendingPrecharge.set(account, next)
     else pendingPrecharge.delete(account)
   }
-  /** 实结：tokens 进/出与请求数累计，pointsDelta 直接入账面 points（实结费用）。 */
-  const settleUsage = (account, tokensIn, tokensOut, pointsDelta) => withUsageLock(() => {
+  /** 实结：tokens 进/出与请求数累计，pointsDelta 直接入账面 points（实结费用）。
+   * quota 传入该账号的月度额度（{monthlyPoints, monthlyTokens}），实结后做
+   * 80% 告警检查（阶段 11B：每账号每月一次，usage 记 alerted 标记）。 */
+  const settleUsage = (account, tokensIn, tokensOut, pointsDelta, quota = null) => withUsageLock(() => {
     const hasTokens = Number.isFinite(tokensIn) || Number.isFinite(tokensOut)
     const hasPoints = Number.isFinite(pointsDelta) && pointsDelta !== 0
     if (!hasTokens && !hasPoints) return
@@ -170,7 +176,28 @@ export function createRelayServer({ dataDir }) {
       entry.requests += 1
     }
     if (hasPoints) entry.points = round6((entry.points ?? 0) + pointsDelta)
+    // 配额 80% 告警：点数口径优先，旧制 tokens 账号按旧口径；每账号每月一次
+    // （alerted 标记随月键天然重置）。通知失败不阻断（notify.mjs 内部降级）。
+    let warnInfo = null
+    if (quota !== null) {
+      let used = null
+      let limit = null
+      let unit = ''
+      if (Number.isFinite(quota.monthlyPoints)) { used = entry.points ?? 0; limit = quota.monthlyPoints; unit = '点数' } else if (Number.isFinite(quota.monthlyTokens)) { used = (entry.tokensIn ?? 0) + (entry.tokensOut ?? 0); limit = quota.monthlyTokens; unit = 'tokens' }
+      if (limit !== null && limit > 0 && entry.alerted !== true && used >= limit * 0.8) {
+        entry.alerted = true
+        warnInfo = { used, limit, unit }
+      }
+    }
     writeUsage(store)
+    if (warnInfo !== null) {
+      void notifyAccountAndAdmins(
+        account,
+        `${NOTIFY_SUBJECT_PREFIX} 配额即将用尽（${warnInfo.used}/${warnInfo.limit} ${warnInfo.unit}）`,
+        `您的本月${warnInfo.unit}额度已使用 ${fmtPoints(warnInfo.used)}/${fmtPoints(warnInfo.limit)}（已达 80%），请注意用量。本邮件为每月一次的提醒。`,
+      )
+      void auditAppend({ actor: { account, role: null, ip: null }, action: 'notify.quota_warn', target: account, result: 'ok', detail: warnInfo })
+    }
   })
   /** 断连收口：requests 计 1（请求确实发生），tokens/points 不计（usage 不可得，预扣已返还）。 */
   const settleAborted = (account) => withUsageLock(() => {
@@ -235,6 +262,10 @@ export function createRelayServer({ dataDir }) {
         openAiError(res, 401, '账号已禁用，请联系管理员', 'account_disabled')
         return
       }
+      // 月度额度快照（阶段 11B）：实结后 80% 告警检查用（点数口径优先，旧制并入）。
+      const quota = accountRecord
+        ? { monthlyPoints: accountRecord.monthlyPoints, monthlyTokens: accountRecord.monthlyTokens }
+        : null
       // 配额硬停：点数口径（monthlyPoints 缺省=不限、0=即停）判定含未实结预扣——
       // 账面 usedPoints + pending 预扣 ≥ 月度点数即拒；monthlyPoints 未定义而存在
       // 旧 monthlyTokens 时走旧 tokens 判据（不动）；并存以 monthlyPoints 为准。
@@ -389,11 +420,11 @@ export function createRelayServer({ dataDir }) {
                   ratios,
                 )
                 addPending(vkey.account, -reservedPoints)
-                void settleUsage(vkey.account, tokensIn, tokensOut, round6(actualPoints))
+                void settleUsage(vkey.account, tokensIn, tokensOut, round6(actualPoints), quota)
               } else {
                 // 无 usage（抽取失败）：预扣转正入账面作为本次费用，不返还（防刷）。
                 addPending(vkey.account, -reservedPoints)
-                void settleUsage(vkey.account, undefined, undefined, round6(reservedPoints))
+                void settleUsage(vkey.account, undefined, undefined, round6(reservedPoints), quota)
               }
               logMeta({
                 at: new Date().toISOString(), account: vkey.account, instance: vkey.instanceId,

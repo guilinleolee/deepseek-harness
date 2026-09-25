@@ -22,9 +22,13 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 import { handleConsole } from './console.mjs'
+import { handlePortal } from './portal.mjs'
 import { createJobRunner } from './plugins-gov.mjs'
 import { auditAppend, clientIp, initAudit } from './audit.mjs'
 import { createLoginRateGuard, loadSecurityConfig } from './security.mjs'
+import { deriveKey, getTwofaRecord, isTwofaEnabled, verifyTwofaForLogin } from './totp.mjs'
+import { authenticateServiceToken } from './service-tokens.mjs'
+import { handleSso, SSO_PROVIDERS, enabledSsoProviders } from './sso.mjs'
 
 const json = (res, status, value) => {
   try {
@@ -192,7 +196,8 @@ function verifyToken(secret, token) {
   return payload
 }
 
-function getOrCreateSecret(dataDir) {
+/** 读取或创建认证签名密钥（data/auth-secret.key；2FA 密钥派生的根）。 */
+export function getOrCreateSecret(dataDir) {
   const file = join(dataDir, 'auth-secret.key')
   if (existsSync(file)) return readFileSync(file, 'utf8').trim()
   const secret = randomBytes(32).toString('hex')
@@ -223,6 +228,14 @@ function authFromRequest(secret, accountsStore, req) {
 
 /* ── Host 路由 ──────────────────────────────────────────────────────────── */
 
+/** HTML 转义（入口页插值用：账号/实例字段来自 accounts.json 与清单，防回流）。 */
+const esc = (s) => String(s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
 /** 从 Host 头解析实例 id（"<id>.<portal 主机>[:port]"），非子域返回 null。 */
 function instanceIdFromHost(hostHeader, manifest) {
   const host = (hostHeader ?? '').split(':')[0].toLowerCase()
@@ -234,22 +247,46 @@ function instanceIdFromHost(hostHeader, manifest) {
 
 /* ── 网关服务器 ─────────────────────────────────────────────────────────── */
 
-const LOGIN_PAGE = (error = '') => `<!doctype html><meta charset="utf-8">
+/**
+ * 登录页。portalHostname 供前端区分登录发生地：员工（employee）在 portal
+ * 主机上登录成功后跳个人中心 /me（阶段 10），在实例子域上登录则原地刷新
+ * 进入工作区；admin/auditor 一律原地刷新（进入管理台或工作区）。
+ */
+const LOGIN_PAGE = (error = '', portalHostname = '', ssoProviders = []) => `<!doctype html><meta charset="utf-8">
 <title>卡巴格 · 登录</title>
 <style>body{font-family:system-ui;background:#f6f7f9;color:#1f2937;display:grid;place-items:center;height:100vh;margin:0}
 form{background:#ffffff;padding:2rem 2.5rem;border-radius:12px;min-width:280px}
 input,button{display:block;width:100%;margin:.5rem 0;padding:.6rem;border-radius:6px;border:1px solid #e5e7eb;background:#ffffff;color:#1f2937;box-sizing:border-box}
 button{background:#2563eb;border:none;cursor:pointer;font-weight:600}
+a.ssobtn{display:block;margin-top:.5rem;padding:.55rem;border-radius:6px;border:1px solid #e5e7eb;background:#fafafa;color:#374151;text-align:center;text-decoration:none;font-size:.92rem}
 .err{color:#ff8a80;font-size:.9rem;min-height:1.2em}</style>
 <form onsubmit="login(event)"><h2 style="margin-top:0">卡巴格 · 登录</h2>
 <input id="acc" placeholder="账号（邮箱）" autocomplete="username">
 <input id="pw" type="password" placeholder="密码" autocomplete="current-password">
-<div class="err">${error}</div><button>登录</button></form>
+<div id="totprow" style="display:none"><input id="tc" inputmode="numeric" placeholder="两步验证码（6 位数字）" autocomplete="one-time-code"></div>
+<div class="err" id="msg">${error}</div><button id="btn">登录</button></form>
+${ssoProviders.map((provider) => `<a class="ssobtn" href="/api/auth/sso/${provider}/start">使用${SSO_PROVIDERS[provider].label}账号登录</a>`).join('')}
 <script>
+var STAGE='password';var HOST='${portalHostname}';
+async function finish(j){
+ if(j.role==='employee' && HOST!=='' && location.hostname===HOST) location.href='/me';
+ else location.reload()}
 async function login(ev){ev.preventDefault();
- const r=await fetch('/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},
+ var msg=document.getElementById('msg');msg.textContent='';
+ if(STAGE==='totp'){
+  var t=await fetch('/api/auth/totp',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({account:acc.value,code:tc.value})});
+  var tj=await t.json().catch(function(){return{}});
+  if(t.ok){finish(tj)}else{msg.textContent=(tj&&tj.error)||'验证码错误'}
+  return}
+ var r=await fetch('/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({account:acc.value,password:pw.value})});
- if(r.ok){location.reload()}else{document.querySelector('.err').textContent='账号或密码错误'}}
+ var j=await r.json().catch(function(){return{}});
+ if(r.ok){
+  if(j.totp_required){STAGE='totp';pw.style.display='none';document.getElementById('totprow').style.display='block';document.getElementById('btn').textContent='验证';tc.focus();msg.textContent='请输入认证器中的 6 位验证码';msg.style.color='#6b7280';return}
+  if(j.needs_2fa_enrollment){msg.textContent='登录成功。管理员已要求该角色绑定两步验证，请到个人中心完成绑定。';msg.style.color='#d97706';setTimeout(function(){finish(j)},2500);return}
+  finish(j)
+ }else{msg.textContent='账号或密码错误'}}
 </script>`
 
 /**
@@ -270,9 +307,26 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       lockoutMs: config.lockoutMinutes * 60_000,
     }
   })
+  // 2FA 密钥派生根：签名密钥既已存在，直接派生（阶段 11A）。
+  const twofaKey = deriveKey(secret)
+  // SSO 登录与密码登录共用同一令牌语义（sub/epoch/TTL/Cookie 参数，阶段 11C）。
+  const issueSession = (res, record) => {
+    const token = signToken(secret, {
+      sub: record.id,
+      acc: record.account,
+      role: record.role,
+      epoch: record.tokenEpoch,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
+    })
+    res.setHeader('set-cookie',
+      `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+  }
   const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
   const accountsFile = join(dataDir, 'accounts.json')
   const portalHost = manifest.gatewayHost ?? 'localhost'
+  // 登录页注入 portal 主机名与已启用的 SSO 按钮（阶段 11C）。
+  const loginPage = (error = '') => LOGIN_PAGE(error, portalHost.split(':')[0], enabledSsoProviders(dataDir))
   const instancePortById = () => {
     const state = getState()
     const ports = {}
@@ -292,7 +346,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     if (url.pathname === '/api/auth/login' && req.method === 'POST') {
       let body = ''
       req.on('data', (chunk) => { body += chunk })
-      req.on('end', () => {
+      req.on('end', async () => {
         let account = ''
         let password = ''
         try {
@@ -324,8 +378,79 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
           res.end(JSON.stringify({ error: 'invalid credentials' }))
           return
         }
+        // 密码因子通过后先查两步验证（阶段 11A + P1-1 fail-closed）：
+        // - 记录损坏（auth-secret 轮换/文件损坏）→ 不签发任何 cookie，500 +
+        //   security.twofa_broken 审计（攻击者持正确密码也拿不到会话）；
+        // - 已启用 → 不发 cookie，前端进入验证码步骤（POST /api/auth/totp）。
+        // 密码对但登录未完成时不清零限流计数——TOTP 猜测与密码猜测共享同一桶。
+        const twofaRecord = getTwofaRecord(dataDir, twofaKey, record.account)
+        if (twofaRecord.state === 'broken') {
+          await auditAppend({ actor, action: 'security.twofa_broken', target: record.account, result: 'fail', detail: null })
+          res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: '两步验证配置损坏，请联系管理员重置（管理台成员页→重置2FA）' }))
+          return
+        }
+        if (twofaRecord.state === 'ok' && twofaRecord.enabled) {
+          res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ totp_required: true, account: record.account }))
+          return
+        }
         loginGuard.success(account, ip)
+        // 软强制（阶段 11A）：角色被要求绑定 2FA 但尚未绑定——照常放行登录，
+        // 仅在响应与 /me 页提醒；硬强制（拒绝无 2FA 登录）属阶段 11b，
+        // 避免管理员误配置把自己锁死。
+        const needs2faEnrollment = loadSecurityConfig(dataDir).require2faRoles.includes(record.role)
         void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok' })
+        const token = signToken(secret, {
+          sub: record.id,
+          acc: record.account,
+          role: record.role,
+          epoch: record.tokenEpoch,
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
+        })
+        res.setHeader('set-cookie',
+          `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+        res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ ok: true, account: record.account, role: record.role, instance: record.instanceId, needs_2fa_enrollment: needs2faEnrollment || undefined }))
+      })
+      return
+    }
+
+    // 1b) 两步验证码换取 JWT（阶段 11A）：login 返回 totp_required 后调用。
+    // 校验失败计入登录限流同桶（先 check 拒锁定、失败 fail 计数）。
+    if (url.pathname === '/api/auth/totp' && req.method === 'POST') {
+      let body = ''
+      req.on('data', (chunk) => { body += chunk })
+      req.on('end', () => {
+        let account = ''
+        let code = ''
+        try {
+          const parsed = JSON.parse(body || '{}')
+          account = String(parsed.account ?? '')
+          code = String(parsed.code ?? '')
+        } catch { /* 当作空凭据处理 */ }
+        const record = accountsStore.accounts.find((a) => a.account === account)
+        const ip = clientIp(req)
+        const actor = { account, role: record?.role ?? null, ip }
+        const verdict = loginGuard.check(account, ip)
+        if (!verdict.allowed) {
+          void auditAppend({ actor, action: 'auth.login_rate_limited', target: account, result: 'deny', detail: { retryAfterMinutes: verdict.retryAfterMinutes } })
+          res.writeHead(429, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: `尝试过于频繁，账号已临时锁定，请约 ${verdict.retryAfterMinutes} 分钟后再试` }))
+          return
+        }
+        const totpFail = (reason) => {
+          loginGuard.fail(account, ip)
+          void auditAppend({ actor, action: 'auth.totp_fail', target: account, result: 'fail', detail: { reason } })
+          res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: '账号或验证码错误' }))
+        }
+        if (!record || record.disabled) { totpFail('bad_account'); return }
+        if (!isTwofaEnabled(dataDir, twofaKey, record.account)) { totpFail('not_enabled'); return }
+        if (!verifyTwofaForLogin(dataDir, twofaKey, record.account, code)) { totpFail('bad_code'); return }
+        loginGuard.success(account, ip)
+        void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok', detail: { totp: true } })
         const token = signToken(secret, {
           sub: record.id,
           acc: record.account,
@@ -345,6 +470,8 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     // 2) 裸 portal 主机：入口页（公开：只有链接与状态，无正文数据）。
     const subdomainId = instanceIdFromHost(hostHeader, manifest)
     if (subdomainId === null) {
+      // 认证一次，status/console/portal 三段共用（JWT HMAC 校验开销可忽略）。
+      const auth = authFromRequest(secret, accountsStore, req)
       if (url.pathname === '/api/auth/logout') {
         res.setHeader('set-cookie', `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`)
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
@@ -352,7 +479,6 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         return
       }
       if (url.pathname === '/status.json') {
-        const auth = authFromRequest(secret, accountsStore, req)
         if (auth.error !== undefined || auth.record.role !== 'admin') {
           res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
           res.end(JSON.stringify({ error: 'admin only' }))
@@ -362,12 +488,15 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         res.end(JSON.stringify(getState()))
         return
       }
+      // 门户员工侧（阶段 10）：/me 个人中心、/login 直达、/register 邀请注册、
+      // /api/register 与 /api/me/* 自服务端点。portal 不响应时 console 接管。
+      if (handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard: loginGuard })) return
+      if (handlePortal({ req, res, url, auth, dataDir, manifest, loginPage, twofaKey })) return
       // 管理台（总览 + 成员/模型/实例/插件操作页）统一委托 console.mjs：
       // 仅 admin；页面未登录回登录页；POST API 另校验 Origin 同源。
       if (url.pathname === '/console' || url.pathname.startsWith('/console/')) {
-        const auth = authFromRequest(secret, accountsStore, req)
         try {
-          if (handleConsole({ req, res, url, auth, loginPage: LOGIN_PAGE, manifest, getState, dataDir, runner: pluginRunner })) return
+          if (handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner: pluginRunner, twofaKey })) return
         } catch (error) {
           console.error('[gateway] console handler error:', error?.message ?? error)
           try { json(res, 500, { error: 'console error' }) } catch { /* 已响应 */ }
@@ -380,14 +509,16 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         const link = info.state === 'running'
           ? `<a href="http://${spec.id}.${portalHost}:${manifest.portalPort}/">${spec.id} 工作区</a>`
           : `${spec.id}（${info.state}）`
-        return `<tr><td>${spec.id}</td><td>${spec.account}</td><td>${info.state}</td><td>${link}</td></tr>`
+        return `<tr><td>${spec.id}</td><td>${esc(spec.account)}</td><td>${info.state}</td><td>${link}</td></tr>`
       }).join('')
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
       res.end(`<!doctype html><meta charset="utf-8"><title>卡巴格 · 入口</title>
 <style>body{font-family:system-ui;background:#f6f7f9;color:#1f2937;margin:2rem}table{border-collapse:collapse}td,th{border:1px solid #e5e7eb;padding:.5rem .9rem}a{color:#2563eb}</style>
 <h1>卡巴格 · 员工入口</h1><table>
 <tr><th>实例</th><th>账号</th><th>状态</th><th>入口</th></tr>${rows}</table>
-<p style="color:#6b7280">首次进入工作区会先要求登录（账号由管理员发放）。</p>
+${auth.error === undefined
+    ? `<p><a href="/me">个人中心</a>（${esc(auth.record.account)} 已登录）</p>`
+    : '<p style="color:#6b7280">首次进入工作区会先要求登录（账号由管理员发放）。</p>'}
 <p><a href="/console">管理台总览（管理员）</a></p>`)
       return
     }
@@ -401,7 +532,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     }
     if (auth.error !== undefined) {
       res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(LOGIN_PAGE())
+      res.end(loginPage())
       return
     }
     if (auth.record.instanceId !== subdomainId) {
