@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-content-topics",
   "description": "Topic-bank Remote over the outputs library's _topics.json",
-  "version": "0.1.4-rc.3",
+  "version": "0.1.4-rc.4",
   "publishConfig": {
     "access": "public"
   },
