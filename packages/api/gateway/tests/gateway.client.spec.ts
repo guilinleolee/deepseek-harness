@@ -172,6 +172,51 @@ async function benchFiber(
 }
 
 describe('Client Typert API', () => {
+  it('publishes a mounted namespace only to fibers that inject its exact service name', async () => {
+    const call = vi.fn<ConnectionHandle['rpc']['call']>()
+      .mockResolvedValue({ ok: true, value: { ref: 'goal-1' } })
+    const ctx = await bench(call)
+    const assembly = ctx.plugin(Object.assign(
+      (scope: Context) => scope.remote.$mount({ package: '@fixture/probe', descriptors: [directDescriptor()] }),
+      { inject: ['remote'] },
+    ))
+    await assembly
+
+    // A fiber that declares `remote.probe` in its inject receives the mounted
+    // snapshot; the traced `remote.probe` read resolves the service through
+    // that fiber's own store.
+    const declared: Context[] = []
+    const declaredFiber = ctx.plugin({
+      name: 'fixture:declared-consumer',
+      inject: ['remote', 'remote.probe'],
+      apply: (scope: Context) => {
+        declared.push(scope)
+      },
+    })
+    await declaredFiber
+    await expect(declared[0]!.remote.probe.create('agent-1', { objective: 'ship' }))
+      .resolves.toEqual({ ok: true, value: { ref: 'goal-1' } })
+
+    // A sibling fiber that injects only `remote` never receives the snapshot:
+    // the traced read forwards to the context resolution and dies with the
+    // Cordis visibility error. This is the exact shape of the content-studio
+    // workbench regression (every gateway closure captured the plugin's own
+    // apply fiber, which declares the namespaces nowhere).
+    const undeclared: Context[] = []
+    const siblingFiber = ctx.plugin({
+      name: 'fixture:undeclared-consumer',
+      inject: ['remote'],
+      apply: (scope: Context) => {
+        undeclared.push(scope)
+      },
+    })
+    await siblingFiber
+    expect(() => (undeclared[0]!.remote as unknown as Record<string, unknown>).probe)
+      .toThrow(/without inject/)
+
+    await assembly.dispose()
+  })
+
   it('mounts concrete direct methods, validates both boundaries, and withdraws retained handles', async () => {
     const call = vi.fn<ConnectionHandle['rpc']['call']>()
       .mockResolvedValue({ ok: true, value: { ref: 'goal-1' } })

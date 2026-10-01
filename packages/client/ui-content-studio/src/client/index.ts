@@ -86,24 +86,51 @@ async function unwrap<T>(label: string, call: RpcCall<T>): Promise<T> {
 }
 
 /**
- * Mount the plugin's own Remote contributions, then register the sidebar
- * entry and the workbench surface once their slot declarations are on the
- * ledger; both registrations install and roll back atomically through one
- * generator. The mounts unwound in reverse order after every registration.
+ * Mount the plugin's own Remote contributions, then run the workbench body on
+ * a fiber that declares every mounted namespace by its exact service name.
+ * Cordis snapshots a namespace service only into fibers whose inject lists
+ * that name (`remote.contentOutputs`), so a consumer that merely injects
+ * `remote` — including this plugin's own apply fiber, a sibling of each
+ * namespace fiber — never resolves it and every gateway call dies with
+ * "cannot get property ... without inject". The mount runs first so the
+ * namespace services exist before the workbench fiber waits on them; Cordis
+ * unloads and re-runs the workbench body if a namespace unmounts.
  * @param ctx - client root context.
  */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-content-studio: dictionaries')
 
-  const disposers: Array<() => Promise<void>> = []
+  const mountDisposers: Array<() => Promise<void>> = []
   try {
     for (const contribution of [contentOutputsRemote, contentScheduleRemote, contentTopicsRemote]) {
-      disposers.push(await ctx.remote.$mount(contribution))
+      mountDisposers.push(await ctx.remote.$mount(contribution))
     }
   } catch (error) {
-    for (const dispose of disposers.reverse()) await dispose()
+    for (const dispose of mountDisposers.reverse()) await dispose()
     throw error
   }
+
+  const workbench = await ctx.plugin({
+    name: 'ui-content-studio:workbench',
+    inject: ['slots', 'locale', 'remote', 'remote.contentOutputs', 'remote.contentSchedule', 'remote.contentTopics'],
+    apply: workbenchCtx => mainApply(workbenchCtx),
+  })
+
+  return async () => {
+    await workbench.dispose()
+    for (const dispose of mountDisposers.reverse()) await dispose()
+  }
+}
+
+/**
+ * The workbench body: the controllers, the gateway closures, and the two slot
+ * registrations (sidebar entry + frame-wide surface), on the fiber that
+ * declared the Remote namespaces. The slot registrations unwind with this
+ * fiber — the `slots.inject` generator owns their lifetime — so there is no
+ * separate disposer.
+ * @param ctx - the workbench fiber's context.
+ */
+async function mainApply(ctx: Context): Promise<void> {
 
   const studio = createContentStudioController()
   const listOutputs: ContentStudioInjected['listOutputs'] = async () => {
@@ -271,8 +298,4 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       inject: () => ({ studio, listOutputs, gather, schedule, competitors, create, personas, listThemes, topics, writeExport }),
     }, ContentStudio)
   })
-
-  return async () => {
-    for (const dispose of disposers.reverse()) await dispose()
-  }
 }

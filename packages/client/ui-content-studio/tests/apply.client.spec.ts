@@ -29,9 +29,36 @@ async function bench() {
     value: { file: '/outputs/_topics.json', items: [], problems: [] },
   }))
   const topics = { list: topicsList, put: vi.fn(), delete: vi.fn() }
-  const $mount = vi.fn(async () => async () => {})
-  ctx.provide('remote', { $mount, contentOutputs: { list }, contentSchedule: schedule, contentTopics: topics })
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, $mount, topicsList }
+  // The real mount provides each namespace as its own Cordis service
+  // (`remote.<namespace>`); the workbench fiber declares those names in its
+  // inject and only starts once every one of them is available.
+  const NAMESPACE_SERVICES: Record<string, Record<string, unknown>> = {
+    '@deepseek-ai/dsh-content-outputs': { list },
+    '@deepseek-ai/dsh-content-schedule': schedule,
+    '@deepseek-ai/dsh-content-topics': topics,
+  }
+  const NAMESPACE_NAMES: Record<string, string> = {
+    '@deepseek-ai/dsh-content-outputs': 'remote.contentOutputs',
+    '@deepseek-ai/dsh-content-schedule': 'remote.contentSchedule',
+    '@deepseek-ai/dsh-content-topics': 'remote.contentTopics',
+  }
+  const mounted: Array<() => void> = []
+  const $mount = vi.fn(async (contribution: { package: string }) => {
+    const name = NAMESPACE_NAMES[contribution.package]
+    if (name === undefined) throw new Error(`unexpected contribution ${contribution.package}`)
+    const dispose = ctx.provide(name, NAMESPACE_SERVICES[contribution.package])
+    mounted.push(dispose)
+    return async () => { dispose() }
+  })
+  // The real gateway service resolves `remote.<namespace>` reads through the
+  // calling context; the getters stand in for that traced indirection.
+  ctx.provide('remote', {
+    $mount,
+    get contentOutputs() { return ctx.get('remote.contentOutputs') },
+    get contentSchedule() { return ctx.get('remote.contentSchedule') },
+    get contentTopics() { return ctx.get('remote.contentTopics') },
+  })
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, $mount, topicsList, mounted }
 }
 
 /** Declare both target holes with a single root registration ('root' is a single slot). */
