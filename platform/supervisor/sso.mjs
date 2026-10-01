@@ -279,8 +279,8 @@ async function bind(ev){ev.preventDefault();
 
 /**
  * SSO 路由（gateway 在裸 portal 主机分支调用）。
- * @param issueSession - (res, record) => void：签发 JWT Cookie（gateway 提供，
- *   与密码登录同一令牌语义：sub/epoch/TTL）。
+ * @param issueSession - (res, record, ip) => void：签发 JWT Cookie（gateway
+ *   提供，与密码登录同一令牌语义：sub/epoch/TTL；传 ip 时同时刷新 lastLogin）。
  * @param twofaKey - 敏感配置派生根（sso secret 加密同源）。
  * @param guard - 登录限流器（绑定密码错误计入同桶；可缺省=不限流，测试用）。
  * @returns true 表示已响应。
@@ -326,7 +326,7 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
             return
           }
           void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.sso_login', target: record.account, result: 'ok', detail: { provider, ssoId: identity.ssoId } })
-          issueSession(res, record)
+          issueSession(res, record, ip)
           res.writeHead(303, { location: record.role === 'employee' ? '/me' : '/' })
           res.end()
           return
@@ -391,7 +391,7 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
         if (!record.ssoIds.includes(context.ssoId)) record.ssoIds.push(context.ssoId)
         saveAccounts(dataDir, store)
         void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.sso_bind', target: record.account, result: 'ok', detail: { provider: context.provider, ssoId: context.ssoId } })
-        issueSession(res, record)
+        issueSession(res, record, ip)
         res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
         res.end(JSON.stringify({ ok: true, account: record.account, role: record.role }))
       }).catch((error) => {

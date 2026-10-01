@@ -357,9 +357,15 @@ function membersPage({ dataDir, manifest, getState, query }) {
       const [label] = { admin: ['管理员'], auditor: ['审计员'], employee: ['成员'] }[r]
       return `<option value="${r}" ${a.role === r ? 'selected' : ''}>${label}</option>`
     }).join('')
+    // 最后登录（时间 + 来源 IP）；账号记录由网关在每次登录成功时刷新，
+    // 从未登录过（含 IdP 同步新建号）显示占位。
+    const lastLoginCell = a.lastLogin
+      ? `${esc(String(a.lastLogin.ts ?? '').replace('T', ' ').slice(0, 16))}<br><span class="mut">${esc(a.lastLogin.ip ?? '')}</span>`
+      : '<span class="mut">从未登录</span>'
     return `<tr><td>${avatar(a.displayName)}${esc(a.displayName)}</td><td>${esc(a.account)}</td>
 <td>${esc(a.department ?? '未分配')}</td><td>${roleChip(a.role)}</td><td>${esc(a.instanceId)}</td>
 <td>${chips}</td><td>${a.disabled ? '<span class="chip red">已禁用</span>' : '<span class="chip green">正常</span>'}</td>
+<td>${lastLoginCell}</td>
 <td>${quotaCellHtml}</td><td>${e.requests}</td>
 <td>
 <form class="inline" onsubmit="api(event,'/console/api/member/update',this)"><input type="hidden" name="account" value="${esc(a.account)}"><input name="department" size="6" value="${esc(a.department ?? '未分配')}" title="部门"><button>改部门</button></form>
@@ -379,7 +385,7 @@ ${isTwofaEnabled(dataDir, twofaKey, a.account)
   const inviteRows = listOpenInvites(dataDir).map((i) => `<tr><td><code>${esc(i.id)}</code></td><td>${esc(i.department)}</td><td>${roleChip(i.role)}</td><td>${esc(i.instanceId)}</td><td>${esc(String(i.expiresAt).replace('T', ' ').slice(0, 16))}</td><td><form class="inline" onsubmit="revokeInvite(event,'${esc(i.id)}')"><button class="warn">撤销</button></form></td></tr>`).join('')
   return `
 <form class="searchbox" method="get" style="margin:0 0 .6rem"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
-<table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>本月点数 已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="10">无匹配成员</td></tr>'}</table>
+<table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>最后登录</th><th>本月点数 已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="11">无匹配成员</td></tr>'}</table>
 <h2 class="sect">添加成员</h2>
 <form class="panel" onsubmit="createMember(event)">
 <div style="margin-bottom:.5rem">账号 <input name="account" placeholder="name@company" required> 显示名 <input name="displayName"> 部门 <input name="department" placeholder="如 设计部"></div>
@@ -1568,6 +1574,7 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
           role: a.role, instanceId: a.instanceId, disabled: a.disabled,
           monthlyPoints: a.monthlyPoints ?? null, pointsUsed: e.points ?? 0,
           tokensIn: e.tokensIn ?? 0, tokensOut: e.tokensOut ?? 0, requests: e.requests ?? 0,
+          lastLogin: a.lastLogin ?? null,
         }
       })
       json(res, 200, { month, members })

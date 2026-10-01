@@ -11,7 +11,12 @@
  *    （角色/部门/实例正确 + tool-policy 下发 + member.register 留痕）→
  *    同 code 二次注册被拒（code_used）→ 撤销被拒 → 过期被拒 → 无效 code；
  * 6. 权限边界：employee 调 invite/create 403；
- * 7. 速率限制：独立网关上同 IP 连续无效注册达阈值即 429（有效邀请也 429）。
+ * 7. 速率限制：独立网关上同 IP 连续无效注册达阈值即 429（有效邀请也 429）；
+ *    登录限流独立分桶，连错达阈值后正确密码也 429 且文案可读。
+ * 8. 最后登录（console v2 遗留项）：登录成功记 lastLogin（时间+IP，密码/
+ *    TOTP/SSO 共用 issueSession 同一记录口），member/list 与成员页
+ *    「最后登录」列展示；登录失败文案中文，登录页透传服务端原因（429
+ *    锁定/禁用不再被「账号或密码错误」掩盖）。
  *
  * 全程不占用 8460/9400/3181-3183；结束关闭全部服务并清理临时目录。
  * 运行：node test/me-invite-http-verify.mjs
@@ -248,6 +253,28 @@ try {
   check('employee 调 invite/create 403', (await post('/console/api/invite/create', { role: 'employee', instanceId: 'e02' }, newbie.cookie)).status === 403)
   check('employee /me 不含他人用量行', !(await (await get('/me', newbie.cookie)).text()).includes('points@t'))
 
+  /* ── 6b. 最后登录记录与登录失败文案（console v2 遗留项）───────────────── */
+  console.log('# 最后登录与登录失败文案')
+  const ll = await login('noquota@t', 'NoquotaP1')
+  check('登录成功 200', ll.status === 200)
+  const llAdmin = await adminLogin()
+  // touchLastLogin 异步走账号锁，轮询直至 member/list 出现该账号的 lastLogin。
+  let llRow
+  for (let i = 0; i < 50; i++) {
+    const lr = await get('/console/api/member/list', llAdmin.cookie)
+    llRow = (await lr.json()).members.find((m) => m.account === 'noquota@t')
+    if (llRow?.lastLogin?.ts !== undefined) break
+    await wait(40)
+  }
+  check('member/list 含 lastLogin（ISO 时间）', typeof llRow?.lastLogin?.ts === 'string' && !Number.isNaN(Date.parse(llRow.lastLogin.ts)))
+  check('member/list 含 lastLogin.ip（本机回环）', llRow?.lastLogin?.ip === '127.0.0.1')
+  const badPw = await login('noquota@t', 'WrongPass1')
+  check('错密码 401 中文文案', badPw.status === 401 && badPw.body.error === '账号或密码错误')
+  const llPage = await (await get('/login')).text()
+  check('登录页失败分支透传服务端错误', llPage.includes('(j&&j.error)'))
+  const membersPageHtml = await (await get('/console/members', llAdmin.cookie)).text()
+  check('成员页含最后登录列与取值', membersPageHtml.includes('<th>最后登录</th>') && membersPageHtml.includes('noquota@t') && membersPageHtml.includes('127.0.0.1'))
+
   /* ── 7. 速率限制（独立网关隔离计数桶）────────────────────────────────── */
   console.log('# 注册速率限制')
   const DATA2 = mkdtempSync(join(tmpdir(), 'lyz-me-invite-rate-'))
@@ -274,6 +301,15 @@ try {
     check('rate_limited deny 留痕', await waitForAudit((e) => e.action === 'member.register' && e.result === 'deny' && e.detail?.reason === 'rate_limited') !== undefined)
     const validButLocked = await post2('/api/register', { code: code3, account: 'lucky@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
     check('限流期间有效邀请也被拒（429 先于 code 校验）', validButLocked.status === 429)
+    // 登录限流与注册限流分桶：同一账号连错 3 次密码后，正确密码也 429 且文案可读。
+    for (let i = 0; i < 3; i++) {
+      const bad = await post2('/api/auth/login', { account: 'admin@t', password: 'WrongPass1' })
+      check(`登录错密 #${i + 1} 401`, bad.status === 401)
+    }
+    const lockedLogin = await post2('/api/auth/login', { account: 'admin@t', password: 'AdminPass1' })
+    const lockedBody = await lockedLogin.json().catch(() => ({}))
+    check('连错后第 4 次登录 429（正确密码也拒）', lockedLogin.status === 429)
+    check('登录 429 文案含锁定提示与分钟数', String(lockedBody.error ?? '').includes('临时锁定') && /\d+\s*分钟/.test(String(lockedBody.error ?? '')))
     initAudit(DATA)
   } finally {
     gateway2.close()

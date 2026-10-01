@@ -21,7 +21,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
-import { handleConsole } from './console.mjs'
+import { handleConsole, withAccountLock } from './console.mjs'
 import { handlePortal } from './portal.mjs'
 import { createJobRunner } from './plugins-gov.mjs'
 import { auditAppend, clientIp, initAudit } from './audit.mjs'
@@ -61,6 +61,7 @@ export function listAccounts(dataDir) {
     instanceId: a.instanceId,
     tokenEpoch: a.tokenEpoch,
     createdAt: a.createdAt,
+    lastLogin: a.lastLogin ?? null,
     disabled: a.disabled === true,
     monthlyTokens: a.monthlyTokens,
   }))
@@ -286,7 +287,7 @@ async function login(ev){ev.preventDefault();
   if(j.totp_required){STAGE='totp';pw.style.display='none';document.getElementById('totprow').style.display='block';document.getElementById('btn').textContent='验证';tc.focus();msg.textContent='请输入认证器中的 6 位验证码';msg.style.color='#6b7280';return}
   if(j.needs_2fa_enrollment){msg.textContent='登录成功。管理员已要求该角色绑定两步验证，请到个人中心完成绑定。';msg.style.color='#d97706';setTimeout(function(){finish(j)},2500);return}
   finish(j)
- }else{msg.textContent='账号或密码错误'}}
+ }else{msg.textContent=(j&&j.error)||('失败（HTTP '+r.status+'）')}}
 </script>`
 
 /**
@@ -309,8 +310,22 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
   })
   // 2FA 密钥派生根：签名密钥既已存在，直接派生（阶段 11A）。
   const twofaKey = deriveKey(secret)
-  // SSO 登录与密码登录共用同一令牌语义（sub/epoch/TTL/Cookie 参数，阶段 11C）。
-  const issueSession = (res, record) => {
+  // 登录成功即记 lastLogin（成员页「最后登录」列数据源）：审计保留完整登录
+  // 历史，账号记录只存最新一次，成员列表免回扫审计；写入走管理台同一把
+  // 账号锁，避免与成员操作的 accounts.json 读改写互相覆盖；记录失败只打日志，
+  // 不影响登录本身。
+  const touchLastLogin = (record, ip) => {
+    void withAccountLock(async () => {
+      const store = loadAccounts(dataDir)
+      const cur = store.accounts.find((a) => a.account === record.account)
+      if (cur === undefined) return
+      cur.lastLogin = { ts: new Date().toISOString(), ip }
+      saveAccounts(dataDir, store)
+    }).catch((error) => console.error('[gateway] lastLogin 记录失败:', error?.stack ?? error))
+  }
+  // SSO 登录与密码登录共用同一令牌语义（sub/epoch/TTL/Cookie 参数，阶段 11C）；
+  // 传入 ip 时同时刷新该账号的 lastLogin。
+  const issueSession = (res, record, ip = null) => {
     const token = signToken(secret, {
       sub: record.id,
       acc: record.account,
@@ -321,6 +336,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     })
     res.setHeader('set-cookie',
       `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+    if (ip !== null) touchLastLogin(record, ip)
   }
   const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
   const accountsFile = join(dataDir, 'accounts.json')
@@ -375,7 +391,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
           loginGuard.fail(account, ip)
           void auditAppend({ actor, action: 'auth.login_fail', target: account, result: 'fail', detail: { reason: 'bad_credentials' } })
           res.writeHead(401, { 'content-type': 'application/json; charset=utf-8' })
-          res.end(JSON.stringify({ error: 'invalid credentials' }))
+          res.end(JSON.stringify({ error: '账号或密码错误' }))
           return
         }
         // 密码因子通过后先查两步验证（阶段 11A + P1-1 fail-closed）：
@@ -401,16 +417,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         // 避免管理员误配置把自己锁死。
         const needs2faEnrollment = loadSecurityConfig(dataDir).require2faRoles.includes(record.role)
         void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok' })
-        const token = signToken(secret, {
-          sub: record.id,
-          acc: record.account,
-          role: record.role,
-          epoch: record.tokenEpoch,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
-        })
-        res.setHeader('set-cookie',
-          `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+        issueSession(res, record, ip)
         res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
         res.end(JSON.stringify({ ok: true, account: record.account, role: record.role, instance: record.instanceId, needs_2fa_enrollment: needs2faEnrollment || undefined }))
       })
@@ -451,16 +458,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         if (!verifyTwofaForLogin(dataDir, twofaKey, record.account, code)) { totpFail('bad_code'); return }
         loginGuard.success(account, ip)
         void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok', detail: { totp: true } })
-        const token = signToken(secret, {
-          sub: record.id,
-          acc: record.account,
-          role: record.role,
-          epoch: record.tokenEpoch,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
-        })
-        res.setHeader('set-cookie',
-          `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+        issueSession(res, record, ip)
         res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
         res.end(JSON.stringify({ ok: true, account: record.account, role: record.role, instance: record.instanceId }))
       })

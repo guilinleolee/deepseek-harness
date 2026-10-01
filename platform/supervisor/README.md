@@ -91,6 +91,7 @@ node supervisor.mjs logs --id e02
 - **审计日志**：`data/audit.jsonl` 只追加 JSONL（谁/何时/对谁/动作/结果/标量 detail），永不落会话正文、密码原文、密钥原文。覆盖：登录成败/限流（`auth.*`，gateway）、成员/供应商/模型/实例/插件全部变更端点（`member.*`/`provider.*`/`model.*`/`instance.*`/`plugin.*`，ok/deny/fail 都留痕）、配额硬停（`quota.exceeded`，relay 与网关同进程直接共享 audit.mjs）、审计导出（`audit.export`）与安全设置修改（`security.config_change`，含旧值→新值）。
 - **安全与审计页** `/console/audit`：审计日志按 action 前缀/账号关键词/结果筛选（倒序、500 条封顶），导出 JSONL 不限量（`/console/api/audit/export`）；下半页安全设置表单（`/console/api/security/config`，admin-only）。总览页新增告警卡：额度将尽成员数、24h 失败登录数、最近 5 条审计事件。
 - **登录安全**：`data/security.json` 缺省自动生成（窗口 15 分钟内 10 次失败锁 15 分钟、密码最小 8 位 3 类字符）；速率限制按「账号+IP」内存滑动窗口（daemon 重启清零），成功登录清零，参数改动即时生效；密码策略作用于控制台建号与重置（弱密码 400 中文文案并留痕）。
+- **最后登录记录**：登录成功（密码/TOTP/SSO 三路共用 `issueSession` 同一记录口）即把 `{ts, ip}` 写入账号记录（管理台同一把账号锁，异步不阻断登录）；成员页「最后登录」列与 `/console/api/member/list` 的 `lastLogin` 字段展示最新一次，完整登录历史仍以审计 `auth.login_success` 为准。登录失败文案全中文（`账号或密码错误`），登录页透传服务端原因——429 锁定、账号禁用、2FA 配置损坏不再被统一文案掩盖。
 - **角色门禁**：管理台页面与只读 GET API（含审计查询/导出、投放任务查询）放行 admin/auditor；全部变更 POST 仅 admin，auditor 得 403「审计员为只读角色」（拒绝也留 deny），employee 拒入。
 - **测试**：`node test/security-audit-smoke.mjs`（单元冒烟：密码策略/限流全路径/审计查询/配置生成，临时目录）；`node test/auth-audit-http-verify.mjs`（HTTP 集成：随机端口 + mock 上游验证登录三路径审计、auditor 门禁、配额硬停审计，自动清理）。
 
