@@ -67,3 +67,12 @@ dragon-assets/skill-updater/reports/
 # scope 不能 push 修改 workflow 文件，所以从镜像排除
 dragon-assets/**/.github/workflows/
 dragon-assets/**/.github/actions/
+
+# 商业策略 / 内部规划文档 —— 不进入 DSH release
+商业化路线图.md
+
+# 获客插件的规划与演练产物（非源码） —— 等真正写代码时再纳入版本控制
+packages/extensions/dsh-lead-gen/PRD-corrections.md
+packages/extensions/dsh-lead-gen/commercialization.md
+packages/extensions/dsh-lead-gen/IMPLEMENTATION_PLAN.md
+packages/extensions/dsh-lead-gen/rehearsal/
