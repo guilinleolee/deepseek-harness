@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CompetitorManifest, CompetitorWork } from '@deepseek-ai/dsh-content-outputs/types'
 import {
-  aggregateAccountDigest, buildIdeaMarkdown, exportAccounts, heatByWork, importAccounts,
+  aggregateAccountDigest, buildIdeaMarkdown, competitorWorkToTopicInput, exportAccounts, heatByWork, importAccounts,
   interactionScore, isAccountStale, newId, upsertWork,
 } from '../src/client/competitors.ts'
 import type { CompetitorAccount } from '../src/client/competitors.ts'
@@ -193,5 +193,31 @@ describe('newId', () => {
     const ids = new Set(Array.from({ length: 50 }, () => newId('acc')))
     expect(ids.size).toBe(50)
     expect([...ids][0]!.startsWith('acc-')).toBe(true)
+  })
+})
+
+describe('competitorWorkToTopicInput', () => {
+  it('builds a benchmark-sourced idea anchored to the work id', () => {
+    const input = competitorWorkToTopicInput(work({
+      url: 'https://x.example/w1',
+      analysis: { status: 'done', result: {
+        hookType: '悬念', structure: '三段式', painPoints: ['没时间'], topics: ['效率'],
+        risks: [], reusable: ['清单体'], migrationTopics: ['给小团队的工具组合选题'], commentInsight: 'unavailable',
+      } },
+    }), '2026-09-28T00:00:00.000Z')
+    expect(input.status).toBe('idea')
+    expect(input.source).toEqual({
+      type: 'benchmark', refId: 'cw-1', url: 'https://x.example/w1',
+      snapshot: { title: '一条对标作品', summary: '给小团队的工具组合选题', capturedAt: '2026-09-28T00:00:00.000Z' },
+    })
+    expect(input.title).toBe('给小团队的工具组合选题')
+    expect(input.tags).toEqual(['对标'])
+  })
+
+  it('falls back to the work title when no teardown exists', () => {
+    const input = competitorWorkToTopicInput(work(), '2026-09-28T00:00:00.000Z')
+    expect(input.title).toBe('一条对标作品')
+    expect(input.oneLiner).toBeNull()
+    expect(input.source.url).toBeNull()
   })
 })

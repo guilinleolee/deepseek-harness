@@ -15,6 +15,8 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { TopicBankView, type TopicBankGateway, type TopicBankViewProps } from '../src/client/TopicBankView.tsx'
 import { todayDate } from '../src/client/calendar.ts'
 import { manualTopicInput } from '../src/client/topic-bank.ts'
+import type { TemplateController, TemplatePickDraft, TemplatePickTarget } from '../src/client/template/template-store.ts'
+import type { TemplateId } from '@deepseek-ai/dsh-content-outputs/types'
 import type { PickedTopic } from '../src/client/studio-store.ts'
 import { en, zh } from '../src/client/locales.ts'
 
@@ -187,6 +189,56 @@ describe('TopicBankView', () => {
       expect(screen.getByText(en['topicBank.notice.created'])).toBeTruthy()
       expect(screen.getByText('全新选题')).toBeTruthy()
     })
+  })
+
+  it('prefills the create form from a template pick and carries the optional fields on save', async () => {
+    // The picker modal lives at the workbench surface; the view's side of the
+    // contract is the captured target, which the test applies a structured
+    // draft to — exactly what a confirmed pick hands over.
+    const targets: TemplatePickTarget[] = []
+    const templateLibrary = {
+      openPicker: vi.fn((target: TemplatePickTarget): void => { targets.push(target) }),
+    } as unknown as TemplateController
+    const fake = fakeTopics([])
+    renderView(fake.gateway, { templateLibrary })
+    await waitFor(() => {
+      expect(screen.getByText(en['topicBank.guide.hint'])).toBeTruthy()
+    })
+    fireEvent.click(screen.getByText(en['topicBank.useTemplate']))
+    expect(targets).toHaveLength(1)
+    const target = targets[0]
+    if (target === undefined) throw new Error('picker target missing')
+    expect(target.category).toBe('topic')
+    const apply = target.apply
+    if (apply === undefined) throw new Error('picker target has no apply')
+    const draft: TemplatePickDraft = {
+      title: '模板化选题',
+      body: '核心切入：{{angle}}',
+      tags: ['爆款', '小红书'],
+      values: {},
+      template: {
+        id: 'tpl-1' as TemplateId, name: '选题模板', category: 'topic', description: '', tagIds: [],
+        body: '核心切入：{{angle}}',
+        variables: [], status: 'active', version: 1,
+        createdAt: '2026-09-27T00:00:00.000Z', updatedAt: '2026-09-27T00:00:00.000Z',
+      },
+    }
+    act(() => { apply(draft) })
+    // The prefilled fields surface in the create form for review.
+    const title = screen.getByLabelText(en['topicBank.field.title']) as HTMLInputElement
+    expect(title.value).toBe('模板化选题')
+    const description = screen.getByLabelText(en['topicBank.field.description']) as HTMLTextAreaElement
+    expect(description.value).toBe('核心切入：{{angle}}')
+    // Saving carries the optional fields, not just the title.
+    await act(async () => {
+      fireEvent.click(screen.getByText(en['topicBank.save']))
+    })
+    expect(fake.gateway.put).toHaveBeenCalledWith(expect.objectContaining({
+      title: '模板化选题',
+      description: '核心切入：{{angle}}',
+      tags: ['爆款', '小红书'],
+      oneLiner: null,
+    }))
   })
 
   it('shows the detail panel with the disabled AI entry, snapshot, and create handoff', async () => {
@@ -435,7 +487,7 @@ describe('topic-bank locale pins', () => {
     'topicBank.count', 'topicBank.noMatch', 'topicBank.kanbanHint',
     'topicBank.column.title', 'topicBank.column.source', 'topicBank.column.score', 'topicBank.column.tags',
     'topicBank.column.status', 'topicBank.column.planDate', 'topicBank.column.updatedAt',
-    'topic.score.none', 'topic.source.manual', 'topic.source.gather', 'topic.source.benchmark',
+    'topic.score.none', 'topic.source.manual', 'topic.source.gather', 'topic.source.benchmark', 'topic.source.interaction',
     'topic.status.idea', 'topic.status.todo', 'topic.status.creating', 'topic.status.done', 'topic.status.shelved',
     'topicBank.filter.all', 'topicBank.filter.source', 'topicBank.filter.status', 'topicBank.filter.plan',
     'topicBank.filter.tag', 'topicBank.filter.allTags', 'topicBank.filter.score', 'topicBank.filter.scoreMin',

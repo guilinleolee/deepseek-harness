@@ -69,7 +69,7 @@ describe('topic-bank config migration', () => {
 
   it('keeps the canonical status and source sequences', () => {
     expect(TOPIC_STATUSES).toEqual(['idea', 'todo', 'creating', 'done', 'shelved'])
-    expect(TOPIC_SOURCE_TYPES).toEqual(['manual', 'gather', 'benchmark'])
+    expect(TOPIC_SOURCE_TYPES).toEqual(['manual', 'gather', 'benchmark', 'interaction'])
   })
 })
 
