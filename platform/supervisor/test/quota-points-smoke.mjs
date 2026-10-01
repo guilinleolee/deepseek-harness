@@ -3,7 +3,8 @@
  *
  * 在临时目录验证：ratios.json 缺省生成与 mtime 缓存生效、resolveRatios
  * 未配置回退/配置生效、非法倍率（≤0/非有限数）拒绝落盘、estimatePoints /
- * tokensToPoints 公式手算对账。不触碰生产 data/ 与 8460/9400 端口。
+ * tokensToPoints 公式手算对账、旧制 tokens→点数一次性迁移（1:1、幂等、
+ * 不动其他账号）。不触碰生产 data/ 与 8460/9400 端口。
  *
  * 运行：node test/quota-points-smoke.mjs
  */
@@ -11,7 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { estimatePoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio, tokensToPoints } from '../quotas.mjs'
+import { estimatePoints, initQuotas, loadRatios, migrateLegacyQuotas, resolveRatios, setGroupRatio, setModelRatio, tokensToPoints } from '../quotas.mjs'
 
 const DATA = mkdtempSync(join(tmpdir(), 'lyz-quota-smoke-'))
 let passed = 0
@@ -100,6 +101,24 @@ const rr = resolveRatios('__proto__', '__proto__')
 check('危险键 resolve 回退缺省（计点不产 NaN）', rr.ratio === 1 && rr.completionRatio === 3 && rr.groupRatio === 1 && Number.isFinite(tokensToPoints(100, 20, rr)))
 const onDisk = JSON.parse(readFileSync(join(DATA, 'ratios.json'), 'utf8'))
 check('剔除后回写文件无危险键', !Object.hasOwn(onDisk.models, '__proto__') && !Object.hasOwn(onDisk.groups, 'constructor') && onDisk.groups['设计部'] === 2)
+
+/* ── 旧制→点数一次性迁移 ─────────────────────────────────────────────────── */
+console.log('# 旧制→点数迁移')
+const MIG = mkdtempSync(join(tmpdir(), 'lyz-quota-migrate-'))
+writeFileSync(join(MIG, 'accounts.json'), `${JSON.stringify({ accounts: [
+  { account: 'legacy@x', monthlyTokens: 500 },
+  { account: 'points@x', monthlyPoints: 1000, monthlyTokens: 200 },
+  { account: 'none@x' },
+] }, null, 2)}\n`)
+const mig1 = migrateLegacyQuotas(MIG)
+check('只迁移旧制账号（1 个）', mig1.migrated.length === 1 && mig1.migrated[0].account === 'legacy@x')
+check('迁移值为 1:1（生效线不变）', mig1.migrated[0].points === 500)
+const after = JSON.parse(readFileSync(join(MIG, 'accounts.json'), 'utf8')).accounts
+check('落盘正确且不动其他账号', after[0].monthlyPoints === 500 && after[0].monthlyTokens === 500
+  && after[1].monthlyPoints === 1000 && after[2].monthlyPoints === undefined)
+check('跳过数 = 账号总数 - 迁移数', mig1.skipped === 2)
+check('二次运行幂等（migrated 为空）', migrateLegacyQuotas(MIG).migrated.length === 0)
+rmSync(MIG, { recursive: true, force: true })
 
 rmSync(DATA, { recursive: true, force: true })
 console.log(`\n通过 ${passed}，失败 ${failed}`)

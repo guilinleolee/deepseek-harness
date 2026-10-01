@@ -188,3 +188,31 @@ export function setGroupRatio(dataDir, department, ratio) {
   writeRatiosFile(file, ratios)
   return round6(ratio)
 }
+
+/**
+ * 旧制→点数一次性迁移（console v2 遗留项）：monthlyTokens 有定义而
+ * monthlyPoints 未定义的账号，逐个把 monthlyPoints 设为同值——旧判据本就
+ * 按裸 tokens 比较，1:1 保持生效线不变，控制台「旧制」标注随之消失；
+ * 已有点数额度/无旧制额度的账号不动。幂等：二次运行 migrated 为空。
+ * monthlyTokens 保留原值（仅作历史展示，判定已不读它）。直接读改写
+ * accounts.json（tmp+rename 原子落盘），与既有 CLI 命令同样的 daemon 并发
+ * 窗口——建议在管理台空闲时执行。
+ * @returns {{migrated: Array<{account, points}>, skipped: number}}
+ */
+export function migrateLegacyQuotas(dataDir) {
+  const path = join(dataDir, 'accounts.json')
+  const store = JSON.parse(readFileSync(path, 'utf8'))
+  const accounts = Array.isArray(store.accounts) ? store.accounts : []
+  const migrated = []
+  for (const record of accounts) {
+    if (!Number.isFinite(record.monthlyTokens) || Number.isFinite(record.monthlyPoints)) continue
+    record.monthlyPoints = record.monthlyTokens
+    migrated.push({ account: record.account, points: record.monthlyPoints })
+  }
+  if (migrated.length > 0) {
+    const tmp = `${path}.tmp`
+    writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
+    renameSync(tmp, path)
+  }
+  return { migrated, skipped: accounts.length - migrated.length }
+}

@@ -2,19 +2,31 @@
  * 安全与审计冒烟测试（零测试框架，node 直接运行）。
  *
  * 在系统临时目录验证：密码策略正反例、登录速率限制全路径
- * （连败→锁定→解锁恢复→成功清零）、auditAppend→auditQuery 各过滤条件、
- * security.json 缺省生成与改写。不触碰生产 data/ 与 8460/9400 端口。
+ * （连败→锁定→解锁恢复→成功清零）、限流计数桶文件持久化（重建 guard =
+ * 模拟 daemon 重启）、auditAppend→auditQuery 各过滤条件、审计按大小轮转
+ * （归档/保留/跨档查询）、security.json 缺省生成与改写（含审计轮转参数）、
+ * addAccount/setPassword 存储函数内强制密码策略。不触碰生产 data/ 与
+ * 8460/9400 端口。
  *
  * 运行：node test/security-audit-smoke.mjs
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { auditAppend, auditQuery, initAudit } from '../audit.mjs'
+import { addAccount, loadAccounts, setPassword, verifyPassword } from '../gateway.mjs'
 import { checkPasswordPolicy, createLoginRateGuard, generatePassword, loadSecurityConfig, saveSecurityConfig } from '../security.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const throws = (fn) => {
+  try {
+    fn()
+    return false
+  } catch {
+    return true
+  }
+}
 
 const DATA = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke-'))
 let passed = 0
@@ -103,6 +115,7 @@ check('缺省文件自动生成', existsSync(join(DATA, 'security.json')))
 check('缺省参数值（15/10/15/8/3）',
   def.loginWindowMinutes === 15 && def.loginMaxFails === 10 && def.lockoutMinutes === 15
   && def.passwordMinLength === 8 && def.passwordMinClasses === 3)
+check('缺省审计轮转参数（16MB/4 份）', def.auditRotateBytes === 16_777_216 && def.auditKeepArchives === 4)
 saveSecurityConfig(DATA, { loginMaxFails: 4, passwordMinLength: 10 })
 const changed = loadSecurityConfig(DATA)
 check('部分键改写生效且未动其他键', changed.loginMaxFails === 4 && changed.passwordMinLength === 10 && changed.loginWindowMinutes === 15)
@@ -121,6 +134,67 @@ try {
   rmSync(DATA2, { recursive: true, force: true })
 }
 check('全新目录缺省生成', freshOk)
+
+/* ── 5. 限流计数桶持久化（重建 guard = 模拟 daemon 重启）─────────────────── */
+console.log('# 限流持久化')
+const DATA3 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke3-'))
+const limits = () => ({ windowMs: 60_000, maxFails: 3, lockoutMs: 60_000 })
+const guardP = createLoginRateGuard(limits, { dataDir: DATA3, file: 'rate-limits.json' })
+guardP.fail('p@x', '3.3.3.3')
+guardP.fail('p@x', '3.3.3.3')
+check('失败即落盘 rate-limits.json', existsSync(join(DATA3, 'rate-limits.json')))
+const guardReborn = createLoginRateGuard(limits, { dataDir: DATA3, file: 'rate-limits.json' })
+check('重建后失败计数存活（2 次仍放行）', guardReborn.check('p@x', '3.3.3.3').allowed === true)
+guardReborn.fail('p@x', '3.3.3.3')
+check('重建后第 3 次失败触发锁定', guardReborn.check('p@x', '3.3.3.3').allowed === false)
+const guardReborn2 = createLoginRateGuard(limits, { dataDir: DATA3, file: 'rate-limits.json' })
+check('锁定期内重建仍锁定（重启绕不过锁定）', guardReborn2.check('p@x', '3.3.3.3').allowed === false)
+check('锁定只影响该账号+IP', guardReborn2.check('q@x', '3.3.3.3').allowed === true)
+guardReborn2.success('p@x', '3.3.3.3')
+const guardReborn3 = createLoginRateGuard(limits, { dataDir: DATA3, file: 'rate-limits.json' })
+check('成功清零持久化（重建后放行）', guardReborn3.check('p@x', '3.3.3.3').allowed === true)
+const persisted = JSON.parse(readFileSync(join(DATA3, 'rate-limits.json'), 'utf8'))
+check('清零后文件不残留死条目', Object.keys(persisted.buckets ?? {}).length === 0)
+rmSync(DATA3, { recursive: true, force: true })
+
+/* ── 6. 审计按大小轮转（归档 + 保留 + 跨档查询）──────────────────────────── */
+console.log('# 审计轮转')
+const DATA_ROT = mkdtempSync(join(tmpdir(), 'lyz-audit-rotate-'))
+writeFileSync(join(DATA_ROT, 'security.json'), `${JSON.stringify({
+  loginWindowMinutes: 15, loginMaxFails: 10, lockoutMinutes: 15,
+  passwordMinLength: 8, passwordMinClasses: 3,
+  auditRotateBytes: 1024, auditKeepArchives: 2, require2faRoles: [],
+}, null, 2)}\n`)
+initAudit(DATA_ROT)
+for (let i = 0; i < 40; i++) {
+  await auditAppend({ actor: { account: `u${String(i).padStart(2, '0')}@x`, role: 'employee', ip: '1.1.1.1' }, action: `t.ev${String(i).padStart(2, '0')}`, result: 'ok' })
+}
+const rotateFiles = readdirSync(DATA_ROT).filter((n) => /^audit-\d{8}-\d{6}-\d{3}\.jsonl$/.test(n)).sort()
+check('按阈值轮转且只保留 auditKeepArchives 份归档', rotateFiles.length === 2)
+check('active 文件重新从小计数', statSync(join(DATA_ROT, 'audit.jsonl')).size < 1100)
+const total = auditQuery({ limit: 10_000 })
+check('查询跨 active+归档且被清理档不再可见（<40）', total.length < 40 && total.length >= 3)
+check('跨文件倒序（最新事件在最前）', total[0]?.action === 't.ev39')
+check('最旧归档已清理（ev00 查不到）', auditQuery({ actor: 'u00@x', exact: true }).length === 0)
+check('归档内事件按 actor 精确命中', auditQuery({ actor: 'u39@x', exact: true }).length === 1)
+check('跨档组合过滤（前缀+limit 截断保最新）', auditQuery({ actionPrefix: 't.ev', limit: 2 }).map((e) => e.action).join(',') === 't.ev39,t.ev38')
+rmSync(DATA_ROT, { recursive: true, force: true })
+initAudit(DATA)
+
+/* ── 7. 存储函数内强制密码策略（CLI 无绕过面）────────────────────────────── */
+console.log('# 建号/改密策略收口')
+const DATA4 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke4-'))
+check('addAccount 弱密码被拒', throws(() => addAccount(DATA4, { account: 'weak@x', instanceId: 'e01', role: 'employee', password: 'weak' })))
+check('被拒建号不落盘', loadAccounts(DATA4).accounts.length === 0)
+const created = addAccount(DATA4, { account: 'ok@x', instanceId: 'e01', role: 'employee', password: 'GoodPass123' })
+check('addAccount 合规密码创建成功', created.account === 'ok@x')
+const policyThrows = throws(() => setPassword(DATA4, 'ok@x', 'weak'))
+const keepOk = verifyPassword(loadAccounts(DATA4).accounts.find((a) => a.account === 'ok@x'), 'GoodPass123')
+check('setPassword 弱密码被拒且旧密码保留', policyThrows && keepOk)
+setPassword(DATA4, 'ok@x', 'NewPass1234')
+const rec = loadAccounts(DATA4).accounts.find((a) => a.account === 'ok@x')
+check('setPassword 合规密码生效且旧密失效', verifyPassword(rec, 'NewPass1234') && !verifyPassword(rec, 'GoodPass123'))
+rmSync(DATA4, { recursive: true, force: true })
 
 rmSync(DATA, { recursive: true, force: true })
 console.log(`\n通过 ${passed}，失败 ${failed}`)

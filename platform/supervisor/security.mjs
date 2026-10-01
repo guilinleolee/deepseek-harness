@@ -3,8 +3,11 @@
  *
  * data/security.json 保存可调参数，缺省自动生成；密码策略应用于控制台
  * 建号设密与重置密码（存量账号在下次变更时生效）；登录速率限制按「账号+IP」
- * 在内存滑动窗口计数，达阈值锁定，成功登录清零——daemon 重启清零为已记录
- * 的 MVP 限制。全部参数可经管理台「安全与审计」页修改，改动即时生效。
+ * 滑动窗口计数，达阈值锁定，成功登录清零。计数桶经 {dataDir, file} 持久化
+ * 到 data/ 下的 JSON（fail/success/触发锁定时原子落盘），daemon 重启不清零；
+ * 不传持久化参数则保持纯内存行为（测试用）。审计轮转按 auditRotateBytes
+ * 大小切档、保留 auditKeepArchives 份归档（参数同样在本文件，audit.mjs
+ * 每次追加现读）。全部参数可经 data/security.json 修改，改动即时生效。
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -16,6 +19,8 @@ export const DEFAULT_SECURITY = {
   lockoutMinutes: 15,
   passwordMinLength: 8,
   passwordMinClasses: 3,
+  auditRotateBytes: 16_777_216,
+  auditKeepArchives: 4,
   require2faRoles: [],
 }
 
@@ -26,6 +31,8 @@ const RANGES = {
   lockoutMinutes: [1, 1440],
   passwordMinLength: [6, 128],
   passwordMinClasses: [1, 3],
+  auditRotateBytes: [1_024, 1_073_741_824],
+  auditKeepArchives: [1, 100],
 }
 
 const SECURITY_ROLES = ['admin', 'auditor', 'employee']
@@ -137,12 +144,15 @@ export function generatePassword() {
 }
 
 /**
- * 登录速率限制（内存实现，daemon 重启清零）。getLimits 在每次判定时取当前
- * 参数（管理台改动即时生效），返回 { windowMs, maxFails, lockoutMs }。
+ * 登录速率限制（内存滑动窗口 + 可选文件持久化）。getLimits 在每次判定时取
+ * 当前参数（管理台改动即时生效），返回 { windowMs, maxFails, lockoutMs }。
  * 语义：windowMs 内第 maxFails 次失败即锁定 lockoutMs，锁定期满重新计数，
  * 锁定中不续期；成功登录清零该「账号+IP」。
+ * persistence = { dataDir, file } 时：创建时从 dataDir/file 载入计数桶
+ * （丢弃已过期条目），fail/success/触发锁定即原子落盘——daemon 崩溃重启后
+ * 锁定与失败计数存活；落盘失败降级 stderr，不影响内存判定。
  */
-export function createLoginRateGuard(getLimits) {
+export function createLoginRateGuard(getLimits, persistence = null) {
   const attempts = new Map() // "account|ip" -> { fails: number[], lockedUntil?: number }
   const keyOf = (account, ip) => `${account}|${ip ?? '-'}`
   const limits = () => {
@@ -151,6 +161,36 @@ export function createLoginRateGuard(getLimits) {
       windowMs: Number.isFinite(raw.windowMs) && raw.windowMs > 0 ? raw.windowMs : 15 * 60_000,
       maxFails: Number.isInteger(raw.maxFails) && raw.maxFails > 0 ? raw.maxFails : 10,
       lockoutMs: Number.isFinite(raw.lockoutMs) && raw.lockoutMs > 0 ? raw.lockoutMs : 15 * 60_000,
+    }
+  }
+  if (persistence !== null) {
+    try {
+      const parsed = JSON.parse(readFileSync(join(persistence.dataDir, persistence.file), 'utf8'))
+      const now = Date.now()
+      for (const [key, entry] of Object.entries(parsed?.buckets ?? {})) {
+        if (entry === null || typeof entry !== 'object') continue
+        const fails = Array.isArray(entry.fails) ? entry.fails.filter(Number.isFinite) : []
+        const lockedUntil = Number.isFinite(entry.lockedUntil) ? entry.lockedUntil : undefined
+        if (fails.length === 0 && !(lockedUntil > now)) continue
+        attempts.set(key, lockedUntil === undefined ? { fails } : { fails, lockedUntil })
+      }
+    } catch { /* 文件缺失或损坏：从空计数开始（等价于清零语义的降级） */ }
+  }
+  const persist = () => {
+    if (persistence === null) return
+    const now = Date.now()
+    const buckets = {}
+    for (const [key, entry] of attempts) {
+      const live = entry.fails.length > 0 || (Number.isFinite(entry.lockedUntil) && entry.lockedUntil > now)
+      if (live) buckets[key] = entry
+    }
+    try {
+      const path = join(persistence.dataDir, persistence.file)
+      const tmp = `${path}.tmp`
+      writeFileSync(tmp, `${JSON.stringify({ buckets }, null, 2)}\n`)
+      renameSync(tmp, path)
+    } catch (error) {
+      console.error('[security] 限流计数持久化失败（内存判定不受影响）:', error?.message ?? error)
     }
   }
   const entryOf = (key) => {
@@ -177,6 +217,7 @@ export function createLoginRateGuard(getLimits) {
         // 窗口内失败已达阈值但尚未锁定（如 maxFails 被调小）：立即锁定。
         entry.lockedUntil = now + lockoutMs
         entry.fails = []
+        persist()
         return { allowed: false, retryAfterMinutes: Math.max(1, Math.ceil(lockoutMs / 60_000)) }
       }
       return { allowed: true, retryAfterMinutes: 0 }
@@ -193,10 +234,12 @@ export function createLoginRateGuard(getLimits) {
         entry.lockedUntil = now + lockoutMs
         entry.fails = []
       }
+      persist()
     },
     /** 登录成功：清零该「账号+IP」的失败计数与锁定。 */
     success(account, ip) {
-      attempts.delete(keyOf(account, ip))
+      if (!attempts.delete(keyOf(account, ip))) return
+      persist()
     },
   }
 }

@@ -22,10 +22,10 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 import { handleConsole, withAccountLock } from './console.mjs'
-import { handlePortal } from './portal.mjs'
+import { handlePortal, sameOrigin } from './portal.mjs'
 import { createJobRunner } from './plugins-gov.mjs'
 import { auditAppend, clientIp, initAudit } from './audit.mjs'
-import { createLoginRateGuard, loadSecurityConfig } from './security.mjs'
+import { checkPasswordPolicy, createLoginRateGuard, loadSecurityConfig } from './security.mjs'
 import { deriveKey, getTwofaRecord, isTwofaEnabled, verifyTwofaForLogin } from './totp.mjs'
 import { authenticateServiceToken } from './service-tokens.mjs'
 import { handleSso, SSO_PROVIDERS, enabledSsoProviders } from './sso.mjs'
@@ -67,11 +67,17 @@ export function listAccounts(dataDir) {
   }))
 }
 
-/** 管理员重置账号密码：scrypt 重哈希，epoch+1 踢掉该账号全部已登录会话。 */
+/**
+ * 管理员重置账号密码：scrypt 重哈希，epoch+1 踢掉该账号全部已登录会话。
+ * 密码策略在存储函数内强制（security.json 现读）：控制台/CLI/测试外的
+ * 一切调用路径同一约束，CLI 不再有绕过面。
+ */
 export function setPassword(dataDir, account, password) {
   const store = loadAccounts(dataDir)
   const record = store.accounts.find((a) => a.account === account)
   if (record === undefined) throw new Error(`账号不存在: ${account}`)
+  const policy = checkPasswordPolicy(password, record.account, loadSecurityConfig(dataDir))
+  if (!policy.ok) throw new Error(policy.message)
   record.passwordHash = hashPassword(password)
   record.tokenEpoch = (record.tokenEpoch ?? 0) + 1
   saveAccounts(dataDir, store)
@@ -110,6 +116,9 @@ export function addAccount(dataDir, { account, instanceId, role, displayName, de
   if (department !== undefined && !isValidEntityName(department)) {
     throw new Error('部门名格式非法（允许字母数字、@._- 与中文，1–64 字符）')
   }
+  // 密码策略在存储函数内强制（控制台/注册页此前各自校验，CLI 是唯一绕过面）。
+  const policy = checkPasswordPolicy(password, account, loadSecurityConfig(dataDir))
+  if (!policy.ok) throw new Error(policy.message)
   const store = loadAccounts(dataDir)
   if (store.accounts.some((a) => a.account === account)) {
     throw new Error(`账号已存在: ${account}`)
@@ -300,6 +309,8 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
   initAudit(dataDir)
   const secret = getOrCreateSecret(dataDir)
   // 登录限速参数每次判定时从 security.json 现读：管理台改动即时生效。
+  // 计数桶持久化到 data/rate-limits.json：daemon 崩溃重启后锁定与失败
+  // 计数存活（攻击者不能靠等重启清零绕过锁定）。
   const loginGuard = createLoginRateGuard(() => {
     const config = loadSecurityConfig(dataDir)
     return {
@@ -307,7 +318,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       maxFails: config.loginMaxFails,
       lockoutMs: config.lockoutMinutes * 60_000,
     }
-  })
+  }, { dataDir, file: 'rate-limits.json' })
   // 2FA 密钥派生根：签名密钥既已存在，直接派生（阶段 11A）。
   const twofaKey = deriveKey(secret)
   // 登录成功即记 lastLogin（成员页「最后登录」列数据源）：审计保留完整登录
@@ -358,8 +369,12 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     const url = new URL(req.url, `http://${hostHeader || 'localhost'}`)
 
     // 1) 登录接口：任何主机名上都可登录（登录发生在目标子域上，Cookie 才有效）。
-    // 三种结果（成功/失败/被限流）都写审计；速率限制先于密码校验。
+    // 三种结果（成功/失败/被限流）都写审计；速率限制先于密码校验。登录类
+    // POST 同源校验（Origin 存在且与 Host 不符即拒）：与管理台 POST 同一
+    // 双重 CSRF 防线，堵登录 CSRF（攻击者把受害者登进自己的账号）；无
+    // Origin 的非浏览器调用不受影响。
     if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+      if (!sameOrigin(req)) { json(res, 403, { error: 'cross-origin refused' }); return }
       let body = ''
       req.on('data', (chunk) => { body += chunk })
       req.on('end', async () => {
@@ -427,6 +442,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     // 1b) 两步验证码换取 JWT（阶段 11A）：login 返回 totp_required 后调用。
     // 校验失败计入登录限流同桶（先 check 拒锁定、失败 fail 计数）。
     if (url.pathname === '/api/auth/totp' && req.method === 'POST') {
+      if (!sameOrigin(req)) { json(res, 403, { error: 'cross-origin refused' }); return }
       let body = ''
       req.on('data', (chunk) => { body += chunk })
       req.on('end', () => {

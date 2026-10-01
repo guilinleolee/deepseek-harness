@@ -89,8 +89,9 @@ function readJsonBody(req) {
   })
 }
 
-/** POST 同源校验（配合 SameSite=Strict 的双重 CSRF 防线，与管理台一致）。 */
-function sameOrigin(req) {
+/** POST 同源校验（配合 SameSite=Strict 的双重 CSRF 防线，与管理台一致；
+ * gateway 的登录/TOTP 端点复用同一实现）。 */
+export function sameOrigin(req) {
   const origin = req.headers.origin
   if (origin === undefined) return true
   try {
@@ -285,7 +286,8 @@ async function doRegister(ev){ev.preventDefault();
 /** 注册串行队列：invites.json 与 accounts.json 都是读改写热点，全局串行。 */
 let registerQueue = Promise.resolve()
 
-/** 注册限速器按 dataDir 缓存（计数桶必须跨请求存活，内存态随 daemon 重启清零）。 */
+/** 注册限速器按 dataDir 缓存（计数桶必须跨请求存活）。计数桶持久化到
+ * data/register-limits.json：daemon 重启后撞码穷举的失败计数与锁定存活。 */
 const registerGuards = new Map()
 function registerGuardFor(dataDir) {
   let guard = registerGuards.get(dataDir)
@@ -298,7 +300,7 @@ function registerGuardFor(dataDir) {
         maxFails: config.loginMaxFails,
         lockoutMs: config.lockoutMinutes * 60_000,
       }
-    })
+    }, { dataDir, file: 'register-limits.json' })
     registerGuards.set(dataDir, guard)
   }
   return guard
@@ -456,28 +458,38 @@ function respond2faDisable({ req, res, auth, dataDir, twofaKey }) {
   return true
 }
 
-/** 注册处理（公开端点）：按 IP 限速 → 串行（校验→建号→钥匙→消费→下发→审计）。 */
+/**
+ * 注册处理（公开端点）：按 IP 限速 → 串行（校验→建号→钥匙→消费→下发→审计）。
+ * 两层计数桶（NAT 共享出口不互锁）：无效/缺失邀请码的失败计入「IP 桶」
+ * （防撞码穷举，同一 IP 换码重试也共享计数）；有效邀请码下的失败计入
+ * 「邀请码+IP 桶」——同一 NAT 出口后，A 的密码手误只锁 A 的邀请码，
+ * 不殃及用自己邀请码注册的同事。
+ */
 function respondRegister({ req, res, dataDir, manifest }) {
   if (!sameOrigin(req)) { json(res, 403, { error: 'cross-origin refused' }); return true }
   const guard = registerGuardFor(dataDir)
   const ip = clientIp(req)
   void readJsonBody(req).then((body) => {
     const actorOf = (role) => ({ account: String(body.account ?? ''), role, ip })
-    const fail = (reason, message) => {
-      guard.fail('', ip)
-      void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'fail', detail: { reason } })
-      json(res, 400, { error: message })
-    }
-    const verdict = guard.check('', ip)
-    if (!verdict.allowed) {
+    const deny = (verdict) => {
       void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'deny', detail: { reason: 'rate_limited', retryAfterMinutes: verdict.retryAfterMinutes } })
       json(res, 429, { error: `注册尝试过于频繁，请约 ${verdict.retryAfterMinutes} 分钟后再试` })
-      return
     }
+    const verdict = guard.check('', ip)
+    if (!verdict.allowed) { deny(verdict); return }
     registerQueue = registerQueue.then(async () => {
       try {
         const invite = validateInvite(dataDir, String(body.code ?? ''))
+        // 桶键：无效码 → ''（IP 桶）；有效码 → 邀请码（每邀请独立桶）。
+        const bucket = invite.ok ? String(body.code ?? '') : ''
+        const bucketVerdict = invite.ok ? guard.check(bucket, ip) : { allowed: true }
+        const fail = (reason, message) => {
+          guard.fail(bucket, ip)
+          void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'fail', detail: { reason } })
+          json(res, 400, { error: message })
+        }
         if (!invite.ok) { fail(invite.reason, inviteRejectMessage(invite.reason)); return }
+        if (!bucketVerdict.allowed) { deny(bucketVerdict); return }
         const account = typeof body.account === 'string' ? body.account.trim() : ''
         if (account === '') { fail('missing_account', '账号不能为空'); return }
         if (body.confirmPassword !== undefined && body.confirmPassword !== body.password) { fail('mismatch', '两次输入的密码不一致'); return }
@@ -514,7 +526,7 @@ function respondRegister({ req, res, dataDir, manifest }) {
             console.error('[portal] 注册后策略下发失败:', error?.message ?? error)
           }
         }
-        guard.success('', ip)
+        guard.success(bucket, ip)
         void auditAppend({
           actor: { account: created.account, role: created.role, ip },
           action: 'member.register',

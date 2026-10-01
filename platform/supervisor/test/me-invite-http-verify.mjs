@@ -12,11 +12,13 @@
  *    同 code 二次注册被拒（code_used）→ 撤销被拒 → 过期被拒 → 无效 code；
  * 6. 权限边界：employee 调 invite/create 403；
  * 7. 速率限制：独立网关上同 IP 连续无效注册达阈值即 429（有效邀请也 429）；
- *    登录限流独立分桶，连错达阈值后正确密码也 429 且文案可读。
+ *    注册失败双层分桶——无效码计入 IP 桶（防撞码穷举），有效码计入邀请码
+ *    桶（NAT 共享出口不互锁，换码注册不受他人手误影响）；登录限流独立
+ *    分桶，连错达阈值后正确密码也 429 且文案可读。
  * 8. 最后登录（console v2 遗留项）：登录成功记 lastLogin（时间+IP，密码/
  *    TOTP/SSO 共用 issueSession 同一记录口），member/list 与成员页
  *    「最后登录」列展示；登录失败文案中文，登录页透传服务端原因（429
- *    锁定/禁用不再被「账号或密码错误」掩盖）。
+ *    锁定/禁用不再被「账号或密码错误」掩盖）；登录/TOTP 跨域 Origin 403。
  *
  * 全程不占用 8460/9400/3181-3183；结束关闭全部服务并清理临时目录。
  * 运行：node test/me-invite-http-verify.mjs
@@ -274,6 +276,12 @@ try {
   check('登录页失败分支透传服务端错误', llPage.includes('(j&&j.error)'))
   const membersPageHtml = await (await get('/console/members', llAdmin.cookie)).text()
   check('成员页含最后登录列与取值', membersPageHtml.includes('<th>最后登录</th>') && membersPageHtml.includes('noquota@t') && membersPageHtml.includes('127.0.0.1'))
+  // 登录类 POST 同源校验（Origin 存在且与 Host 不符即拒，堵登录 CSRF；
+  // 无 Origin 的非浏览器调用不受影响——上方全部登录即证）。
+  const csrfLogin = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { ...JSON_HEAD, origin: 'https://evil.example' }, body: JSON.stringify({ account: 'noquota@t', password: 'NoquotaP1' }) })
+  check('跨域 Origin 登录 403', csrfLogin.status === 403 && String((await csrfLogin.json()).error ?? '').includes('cross-origin'))
+  const csrfTotp = await fetch(`${base}/api/auth/totp`, { method: 'POST', headers: { ...JSON_HEAD, origin: 'https://evil.example' }, body: JSON.stringify({ account: 'noquota@t', code: '000000' }) })
+  check('跨域 Origin TOTP 403', csrfTotp.status === 403)
 
   /* ── 7. 速率限制（独立网关隔离计数桶）────────────────────────────────── */
   console.log('# 注册速率限制')
@@ -292,6 +300,19 @@ try {
     })()
     const inv3 = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
     const code3 = (await inv3.json()).registerUrl.split('code=')[1]
+    // 每邀请独立桶（NAT 共享出口不互锁）：同一 IP 上 A 邀请码的手误只锁 A。
+    const invTypo = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
+    const codeTypo = (await invTypo.json()).registerUrl.split('code=')[1]
+    const invOffice = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
+    const codeOffice = (await invOffice.json()).registerUrl.split('code=')[1]
+    for (let i = 0; i < 3; i++) {
+      const typo = await post2('/api/register', { code: codeTypo, account: `typo${i}@t`, password: 'weak', confirmPassword: 'weak' })
+      check(`同码弱密码 #${i + 1} 400`, typo.status === 400)
+    }
+    const typoLocked = await post2('/api/register', { code: codeTypo, account: 'typo-ok@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
+    check('第 4 次同码注册 429（邀请码桶锁定）', typoLocked.status === 429)
+    const natOffice = await post2('/api/register', { code: codeOffice, account: 'office@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
+    check('同 IP 换邀请码不受影响（NAT 不互锁）', natOffice.status === 200)
     for (let i = 0; i < 3; i++) {
       const bad = await post2('/api/register', { code: 'inv-wrong', account: `x${i}@t`, password: 'GoodPass123', confirmPassword: 'GoodPass123' })
       check(`无效注册 #${i + 1} 400`, bad.status === 400)

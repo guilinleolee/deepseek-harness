@@ -88,9 +88,9 @@ node supervisor.mjs logs --id e02
 
 ## 安全与审计（栏目规划 v2 一期）
 
-- **审计日志**：`data/audit.jsonl` 只追加 JSONL（谁/何时/对谁/动作/结果/标量 detail），永不落会话正文、密码原文、密钥原文。覆盖：登录成败/限流（`auth.*`，gateway）、成员/供应商/模型/实例/插件全部变更端点（`member.*`/`provider.*`/`model.*`/`instance.*`/`plugin.*`，ok/deny/fail 都留痕）、配额硬停（`quota.exceeded`，relay 与网关同进程直接共享 audit.mjs）、审计导出（`audit.export`）与安全设置修改（`security.config_change`，含旧值→新值）。
+- **审计日志**：`data/audit.jsonl` 只追加 JSONL（谁/何时/对谁/动作/结果/标量 detail），永不落会话正文、密码原文、密钥原文。覆盖：登录成败/限流（`auth.*`，gateway）、成员/供应商/模型/实例/插件全部变更端点（`member.*`/`provider.*`/`model.*`/`instance.*`/`plugin.*`，ok/deny/fail 都留痕）、配额硬停（`quota.exceeded`，relay 与网关同进程直接共享 audit.mjs）、审计导出（`audit.export`）与安全设置修改（`security.config_change`，含旧值→新值）。**按大小轮转**：active 达 `security.json` 的 `auditRotateBytes`（缺省 16MB）即改名 `audit-<时间戳>.jsonl` 归档并另起新文件，只保留最新 `auditKeepArchives`（缺省 4）份，更早的删除；查询跨 active+归档从新到旧扫、攒满 limit 即停，导出（不限量）覆盖归档全量。
 - **安全与审计页** `/console/audit`：审计日志按 action 前缀/账号关键词/结果筛选（倒序、500 条封顶），导出 JSONL 不限量（`/console/api/audit/export`）；下半页安全设置表单（`/console/api/security/config`，admin-only）。总览页新增告警卡：额度将尽成员数、24h 失败登录数、最近 5 条审计事件。
-- **登录安全**：`data/security.json` 缺省自动生成（窗口 15 分钟内 10 次失败锁 15 分钟、密码最小 8 位 3 类字符）；速率限制按「账号+IP」内存滑动窗口（daemon 重启清零），成功登录清零，参数改动即时生效；密码策略作用于控制台建号与重置（弱密码 400 中文文案并留痕）。
+- **登录安全**：`data/security.json` 缺省自动生成（窗口 15 分钟内 10 次失败锁 15 分钟、密码最小 8 位 3 类字符）；速率限制按「账号+IP」滑动窗口计数，**计数桶持久化**（登录 `data/rate-limits.json`、注册 `data/register-limits.json`，fail/success/触发锁定即原子落盘）——daemon 崩溃重启后锁定与失败计数存活，重启清零不再是被记录的绕过面；成功登录清零，参数改动即时生效。**登录/TOTP POST 同源校验**（Origin 存在且与 Host 不符即 403，堵登录 CSRF；无 Origin 的非浏览器调用不受影响）。**注册双层分桶**：无效/缺失邀请码的失败计入 IP 桶（防撞码穷举，换码重试共享计数），有效邀请码下的失败计入「邀请码+IP」桶——NAT 共享出口后 A 的密码手误只锁 A 的邀请码，不殃及同事。密码策略收口到存储函数（`addAccount`/`setPassword` 内强制，security.json 现读）：控制台/注册页/CLI 同一约束，CLI 弱密码被拒，CLI 自动生成密码改用满足策略的 `generatePassword`。存量账号在下次变更时生效。
 - **最后登录记录**：登录成功（密码/TOTP/SSO 三路共用 `issueSession` 同一记录口）即把 `{ts, ip}` 写入账号记录（管理台同一把账号锁，异步不阻断登录）；成员页「最后登录」列与 `/console/api/member/list` 的 `lastLogin` 字段展示最新一次，完整登录历史仍以审计 `auth.login_success` 为准。登录失败文案全中文（`账号或密码错误`），登录页透传服务端原因——429 锁定、账号禁用、2FA 配置损坏不再被统一文案掩盖。
 - **角色门禁**：管理台页面与只读 GET API（含审计查询/导出、投放任务查询）放行 admin/auditor；全部变更 POST 仅 admin，auditor 得 403「审计员为只读角色」（拒绝也留 deny），employee 拒入。
 - **测试**：`node test/security-audit-smoke.mjs`（单元冒烟：密码策略/限流全路径/审计查询/配置生成，临时目录）；`node test/auth-audit-http-verify.mjs`（HTTP 集成：随机端口 + mock 上游验证登录三路径审计、auditor 门禁、配额硬停审计，自动清理）。
@@ -109,6 +109,7 @@ node supervisor.mjs logs --id e02
 
 - **扣减流程**（Relay 每请求，认证 → 模型授权 → 配额判定 → 预扣 → 转发）：预扣 = 估输入（`ceil(消息+system 字符数/4)`）× 模型倍率 + 估输出（`max_tokens` 缺省 1024）× 模型倍率 × 补全倍率，再乘分组倍率，转发前入账；实结 = 响应 usage（流式取 `include_usage` 终值）按实际 tokens 计点，与预扣多退少补（差值可负即返还）；请求失败/上游错误全额返还预扣；成功但 usage 抽取失败时保留预扣作为本次费用（防刷）。全部账目操作走同一 promise-mutex 串行链。
 - **配额判定**：`account.monthlyPoints`（缺省 = 不限、0 = 即停）账面点数到线即拒（429 `insufficient_quota`，中文点数文案）；`monthlyPoints` 未定义而存在旧 `monthlyTokens` 时走旧 tokens 判据（「旧制」，控制台标注）；并存以 `monthlyPoints` 为准。`usage.json` 每账号每月新增 `points` 累计，tokens 进/出照旧累计。
+- **旧制迁移**：`node supervisor.mjs migrate-points` 一次性把「只有 `monthlyTokens`」的账号按 1:1 设 `monthlyPoints`（旧判据本就按裸 tokens 比较，生效线不变），控制台「旧制」标注随之消失；幂等，`monthlyTokens` 保留作历史展示；建议管理台空闲时执行。
 - **控制台**：模型页每模型行内编辑「倍率/补全倍率」（`POST /console/api/model/ratio`，审计 `model.ratio_change` 旧值→新值）；「部门与角色」页编辑分组倍率（`POST /console/api/department/group-ratio`，审计 `quota.group_ratio_change`）并只读展示三角色权限矩阵；成员页额度列/改额度表单为点数口径（旧制账号显示「旧制 tokens」标注）；总览告警卡额度口径切换为点数（旧制并入）。`list-usage` CLI 输出点数列。
 
 ## 工具 RBAC（栏目规划 v2 阶段 9）

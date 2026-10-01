@@ -24,10 +24,10 @@ import {
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { platform } from 'node:os'
-import { randomBytes } from 'node:crypto'
 import { addAccount, createGatewayServer, getOrCreateSecret, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
-import { fmtPoints } from './quotas.mjs'
+import { fmtPoints, migrateLegacyQuotas } from './quotas.mjs'
+import { generatePassword } from './security.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
 import { auditAppend, initAudit } from './audit.mjs'
@@ -635,7 +635,7 @@ async function main() {
     }
     if (!['admin', 'auditor', 'employee'].includes(opts.role)) throw new Error('--role 必须是 admin | auditor | employee')
     if (opts.password === undefined) {
-      opts.password = randomBytes(9).toString('base64url')
+      opts.password = generatePassword()
       console.log(`自动生成密码: ${opts.password}  （请立即转交本人）`)
     }
     const record = addAccount(DATA, opts)
@@ -716,7 +716,7 @@ async function main() {
     }
     if (!opts.account) throw new Error('用法: set-password --account <email> [--password <pw>]（不给密码则自动生成）')
     if (opts.password === undefined) {
-      opts.password = randomBytes(9).toString('base64url')
+      opts.password = generatePassword()
       console.log(`自动生成密码: ${opts.password}  （请立即转交本人）`)
     }
     const epoch = setPassword(DATA, opts.account, opts.password)
@@ -744,6 +744,17 @@ async function main() {
     if (!opts.unlimited && !Number.isInteger(opts.tokens) || opts.tokens < 0) throw new Error('--tokens 必须是非负整数（0 = 立即硬停）；不限额度用 --unlimited')
     setQuota(DATA, { account: opts.account, monthlyTokens: opts.unlimited ? null : opts.tokens })
     console.log(`已设置 ${opts.account} 的月度额度: ${opts.unlimited ? '不限' : `${opts.tokens} tokens`}（硬停语义，服务器本地时区每月重置）`)
+    return
+  }
+  if (cmd === 'migrate-points') {
+    // 旧制→点数一次性迁移：monthlyTokens 有定义而 monthlyPoints 未定义的
+    // 账号按 1:1 设 monthlyPoints（生效线不变），控制台「旧制」标注消失。
+    // 幂等；建议在管理台空闲时执行（与既有 CLI 命令同样的写窗口）。
+    const { migrated, skipped } = migrateLegacyQuotas(DATA)
+    for (const m of migrated) console.log(`已迁移 ${m.account}: monthlyTokens ${m.points} → monthlyPoints ${m.points}（1:1，生效线不变）`)
+    console.log(migrated.length === 0
+      ? '没有需要迁移的旧制账号（全部已有点数额度或无 tokens 额度）'
+      : `共迁移 ${migrated.length} 个账号，跳过 ${skipped} 个（点数额度已定义或无旧制额度）`)
     return
   }
   if (cmd === 'list-usage') {
@@ -995,6 +1006,7 @@ async function main() {
   list-vkeys        列出虚拟钥匙（只有哈希，token 不可见）
   revoke-vkey --account <email>   吊销该账号全部虚拟钥匙
   set-quota --account <email> --tokens <N> | --unlimited   月度 Token 额度（硬停）
+  migrate-points   旧制 tokens 额度一次性 1:1 迁移为点数额度（幂等）
   set-role --account <email> --role <role>   修改账号角色
   set-password --account <email> [--password <pw>]   重置密码并踢掉全部旧会话
   list-usage [--month YYYY-MM]    当月用量对照额度`)
