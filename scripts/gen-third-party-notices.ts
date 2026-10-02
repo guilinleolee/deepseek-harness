@@ -69,6 +69,8 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   // Rust workspaces publishing npm bins without `license` in package.json.
   'oxlint': { license: 'MIT', repo: 'https://github.com/oxc-project/oxc' },
   'oxlint-tsgolint': { license: 'MIT', repo: 'https://github.com/oxc-project/tsgolint' },
+  // Local link: dep (apps/cli -> D:/dsh-passwords); metadata from the linked manifest.
+  'dsh-passwords': { license: 'GPL-3.0-only', repo: 'https://github.com/slywalker2006/dsh-passwords' },
   // `license: SEE LICENSE IN LICENSE`: the servers repo is mid MIT→Apache-2.0
   // relicensing, so the effective terms are per-contribution.
   '@modelcontextprotocol/server-everything': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
