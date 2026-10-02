@@ -21,7 +21,7 @@
   border: none;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 10px;
   cursor: pointer;
 }
@@ -43,7 +43,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 10px;
   cursor: pointer;
   display: inline-flex;
@@ -65,7 +65,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-text-danger);
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 10px;
   cursor: pointer;
   display: inline-flex;
@@ -86,7 +86,7 @@
   border-radius: 999px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 2px 9px;
   cursor: pointer;
   display: inline-flex;
@@ -115,7 +115,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 6px;
   min-width: 0;
 }
@@ -129,7 +129,7 @@
   border-radius: 6px;
   padding: 5px 8px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-danger);
 }
 
@@ -153,7 +153,7 @@
 }
 
 .chipKind {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
 
@@ -170,7 +170,7 @@
   gap: 8px;
   align-items: center;
   padding: 5px 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .listHead {
@@ -234,7 +234,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .detailGrid {
@@ -242,7 +242,7 @@
   grid-template-columns: auto 1fr auto 1fr;
   gap: 4px 12px;
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .detailGrid dt {
@@ -266,7 +266,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 5px 7px;
   resize: vertical;
 }
@@ -286,7 +286,7 @@
   color: var(--dsw-alias-text-brand, var(--dsw-alias-text-accent));
   border-radius: 8px;
   padding: 7px 14px;
-  font-size: 12px;
+  font-size: 14px;
   z-index: 20;
 }
 

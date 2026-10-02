@@ -19,13 +19,13 @@
 
 .templateTitle {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   color: var(--dsw-alias-label-primary);
 }
 
 .templateHint {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -42,7 +42,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -61,7 +61,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -88,7 +88,7 @@
   border-radius: 10px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   flex-wrap: wrap;
 }
 
@@ -121,7 +121,7 @@
   border-radius: 7px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   min-width: 0;
 }
 
@@ -142,7 +142,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .templateCardName {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
   display: flex;
@@ -176,7 +176,7 @@
 }
 
 .templateCardMeta {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-secondary);
   display: flex;
   gap: 6px;
@@ -204,7 +204,7 @@
   border: 1px dashed var(--dsw-alias-border-l1);
   border-radius: 10px;
   color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
+  font-size: 15px;
   text-align: center;
 }
 
@@ -220,7 +220,7 @@
 
 .templateGenerateTitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -231,7 +231,7 @@
 }
 
 .templateLabel {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -241,7 +241,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 15px;
   font-family: inherit;
   resize: vertical;
 }
@@ -272,7 +272,7 @@
 
 .templateVariableName {
   font-family: ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -287,7 +287,7 @@
   display: flex;
   gap: 4px;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
   white-space: nowrap;
 }
@@ -308,7 +308,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   white-space: pre-wrap;
   max-height: 260px;
   overflow-y: auto;
@@ -347,7 +347,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -366,7 +366,7 @@
 
 .templateProblems {
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .templateDraft {

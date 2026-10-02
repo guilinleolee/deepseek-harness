@@ -17,14 +17,14 @@
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
 }
 
 .subtitle {
   color: var(--dsh-muted, #888);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .summaryRow {
@@ -37,24 +37,24 @@
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--dsh-tint, #eef4ff);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .problems {
   color: #b45309;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .notice {
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--dsh-tint, #eef4ff);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .busy {
   color: var(--dsh-muted, #888);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .toolbar {
@@ -70,7 +70,7 @@
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
   background: var(--dsh-surface, #fff);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -86,7 +86,7 @@
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
   background: var(--dsh-surface, #fff);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -101,7 +101,7 @@
   border-radius: 8px;
   background: var(--dsh-primary, #2563eb);
   color: #fff;
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -115,7 +115,7 @@
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
   background: var(--dsh-surface, #fff);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .exportGroup {
@@ -138,7 +138,7 @@
   padding: 10px 12px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .rejected {
@@ -146,19 +146,19 @@
   flex-direction: column;
   gap: 2px;
   color: #b45309;
-  font-size: 12px;
+  font-size: 14px;
   max-height: 160px;
   overflow-y: auto;
 }
 
 .sectionTitle {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .generatedAt {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .insightList {
@@ -169,14 +169,14 @@
 
 .insightLabel {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .insightRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .insightText {
@@ -185,19 +185,19 @@
 
 .insightHint {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .empty {
   padding: 24px 0;
   color: var(--dsh-muted, #888);
-  font-size: 13px;
+  font-size: 15px;
   text-align: center;
 }
 
 .emptySmall {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .listInner {
@@ -225,7 +225,7 @@
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 999px;
   background: var(--dsh-surface, #fff);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -238,7 +238,7 @@
   padding: 6px 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .cards {
@@ -273,23 +273,23 @@
 
 .cardName {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .platform {
   color: var(--dsh-muted, #888);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .cardExcerpt {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .cardMeta {
   display: flex;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsh-muted, #888);
 }
 
@@ -312,7 +312,7 @@
   display: flex;
   gap: 12px;
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .tagRow {
@@ -326,7 +326,7 @@
   padding: 6px 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   resize: vertical;
 }
 
@@ -345,7 +345,7 @@
   border-radius: 10px;
   background: var(--dsh-surface, #fff);
   text-align: left;
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -360,7 +360,7 @@
 .lineRole {
   flex: none;
   color: var(--dsh-muted, #888);
-  font-size: 11px;
+  font-size: 13px;
   padding-top: 2px;
 }
 
@@ -375,7 +375,7 @@
   display: flex;
   gap: 10px;
   color: var(--dsh-muted, #888);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .reply {
@@ -397,7 +397,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .drafts {
@@ -413,7 +413,7 @@
   padding: 6px 8px;
   border: 1px dashed var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .draftBody {
@@ -426,7 +426,7 @@
   padding: 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   resize: vertical;
 }
 

@@ -13,7 +13,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
 }
@@ -78,7 +78,7 @@
   padding: 6px 10px;
   margin-bottom: 14px;
   color: var(--dsw-alias-label-primary);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
 }
 
@@ -98,7 +98,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -135,7 +135,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
@@ -165,7 +165,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .accountCreateAdd {
@@ -175,7 +175,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-button-primary-fill);
   color: var(--dsw-alias-label-primary-foreground);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -193,7 +193,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
+  font-size: 15px;
   text-align: left;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
@@ -241,7 +241,7 @@
 
 .pageTitle {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
@@ -266,7 +266,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 14%, transparent);
   color: var(--dsw-alias-state-business-primary);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .personaInput {
@@ -278,7 +278,7 @@
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.6;
   resize: vertical;
 }
@@ -291,7 +291,7 @@
 
 .personaSaved {
   color: var(--dsw-alias-state-success-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .helloRow {
@@ -300,14 +300,14 @@
 
 .hello {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .helloSub {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -390,7 +390,7 @@
   border-radius: 999px;
   border: 1px solid var(--dsw-alias-border-l1);
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .chip {
@@ -399,7 +399,7 @@
   border-radius: 999px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   transition: border-color 140ms ease;
 }
@@ -431,13 +431,13 @@
 }
 
 .statValue {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .statLabel {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -463,7 +463,7 @@
 
 .panelTitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
@@ -472,7 +472,7 @@
   border: none;
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -482,7 +482,7 @@
 
 .panelEmpty {
   margin: 8px 0;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-dimmed);
 }
 
@@ -493,7 +493,7 @@
   gap: 8px;
   padding: 7px 0;
   border-top: 1px solid var(--dsw-alias-border-l1);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .listRow:first-of-type {
@@ -542,14 +542,14 @@
 
 .title {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .subtitle {
   margin: 6px 0 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -575,7 +575,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-button-primary-fill);
   color: var(--dsw-alias-label-primary-foreground);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -604,7 +604,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
 }
@@ -625,7 +625,7 @@
 
 .groupTitle {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-label-secondary);
 }
@@ -669,19 +669,19 @@
 }
 
 .cardTitle {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .cardDetail {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--dsw-alias-label-tertiary);
 }
 
 .cardHint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-dimmed);
 }
 
@@ -706,7 +706,7 @@
   border: 1px dashed var(--dsw-alias-border-l1);
   border-radius: 10px;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .libraryProblems {
@@ -716,7 +716,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   color: var(--dsw-alias-state-warn-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .libraryCard {
@@ -740,7 +740,7 @@
   border-radius: 999px;
   border: 1px solid var(--dsw-alias-border-l1);
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .statusDraft {
@@ -767,7 +767,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -791,7 +791,7 @@
 }
 
 .calendarMonth {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
   min-width: 88px;
@@ -804,7 +804,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -832,7 +832,7 @@
 
 .calendarWeekday {
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-tertiary);
   padding: 2px 0;
 }
@@ -862,7 +862,7 @@
 }
 
 .calendarDayNum {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -873,7 +873,7 @@
   padding: 1px 4px;
   border-radius: 5px;
   background: var(--dsw-alias-interactive-bg-hover);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--dsw-alias-label-primary);
   cursor: default;
   min-width: 0;
@@ -894,7 +894,7 @@
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
   padding: 0 2px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .calendarChipAction:hover {
@@ -938,7 +938,7 @@
   border-radius: 5px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .calendarFormRow {
@@ -956,7 +956,7 @@
   border-radius: 5px;
   background: var(--dsw-alias-button-primary-fill);
   color: var(--dsw-alias-label-primary-foreground);
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -965,7 +965,7 @@
   border: 1px dashed var(--dsw-alias-border-l1);
   border-radius: 8px;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -980,7 +980,7 @@
   padding-top: 16px;
   border-top: 1px solid var(--dsw-alias-border-l1);
   color: var(--dsw-alias-label-dimmed);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .aboutLink {
@@ -998,7 +998,7 @@
   flex: none;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -1047,7 +1047,7 @@
   flex: 1;
   min-width: 220px;
   max-width: 420px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -1064,7 +1064,7 @@
   padding: 8px 12px;
   border: 1px dashed var(--dsw-alias-border-l2);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -1112,7 +1112,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .compTextarea {
@@ -1122,7 +1122,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   resize: vertical;
 }
 
@@ -1139,7 +1139,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -1187,7 +1187,7 @@
 }
 
 .compDetailTitle {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .compResult {
@@ -1197,7 +1197,7 @@
   padding: 10px;
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .compResultLine {
@@ -1222,7 +1222,7 @@
   padding: 10px;
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1232,13 +1232,13 @@
 
 .compPreview summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
 .compCompliance {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-dimmed);
 }
 

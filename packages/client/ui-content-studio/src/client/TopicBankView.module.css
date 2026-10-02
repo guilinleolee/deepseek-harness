@@ -16,7 +16,7 @@
   border: none;
   border-radius: 8px;
   padding: 7px 14px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   background: var(--dsw-alias-bg-brand, var(--dsw-alias-bg-accent));
@@ -47,7 +47,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 5px 8px;
   min-width: 0;
 }
@@ -61,7 +61,7 @@
   border: 1px solid var(--dsw-alias-line-control);
   border-radius: 999px;
   padding: 1px 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-text-secondary);
   white-space: nowrap;
 }
@@ -71,13 +71,13 @@
 }
 
 .controlLabel {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-secondary);
   white-space: nowrap;
 }
 
 .count {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-secondary);
   white-space: nowrap;
 }
@@ -90,7 +90,7 @@
   border-radius: 8px;
   padding: 6px 10px;
   margin-bottom: 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-primary);
   background: var(--dsw-alias-bg-control);
   cursor: pointer;
@@ -109,14 +109,14 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .table th {
   position: sticky;
   top: 0;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--dsw-alias-text-secondary);
   background: var(--dsw-alias-bg-control);
@@ -154,7 +154,7 @@
 
 .cellMeta {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--dsw-alias-text-secondary);
   margin-top: 2px;
@@ -162,7 +162,7 @@
 
 .cellMuted {
   color: var(--dsw-alias-text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -172,7 +172,7 @@
   border-radius: 999px;
   padding: 1px 8px;
   margin: 1px 4px 1px 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-text-secondary);
 }
 
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--dsw-alias-text-secondary);
   margin-bottom: 8px;
@@ -241,7 +241,7 @@
 
 .cardTitle {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-text-primary);
   overflow-wrap: anywhere;
@@ -249,13 +249,13 @@
 
 .cardMeta {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-text-secondary);
   margin-top: 4px;
 }
 
 .kanbanHint {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-secondary);
   margin: 0 0 8px;
 }
@@ -271,7 +271,7 @@
   border-radius: 8px;
   padding: 6px 10px;
   margin-bottom: 10px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* ── detail panel ── */
@@ -280,7 +280,7 @@
   border: 1px solid var(--dsw-alias-line-control);
   border-radius: 10px;
   padding: 12px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .detailHead {
@@ -291,7 +291,7 @@
 }
 
 .detailTitle {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--dsw-alias-text-primary);
   margin: 0;
@@ -299,7 +299,7 @@
 }
 
 .detailMeta {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-secondary);
   margin: 4px 0 10px;
 }
@@ -317,7 +317,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 12px;
+  font-size: 14px;
   padding: 5px 10px;
   cursor: pointer;
 }
@@ -349,7 +349,7 @@
 
 .fieldLabel {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--dsw-alias-text-secondary);
   margin-bottom: 2px;
@@ -386,7 +386,7 @@
   border-radius: 6px;
   background: var(--dsw-alias-bg-control);
   color: var(--dsw-alias-text-primary);
-  font-size: 13px;
+  font-size: 15px;
   padding: 6px 8px;
   min-width: 0;
 }
@@ -405,7 +405,7 @@
 }
 
 .formError {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-danger);
   margin: 0;
 }
@@ -414,7 +414,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-text-primary);
 }
 
@@ -431,7 +431,7 @@
 /* ── empty guide ── */
 
 .guideHint {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-text-secondary);
   margin: 0 0 12px;
 }
@@ -441,6 +441,6 @@
 }
 
 .noMatch {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-text-secondary);
 }

@@ -19,13 +19,13 @@
 
 .title {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
 }
 
 .hint {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: 14px;
   opacity: 0.65;
 }
 
@@ -74,7 +74,7 @@
   background: transparent;
   border: 1px solid var(--dsh-border, rgba(128, 128, 128, 0.35));
   color: inherit;
-  font-size: 12px;
+  font-size: 14px;
   padding: 3px 8px;
 }
 
@@ -88,7 +88,7 @@
   align-items: center;
   gap: 10px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   padding: 8px 12px;
 }
 
@@ -113,7 +113,7 @@
 
 .sectionTitle {
   margin: 0 0 6px;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
 }
 
@@ -219,7 +219,7 @@
 }
 
 .taskItemTitle {
-  font-size: 13px;
+  font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -235,7 +235,7 @@
 .badge {
   border-radius: 999px;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 8px;
 }
 
@@ -259,14 +259,14 @@
   background: rgba(220, 38, 38, 0.1);
   border-radius: 8px;
   color: #b91c1c;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   overflow-wrap: anywhere;
   padding: 8px 10px;
 }
 
 .empty {
-  font-size: 13px;
+  font-size: 15px;
   opacity: 0.6;
 }
 
@@ -304,7 +304,7 @@
 }
 
 .poolTitle {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,7 +312,7 @@
 }
 
 .poolMeta {
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.55;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -325,7 +325,7 @@
 }
 
 .formMeta {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   margin-left: 8px;
   opacity: 0.55;
@@ -357,12 +357,12 @@
 }
 
 .platformName {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .platformMeta {
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.55;
 }
 
@@ -377,7 +377,7 @@
 .formLabel {
   align-items: center;
   display: flex;
-  font-size: 13px;
+  font-size: 15px;
   gap: 4px;
 }
 
@@ -408,7 +408,7 @@
   color: inherit;
   display: flex;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: 14px;
   gap: 14px;
   margin: 4px 0 10px;
   opacity: 0.7;
@@ -431,7 +431,7 @@
 .recordedNote {
   background: rgba(34, 197, 94, 0.1);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   padding: 6px 10px;
 }
@@ -458,14 +458,14 @@
 }
 
 .legCover {
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   opacity: 0.75;
   overflow-wrap: anywhere;
 }
 
 .legTags {
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   opacity: 0.75;
   overflow-wrap: anywhere;
@@ -498,7 +498,7 @@
 }
 
 .logBox {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .logBox summary {
@@ -536,7 +536,7 @@
 
 .historyTable {
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 10px;
   width: 100%;
 }

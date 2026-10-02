@@ -23,7 +23,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -35,7 +35,7 @@
   border: 1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-label-primary)) 40%, transparent);
   border-radius: 10px;
   color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-label-primary));
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .gatherColumns {
@@ -98,7 +98,7 @@
 
 .gatherItemTitle {
   flex: 1 1 auto;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
   overflow: hidden;
@@ -107,7 +107,7 @@
 }
 
 .gatherItemMeta {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-tertiary);
   overflow-wrap: anywhere;
 }
@@ -145,7 +145,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
 }
@@ -161,7 +161,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-button-primary-fill);
   color: var(--dsw-alias-label-primary-foreground);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -186,7 +186,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .gatherCheckList {
@@ -199,7 +199,7 @@
 
 .gatherHint {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-dimmed);
 }
 
@@ -292,13 +292,13 @@
 
 .gatherDetailTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .gatherLink {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -323,7 +323,7 @@
   padding: 12px;
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--dsw-alias-label-primary);
   overflow-wrap: anywhere;
@@ -337,7 +337,7 @@
 
 .gatherBodyText {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--dsw-alias-label-secondary);
   overflow-wrap: anywhere;
@@ -359,6 +359,6 @@
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 10px;
   background: var(--dsw-alias-bg-layer-2);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--dsw-alias-label-primary);
 }

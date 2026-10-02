@@ -33,7 +33,7 @@
 }
 
 .title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
   display: flex;
@@ -43,7 +43,7 @@
 }
 
 .subtitle {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--dsw-alias-label-secondary);
 }
@@ -54,7 +54,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -70,7 +70,7 @@
   border-radius: 7px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   min-width: 0;
 }
 
@@ -93,7 +93,7 @@
   color: var(--dsw-alias-label-primary);
   text-align: left;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .card:hover {
@@ -101,13 +101,13 @@
 }
 
 .cardName {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
 .cardMeta {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -116,7 +116,7 @@
   border: 1px dashed var(--dsw-alias-border-l1);
   border-radius: 9px;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -148,14 +148,14 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   white-space: pre-wrap;
   max-height: 200px;
   overflow-y: auto;
 }
 
 .problems {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -168,7 +168,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .foot {
@@ -184,7 +184,7 @@
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 

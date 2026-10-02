@@ -17,7 +17,7 @@
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
 }
@@ -32,19 +32,19 @@
 
 .problems {
   color: #b45309;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .notice {
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--dsh-tint, #eef4ff);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .busy {
   color: var(--dsh-muted, #888);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .tabs {
@@ -58,7 +58,7 @@
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .tabButton[aria-selected='true'] {
@@ -80,7 +80,7 @@
 }
 
 .panel h3 {
-  font-size: 15px;
+  font-size: 17px;
   margin: 0;
 }
 
@@ -94,19 +94,19 @@
 }
 
 .subpanel h4 {
-  font-size: 13px;
+  font-size: 15px;
   margin: 0;
 }
 
 .hint {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
 }
 
 .empty {
   color: var(--dsh-muted, #888);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .formRow {
@@ -131,7 +131,7 @@
   background: var(--dsh-primary, #3b6cf0);
   color: #fff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .formRow button:disabled,
@@ -144,7 +144,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .cards {
@@ -163,19 +163,19 @@
 }
 
 .statValue {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
 }
 
 .statLabel {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .table th,
@@ -198,7 +198,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .workBlock {
@@ -224,7 +224,7 @@
 
 .workMeta {
   color: var(--dsh-muted, #888);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .linkish {
@@ -233,14 +233,14 @@
   padding: 0;
   cursor: pointer;
   color: inherit;
-  font-size: 13px;
+  font-size: 15px;
   text-align: left;
 }
 
 .chip {
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .viralChip {
@@ -263,20 +263,20 @@
   padding: 4px 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .rejectList {
   margin: 0;
   padding-left: 18px;
   color: #b45309;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .reportEditor {
   width: 100%;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
@@ -288,7 +288,7 @@
   padding: 6px 8px;
   border: 1px solid var(--dsh-border, #d0d0d0);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   resize: vertical;
 }
 
@@ -296,7 +296,7 @@
   background: var(--dsh-tint, #f7f8fa);
   border-radius: 8px;
   padding: 10px;
-  font-size: 12px;
+  font-size: 14px;
   white-space: pre-wrap;
   margin: 0;
 }
