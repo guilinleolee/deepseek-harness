@@ -4,7 +4,9 @@ Cordis 插件：注册全局 `ctx.tools.guard()` 单调守卫，按平台下发�
 `tool-policy.json` 在工具执行管线（`tools/pre-execute` 之后、dispatch 之前）
 拒绝越权调用。被拒绝的调用以 `Error: <理由>` 返回给模型，同时把一条拒绝
 事件追加到实例 home 的 `guard-events.jsonl` 桥文件，由平台 supervisor
-daemon 周期转写成 `data/audit.jsonl`（`action=guard.deny`）后清空。
+ daemon 周期转写成 `data/audit.jsonl`（`action=guard.deny`；审批组的批准/拒绝为
+ `action=guard.approval`，decision=approval-allowed/approval-denied/approval-cancelled/
+ approval-unavailable）后清空。
 
 零 npm 依赖：只有 peer `@deepseek-ai/cordis`（不进插件包，经实例 profile
 的 `$DSH_HOME/profiles/node_modules` 修复兜底目录解析，与安装共享同一
@@ -34,12 +36,16 @@ false`），peer `@deepseek-ai/cordis` 不重复安装，由 `dsh web` 启动时
 ```json
 {
   "role": "employee",
-  "deny": ["command", "network"]
+  "deny": ["command", "network"],
+  "approve": ["fs"]
 }
 ```
 
 - `role`：下发时的角色名（仅用于拒绝文案与排查，不参与判定）。
 - `deny`：禁用的工具组列表；元素只能是 `command` / `fs` / `network`。
+- `approve`（可选）：每次使用需审批的工具组列表（阶段 11b），元素同上；命中组的调用经
+  `tools/pre-execute` 返回 `{kind:'ask'}` 交 DSH 审批缝（员工在 web UI 现场批准/拒绝，
+  `approval/asked+decided` 落实例会话日志，拒绝转模型可见错误）；与 `deny` 相交即结构非法。
 
 语义：
 

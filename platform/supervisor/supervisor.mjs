@@ -28,6 +28,7 @@ import { addAccount, createGatewayServer, getOrCreateSecret, listAccounts, loadA
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
 import { fmtPoints, migrateLegacyQuotas } from './quotas.mjs'
 import { generatePassword } from './security.mjs'
+import { clearTwofa, deriveKey } from './totp.mjs'
 import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
 import { auditAppend, initAudit } from './audit.mjs'
@@ -723,6 +724,24 @@ async function main() {
     console.log(`已重置 ${opts.account} 的密码（tokenEpoch → ${epoch}，全部旧会话已下线）`)
     return
   }
+  if (cmd === 'reset-twofa') {
+    // reset-twofa --account <email>：解除两步验证绑定（登录恢复单因子）。
+    // 用途：认证器丢失，或 2FA 硬强制误配置后的服务端救生门（清绑定后
+    // 受限会话重新登录即可自助重新绑定）。console 成员页的同名操作走同一
+    // clearTwofa 原语。
+    if (flag !== '--account' || !value) throw new Error('用法: reset-twofa --account <email>')
+    const removed = clearTwofa(DATA, value)
+    initAudit(DATA)
+    void auditAppend({
+      actor: { account: 'cli', role: 'admin', ip: null },
+      action: 'security.2fa_reset',
+      target: value,
+      result: removed ? 'ok' : 'fail',
+      detail: { via: 'cli' },
+    })
+    console.log(removed ? `已解除 ${value} 的两步验证绑定（下次登录后可重新绑定）` : `${value} 没有两步验证记录`)
+    return
+  }
   if (cmd === 'set-role') {
     if (flag !== '--account' || !value) throw new Error('用法: set-role --account <email> --role <admin|auditor|employee>')
     const role = process.argv[6]
@@ -1009,6 +1028,7 @@ async function main() {
   migrate-points   旧制 tokens 额度一次性 1:1 迁移为点数额度（幂等）
   set-role --account <email> --role <role>   修改账号角色
   set-password --account <email> [--password <pw>]   重置密码并踢掉全部旧会话
+  reset-twofa --account <email>   解除两步验证绑定（认证器丢失/硬强制救援）
   list-usage [--month YYYY-MM]    当月用量对照额度`)
 }
 

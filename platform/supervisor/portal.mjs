@@ -177,13 +177,13 @@ function mePage({ record, dataDir, manifest, twofaKey }) {
     : '<a href="/console">返回管理台 →</a>'
   // 最近登录用 actor 全等（exact）过滤：子串账号（a@x 与 ba@x）不会混入。
   const devices = auditQuery({ actionPrefix: 'auth.login_success', actor: record.account, limit: 5, exact: true })
-  // 软强制横幅（阶段 11A）：角色被要求绑定但尚未启用——仅提醒，不硬锁
-  // （硬强制属阶段 11b，避免管理员误配置把自己锁死）。
+  // 硬强制横幅（阶段 11b）：角色被要求绑定但尚未启用——工作区子域已被
+  // 网关拒绝（enr=1 受限会话），本页是完成绑定的入口。
   const twofaRec = getTwofaRecord(dataDir, twofaKey, record.account)
   const twoFaRequired = loadSecurityConfig(dataDir).require2faRoles.includes(record.role)
   const twofaEnabledOk = twofaRec.state === 'ok' && twofaRec.enabled
   const enrollBanner = twoFaRequired && !twofaEnabledOk
-    ? `<div class="invite">⚠ 管理员已要求「${esc(ROLE_LABELS[record.role] ?? record.role)}」角色绑定两步验证。绑定前每次登录都会收到本提醒；请使用下方「两步验证」卡片完成绑定。</div>`
+    ? `<div class="invite">⚠ 管理员已要求「${esc(ROLE_LABELS[record.role] ?? record.role)}」角色强制两步验证：完成下方「两步验证」绑定并重新登录前，工作区无法进入。</div>`
     : ''
   const deviceRows = devices.map((e) => {
     const t = String(e.ts ?? '').replace('T', ' ').slice(5, 16)

@@ -13,6 +13,7 @@
  * 运行：node test/twofa-http-verify.mjs
  */
 import { createHash } from 'node:crypto'
+import { request as httpRequest } from 'node:http'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -152,6 +153,12 @@ try {
   const totpOk = await post('/api/auth/totp', { account: 'member@t', code: codeAt(setupBody.secret, Date.now()) })
   check('对 code 登录成功 + cookie', totpOk.status === 200 && totpOk.headers.getSetCookie()[0] !== undefined)
   check('login_success detail 带 totp:true', await waitForAudit((e) => e.action === 'auth.login_success' && e.detail?.totp === true && e.target === 'member@t') !== undefined)
+  // 重放防护（RFC 6238 §5.2）：同一时间片的验证码只允许成功验证一次；
+  // 下一时间片的新码放行（成功清限流桶，不影响后续断言）。
+  const replay = await post('/api/auth/totp', { account: 'member@t', code: codeAt(setupBody.secret, Date.now()) })
+  check('同一时间片重放被拒', replay.status === 401)
+  const nextStep = await post('/api/auth/totp', { account: 'member@t', code: codeAt(setupBody.secret, Date.now() + 31_000) })
+  check('下一时间片新码放行', nextStep.status === 200 && nextStep.headers.getSetCookie()[0] !== undefined)
   check('未启用账号走 totp 端点被拒', (await post('/api/auth/totp', { account: 'admin@t', code: '123456' })).status === 401)
 
   /* 3c. disable 恢复单因子 */
@@ -185,6 +192,33 @@ try {
   check('/me 顶部出现绑定提醒横幅', meBanner.includes('管理员已要求') && meBanner.includes('两步验证'))
   const adminLogin2 = await login('admin@t', 'AdminPass1')
   check('非清单角色（admin）不带 enrollment 标记', adminLogin2.body.needs_2fa_enrollment === undefined)
+
+  /* 3e2. 硬强制（阶段 11b）：未绑定会话 enr=1 → 工作区子域拒绝，/me 可自助绑定 */
+  console.log('# 硬强制受限会话')
+  const rawGet = (path, host, cookie) => new Promise((resolve) => {
+    const rq = httpRequest({ host: '127.0.0.1', port: gateway.address().port, path, method: 'GET', headers: { host, ...(cookie ? { cookie } : {}) } }, (res) => {
+      let body = ''
+      res.on('data', (c) => { body += c })
+      res.on('end', () => resolve({ status: res.statusCode, body }))
+    })
+    rq.on('error', () => resolve({ status: 0, body: '' }))
+    rq.end()
+  })
+  const blocked = await rawGet('/', 'e02.localhost', login4.cookie)
+  check('硬强制：未绑定会话访问工作区 403 且文案指路绑定', blocked.status === 403 && blocked.body.includes('两步验证'))
+  check('受限会话个人中心仍可用（自助绑定入口）', (await get('/me', login4.cookie)).status === 200)
+  const setupH = await post('/api/me/2fa/setup', {}, login4.cookie)
+  const secretH = (await setupH.json()).secret
+  await post('/api/me/2fa/confirm', { code: codeAt(secretH, Date.now()) }, login4.cookie)
+  const loginH = await login('member@t', 'MemberPass1')
+  check('绑定后登录走 totp_required', loginH.status === 200 && loginH.body.totp_required === true)
+  const totpH = await post('/api/auth/totp', { account: 'member@t', code: codeAt(secretH, Date.now()) })
+  check('绑定后 totp 登录 200', totpH.status === 200)
+  const cookieH = totpH.headers.getSetCookie()[0]?.split(';')[0]
+  const allowed = await rawGet('/', 'e02.localhost', cookieH)
+  check('绑定后不再被 enr 拒绝（代理放行到实例层）', allowed.status !== 403 || !allowed.body.includes('两步验证'))
+  const disableH = await post('/api/me/2fa/disable', { password: 'MemberPass1' }, cookieH)
+  check('硬强制段恢复未绑定（供后续段复用）', disableH.status === 200)
   saveSecurityConfig(DATA, { require2faRoles: [] })
 
   /* 3f. 限流同桶（错 3 次后对码也 429；放最后，锁定不影响其他断言）+ P1-1 损坏探针 */

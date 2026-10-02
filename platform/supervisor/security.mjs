@@ -16,6 +16,7 @@ import { join } from 'node:path'
 export const DEFAULT_SECURITY = {
   loginWindowMinutes: 15,
   loginMaxFails: 10,
+  accountMaxFails: 50,
   lockoutMinutes: 15,
   passwordMinLength: 8,
   passwordMinClasses: 3,
@@ -28,6 +29,7 @@ export const DEFAULT_SECURITY = {
 const RANGES = {
   loginWindowMinutes: [1, 1440],
   loginMaxFails: [1, 100],
+  accountMaxFails: [5, 500],
   lockoutMinutes: [1, 1440],
   passwordMinLength: [6, 128],
   passwordMinClasses: [1, 3],
@@ -145,21 +147,24 @@ export function generatePassword() {
 
 /**
  * 登录速率限制（内存滑动窗口 + 可选文件持久化）。getLimits 在每次判定时取
- * 当前参数（管理台改动即时生效），返回 { windowMs, maxFails, lockoutMs }。
- * 语义：windowMs 内第 maxFails 次失败即锁定 lockoutMs，锁定期满重新计数，
- * 锁定中不续期；成功登录清零该「账号+IP」。
- * persistence = { dataDir, file } 时：创建时从 dataDir/file 载入计数桶
- * （丢弃已过期条目），fail/success/触发锁定即原子落盘——daemon 崩溃重启后
- * 锁定与失败计数存活；落盘失败降级 stderr，不影响内存判定。
+ * 当前参数（管理台改动即时生效），返回 { windowMs, maxFails, accountMaxFails,
+ * lockoutMs }。语义：windowMs 内第 maxFails 次失败即锁定 lockoutMs，锁定
+ * 期满重新计数，锁定中不续期；成功登录清零该「账号+IP」。
+ * 双层桶：除「账号+IP」桶外，同一账号跨全部 IP 的失败计入「账号|*」全局桶
+ * （阈值 accountMaxFails，分布式撞库封口）；account 为空的桶（注册限流）
+ * 不设全局桶。persistence = { dataDir, file } 时：创建时从 dataDir/file 载入
+ * 计数桶（丢弃已过期条目），fail/success/触发锁定即原子落盘——daemon 崩溃
+ * 重启后锁定与失败计数存活；落盘失败降级 stderr，不影响内存判定。
  */
 export function createLoginRateGuard(getLimits, persistence = null) {
-  const attempts = new Map() // "account|ip" -> { fails: number[], lockedUntil?: number }
+  const attempts = new Map() // "account|ip" / "account|*" -> { fails: number[], lockedUntil?: number }
   const keyOf = (account, ip) => `${account}|${ip ?? '-'}`
   const limits = () => {
     const raw = getLimits?.() ?? {}
     return {
       windowMs: Number.isFinite(raw.windowMs) && raw.windowMs > 0 ? raw.windowMs : 15 * 60_000,
       maxFails: Number.isInteger(raw.maxFails) && raw.maxFails > 0 ? raw.maxFails : 10,
+      accountMaxFails: Number.isInteger(raw.accountMaxFails) && raw.accountMaxFails > 0 ? raw.accountMaxFails : 50,
       lockoutMs: Number.isFinite(raw.lockoutMs) && raw.lockoutMs > 0 ? raw.lockoutMs : 15 * 60_000,
     }
   }
@@ -205,41 +210,53 @@ export function createLoginRateGuard(getLimits, persistence = null) {
   return {
     /** 判定是否允许本次登录尝试，返回 {allowed, retryAfterMinutes}。 */
     check(account, ip) {
-      const { windowMs, maxFails, lockoutMs } = limits()
-      const entry = attempts.get(keyOf(account, ip))
-      if (entry === undefined) return { allowed: true, retryAfterMinutes: 0 }
+      const { windowMs, maxFails, accountMaxFails, lockoutMs } = limits()
       const now = Date.now()
-      if (Number.isFinite(entry.lockedUntil) && entry.lockedUntil > now) {
-        return { allowed: false, retryAfterMinutes: Math.max(1, Math.ceil((entry.lockedUntil - now) / 60_000)) }
+      const evaluate = (key, cap) => {
+        const entry = attempts.get(key)
+        if (entry === undefined) return { allowed: true, retryAfterMinutes: 0 }
+        if (Number.isFinite(entry.lockedUntil) && entry.lockedUntil > now) {
+          return { allowed: false, retryAfterMinutes: Math.max(1, Math.ceil((entry.lockedUntil - now) / 60_000)) }
+        }
+        entry.fails = entry.fails.filter((t) => now - t < windowMs)
+        if (entry.fails.length >= cap) {
+          // 窗口内失败已达阈值但尚未锁定（如阈值被调小）：立即锁定。
+          entry.lockedUntil = now + lockoutMs
+          entry.fails = []
+          persist()
+          return { allowed: false, retryAfterMinutes: Math.max(1, Math.ceil(lockoutMs / 60_000)) }
+        }
+        return { allowed: true, retryAfterMinutes: 0 }
       }
-      entry.fails = entry.fails.filter((t) => now - t < windowMs)
-      if (entry.fails.length >= maxFails) {
-        // 窗口内失败已达阈值但尚未锁定（如 maxFails 被调小）：立即锁定。
-        entry.lockedUntil = now + lockoutMs
-        entry.fails = []
-        persist()
-        return { allowed: false, retryAfterMinutes: Math.max(1, Math.ceil(lockoutMs / 60_000)) }
-      }
-      return { allowed: true, retryAfterMinutes: 0 }
+      const perBucket = evaluate(keyOf(account, ip), maxFails)
+      if (!perBucket.allowed) return perBucket
+      if (account === '') return perBucket
+      // 账号级全局桶：跨 IP 分布式撞库在 accountMaxFails 处封口。
+      return evaluate(`${account}|*`, accountMaxFails)
     },
     /** 记一次失败；达阈值即锁定并清空窗口计数（锁定期满后重新开始）。 */
     fail(account, ip) {
-      const { windowMs, maxFails, lockoutMs } = limits()
-      const entry = entryOf(keyOf(account, ip))
+      const { windowMs, maxFails, accountMaxFails, lockoutMs } = limits()
       const now = Date.now()
-      if (Number.isFinite(entry.lockedUntil) && entry.lockedUntil > now) return
-      entry.fails = entry.fails.filter((t) => now - t < windowMs)
-      entry.fails.push(now)
-      if (entry.fails.length >= maxFails) {
-        entry.lockedUntil = now + lockoutMs
-        entry.fails = []
+      const record = (key, cap) => {
+        const entry = entryOf(key)
+        if (Number.isFinite(entry.lockedUntil) && entry.lockedUntil > now) return
+        entry.fails = entry.fails.filter((t) => now - t < windowMs)
+        entry.fails.push(now)
+        if (entry.fails.length >= cap) {
+          entry.lockedUntil = now + lockoutMs
+          entry.fails = []
+        }
       }
+      record(keyOf(account, ip), maxFails)
+      if (account !== '') record(`${account}|*`, accountMaxFails)
       persist()
     },
-    /** 登录成功：清零该「账号+IP」的失败计数与锁定。 */
+    /** 登录成功：清零该「账号+IP」的失败计数与锁定（含账号级全局桶）。 */
     success(account, ip) {
-      if (!attempts.delete(keyOf(account, ip))) return
-      persist()
+      const had = attempts.delete(keyOf(account, ip))
+      const hadGlobal = account !== '' && attempts.delete(`${account}|*`)
+      if (had || hadGlobal) persist()
     },
   }
 }

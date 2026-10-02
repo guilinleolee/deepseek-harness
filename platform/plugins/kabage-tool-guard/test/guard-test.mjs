@@ -32,12 +32,32 @@ const writePolicy = (object) => {
   utimesSync(POLICY, new Date(Date.now() + 2_000), new Date(Date.now() + 2_000))
 }
 
-/** 挂载一个插件实例，捕获注册的 guard 函数。 */
+/**
+ * 挂载一个插件实例：捕获 guard 函数与 ctx.on 注册的事件监听器。
+ * runListeners(event, payload) 依次触发该事件的监听器（审批桥测试用）。
+ */
 function mount(config) {
   let guard = null
-  const ctx = { tools: { guard(fn) { guard = fn; return () => {} } } }
+  const listeners = new Map()
+  const ctx = {
+    tools: { guard(fn) { guard = fn; return () => {} } },
+    on(event, fn) {
+      const list = listeners.get(event) ?? []
+      list.push(fn)
+      listeners.set(event, list)
+    },
+  }
   apply(ctx, config)
-  return (toolName) => guard({ name: toolName, arguments: {}, callId: 't' })
+  const runListeners = (event, payload) => Promise.all((listeners.get(event) ?? []).map((fn) => fn(payload)))
+  const call = (toolName) => guard({ name: toolName, arguments: {}, callId: 't' })
+  call.preExecute = async (toolName, next = async () => 'ALLOWED-BY-NEXT') => {
+    const list = listeners.get('tools/pre-execute') ?? []
+    let decision
+    for (const fn of list) decision = await fn({ name: toolName, arguments: {}, callId: 't' }, next)
+    return decision
+  }
+  call.runListeners = runListeners
+  return call
 }
 
 /* ── 1. 工具分类映射（真实注册名逐个断言）────────────────────────────────── */
@@ -69,6 +89,11 @@ check(validatePolicy({ deny: 'command' }) === null, 'deny 非数组拒绝')
 check(validatePolicy({ deny: ['command', 'shell'] }) === null, '未知组名拒绝')
 check(validatePolicy({ deny: [1] }) === null, '非字符串组名拒绝')
 check(validatePolicy({ deny: ['__proto__'] }) === null, '危险组名拒绝')
+check(validatePolicy({ deny: ['command'], approve: ['fs'] }).approve.length === 1, 'approve 合法通过')
+check(validatePolicy({ deny: ['command'] }).approve.length === 0, 'approve 缺省空数组')
+check(validatePolicy({ deny: ['command'], approve: 'fs' }) === null, 'approve 非数组拒绝')
+check(validatePolicy({ deny: ['command'], approve: ['shell'] }) === null, 'approve 未知组名拒绝')
+check(validatePolicy({ deny: ['command'], approve: ['command'] }) === null, 'deny∩approve 相交拒绝')
 
 /* ── 3. guard 行为：缺文件全放行（fail-open）────────────────────────────── */
 console.log('# 缺文件全放行')
@@ -126,6 +151,34 @@ writeFileSync(POLICY, `${JSON.stringify({ role: 'employee', deny: [] })}\n`)
 check(fast('read') === undefined, '同秒清空 deny（size 变化）→ read 立即放行')
 writeFileSync(POLICY, `${JSON.stringify({ role: 'employee', deny: ['network'] })}\n`)
 check(fast('web_search') !== undefined, '同秒补禁 network（size 变化）→ web_search 立即被拒')
+
+/* ── 8. 审批组（阶段 11b）：approve → pre-execute 返回 ask；桥接审批决定 ── */
+console.log('# 审批组与审批桥接')
+writePolicy({ role: 'employee', deny: ['command'], approve: ['network'] })
+const approver = mount({ policyPath: POLICY, eventsPath: EVENTS })
+check(await approver.preExecute('web_search').then((d) => d?.kind === 'ask' && String(d.reason).includes('审批')), 'approve 组命中 → pre-execute 返回 ask 决策')
+check(await approver.preExecute('bash') === 'ALLOWED-BY-NEXT', 'deny 组命中 → pre-execute 仍 next() 放行（deny 由 guard 负责）')
+check(await approver.preExecute('todo_write') === 'ALLOWED-BY-NEXT', '未分组工具 → pre-execute next() 放行')
+writePolicy({ role: 'employee', deny: ['command'] })
+check(await approver.preExecute('web_search') === 'ALLOWED-BY-NEXT', 'approve 清空（mtime 热生效）→ next() 放行')
+// 审批桥：asked→decided 按 id 配对写桥文件（独立桥文件，不与 deny 段混行）；
+// 非受管工具与未配对 decided 不写。
+const BRIDGE_EVENTS = join(HOME, 'guard-events-bridge.jsonl')
+writePolicy({ role: 'employee', deny: [], approve: ['network'] })
+const bridge = mount({ policyPath: POLICY, eventsPath: BRIDGE_EVENTS })
+await bridge.runListeners('approval/asked', { id: 'a1', toolName: 'web_search' })
+await bridge.runListeners('approval/decided', { id: 'a1', outcome: 'allowed-once' })
+await bridge.runListeners('approval/asked', { id: 'a2', toolName: 'web_fetch' })
+await bridge.runListeners('approval/decided', { id: 'a2', outcome: 'rejected' })
+await bridge.runListeners('approval/asked', { id: 'a3', toolName: 'todo_write' })
+await bridge.runListeners('approval/decided', { id: 'a3', outcome: 'allowed-once' })
+await bridge.runListeners('approval/decided', { id: 'unknown', outcome: 'rejected' })
+const bridgeLines = readFileSync(BRIDGE_EVENTS, 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+check(bridgeLines.some((e) => e.tool === 'web_search' && e.decision === 'approval-allowed'), '批准事件落桥（approval-allowed）')
+check(bridgeLines.some((e) => e.tool === 'web_fetch' && e.decision === 'approval-denied'), '拒绝事件落桥（approval-denied）')
+check(bridgeLines.every((e) => e.tool !== 'todo_write'), '非受管工具的审批不落桥')
+check(bridgeLines.length === 2, '未配对 decided 不落桥')
+check(bridgeLines.every((e) => typeof e.ts === 'string' && e.group === 'network'), '桥事件含 ts/group 标量')
 
 process.env.DSH_HOME = envHome
 rmSync(HOME, { recursive: true, force: true })

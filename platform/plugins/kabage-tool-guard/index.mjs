@@ -1,9 +1,12 @@
 /**
- * 卡巴格企业平台 · 实例内工具 RBAC 守卫（栏目规划 v2 阶段 9，实例侧）。
+ * 卡巴格企业平台 · 实例内工具 RBAC 守卫（栏目规划 v2 阶段 9 + 11b 审批组）。
  *
  * Cordis 插件：注册一个全局 `ctx.tools.guard()` 单调守卫。每次工具调用按
- * 「工具名 → 工具组 → 实例 home 的 tool-policy.json deny 列表」判定：
- * 命中 deny 返回拒绝理由（模型看到 `Error: <理由>`），否则放行。
+ * 「工具名 → 工具组 → 实例 home 的 tool-policy.json deny/approve 列表」判定：
+ * 命中 deny 返回拒绝理由（模型看到 `Error: <理由>`）；命中 approve 交给
+ * DSH 审批缝——`tools/pre-execute` 瀑布监听返回 `{kind:'ask'}`，由管道调
+ * `ctx.approval.request`，员工在 web UI 现场批准/拒绝，`approval/asked` +
+ * `approval/decided` 成对落实例会话日志；否则放行。
  *
  * 策略文件语义（与平台 toolpolicy.mjs 约定一致）：
  * - 文件不存在 = 全放行（fail-open）——admin 角色的实例可能从未下发过文件，
@@ -12,9 +15,13 @@
  *   失败，运行中热更新出的坏文件让本次调用失败：坏配置必须可见，绝不静默放行。
  * - mtime 缓存：平台改策略文件后下一笔工具调用即生效，无需重启实例。
  *
- * 拒绝事件串行追加到实例 home 的 guard-events.jsonl（桥文件，格式对齐平台
- * 审计事件：ts/tool/group/decision），由平台 daemon 周期转写成 audit.jsonl
- * 后清空。桥文件写失败只降级到 stderr——它影响审计完整性，不影响拦截判定。
+ * 桥事件串行追加到实例 home 的 guard-events.jsonl（格式对齐平台审计事件：
+ * ts/tool/group/decision）：deny 一如既往；审批组产生的批准/拒绝以
+ * decision=approval-allowed/approval-denied/cancelled/unavailable 记录
+ * （监听 approval/asked→decided 配对；时间片内被取消的 ask 无 decided，
+ * 由 Map 清理丢弃）。平台 daemon 周期转写成 audit.jsonl（guard.deny /
+ * guard.approval）后清空。桥文件写失败只降级到 stderr——它影响审计完整性，
+ * 不影响拦截判定。
  *
  * 零 npm 依赖：仅 peer @deepseek-ai/cordis（经 profile 的修复兜底目录解析，
  * 插件本体不 import 任何包，ctx 由加载器注入）。
@@ -23,7 +30,7 @@ import { closeSync, openSync, readFileSync, statSync, writeSync } from 'node:fs'
 
 export const name = 'kabage-tool-guard'
 
-/** 服务依赖声明：本插件全部能力挂在 ctx.tools 上（缺失即拒绝激活，fail-loud）。 */
+/** 服务依赖声明：守卫挂在 ctx.tools 上（缺失即拒绝激活，fail-loud）。 */
 export const inject = ['tools']
 
 /**
@@ -58,16 +65,32 @@ export function groupOfTool(toolName) {
   return GROUP_OF.get(toolName) ?? null
 }
 
-/** 策略文件结构校验：{ deny: string[] }，deny 元素必须是已知组名。 */
+/**
+ * 策略文件结构校验：{ role?, deny: string[], approve?: string[] }，元素必须
+ * 是已知组名；同一组不得同时出现在 deny 与 approve（矛盾配置 fail-loud）。
+ */
 export function validatePolicy(parsed) {
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null
   const deny = parsed.deny
   if (!Array.isArray(deny)) return null
+  const seenDeny = new Set()
   for (const group of deny) {
     // hasOwn 而非 in：'__proto__' 等危险键会命中原型链，in 会误判为合法组名。
     if (typeof group !== 'string' || !Object.hasOwn(TOOL_GROUPS, group)) return null
+    seenDeny.add(group)
   }
-  return { deny: [...new Set(deny)] }
+  let approve = []
+  if (parsed.approve !== undefined) {
+    if (!Array.isArray(parsed.approve)) return null
+    const seenApprove = new Set()
+    for (const group of parsed.approve) {
+      if (typeof group !== 'string' || !Object.hasOwn(TOOL_GROUPS, group)) return null
+      if (seenDeny.has(group)) return null
+      seenApprove.add(group)
+    }
+    approve = [...seenApprove]
+  }
+  return { deny: [...seenDeny], approve }
 }
 
 /** 拒绝理由（模型可见文案）：点明平台策略与所属组，模型可据此改道而非重试。 */
@@ -115,7 +138,7 @@ export function apply(ctx, config) {
     const policy = validatePolicy(parsed)
     if (policy === null) {
       cache = null
-      throw new Error(`kabage-tool-guard: 策略文件结构非法（${policyPath}）: 期望 {"role":"...","deny":["command"|"fs"|"network",...]}`)
+      throw new Error(`kabage-tool-guard: 策略文件结构非法（${policyPath}）: 期望 {"role":"...","deny":["command"|"fs"|"network",...],"approve":[...]（deny∩approve 不得相交）}`)
     }
     cache = { mtime: stats.mtimeMs, size: stats.size, role: typeof parsed.role === 'string' ? parsed.role : 'unknown', ...policy }
     return cache
@@ -128,17 +151,52 @@ export function apply(ctx, config) {
     return eventsFd
   }
 
-  /** 串行追加一条拒绝事件；失败降级 stderr（不影响拦截判定）。 */
-  function recordDenial(tool, group) {
-    const line = `${JSON.stringify({ ts: new Date().toISOString(), tool, group, decision: 'deny' })}\n`
+  /** 串行追加一条桥事件（deny 或审批决定）；失败降级 stderr（不影响拦截判定）。 */
+  function recordEvent(tool, group, decision) {
+    const line = `${JSON.stringify({ ts: new Date().toISOString(), tool, group, decision })}\n`
     try {
       writeSync(openEvents(), line)
     } catch (error) {
-      console.error(`[kabage-tool-guard] 拒绝事件写入失败（仅影响审计，不影响拦截）: ${error?.message ?? error}`)
+      console.error(`[kabage-tool-guard] 桥事件写入失败（仅影响审计，不影响拦截）: ${error?.message ?? error}`)
       try { closeSync(eventsFd) } catch { /* 句柄已无效 */ }
       eventsFd = null
     }
   }
+
+  /**
+   * 审批缝桥接：approval/asked→decided 按 id 配对（decided 不带 toolName），
+   * 只回流受管组工具的审批决定——沙箱提权等其他来源的审批不经本桥。
+   * cancelled 的 ask（用户中断请求）没有 decided，Map 残留由下一次同 id 或
+   * 进程生命周期兜底（ask id 一次性，泄漏上界为会话内被中断的请求数）。
+   */
+  const pendingAsks = new Map()
+  ctx.on('approval/asked', (event) => {
+    const group = groupOfTool(event.toolName)
+    if (group !== null) pendingAsks.set(event.id, { toolName: event.toolName, group })
+  })
+  ctx.on('approval/decided', (event) => {
+    const ask = pendingAsks.get(event.id)
+    pendingAsks.delete(event.id)
+    if (ask === undefined) return
+    const decision = event.outcome === 'allowed-once' ? 'approval-allowed'
+      : event.outcome === 'rejected' ? 'approval-denied'
+        : event.outcome === 'cancelled' ? 'approval-cancelled' : 'approval-unavailable'
+    recordEvent(ask.toolName, ask.group, decision)
+  })
+
+  /**
+   * 审批组（阶段 11b）：命中 approve 组的工具调用经 tools/pre-execute 返回
+   * `{kind:'ask'}`，由工具管道调审批缝（员工 web UI 现场批准/拒绝，
+   * approval/asked+decided 落实例会话日志，拒绝转模型可见错误）。
+   * 瀑布语义：不受本策略约束的调用必须 next() 放行。
+   */
+  ctx.on('tools/pre-execute', async (exec, next) => {
+    const group = groupOfTool(exec.name)
+    if (group === null) return next()
+    const policy = loadPolicy()
+    if (policy === null || !policy.approve.includes(group)) return next()
+    return { kind: 'ask', reason: `平台策略要求审批：${group} 组工具 "${exec.name}" 需本次使用审批` }
+  })
 
   /**
    * 全局单调守卫：拒绝返回理由字符串，放行返回 undefined。
@@ -150,7 +208,7 @@ export function apply(ctx, config) {
     const policy = loadPolicy()
     if (policy === null) return undefined
     if (!policy.deny.includes(group)) return undefined
-    recordDenial(exec.name, group)
+    recordEvent(exec.name, group, 'deny')
     return denialReason(exec.name, group, policy.role)
   })
 }

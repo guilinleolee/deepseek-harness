@@ -13,23 +13,23 @@
  * auditor 得 403「审计员为只读角色」。全部变更端点与登录/配额/导出/安全设置
  * 事件在 data/audit.jsonl 留痕（audit.mjs，result=ok/deny/fail）。
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addAccount, getOrCreateSecret, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
-import { addModel, issueVkey, listUpstreams, monthKey, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
+import { addModel, issueVkey, listUpstreams, listVkeys, monthKey, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
 import { checkPasswordPolicy, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
 import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
-import { denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
+import { approveForRole, denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
 import { createInvite, listOpenInvites, revokeInvite } from './invites.mjs'
 import { clearTwofa, deriveKey, isTwofaEnabled } from './totp.mjs'
 import { loadNotifyConfig, NOTIFY_SUBJECT_PREFIX, saveNotifyConfig, sendMail } from './notify.mjs'
 import { authenticateServiceToken } from './service-tokens.mjs'
 import { isValidEntityName } from './gateway.mjs'
 
-const PAGES = ['members', 'roles', 'models', 'instances', 'plugins', 'audit']
-const PAGE_TITLES = { members: '成员与额度', roles: '部门与角色', models: '模型与权限', instances: '实例管理', plugins: '插件管理', audit: '安全与审计' }
+const PAGES = ['members', 'roles', 'models', 'tokens', 'instances', 'plugins', 'audit']
+const PAGE_TITLES = { members: '成员与额度', roles: '部门与角色', models: '模型与权限', tokens: '令牌与配额', instances: '实例管理', plugins: '插件管理', audit: '安全与审计' }
 
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;')
@@ -440,6 +440,58 @@ async function resetTwofa(ev,account){ev.preventDefault();
 </script>`
 }
 
+/* ── 页面：令牌与配额（栏目 5：虚拟钥匙管理独立页 + 点数总览）────────────── */
+
+function tokensPage({ dataDir, manifest }) {
+  const vkeys = listVkeys(dataDir)
+  const accountOptions = manifest.instances.map((s) => `<option value="${esc(s.id)}">${esc(s.id)}（${esc(s.account)}）</option>`).join('')
+  const keyRows = vkeys.map((v) => {
+    const models = v.models === '*'
+      ? '<span class="chip teal">全部模型</span>'
+      : v.models.slice(0, 3).map((m) => `<span class="chip teal">${esc(m)}</span>`).join('') + (v.models.length > 3 ? `<span class="chip gray">+${v.models.length - 3}</span>` : '')
+    return `<tr><td><code>${esc(v.id)}</code></td><td>${esc(v.account)}</td><td>${esc(v.instanceId)}</td><td>${models}</td>
+<td>${v.revoked ? '<span class="chip red">已吊销</span>' : '<span class="chip green">有效</span>'}</td>
+<td>${esc(String(v.createdAt ?? '').replace('T', ' ').slice(0, 16))}</td>
+<td>${v.revoked ? '' : `<form class="inline" onsubmit="revokeToken(event,'${esc(v.account)}')"><input type="hidden" name="account" value="${esc(v.account)}"><button class="warn">吊销该账号全部钥匙</button></form>`}</td></tr>`
+  }).join('')
+  // 配额点数总览（只读摘要；变更在成员页，这里给全局视角）。
+  const d = new Date()
+  const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const usage = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
+  const quotaRows = listAccounts(dataDir).map((a) => {
+    const e = usage[a.account] ?? {}
+    const used = e.points ?? 0
+    const quotaCell = Number.isFinite(a.monthlyPoints)
+      ? `${used} / ${a.monthlyPoints}`
+      : Number.isFinite(a.monthlyTokens)
+        ? `<span class="chip yellow">旧制 tokens</span>`
+        : '<span class="chip gray">不限</span>'
+    return `<tr><td>${esc(a.account)}</td><td>${roleChip(a.role)}</td><td>${quotaCell}</td><td>${used}</td><td>${(e.tokensIn ?? 0) + (e.tokensOut ?? 0)}</td><td>${e.requests ?? 0}</td></tr>`
+  }).join('')
+  return `
+<h2 class="sect">虚拟钥匙（实例只持钥匙，真实 Key 只在 Relay）</h2>
+<form class="panel" onsubmit="issueToken(event)" style="padding:1rem">
+<div style="margin-bottom:.5rem">账号 <input name="account" placeholder="name@company" required> 模型授权 <input name="models" size="28" placeholder="留空 = 全部模型；多个用逗号分隔"> <button class="primary">签发钥匙（旧钥匙自动吊销）</button></div>
+<div class="mut" style="font-size:.82rem">token 明文只在本次响应里出现一次（写入实例 home 的 .credentials.yaml）；平台只存哈希。按账号签发会自动吊销该账号旧钥匙。</div>
+</form>
+<table><tr><th>钥匙 ID</th><th>账号</th><th>实例</th><th>模型授权</th><th>状态</th><th>签发时间</th><th>操作</th></tr>${keyRows || '<tr><td colspan="7">暂无虚拟钥匙</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">实例选择即账号绑定实例（一人一实例）；签发走该账号当前绑定实例。月度额度判定见下方配额总览（硬停语义）。</p>
+<h2 class="sect">配额点数总览（${month}，只读）</h2>
+<table><tr><th>账号</th><th>角色</th><th>点数已用 / 额度</th><th>点数消耗</th><th>tokens 合计</th><th>请求数</th></tr>${quotaRows || '<tr><td colspan="6">暂无账号</td></tr>'}</table>
+<p class="mut" style="font-size:.82rem">改额度/旧制迁移在成员页与 <code>supervisor.mjs migrate-points</code>；倍率在模型页。本页只做总览。</p>
+<pre id="out" class="log" style="max-height:none"></pre>
+<script>
+async function issueToken(ev){ev.preventDefault();const f=new FormData(ev.target);
+ const r=await fetch('/console/api/token/issue',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account:f.get('account'),models:f.get('models')})});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),1500)}
+async function revokeToken(ev,account){ev.preventDefault();
+ const r=await fetch('/console/api/token/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account})});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
+</script>`
+}
+
 /* ── 页面：部门与角色 ────────────────────────────────────────────────────── */
 
 function rolesPage({ dataDir }) {
@@ -454,30 +506,40 @@ function rolesPage({ dataDir }) {
 <td>${configured ? '<span class="chip blue">自定义</span>' : '<span class="chip gray">缺省 1</span>'}</td>
 <td><form class="inline" onsubmit="setGroupRatio(event,'${esc(dep)}')"><input name="ratio" size="6" value="${ratios.groups[dep] ?? 1}" title="分组倍率"><button class="${configured ? 'btn' : 'primary'}">保存倍率</button></form></td></tr>`
   }).join('')
-  // 角色权限点矩阵（蓝图第三节，本期只读展示）；实例内工具组已可编辑（阶段 9）。
-  const MATRIX = [
-    ['管理台登录', ['✅', '✅（本期落地）', '❌（仅实例子域）']],
-    ['总览 / 实例 / 模型 / 插件页', ['读写', '只读', '—']],
-    ['成员列表查看', ['读写', '只读', '—']],
-    ['成员变更操作', ['✅', '❌', '—']],
-    ['审计日志查看 / 导出', ['✅', '✅（核心职责）', '—']],
-    ['安全设置修改', ['✅', '❌（只读展示）', '—']],
-  ]
-  const matrixRows = MATRIX.map(([point, cells]) =>
-    `<tr><td>${esc(point)}</td>${cells.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')
-  // 实例内工具 RBAC（阶段 9）：勾选 = 允许该工具组；保存即写 data/toolpolicy.json
-  // 并全量下发实例 home 的 tool-policy.json（实例侧 guard 插件 mtime 热生效）。
+  // 角色权限点矩阵（栏目 v2 三节「编辑后置」落地）：auditor/employee 行可
+  // 编辑（data/role-matrix.json sparse 覆盖），admin 行固定全开（防自锁）。
+  const matrix = loadRoleMatrix(dataDir)
+  const matrixRows = PERMISSION_POINTS.map(([point, label]) => {
+    const cell = (role, editable) => {
+      const on = matrix[role][point] === true
+      return editable
+        ? `<input type="checkbox" name="m-${role}-${point}" ${on ? 'checked' : ''} title="${esc(label)}">`
+        : on ? '<span class="chip green">✓</span>' : '<span class="chip gray">—</span>'
+    }
+    return `<tr><td>${esc(label)}</td><td>${cell('admin', false)}</td><td>${cell('auditor', true)}</td><td>${cell('employee', true)}</td></tr>`
+  }).join('')
+  // 实例内工具 RBAC（阶段 9 + 11b 审批组）：每组三态（允许/每次审批/拒绝）；
+  // 保存即写 data/toolpolicy.json 并全量下发实例 home 的 tool-policy.json
+  // （实例侧 guard 插件 mtime 热生效；审批组走 DSH 审批缝并回流 guard.approval）。
   const GROUP_LABELS = { command: '命令行', fs: '文件', network: '联网' }
   const policy = loadToolPolicy(dataDir)
   const roleSwitchRow = (role, label, editable) => {
     const deny = denyForRole(policy, role)
-    const cells = TOOL_GROUPS.map((group) => editable
-      ? `<label style="margin-right:.9rem;white-space:nowrap"><input type="checkbox" name="${role}-${group}" ${deny.includes(group) ? '' : 'checked'}> ${GROUP_LABELS[group]}</label>`
-      : `<span class="chip gray">${GROUP_LABELS[group]}${deny.includes(group) ? ' 禁' : ' 允'}</span>`)
-    return `<tr><td>${roleChip(role)} ${esc(label)}</td>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`
+    const approve = approveForRole(policy, role)
+    const cell = (group) => {
+      if (!editable) {
+        const state = deny.includes(group) ? '拒绝' : approve.includes(group) ? '审批' : '允许'
+        return `<span class="chip gray">${GROUP_LABELS[group]} ${state}</span>`
+      }
+      const option = (value, current, text) =>
+        `<label style="margin-right:.6rem;white-space:nowrap"><input type="radio" name="${role}-${group}" value="${value}" ${current === value ? 'checked' : ''}> ${text}</label>`
+      const state = deny.includes(group) ? 'deny' : approve.includes(group) ? 'approve' : 'allow'
+      return option('allow', state, '允许') + option('approve', state, '审批') + option('deny', state, '拒绝')
+    }
+    return `<tr><td>${roleChip(role)} ${esc(label)}</td>${TOOL_GROUPS.map((group) => `<td>${cell(group)}</td>`).join('')}</tr>`
   }
   const toolPolicySection = `
-<h2 class="sect">实例内工具组策略（保存即下发，热生效）</h2>
+<h2 class="sect">实例内工具组策略（允许 / 每次审批 / 拒绝，保存即下发，热生效）</h2>
 <form class="panel" onsubmit="saveToolPolicy(event)" style="padding:1rem">
 <table style="margin:.4rem 0 .8rem"><tr><th>角色</th><th>命令行（bash/pwsh/terminal_*）</th><th>文件（read/write/edit/glob/grep 等）</th><th>联网（web_search/web_fetch）</th></tr>
 ${roleSwitchRow('admin', '管理员', false)}
@@ -485,15 +547,18 @@ ${roleSwitchRow('auditor', '审计员', true)}
 ${roleSwitchRow('employee', '成员', true)}
 </table>
 <button class="primary">保存工具策略并下发</button>
-<span class="mut" style="font-size:.82rem;margin-left:.8rem">勾选 = 允许；admin 固定全开。策略按实例归属账号的角色写到实例 home 的 tool-policy.json，实例内 guard 插件拒绝越权调用并回流审计（guard.deny）。</span>
+<span class="mut" style="font-size:.82rem;margin-left:.8rem">「审批」= 该组每次调用弹现场审批（员工 web UI 批准/拒绝），批准/拒绝回流平台审计（guard.approval）；「拒绝」= 直接拒绝并回流 guard.deny；admin 固定全允许。</span>
 </form>`
   return `
 <h2 class="sect">部门与分组倍率</h2>
 <table><tr><th>部门</th><th>成员数</th><th>倍率来源</th><th>分组倍率（消耗点 × 分组倍率）</th></tr>${rows || '<tr><td colspan="4">暂无部门</td></tr>'}</table>
 <p class="mut" style="font-size:.82rem">分组倍率存于 data/ratios.json（groups），保存后 Relay 下一请求即按新倍率计点；成员所属部门在成员页维护。中小企业平铺部门，不做部门树。</p>
-<h2 class="sect">角色权限点矩阵（只读展示）</h2>
-<table><tr><th>权限点</th><th>admin 管理员</th><th>auditor 审计员</th><th>employee 成员</th></tr>${matrixRows}</table>
-<p class="mut" style="font-size:.82rem">本期固定三角色（admin/auditor/employee），矩阵只读展示；实例内工具组策略见下方可编辑面板（阶段 9 已落地）。</p>
+<h2 class="sect">角色权限点矩阵（auditor / employee 可编辑）</h2>
+<form class="panel" onsubmit="saveRoleMatrix(event)" style="padding:1rem">
+<table style="margin:.4rem 0 .8rem"><tr><th>权限点</th><th>admin 管理员</th><th>auditor 审计员</th><th>employee 成员</th></tr>${matrixRows}</table>
+<button class="primary">保存角色矩阵</button>
+<span class="mut" style="font-size:.82rem;margin-left:.8rem">admin 固定全开（防自锁：改矩阵本身就是安全设置变更）；覆盖项存 data/role-matrix.json，保存即生效。</span>
+</form>
 ${toolPolicySection}
 <pre id="out" class="log" style="max-height:none"></pre>
 <script>
@@ -502,9 +567,20 @@ async function setGroupRatio(ev, dep){ev.preventDefault();
  const r=await fetch('/console/api/department/group-ratio',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({department:dep,ratio:Number(f.get('ratio'))})});
  const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
  if(r.ok)setTimeout(()=>location.reload(),800)}
+async function saveRoleMatrix(ev){ev.preventDefault();
+ const POINTS=${JSON.stringify(POINT_NAMES)};const payload={};
+ for(const role of ['auditor','employee']){const patch={};
+  for(const p of POINTS){patch[p]=document.querySelector('input[name="m-'+role+'-'+p+'"]').checked}
+  payload[role]=patch}
+ const r=await fetch('/console/api/role-matrix',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({roles:payload})});
+ const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
+ if(r.ok)setTimeout(()=>location.reload(),800)}
 async function saveToolPolicy(ev){ev.preventDefault();
  const GROUPS=['command','fs','network'];const ROLES=['auditor','employee'];const payload={roles:{}};
- for(const role of ROLES){payload.roles[role]={deny:GROUPS.filter(function(g){return !document.querySelector('input[name="'+role+'-'+g+'"]').checked})}}
+ for(const role of ROLES){payload.roles[role]={deny:[],approve:[]};
+  for(const g of GROUPS){const v=document.querySelector('input[name="'+role+'-'+g+'"]:checked').value;
+   if(v==='deny')payload.roles[role].deny.push(g);
+   else if(v==='approve')payload.roles[role].approve.push(g)}}
  const r=await fetch('/console/api/toolpolicy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
  const t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
  if(r.ok)setTimeout(()=>location.reload(),800)}
@@ -981,6 +1057,127 @@ const AUDIT_ACTION_BY_PATH = {
   '/console/api/invite/revoke': 'invite.revoke',
   '/console/api/member/2fa/reset': 'security.2fa_reset',
   '/console/api/notify/config': 'security.notify_change',
+  '/console/api/token/issue': 'token.issue',
+  '/console/api/token/revoke': 'token.revoke',
+  '/console/api/role-matrix': 'role.matrix_change',
+}
+
+/**
+ * 变更端点 → 权限点（角色矩阵编辑的数据源）。point=null 的路径（邀请、
+ * 2FA 重置等）归入 member.change/security.change 语义桶。
+ */
+const POINT_FOR_PATH = {
+  '/console/api/member/create': 'member.change',
+  '/console/api/member/update': 'member.change',
+  '/console/api/member/quota': 'member.change',
+  '/console/api/member/reset-password': 'member.change',
+  '/console/api/member/disable': 'member.change',
+  '/console/api/member/enable': 'member.change',
+  '/console/api/member/models': 'member.change',
+  '/console/api/idp/import': 'member.change',
+  '/console/api/invite/create': 'member.change',
+  '/console/api/invite/revoke': 'member.change',
+  '/console/api/member/2fa/reset': 'security.change',
+  '/console/api/notify/config': 'security.change',
+  '/console/api/security/config': 'security.change',
+  '/console/api/role-matrix': 'security.change',
+  '/console/api/provider/add': 'model.change',
+  '/console/api/provider/remove': 'model.change',
+  '/console/api/model/add': 'model.change',
+  '/console/api/model/remove': 'model.change',
+  '/console/api/model/ratio': 'model.change',
+  '/console/api/department/group-ratio': 'model.change',
+  '/console/api/token/issue': 'token.change',
+  '/console/api/token/revoke': 'token.change',
+  '/console/api/instance/start': 'instance.change',
+  '/console/api/instance/stop': 'instance.change',
+  '/console/api/instance/restart': 'instance.change',
+  '/console/api/plugin/job': 'plugin.change',
+  '/console/api/toolpolicy': 'toolpolicy.change',
+}
+
+/** 权限点清单与中文标签（角色矩阵编辑 UI 与校验的唯一来源）。 */
+const PERMISSION_POINTS = [
+  ['console.read', '管理台查看（页面 + 只读 API）'],
+  ['member.change', '成员变更（建号/角色/额度/禁用/邀请）'],
+  ['model.change', '模型与供应商变更（含倍率/分组倍率）'],
+  ['token.change', '虚拟钥匙签发/吊销'],
+  ['instance.change', '实例启停/重启'],
+  ['plugin.change', '插件投放/移除'],
+  ['toolpolicy.change', '工具组策略变更'],
+  ['security.change', '安全设置变更（含通知/2FA 重置）'],
+  ['audit.export', '审计导出'],
+]
+const POINT_NAMES = PERMISSION_POINTS.map(([point]) => point)
+const POINT_LABELS = Object.fromEntries(PERMISSION_POINTS)
+
+/**
+ * 角色权限点矩阵（栏目 v2 三节「编辑后置」落地）：缺省 = 既有硬编码行为
+ * （admin 全开；auditor 只读 + 审计导出；employee 全否）。data/role-matrix.json
+ * 只存覆盖项（sparse），手改出的非法键回退缺省并重写。admin 行固定全开
+ * （防自锁：改矩阵本身是 security.change，admin 永远可改回）。
+ */
+const MATRIX_FILE = 'role-matrix.json'
+const DEFAULT_MATRIX = {
+  admin: Object.fromEntries(POINT_NAMES.map((point) => [point, true])),
+  auditor: Object.fromEntries(POINT_NAMES.map((point) => [point, point === 'console.read' || point === 'audit.export'])),
+  employee: Object.fromEntries(POINT_NAMES.map((point) => [point, false])),
+}
+const MATRIX_ROLES = ['admin', 'auditor', 'employee']
+
+function loadRoleMatrix(dataDir) {
+  const fallback = () => structuredClone(DEFAULT_MATRIX)
+  let parsed = null
+  try {
+    parsed = JSON.parse(readFileSync(join(dataDir, MATRIX_FILE), 'utf8'))
+  } catch {
+    return fallback()
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return fallback()
+  const roles = fallback()
+  let dirty = false
+  for (const role of MATRIX_ROLES) {
+    const overrides = parsed?.roles?.[role]
+    if (overrides === null || typeof overrides !== 'object' || Array.isArray(overrides)) continue
+    for (const [point, value] of Object.entries(overrides)) {
+      if (!POINT_NAMES.includes(point) || typeof value !== 'boolean') { dirty = true; continue }
+      if (role === 'admin') { dirty = true; continue }
+      roles[role][point] = value
+    }
+  }
+  if (dirty) {
+    console.error('[console] role-matrix.json 存在非法覆盖项（或试图改 admin 行），已回退并重写合法部分')
+  }
+  return roles
+}
+
+function saveRoleMatrix(dataDir, role, patch) {
+  if (!MATRIX_ROLES.includes(role)) throw new Error(`未知角色: ${role}`)
+  if (role === 'admin') throw new Error('admin 的权限固定为全开，不可修改（防自锁）')
+  if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('patch 必须是对象')
+  const roles = loadRoleMatrix(dataDir)
+  for (const [point, value] of Object.entries(patch)) {
+    if (!POINT_NAMES.includes(point)) throw new Error(`未知权限点: ${point}`)
+    if (typeof value !== 'boolean') throw new Error(`${point} 必须是布尔值`)
+    roles[role][point] = value
+  }
+  const overrides = {}
+  for (const roleKey of ['auditor', 'employee']) {
+    const diff = Object.fromEntries(PERMISSION_POINTS
+      .filter(([point]) => roles[roleKey][point] !== DEFAULT_MATRIX[roleKey][point])
+      .map(([point]) => [point, roles[roleKey][point]]))
+    if (Object.keys(diff).length > 0) overrides[roleKey] = diff
+  }
+  const path = join(dataDir, MATRIX_FILE)
+  const tmp = `${path}.tmp`
+  writeFileSync(tmp, `${JSON.stringify({ roles: overrides }, null, 2)}\n`)
+  renameSync(tmp, path)
+  return roles
+}
+
+/** 角色 → 权限点判定（矩阵缺省 = 既有硬编码行为，覆盖项落 role-matrix.json）。 */
+function canRole(dataDir, role, point) {
+  return loadRoleMatrix(dataDir)[role]?.[point] === true
 }
 
 /** 端点（+请求体）→ 审计 action：member/update 带角色时记 role_change，
@@ -1412,6 +1609,55 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
         ok({ ok: true, config: next }, { old, new: next })
         return
       }
+      case '/console/api/token/issue': {
+        // 虚拟钥匙签发（栏目 5 独立页）：token 明文只随本响应出现一次，
+        // 审计只落账号/模型授权标量（与 CLI issue-vkey 同一原语）。
+        const account = typeof body.account === 'string' ? body.account.trim() : ''
+        const record = loadAccounts(dataDir).accounts.find((a) => a.account === account)
+        if (record === undefined) { fail(404, `账号不存在: ${account}`); return }
+        const models = typeof body.models === 'string' && body.models.trim() !== ''
+          ? body.models.split(',').map((m) => m.trim()).filter(Boolean)
+          : '*'
+        if (models !== '*' && models.length === 0) { fail(400, '模型授权为空（留空 = 全部模型，或提供逗号分隔的模型 ID）'); return }
+        try {
+          const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models })
+          ok({ ok: true, account: record.account, models, token }, { account: record.account, models })
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+        }
+        return
+      }
+      case '/console/api/token/revoke': {
+        const account = typeof body.account === 'string' ? body.account.trim() : ''
+        let n = 0
+        try {
+          n = revokeVkey(dataDir, { account })
+        } catch (error) {
+          // relay.revokeVkey 对零有效钥匙抛错（CLI 文案）→ 404 转译。
+          fail(404, String(error?.message ?? error))
+          return
+        }
+        ok({ ok: true, account, revoked: n }, { revoked: n })
+        return
+      }
+      case '/console/api/role-matrix': {
+        // 角色权限点矩阵保存（roles: {auditor?: patch, employee?: patch}）。
+        // admin 行服务端固定拒绝；保存即生效（门禁每次现读）。
+        const rolesPatch = body.roles
+        if (rolesPatch === null || typeof rolesPatch !== 'object' || Array.isArray(rolesPatch)) { fail(400, 'roles 必须是对象'); return }
+        let next
+        try {
+          for (const [role, patch] of Object.entries(rolesPatch)) {
+            saveRoleMatrix(dataDir, role, patch)
+          }
+          next = loadRoleMatrix(dataDir)
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+          return
+        }
+        ok({ ok: true, roles: next }, { roles: Object.keys(rolesPatch) })
+        return
+      }
       case '/console/api/toolpolicy': {
         const old = loadToolPolicy(dataDir)
         let next
@@ -1544,7 +1790,8 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
       res.end(loginPage())
       return true
     }
-    if (serviceAuth === null && auth.record.role !== 'admin' && auth.record.role !== 'auditor') {
+    // 管理台查看权限点（角色矩阵可编辑）：缺省 admin/auditor 放行、employee 拒入。
+    if (serviceAuth === null && !canRole(dataDir, auth.record.role, 'console.read')) {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
       res.end('管理台仅限平台管理员与审计员。')
       return true
@@ -1610,6 +1857,12 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
       return true
     }
     if (path === '/console/api/audit/export') {
+      // 导出是独立权限点（角色矩阵可编辑）：缺省 admin/auditor 均可。
+      if (serviceAuth === null && !canRole(dataDir, auth.record.role, 'audit.export')) {
+        void auditAppend({ actor, action: 'audit.export', target: 'audit.jsonl', result: 'deny', detail: { reason: 'role-forbidden' } })
+        json(res, 403, { error: `当前角色（${auth.record.role}）未被授予审计导出权限` })
+        return true
+      }
       const filters = auditFiltersFromQuery(query)
       const events = auditQuery({ ...filters, limit: 1_000_000 })
       // 导出动作本身入审计（auditor 也可导出，是其核心职责）。
@@ -1626,6 +1879,7 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
     if (path === '/console') res.end(SHELL('总览', '', manifest, getState, dataDir, overviewPage(ctx)))
     else if (path === '/console/members') res.end(SHELL('成员与额度', 'members', manifest, getState, dataDir, membersPage(ctx)))
     else if (path === '/console/roles') res.end(SHELL('部门与角色', 'roles', manifest, getState, dataDir, rolesPage(ctx)))
+    else if (path === '/console/tokens') res.end(SHELL('令牌与配额', 'tokens', manifest, getState, dataDir, tokensPage(ctx)))
     else if (path === '/console/models') {
       const html = SHELL('模型与权限', 'models', manifest, getState, dataDir, modelsPage(ctx))
       res.end(html)
@@ -1640,12 +1894,23 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
 
   if (req.method === 'POST' && path.startsWith('/console/api/')) {
     if (auth.error !== undefined) { json(res, 401, { error: 'unauthenticated' }); return true }
-    if (auth.record.role !== 'admin') {
+    // 变更权限点（角色矩阵可编辑）：缺省 = 仅 admin（auditor 只读，employee 无权限）。
+    // admin 服务令牌等价 admin（阶段 12 验收路径）；readonly 一律拒。
+    const point = POINT_FOR_PATH[path] ?? 'security.change'
+    if (serviceAuth === null && !canRole(dataDir, auth.record.role, point)) {
       const deniedAction = auditActionFor(path)
       if (deniedAction !== null) {
-        void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: auth.record.role === 'auditor' ? 'auditor-readonly' : 'role-forbidden' } })
+        void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: auth.record.role === 'auditor' ? 'auditor-readonly' : 'role-forbidden', point } })
       }
-      json(res, 403, { error: auth.record.role === 'auditor' ? '审计员为只读角色' : '仅平台管理员可执行变更操作' })
+      json(res, 403, { error: `当前角色（${auth.record.role}）未被授予变更权限（${point}）` })
+      return true
+    }
+    if (serviceAuth !== null && serviceAuth.role === 'readonly') {
+      const deniedAction = auditActionFor(path)
+      if (deniedAction !== null) {
+        void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: 'service-token-readonly' } })
+      }
+      json(res, 403, { error: 'readonly 服务令牌不可执行变更操作' })
       return true
     }
     const origin = req.headers.origin

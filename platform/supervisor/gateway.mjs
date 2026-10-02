@@ -316,6 +316,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
     return {
       windowMs: config.loginWindowMinutes * 60_000,
       maxFails: config.loginMaxFails,
+      accountMaxFails: config.accountMaxFails,
       lockoutMs: config.lockoutMinutes * 60_000,
     }
   }, { dataDir, file: 'rate-limits.json' })
@@ -336,12 +337,22 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
   }
   // SSO 登录与密码登录共用同一令牌语义（sub/epoch/TTL/Cookie 参数，阶段 11C）；
   // 传入 ip 时同时刷新该账号的 lastLogin。
+  // 2FA 硬强制（阶段 11b）：require2faRoles 命中且未启用 2FA 的会话带 enr=1
+  // ——登录照常放行（否则无法自助绑定，形成死锁），但工作区子域全面拒绝，
+  // 只有个人中心可用来完成绑定。管理员误配置也不会锁死：/console 不受限，
+  // 仍可改回 security.json 或经成员页重置 2FA。
+  const twofaEnrollmentRequired = (record) => {
+    if (loadSecurityConfig(dataDir).require2faRoles.includes(record.role) === false) return false
+    return !isTwofaEnabled(dataDir, twofaKey, record.account)
+  }
   const issueSession = (res, record, ip = null) => {
+    const enr = twofaEnrollmentRequired(record) ? 1 : undefined
     const token = signToken(secret, {
       sub: record.id,
       acc: record.account,
       role: record.role,
       epoch: record.tokenEpoch,
+      enr,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
     })
@@ -427,10 +438,9 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
           return
         }
         loginGuard.success(account, ip)
-        // 软强制（阶段 11A）：角色被要求绑定 2FA 但尚未绑定——照常放行登录，
-        // 仅在响应与 /me 页提醒；硬强制（拒绝无 2FA 登录）属阶段 11b，
-        // 避免管理员误配置把自己锁死。
-        const needs2faEnrollment = loadSecurityConfig(dataDir).require2faRoles.includes(record.role)
+        // 硬强制（阶段 11b）：登录照常签发，未绑定者会话带 enr=1（工作区
+        // 子域拒绝，个人中心可完成绑定）；响应标志驱动登录页提示。
+        const needs2faEnrollment = twofaEnrollmentRequired(record)
         void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.login_success', target: record.account, result: 'ok' })
         issueSession(res, record, ip)
         res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
@@ -554,6 +564,13 @@ ${auth.error === undefined
       res.end(`账号 ${auth.record.account} 绑定的实例不是 ${subdomainId}，拒绝访问。`)
       return
     }
+    // 2FA 硬强制（阶段 11b）：未完成两步验证绑定的受限会话（enr=1）不得
+    // 进入工作区；绑定在个人中心（portal 主机 /me）完成，绑定后新登录即无此标志。
+    if (auth.payload?.enr === 1) {
+      res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end('该角色已强制两步验证：请先在个人中心（入口页 → 个人中心）完成两步验证绑定，再重新登录进入工作区。')
+      return
+    }
 
     // 4) 反代到实例（实例只绑 127.0.0.1）。剥掉网关 Cookie 再转发。
     const target = manifest.instances.find((spec) => spec.id === subdomainId)
@@ -595,6 +612,8 @@ ${auth.error === undefined
     const auth = authFromRequest(secret, accountsStore, req)
     if (auth.error !== undefined) return deny(401, 'unauthenticated')
     if (auth.record.instanceId !== subdomainId) return deny(403, 'forbidden')
+    // 2FA 硬强制：未绑定会话（enr=1）连工作区 WS 一并拒绝。
+    if (auth.payload?.enr === 1) return deny(403, 'two-factor enrollment required')
     const target = manifest.instances.find((spec) => spec.id === subdomainId)
     const upstream = netConnect(target.port, '127.0.0.1', () => {
       const lines = [`${req.method} ${req.url} HTTP/1.1`]

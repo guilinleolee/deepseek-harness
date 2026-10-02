@@ -126,7 +126,7 @@ try {
   /* ── 4. auditor 变更 403、employee 拒入 ───────────────────────────────── */
   console.log('# 角色门禁')
   const aPost = await post('/console/api/toolpolicy', { roles: { employee: { deny: [] } } }, auditor.cookie)
-  check('auditor 改策略 403 只读文案', aPost.status === 403 && (await aPost.json()).error === '审计员为只读角色')
+  check('auditor 改策略 403 只读文案', aPost.status === 403 && String((await aPost.json()).error ?? '').includes('未被授予变更权限'))
   check('auditor 403 deny 留痕', await waitForAudit((e) => e.action === 'toolpolicy.change' && e.result === 'deny') !== undefined)
   const employee = await login('member-a@t', 'MemberPass1')
   check('employee 登录 200', employee.status === 200)
@@ -158,6 +158,21 @@ try {
   check('桥文件转写后清空', readFileSync(join(homeOf('e02'), 'guard-events.jsonl'), 'utf8') === '' && readFileSync(join(homeOf('e03'), 'guard-events.jsonl'), 'utf8') === '')
   const t2 = await transcribeGuardEvents(DATA, manifest, auditAppend)
   check('空桥文件幂等（0 条）', t2.transcribed === 0 && auditQuery({ actionPrefix: 'guard.deny', limit: 100 }).length === 3)
+
+  /* ── 6b. 审批决定转写（阶段 11b：approval-allowed/denied → guard.approval）─ */
+  console.log('# 审批决定转写')
+  writeFileSync(join(homeOf('e02'), 'guard-events.jsonl'),
+    `${JSON.stringify({ ts: now, tool: 'bash', group: 'command', decision: 'approval-allowed' })}\n`
+    + `${JSON.stringify({ ts: now, tool: 'web_search', group: 'network', decision: 'approval-denied' })}\n`
+    + `${JSON.stringify({ ts: now, tool: 'read', group: 'fs', decision: 'approval-cancelled' })}\n`)
+  const t3 = await transcribeGuardEvents(DATA, manifest, auditAppend)
+  check('审批决定转写 3 条', t3.transcribed === 3)
+  const approvalEvents = auditQuery({ actionPrefix: 'guard.approval', limit: 100 })
+  check('audit.jsonl 出现 guard.approval', approvalEvents.length === 3)
+  check('批准 → result ok + decision 标量', approvalEvents.some((e) => e.target === 'bash' && e.result === 'ok' && e.detail?.decision === 'approval-allowed' && e.actor?.account === 'member-a@t'))
+  check('拒绝 → result deny', approvalEvents.some((e) => e.target === 'web_search' && e.result === 'deny' && e.detail?.decision === 'approval-denied'))
+  check('取消 → result deny', approvalEvents.some((e) => e.target === 'read' && e.result === 'deny' && e.detail?.decision === 'approval-cancelled'))
+  check('审批桥文件转写后清空', readFileSync(join(homeOf('e02'), 'guard-events.jsonl'), 'utf8') === '')
 
   /* ── 7. 截断前重读比对（P1-3：并发追加不被截断销毁）──────────────────── */
   console.log('# 截断前指纹比对')

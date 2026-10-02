@@ -8,8 +8,9 @@
  * - AES-256-GCM 加解密：2FA 密钥与 SMTP 密码等敏感配置落盘的唯一形态
  *   （密钥由 auth-secret.key 经 SHA-256 派生，绝不落明文）。
  *
- * 时间安全：验证码比较走 timingSafeEqual；±1 窗口只放宽不收紧；防重放
- * （同一时间片第二次使用）不在本期（硬强制属阶段 11b 时一并收紧）。
+ * 时间安全：验证码比较走 timingSafeEqual；±1 窗口只放宽不收紧；重放防护
+ * （RFC 6238 §5.2：同一时间片的验证码只允许成功验证一次）在登录校验里
+ * 以账号记录的 lastStep 落实——代价是同一 30 秒片内的第二次登录需等下一片。
  */
 import { createHash, createHmac, createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -192,7 +193,9 @@ export function setPendingSecret(dataDir, key, account, base32Secret) {
   saveTwofaRaw(dataDir, store)
 }
 
-/** 确认绑定：验证码通过才 enabled（绑定第二步：confirm）。 */
+/** 确认绑定：验证码通过才 enabled（绑定第二步：confirm）。配置验证不是
+ * 认证，不记 lastStep——RFC 6238 §5.2 的重放约束针对登录验证；confirm 与
+ * 首次登录常在同一时间片内，烧片会把用户卡在绑定后 30 秒内。 */
 export function confirmSecret(dataDir, key, account, code) {
   const record = getTwofaRecord(dataDir, key, account)
   if (record.state === 'broken') return { ok: false, reason: 'broken' }
@@ -214,11 +217,38 @@ export function clearTwofa(dataDir, account) {
   return true
 }
 
-/** 登录时校验：仅 enabled 记录参与验证；未绑定/待确认/**损坏**一律 false（fail-closed）。 */
+/** 找出验证码命中的时间片编号（±1 窗口逐片常数时间比较）；未命中返回 null。 */
+function matchingTotpStep(secretBytes, code, time = Date.now()) {
+  if (typeof code !== 'string' || !/^\d+$/.test(code) || code.length !== 6) return null
+  const expected = Buffer.from(code, 'utf8')
+  for (let drift = -1; drift <= 1; drift++) {
+    const candidate = Buffer.from(
+      totp(secretBytes, { time: time + drift * 30 * 1000 }),
+      'utf8',
+    )
+    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) {
+      return Math.floor(time / 1000 / 30) + drift
+    }
+  }
+  return null
+}
+
+/** 登录时校验：仅 enabled 记录参与验证；未绑定/待确认/**损坏**一律 false
+ * （fail-closed）。命中即把时间片写入账号记录的 lastStep 并落盘——同一
+ * 时间片（含 ±1 容差窗口内的历史片）第二次使用被拒（RFC 6238 §5.2 重放
+ * 防护），副作用是同一 30 秒片内的第二次登录需等下一片。 */
 export function verifyTwofaForLogin(dataDir, key, account, code) {
   const record = getTwofaRecord(dataDir, key, account)
   if (record.state !== 'ok' || record.enabled !== true) return false
-  return verifyTotp(base32Decode(record.secret), code)
+  const step = matchingTotpStep(base32Decode(record.secret), code)
+  if (step === null) return false
+  const store = loadTwofaRaw(dataDir)
+  const rec = store[account]
+  if (rec === undefined) return false
+  if (Number.isFinite(rec.lastStep) && step <= rec.lastStep) return false
+  rec.lastStep = step
+  saveTwofaRaw(dataDir, store)
+  return true
 }
 
 /** 某账号是否已启用（损坏/未绑定均 false；登录分支须用 getTwofaRecord 区分三态）。 */

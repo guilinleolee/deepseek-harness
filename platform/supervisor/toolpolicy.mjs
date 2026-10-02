@@ -40,8 +40,9 @@ export const DEFAULT_TOOL_POLICY = {
   },
 }
 
-/** 归一化一个角色的 deny 列表：只保留合法组名并去重；非法输入返回 null。 */
-function normalizeDeny(value) {
+/** 归一化一个角色的工具组列表：只保留合法组名并去重；非法输入返回 null。 */
+function normalizeGroupList(value) {
+  if (value === undefined) return []
   if (!Array.isArray(value)) return null
   const seen = new Set()
   for (const group of value) {
@@ -57,9 +58,11 @@ function normalizePolicy(parsed) {
   let dirty = false
   for (const role of ROLES) {
     const entry = parsed?.roles?.[role]
-    const deny = normalizeDeny(entry?.deny)
-    if (deny !== null) roles[role] = { deny }
-    else dirty = true
+    const deny = normalizeGroupList(entry?.deny)
+    const approve = normalizeGroupList(entry?.approve)
+    if (deny === null || approve === null) dirty = true
+    else if (deny.some((group) => approve.includes(group))) dirty = true
+    else roles[role] = { deny, approve }
   }
   if (parsed?.roles !== undefined) {
     for (const key of Object.keys(parsed.roles)) {
@@ -101,8 +104,9 @@ export function loadToolPolicy(dataDir) {
 }
 
 /**
- * 合并保存工具策略（roles 允许只传部分角色）。未知角色/危险键/非法 deny 抛错
- * （调用方转 400 并留审计），校验通过才原子落盘。返回保存后的完整策略。
+ * 合并保存工具策略（roles 允许只传部分角色）。未知角色/危险键/非法 deny 或
+ * approve/deny∩approve 相交抛错（调用方转 400 并留审计），校验通过才原子
+ * 落盘。返回保存后的完整策略。
  */
 export function saveToolPolicy(dataDir, roles) {
   if (roles === null || typeof roles !== 'object' || Array.isArray(roles)) {
@@ -112,11 +116,19 @@ export function saveToolPolicy(dataDir, roles) {
   for (const [role, entry] of Object.entries(roles)) {
     if (isUnsafeKey(role)) throw new Error(`非法角色键: ${role}`)
     if (!ROLES.includes(role)) throw new Error(`未知角色: ${role}（仅支持 ${ROLES.join('/')}）`)
-    const deny = normalizeDeny(entry?.deny)
+    const deny = normalizeGroupList(entry?.deny)
     if (deny === null) {
       throw new Error(`${role}.deny 必须是由 ${TOOL_GROUPS.join('/')} 组成的数组`)
     }
-    policy.roles[role] = { deny }
+    const approve = normalizeGroupList(entry?.approve)
+    if (approve === null) {
+      throw new Error(`${role}.approve 必须是由 ${TOOL_GROUPS.join('/')} 组成的数组`)
+    }
+    const overlap = deny.filter((group) => approve.includes(group))
+    if (overlap.length > 0) {
+      throw new Error(`${role} 的 ${overlap.join('/')} 组不能同时拒绝又需审批`)
+    }
+    policy.roles[role] = { deny, approve }
   }
   writePolicyFile(dataDir, policy)
   return policy
@@ -125,6 +137,11 @@ export function saveToolPolicy(dataDir, roles) {
 /** 某角色的 deny 列表（未知角色按最严的 employee 缺省处理）。 */
 export function denyForRole(policy, role) {
   return policy.roles[role]?.deny ?? DEFAULT_TOOL_POLICY.roles.employee.deny
+}
+
+/** 某角色的 approve（每次使用需审批）列表（未知角色按最严缺省处理）。 */
+export function approveForRole(policy, role) {
+  return policy.roles[role]?.approve ?? []
 }
 
 /** 实例 home 的策略文件路径。 */
@@ -141,10 +158,10 @@ function loadAccountsRaw(dataDir) {
 }
 
 /**
- * 把一个实例的策略下发到它的 home：归属账号的角色 → deny 列表 → 原子写
- * tool-policy.json（实例侧 guard 读 mtime 热生效，无需重启）。
+ * 把一个实例的策略下发到它的 home：归属账号的角色 → deny/approve 列表 →
+ * 原子写 tool-policy.json（实例侧 guard 读 mtime 热生效，无需重启）。
  * 归属账号在 accounts.json 无记录时跳过并告警（等待账号侧操作补齐）。
- * @returns {{ skipped?: true, role?: string, deny?: string[] }}
+ * @returns {{ skipped?: true, role?: string, deny?: string[], approve?: string[] }}
  */
 export function syncInstanceHome(dataDir, spec) {
   const role = loadAccountsRaw(dataDir).find((a) => a.account === spec.account)?.role
@@ -152,15 +169,17 @@ export function syncInstanceHome(dataDir, spec) {
     console.error(`[toolpolicy] 实例 ${spec.id} 的归属账号 ${spec.account} 不存在，跳过策略下发`)
     return { skipped: true }
   }
-  const deny = denyForRole(loadToolPolicy(dataDir), role)
+  const policy = loadToolPolicy(dataDir)
+  const deny = denyForRole(policy, role)
+  const approve = approveForRole(policy, role)
   const home = join(dataDir, 'homes', spec.id)
   mkdirSync(home, { recursive: true })
-  const payload = { role, deny }
+  const payload = { role, deny, approve }
   const path = homePolicyPath(home)
   const tmp = `${path}.tmp`
   writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`)
   renameSync(tmp, path)
-  return { role, deny }
+  return { role, deny, approve }
 }
 
 /** 全量重写：所有实例 home 的策略文件（策略变更后调用）。 */
@@ -169,7 +188,11 @@ export function syncAllHomes(dataDir, manifest) {
   return manifest.instances.map((spec) => ({ id: spec.id, ...syncInstanceHome(dataDir, spec) }))
 }
 
-/** 读出桥文件快照（合法事件行 + mtime/size 指纹）；缺文件返回 null。 */
+/** 读出桥文件快照（合法事件行 + mtime/size 指纹）；缺文件返回 null。
+ *  合法 decision：deny（守卫拒绝）与 approval-allowed/approval-denied/
+ *  approval-cancelled/approval-unavailable（审批组决定，阶段 11b）。 */
+const BRIDGE_DECISIONS = new Set(['deny', 'approval-allowed', 'approval-denied', 'approval-cancelled', 'approval-unavailable'])
+
 function readBridgeSnapshot(path) {
   let raw
   let stat
@@ -184,7 +207,7 @@ function readBridgeSnapshot(path) {
     if (line.trim() === '') continue
     try {
       const event = JSON.parse(line)
-      if (typeof event?.tool === 'string' && typeof event?.group === 'string' && event.decision === 'deny') {
+      if (typeof event?.tool === 'string' && typeof event?.group === 'string' && BRIDGE_DECISIONS.has(event.decision)) {
         events.push(event)
       }
     } catch { /* 半行损坏只跳过 */ }
@@ -230,12 +253,15 @@ export async function transcribeGuardEvents(dataDir, manifest, auditAppend) {
     if (snapshot === null || snapshot.events.length === 0) continue
     const role = accounts.find((a) => a.account === spec.account)?.role ?? null
     for (const event of snapshot.events) {
+      // deny → guard.deny（result=deny）；审批决定 → guard.approval（批准
+      // result=ok，拒绝/取消/无应答 result=deny），detail 只含决策标量。
+      const approval = event.decision.startsWith('approval-')
       await auditAppend({
         actor: { account: spec.account, role, ip: null },
-        action: 'guard.deny',
+        action: approval ? 'guard.approval' : 'guard.deny',
         target: event.tool,
-        result: 'deny',
-        detail: { tool: event.tool, group: event.group, instance: spec.id },
+        result: event.decision === 'approval-allowed' ? 'ok' : 'deny',
+        detail: { tool: event.tool, group: event.group, instance: spec.id, ...(approval ? { decision: event.decision } : {}) },
       })
     }
     // 清空而非删除：实例侧 guard 持有追加句柄，Windows 上删除打开中的文件

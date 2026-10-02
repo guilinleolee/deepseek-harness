@@ -157,6 +157,24 @@ const persisted = JSON.parse(readFileSync(join(DATA3, 'rate-limits.json'), 'utf8
 check('清零后文件不残留死条目', Object.keys(persisted.buckets ?? {}).length === 0)
 rmSync(DATA3, { recursive: true, force: true })
 
+/* ── 5b. 账号级全局桶（跨 IP 分布式撞库封口）────────────────────────────── */
+console.log('# 账号级限流桶')
+const DATA5 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke5-'))
+const limitsG = () => ({ windowMs: 60_000, maxFails: 3, accountMaxFails: 5, lockoutMs: 60_000 })
+const guardG = createLoginRateGuard(limitsG, { dataDir: DATA5, file: 'rl-g.json' })
+for (let i = 1; i <= 4; i++) guardG.fail('g@x', `10.0.0.${i}`)
+check('4 个 IP 各失败 1 次：各 IP 桶均放行', [1, 2, 3, 4].every((i) => guardG.check('g@x', `10.0.0.${i}`).allowed === true))
+guardG.fail('g@x', '10.0.0.5')
+check('跨 IP 累计达 accountMaxFails 即全局锁定', guardG.check('g@x', '10.0.0.1').allowed === false)
+check('全局锁定不影响其他账号', guardG.check('h@x', '10.0.0.1').allowed === true)
+const guardG2 = createLoginRateGuard(limitsG, { dataDir: DATA5, file: 'rl-g.json' })
+check('账号级锁定持久化（重建后全新 IP 也拒）', guardG2.check('g@x', '10.0.0.9').allowed === false)
+guardG2.success('g@x', '10.0.0.1')
+check('成功清零含全局桶（重建后放行）', guardG2.check('g@x', '10.0.0.1').allowed === true)
+guardG2.fail('', '10.0.0.1')
+check('空账号桶（注册限流）不设全局桶', guardG2.check('', '10.0.0.1').allowed === true)
+rmSync(DATA5, { recursive: true, force: true })
+
 /* ── 6. 审计按大小轮转（归档 + 保留 + 跨档查询）──────────────────────────── */
 console.log('# 审计轮转')
 const DATA_ROT = mkdtempSync(join(tmpdir(), 'lyz-audit-rotate-'))
