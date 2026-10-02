@@ -28,7 +28,6 @@ import { ContentLibrary } from './ContentLibrary.tsx'
 import { ContentCalendar, type ContentCalendarInjected } from './ContentCalendar.tsx'
 import { ContentWorkbench } from './ContentWorkbench.tsx'
 import { AccountSelect } from './AccountSelect.tsx'
-import { CapabilityPage } from './CapabilityPage.tsx'
 import { AccountsView } from './AccountsView.tsx'
 import { PersonaView } from './PersonaView.tsx'
 import { CompetitorsView, type CompetitorsViewInjected } from './CompetitorsView.tsx'
@@ -58,13 +57,12 @@ import gatherCss from './GatherView.module.css'
 const COPIED_FEEDBACK_MS = 1600
 
 /** The top-level views; the workbench home is the entry view. 对话 is a verb, not a view. */
-type StudioView = 'workbench' | 'benchmark' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
+type StudioView = 'workbench' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
 
 /** The nav order exactly as specified: 对话 rides between 工作台 and 对标 as a verb. */
 const NAV_ITEMS: readonly { view: StudioView | 'chat'; key: StudioKey }[] = [
   { view: 'workbench', key: 'nav.workbench' },
   { view: 'chat', key: 'nav.chat' },
-  { view: 'benchmark', key: 'nav.benchmark' },
   { view: 'competitors', key: 'nav.competitors' },
   { view: 'topicBank', key: 'nav.topicBank' },
   { view: 'gather', key: 'nav.gather' },
@@ -78,9 +76,6 @@ const NAV_ITEMS: readonly { view: StudioView | 'chat'; key: StudioKey }[] = [
   { view: 'persona', key: 'nav.persona' },
   { view: 'templates', key: 'nav.templates' },
 ]
-
-/** Capability slice behind the 对标 nav view. */
-const BENCHMARK_IDS: readonly CapabilityItem['id'][] = ['breakdown']
 
 /** Injected face of the workbench surface: the shared controller and the server reads. */
 export interface ContentStudioInjected {
@@ -351,9 +346,6 @@ export function ContentStudio({
                 persona={personaText}
                 t={t}
               />
-            )}
-            {view === 'benchmark' && (
-              <CapabilityPage title={t('benchmark.title')} ids={BENCHMARK_IDS} copiedId={copiedId} pick={pickItem} t={t} />
             )}
             {view === 'competitors' && (
               <CompetitorsView listOutputs={listOutputs} {...competitors} t={t} />
