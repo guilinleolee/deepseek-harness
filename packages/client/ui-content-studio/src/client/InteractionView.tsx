@@ -90,6 +90,11 @@ export function InteractionView({ interaction, personas, templates, listThemes, 
   useEffect(() => {
     void interaction.load()
   }, [interaction])
+  // The persona picker needs the persona list loaded even when the persona
+  // view was never visited (ensureLoaded is idempotent).
+  useEffect(() => {
+    void personas.ensureLoaded()
+  }, [personas])
 
   useEffect(() => {
     if (state.notice === null) return
@@ -332,6 +337,7 @@ export function InteractionView({ interaction, personas, templates, listThemes, 
           <select
             className={css.select}
             aria-label={t('interaction.detail.persona')}
+            title={personaState.personas.length === 0 ? t('persona.empty') : undefined}
             value={selected.personaId ?? ''}
             onChange={(event) => { void interaction.patchConversation(selected.id, { personaId: event.target.value === '' ? null : event.target.value }) }}
           >
