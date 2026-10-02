@@ -113,9 +113,16 @@ describe('manuscript pool projection', () => {
       { topic: 'theme-b' as OutputTopic, title: '新稿', kind: 'article', platform: null, status: 'ready', tags: [], summary: null, updatedAt: '', deliverables: ['new.md'], assetCount: 0, hasMetadata: true },
     ])
     expect(cards).toEqual([
-      { theme: 'theme-b', file: 'new.md', title: '新稿', status: 'ready' },
-      { theme: 'theme-a', file: 'old.md', title: '旧稿', status: 'published' },
+      { theme: 'theme-b', file: 'new.md', title: '新稿', status: 'ready', topicId: null },
+      { theme: 'theme-a', file: 'old.md', title: '旧稿', status: 'published', topicId: null },
     ])
     expect(manuscriptCards([])).toEqual([])
+  })
+
+  it('carries the create mirror topicId into the pool card for the reflow handoff', () => {
+    const cards = manuscriptCards([
+      { topic: 'theme-c' as OutputTopic, title: '带选题稿', kind: 'article', platform: null, status: 'published', tags: [], summary: null, updatedAt: '', deliverables: ['c.md'], assetCount: 0, hasMetadata: true, topicId: 'topic-9' },
+    ])
+    expect(cards[0]?.topicId).toBe('topic-9')
   })
 })

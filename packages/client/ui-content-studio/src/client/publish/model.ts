@@ -123,6 +123,8 @@ export interface ManuscriptCard {
   readonly file: string
   readonly title: string
   readonly status: OutputProject['status']
+  /** Topic the creation started from, when the mirror carries it; null otherwise. */
+  readonly topicId: string | null
 }
 
 /**
@@ -135,7 +137,7 @@ export function manuscriptCards(projects: readonly OutputProject[]): ManuscriptC
   const cards: ManuscriptCard[] = []
   for (const project of projects) {
     for (const file of project.deliverables) {
-      cards.push({ theme: project.topic, file, title: project.title, status: project.status })
+      cards.push({ theme: project.topic, file, title: project.title, status: project.status, topicId: project.topicId ?? null })
     }
   }
   return cards.reverse()

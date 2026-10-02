@@ -154,9 +154,29 @@ describe('registerCreatePublishFile', () => {
     expect(registered.metadata?.status).toBe('published')
     expect(registered.metadata?.create).toEqual({
       currentVersion: 3, publishedVersion: 3, publishedPath: '标题-cc000001.md', publishedAt: expect.any(String) as string,
+      topicId: null,
     })
     await registerCreatePublishFile(root, '主题', { file: '标题-cc000001.md', version: 4 })
     expect((await readCreateMetadataFile(root, '主题')).metadata?.create?.publishedVersion).toBe(4)
+  })
+
+  it('mirrors the creation topicRef topicId into the publish metadata', async () => {
+    const root = await makeRoot()
+    await writeOutputMetadataFile(root, '主题', METADATA)
+    await writeCreateStateFile(root, '主题', {
+      formatVersion: 0,
+      contentId: 'cc000001-0000-0000-0000-000000000000',
+      contentType: 'xhs-note',
+      currentVersion: 1,
+      context: { audience: null, points: null, references: null },
+      topicRef: { topicId: 'topic-9', title: '选题九', syncState: 'linked' },
+      sources: [],
+      versions: [],
+    })
+    await publishFinalFile(root, '主题', { file: '标题-cc000001.md', content: '定稿', overwrite: false })
+    await registerCreatePublishFile(root, '主题', { file: '标题-cc000001.md', version: 1 })
+    const registered = await readCreateMetadataFile(root, '主题')
+    expect(registered.metadata?.create?.topicId).toBe('topic-9')
   })
 
   it('rejects a missing deliverable, missing metadata, and malformed metadata', async () => {

@@ -97,6 +97,7 @@ function isCreateState(value: unknown): value is OutputCreateState {
     && (record.publishedVersion === null || (typeof record.publishedVersion === 'number' && Number.isInteger(record.publishedVersion)))
     && (record.publishedPath === null || typeof record.publishedPath === 'string')
     && (record.publishedAt === null || typeof record.publishedAt === 'string')
+    && (record.topicId === undefined || record.topicId === null || typeof record.topicId === 'string')
 }
 
 /** Whether the value carries the editable generation context. */
@@ -320,6 +321,7 @@ export async function registerCreatePublishFile(root: string, theme: string, req
       ? 'existing output metadata violates the format-0 rules'
       : `theme ${theme} has no output metadata to register the publish into`)
   }
+  const { manifest } = await readCreateStateFile(root, theme)
   await writeOutputMetadataFile(root, theme, {
     ...metadata,
     status: 'published',
@@ -328,6 +330,7 @@ export async function registerCreatePublishFile(root: string, theme: string, req
       publishedVersion: request.version,
       publishedPath: request.file,
       publishedAt: new Date().toISOString(),
+      topicId: manifest?.topicRef?.topicId ?? null,
     },
   })
 }
