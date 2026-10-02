@@ -107,7 +107,11 @@ function isContext(value: unknown): value is CreateContext {
   return isText(record.audience) && isText(record.points) && isText(record.references)
 }
 
-/** Whether the manifest envelope and every version conform; one violation rejects whole. */
+/**
+ * Whether the manifest envelope and every version conform; one violation rejects whole.
+ * @param manifest - the manifest being read or written.
+ * @throws naming the first format violation.
+ */
 export function assertCreateManifest(manifest: CreateManifest): void {
   // The read path feeds parsed-unknown JSON through this assert cast to the
   // typed shape, so the envelope version gate is load-bearing.

@@ -105,7 +105,11 @@ export const PLATFORM_PROFILES: readonly PlatformProfile[] = [
   },
 ]
 
-/** Registry lookup by platform id. */
+/**
+ * Registry lookup by platform id.
+ * @param platformId - the platform id to look up.
+ * @returns the platform's profile, or undefined when the id is not in the registry.
+ */
 export function platformProfileOf(platformId: string): PlatformProfile | undefined {
   return PLATFORM_PROFILES.find(profile => profile.platformId === platformId)
 }
