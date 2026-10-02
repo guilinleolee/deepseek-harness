@@ -86,6 +86,11 @@ export function InteractionView({ interaction, personas, templates, listThemes, 
     })()
   }, [listThemes])
 
+  // The inbox loads from disk on mount: nothing else triggers the read.
+  useEffect(() => {
+    void interaction.load()
+  }, [interaction])
+
   useEffect(() => {
     if (state.notice === null) return
     const timer = window.setTimeout(() => { interaction.clearNotice() }, 4000)
@@ -513,7 +518,10 @@ export function InteractionView({ interaction, personas, templates, listThemes, 
         <div className={css.problems}>{t('interaction.problems')} {state.problems.join('；')}</div>
       )}
       {state.notice !== null && (
-        <div className={css.notice} role="status">{t(`interaction.notice.${state.notice}`)}</div>
+        <div className={css.notice} role="status">
+          {t(`interaction.notice.${state.notice}`)}
+          {state.errorDetail !== null && <div>{state.errorDetail}</div>}
+        </div>
       )}
       {state.busy && (
         <div className={css.busy}>

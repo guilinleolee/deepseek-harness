@@ -104,6 +104,9 @@
     # (contentOutputs/list) behind the Content Studio library view.
     - id: content-outputs
       name: '@deepseek-ai/dsh-content-outputs'
+      config:
+        provider: minimax-0801
+        model: MiniMax-M3
 
     # Publication calendar (contentSchedule/list|put|remove) behind the
     # Content Studio calendar view.
