@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-content-studio",
   "description": "Content Studio plugin: sidebar entry plus the frame-wide creation workbench surface",
-  "version": "0.1.4-rc.4",
+  "version": "0.1.4-rc.5",
   "publishConfig": {
     "access": "public"
   },

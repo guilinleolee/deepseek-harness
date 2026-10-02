@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-content-outputs",
   "description": "Outputs-library Remote: read-only projection plus the Content Studio gather write face",
-  "version": "0.1.4-rc.4",
+  "version": "0.1.4-rc.5",
   "publishConfig": {
     "access": "public"
   },

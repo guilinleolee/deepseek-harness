@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-content-schedule",
   "description": "Publication calendar Remote over the outputs library's _schedule.json",
-  "version": "0.1.4-rc.4",
+  "version": "0.1.4-rc.5",
   "publishConfig": {
     "access": "public"
   },
