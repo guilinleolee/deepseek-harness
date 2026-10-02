@@ -16,11 +16,11 @@ Escape 或头部关闭按钮收起页面；关闭态渲染 null，槽位注册�
 
 ## Model Experience
 
-仅显式触发：信息收集视图的"AI 处理"按钮每次点击经 `contentOutputs/processMaterial` Remote 发送一个框架化请求，底层走共享 `llm` 服务。失败或限流的调用不改动素材本身，并提供重试入口；除此之外没有任何内容进入模型请求。
+间接地，经由其按钮触发的 `dsh-content-outputs` Remote：该网关在共享 `llm` 服务上组装每个框架化请求，本包只拥有点击、进行中状态与重试入口。
 
 #### KV Cache effect
 
-无；本包不组装也不发送任何 provider 请求。
+无；本包不组装也不发送任何 provider 请求，不拥有任何请求前缀。
 
 ## Known Limitations and Deferred Work
 

@@ -20,11 +20,19 @@ gather 的全部存储都位于 `outputs/<主题>/assets/` 下：`_gather.json` 
 
 ## Model Experience
 
-仅显式触发：`processMaterial` 每次用户点击发送一个框架化请求，走共享 `llm` 服务（session-title 一次性调用模式）。本包绝不自动调用模型，且调用失败不影响采集与浏览。
+### 显式一次性 AI Remote
+
+#### What the model sees
+
+每次用户点击恰好组装一个框架化请求，走共享 `llm` 服务：素材处理、创作生成/改写/评估、对标拆解与报告、画像补全/简历解析/报告、发布适配、复盘诊断与周期报告、模板生成/优化/提炼，以及互动回复草稿、语气/诉求识别与洞察提取。提示词是按面版本化的网关冻结常量（`processMaterial`、`generateCreateContent`、`analyzeCompetitorWork`），输入按配置字符上限截断，JSON 契约面严格解析并逐字段记入 problems；失败或限流的调用向调用方报错，绝不阻塞文件操作。
+
+#### Token effect
+
+一次点击一次请求。提示词骨架是固定常量，token 随调用方提供的素材摘录、画像摘要、会话行或洞察批次伸缩；批量流程（三版创作、50 条识别批、200 条洞察批）按请求计费。
 
 #### KV Cache effect
 
-每次 `processMaterial` 都是隔离的一次性请求；没有可缓存的共享会话状态。
+无保留。每次调用都是隔离的一次性请求，没有可跨调用失效的共享会话前缀；调用方自行拥有其写入清单的内容。
 
 ## Known Limitations and Deferred Work
 

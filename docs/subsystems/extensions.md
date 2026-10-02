@@ -12,6 +12,45 @@ The extensions subsystem lets an agent define versioned Cordis packages, run the
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxagentroster--agentroster"></a>
+
+### `ctx.agentRoster` — `AgentRoster`
+
+Read-only registry over the `dragon-assets/agents/` source markdowns.
+
+One service instance owns one snapshot; call `loadAll()` after upstream mirror changes to refresh.
+
+```ts cordis-catalog
+/**
+ * Walk the `agents/` mirror and parse every markdown file into a role.
+ * @returns the loaded roster, sorted by numeric prefix then id.
+ */
+async loadAll(): Promise<readonly AgentRole[]>
+
+/**
+ * Filter the cached roster.
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching roles, sorted as the source roster declared them.
+ */
+search(query: RoleSearchQuery = {}): readonly AgentRole[]
+
+/**
+ * Exact-id lookup against the cached roster.
+ * @param id - the role identifier (without `.md`).
+ * @returns the matching role, or `undefined` if none.
+ */
+get(id: AgentId): AgentRole | undefined
+
+/**
+ * Return every role belonging to one family bucket.
+ * @param family - the family bucket to filter by.
+ * @returns the roles in that family, in roster order.
+ */
+byFamily(family: AgentFamily): readonly AgentRole[]
+```
+
+Source: [`packages/experimental/agent-roster/src/index.ts`](../../packages/experimental/agent-roster/src/index.ts)
+
 <a id="ctxcordisinspect--cordisinspectregistryservice"></a>
 
 ### `ctx.cordisInspect` — `CordisInspectRegistryService`
@@ -63,6 +102,96 @@ resolveClientQuery( agent: Agent, requestId: CordisInspectRequestId, resolution:
 Types: [Agent](core.md)
 
 Source: [`packages/extensions/cordis-host-runner/src/inspect-registry.ts`](../../packages/extensions/cordis-host-runner/src/inspect-registry.ts)
+
+<a id="ctxdragonbridge--dragonbridge"></a>
+
+### `ctx.dragonBridge` — `DragonBridge`
+
+Facade that joins the index, roster, and policy services.
+
+The bridge does not own disk state; it depends on its sibling packages for I/O and classification. Its only state is a cached asset list rebuilt by `loadAll()`.
+
+```ts cordis-catalog
+/**
+ * Refresh every upstream service and rebuild the cross-kind asset list.
+ *
+ * Skill and command / hook / plugin assets come from `ctx.dragonIndex`;
+ * agent assets come from `ctx.agentRoster`. Each entry is classified by
+ * `ctx.licensePolicy`.
+ * @returns the rebuilt asset list, in load order.
+ */
+async loadAll(): Promise<readonly DragonAsset[]>
+
+/**
+ * Filter the cached asset list.
+ *
+ * `safeOnly` (constructor flag) drops `artifact-only` and `reject` entries
+ * from the default result set; explicit `decision` overrides it.
+ *
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching assets, in the source-declared order.
+ */
+search(query: BridgeSearchQuery = {}): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `allow`.
+ * @returns the matching assets, in load order.
+ */
+allowed(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `attribute`.
+ * @returns the matching assets, in load order.
+ */
+attributed(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `artifact-only`.
+ * @returns the matching assets, in load order.
+ */
+artifactOnly(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `reject`.
+ * @returns the matching assets, in load order.
+ */
+rejected(): readonly DragonAsset[]
+```
+
+Source: [`packages/experimental/dragon-bridge/src/index.ts`](../../packages/experimental/dragon-bridge/src/index.ts)
+
+<a id="ctxdragonindex--dragonassetindex"></a>
+
+### `ctx.dragonIndex` — `DragonAssetIndex`
+
+Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.
+
+One service instance owns one snapshot. Callers can refresh the snapshot by calling `loadAll()` again; the registry exposes the current snapshot via the `snapshot` accessor.
+
+```ts cordis-catalog
+/**
+ * Read every jsonl file into one snapshot and cache it.
+ * @returns the loaded snapshot.
+ */
+async loadAll(): Promise<IndexSnapshot>
+
+/**
+ * Filter the cached snapshot.
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching entries, ordered as the source jsonl declared them.
+ */
+search(query: SearchQuery = {}): readonly AssetIndexEntry[]
+
+/**
+ * Exact-id lookup against the cached snapshot.
+ * @param id - the asset identifier to resolve.
+ * @param kind - optional kind disambiguator; omitted matches the first entry of any kind.
+ * @returns the matching entry, or `undefined` if none.
+ */
+get(id: string, kind?: AssetKind): AssetIndexEntry | undefined
+```
+
+Source: [`packages/experimental/skill-index/src/index.ts`](../../packages/experimental/skill-index/src/index.ts)
 
 <a id="ctxdynamiccordisrunner--dynamiccordisrunnerservice"></a>
 
@@ -255,6 +384,53 @@ inspectPackage( agent: Agent, pluginId: CordisDynamicPluginId, packageId: Cordis
 Types: [Agent](core.md)
 
 Source: [`packages/extensions/cordis-host-runner/src/index.ts`](../../packages/extensions/cordis-host-runner/src/index.ts)
+
+<a id="ctxlicensepolicy--licensepolicy"></a>
+
+### `ctx.licensePolicy` — `LicensePolicy`
+
+Singleton license policy evaluator.
+
+One Service instance owns the tier-to-decision table and (optional) AGPL attribution text. Pure: no I/O, no filesystem, no event subscription.
+
+```ts cordis-catalog
+/**
+ * Normalize an arbitrary license string to a {@link LicenseTier}.
+ *
+ * Accepts values lifted directly from frontmatter, package.json, or
+ * upstream registry metadata. Matching is case-insensitive; whitespace and
+ * surrounding `()` are stripped. `NOASSERTION`, `UNKNOWN`, and absent
+ * values each map to a distinct tier rather than collapsing into `unknown`.
+ *
+ * @param raw - the license string discovered upstream.
+ * @returns the normalized tier.
+ */
+normalize(raw: string | null | undefined): LicenseTier
+
+/**
+ * Evaluate one license tier and return the typed decision.
+ * @param raw - the license string discovered upstream.
+ * @returns the evaluation result.
+ */
+evaluate(raw: string | null | undefined): LicenseEvaluation
+
+/**
+ * Evaluate an already-normalized tier.
+ * @param tier - the normalized license tier.
+ * @returns the evaluation result.
+ */
+evaluateTier(tier: LicenseTier): LicenseEvaluation
+
+/**
+ * Convenience: assert the evaluation result is one of the allowed decisions.
+ * @param raw - the license string discovered upstream.
+ * @param allowed - the set of decisions the caller accepts.
+ * @returns the evaluation result, throwing if it falls outside `allowed`.
+ */
+assertAllowed(raw: string | null | undefined, allowed: readonly LicenseDecision[]): LicenseEvaluation
+```
+
+Source: [`packages/experimental/license-policy/src/index.ts`](../../packages/experimental/license-policy/src/index.ts)
 
 <a id="cordis-events"></a>
 

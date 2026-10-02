@@ -539,6 +539,76 @@ export interface ToolResultPruneConfig {
 
 Source: [`packages/compaction/compaction-tool-result-pruner/src/types.ts:4`](../packages/compaction/compaction-tool-result-pruner/src/types.ts)
 
+<a id="deepseek-aidsh-content-outputs"></a>
+
+## `@deepseek-ai/dsh-content-outputs`
+
+Requires: `llm`
+
+```ts config-catalog
+/** Content-outputs Remote configuration. */
+export interface Config extends GatherAiConfig, CreateQuotaConfig {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+  /** Home the global template library resolves under (`<templatesRoot>/templates`). Defaults to the dsh home. */
+  templatesRoot?: string
+}
+
+/** Deployment policy for the AI processing face; every default lives in {@link GatherAiProcessor}. */
+export interface GatherAiConfig {
+  /** Registered LLM provider route. */
+  readonly provider?: string
+  /** Model id within the provider route. */
+  readonly model?: string
+  /** End-to-end call deadline in milliseconds (1000–600000). */
+  readonly timeoutMs?: number
+  /** Model-output token cap for one call (256–32000). */
+  readonly maxOutputTokens?: number
+  /** Model-input character cap for one material (1000–100000). */
+  readonly maxInputChars?: number
+}
+
+/** Deployment policy of the gate; every default lives in {@link CreateQuotaGate}. */
+export interface CreateQuotaConfig {
+  /** Free generations served per local day (0–1000; default 10). */
+  readonly freeDailyGenerates?: number
+  /** Free rewrites served per local day (0–5000; default 50). */
+  readonly freeDailyRewrites?: number
+  /** Whether the paid-tier features (batch of 3, AI evaluation) are enabled. */
+  readonly paidTierEnabled?: boolean
+}
+```
+
+Source: [`packages/creation/content-outputs/src/index.ts:153`](../packages/creation/content-outputs/src/index.ts)
+
+<a id="deepseek-aidsh-content-schedule"></a>
+
+## `@deepseek-ai/dsh-content-schedule`
+
+```ts config-catalog
+/** Content-schedule Remote configuration. */
+export interface Config {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+}
+```
+
+Source: [`packages/creation/content-schedule/src/index.ts:20`](../packages/creation/content-schedule/src/index.ts)
+
+<a id="deepseek-aidsh-content-topics"></a>
+
+## `@deepseek-ai/dsh-content-topics`
+
+```ts config-catalog
+/** Content-topics Remote configuration. */
+export interface Config {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+}
+```
+
+Source: [`packages/creation/content-topics/src/index.ts:18`](../packages/creation/content-topics/src/index.ts)
+
 <a id="deepseek-aidsh-cordis-host-runner"></a>
 
 ## `@deepseek-ai/dsh-cordis-host-runner`
@@ -593,6 +663,29 @@ export interface Config {
 
 Source: [`packages/e2b/e2b/src/index.ts:43`](../packages/e2b/e2b/src/index.ts)
 
+<a id="deepseek-aidsh-experimental-agent-roster"></a>
+
+## `@deepseek-ai/dsh-experimental-agent-roster`
+
+```ts config-catalog
+/** Loaded configuration for {@link AgentRoster}. */
+interface AgentRosterConfig extends Config {
+  /** Directory names under `dragon-assets/agents/` to ignore. */
+  excludeSubdirs?: readonly string[]
+}
+
+/** Base configuration shared by all dragon-assets service families. */
+export interface Config {
+  /**
+   * Filesystem root for the dragon-assets mirror; consumed by services that
+   * read files out of the mirror.
+   */
+  dragonAssetsRoot?: string
+}
+```
+
+Source: [`packages/experimental/agent-roster/src/index.ts:30`](../packages/experimental/agent-roster/src/index.ts)
+
 <a id="deepseek-aidsh-experimental-agent-team"></a>
 
 ## `@deepseek-ai/dsh-experimental-agent-team`
@@ -616,6 +709,61 @@ export interface Config {
 ```
 
 Source: [`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.ts)
+
+<a id="deepseek-aidsh-experimental-dragon-bridge"></a>
+
+## `@deepseek-ai/dsh-experimental-dragon-bridge`
+
+```ts config-catalog
+/** Loaded configuration for {@link DragonBridge}. */
+export interface Config {
+  /** Filesystem root of the dragon-assets mirror; passed to skill-index and agent-roster. */
+  dragonAssetsRoot?: string
+  /** When true, decisions are filtered to `allow` + `attribute` only by default. */
+  safeOnly?: boolean
+}
+```
+
+Source: [`packages/experimental/dragon-bridge/src/types.ts:44`](../packages/experimental/dragon-bridge/src/types.ts)
+
+<a id="deepseek-aidsh-experimental-license-policy"></a>
+
+## `@deepseek-ai/dsh-experimental-license-policy`
+
+```ts config-catalog
+/** Configuration for {@link LicensePolicy}. */
+export interface Config {
+  /**
+   * Treat `unknown` as `reject` instead of `allow`. Default `false`: unknown
+   * assets pass through with attribution but no network deployment.
+   */
+  rejectUnknown?: boolean
+  /**
+   * Override the default AGPL attribution text. The placeholder string is
+   * supplied by `dragon-assets/LICENSE-ATTRIBUTION.md` §三.
+   */
+  agplAttribution?: string
+}
+```
+
+Source: [`packages/experimental/license-policy/src/types.ts:54`](../packages/experimental/license-policy/src/types.ts)
+
+<a id="deepseek-aidsh-experimental-skill-index"></a>
+
+## `@deepseek-ai/dsh-experimental-skill-index`
+
+```ts config-catalog
+/** Loaded configuration for {@link DragonAssetIndex}. */
+export interface Config {
+  /**
+   * Absolute filesystem path to the `dragon-assets/` mirror root.
+   * Default: `<workspace>/dragon-assets`.
+   */
+  dragonAssetsRoot?: string
+}
+```
+
+Source: [`packages/experimental/skill-index/src/types.ts:57`](../packages/experimental/skill-index/src/types.ts)
 
 <a id="deepseek-aidsh-experimental-tool-agent-team"></a>
 
@@ -3233,6 +3381,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-commands` ([`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-content-studio` ([`packages/client/ui-content-studio/src/index.ts`](../packages/client/ui-content-studio/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))

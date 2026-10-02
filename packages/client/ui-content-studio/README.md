@@ -16,11 +16,11 @@ The **Gather** view (信息收集) is the information-collection surface: RSS/At
 
 ## Model Experience
 
-Explicit only: the gather view's AI-processing button sends one framed request per click through the `contentOutputs/processMaterial` Remote, which rides the shared `llm` service. A failed or rate-limited call leaves the material untouched and shows a retry affordance; nothing here reaches a model request otherwise.
+Indirectly, through the `dsh-content-outputs` Remotes its buttons trigger: that gateway assembles every framed request on the shared `llm` service, while this package owns only the click, the pending state, and the retry affordance.
 
 #### KV Cache effect
 
-None; this package neither assembles nor sends a provider request.
+None; this package never assembles or sends a provider request, so it owns no request prefix.
 
 ## Known Limitations and Deferred Work
 

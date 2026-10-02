@@ -201,11 +201,20 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg_agent_roster["agent-roster"]
+  svc_agentRoster["ctx.agentRoster<br/>Dragon agent role registry"]
+  pkg_dragon_bridge["dragon-bridge"]
+  pkg_skill_index["skill-index"]
+  svc_dragonIndex["ctx.dragonIndex<br/>Dragon asset index reader"]
+  svc_dragonBridge["ctx.dragonBridge<br/>Dragon asset cross-kind bridge"]
+  pkg_license_policy["license-policy"]
+  svc_licensePolicy["ctx.licensePolicy<br/>License red-line decision table"]
   pkg_acp --> svc_approval
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
   pkg_agent_presets --> svc_agentPresets
+  pkg_agent_roster --> svc_agentRoster
   pkg_agent_team --> svc_agentTeams
   pkg_api_gateway --> svc_typertGateway
   pkg_apiproxy --> svc_apiProxy
@@ -228,6 +237,7 @@ flowchart LR
   pkg_directory_picker --> svc_directoryPicker
   pkg_directory_picker_browse --> svc_directoryPicker
   pkg_directory_picker_native --> svc_directoryPicker
+  pkg_dragon_bridge --> svc_dragonBridge
   pkg_e2b --> svc_e2b
   pkg_file_reference --> svc_fileReferences
   pkg_file_reference_local --> svc_fileReferences
@@ -239,6 +249,7 @@ flowchart LR
   pkg_invariants --> svc_invariants
   pkg_jobs --> svc_jobs
   pkg_jobs_local --> svc_jobs
+  pkg_license_policy --> svc_licensePolicy
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
   pkg_llm_pi_ai --> svc_llm
@@ -274,6 +285,7 @@ flowchart LR
   pkg_skill --> svc_skills
   pkg_skill_badge --> svc_skills
   pkg_skill_filesystem --> svc_skills
+  pkg_skill_index --> svc_dragonIndex
   pkg_spill --> svc_spillStore
   pkg_spill_local --> svc_spillStore
   pkg_storage --> svc_storage
@@ -309,6 +321,7 @@ flowchart LR
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
   svc_agentLoop --> pkg_agent_spine_demo
+  svc_agentRoster --> pkg_dragon_bridge
   svc_agentTeams --> pkg_tool_agent_team
   svc_agents --> pkg_acp
   svc_agents --> pkg_agent_loop
@@ -327,6 +340,8 @@ flowchart LR
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_directoryPicker --> pkg_apiproxy
+  svc_dragonBridge --> pkg_host_runtime
+  svc_dragonIndex --> pkg_dragon_bridge
   svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
@@ -339,6 +354,7 @@ flowchart LR
   svc_jobs --> pkg_tool_jobs
   svc_jobs --> pkg_tool_subagent
   svc_jobs --> pkg_tool_terminal
+  svc_licensePolicy --> pkg_dragon_bridge
   svc_llm --> pkg_agent_loop
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
@@ -484,5 +500,9 @@ flowchart LR
 | `ctx.apiProxy` | `core` | `apiproxy` | - | `connection` | - | The transport-agnostic host gateway face: it dispatches browser API calls, and each open host stream subscribes to the events it forwards rather than being pushed to through a broadcast verb. |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Owns the in-memory definition registry, the vm sandbox for host halves, and the request-run round trip; browser pages reach the same service over the wire through its remote namespace. |
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
+| `ctx.agentRoster` | `core` | `agent-roster` | - | `dragon-bridge` | - | Reads the dragon-assets agent markdowns into a searchable role registry; consumers own any model-facing projection. |
+| `ctx.dragonIndex` | `core` | `skill-index` | - | `dragon-bridge` | - | Reads the dragon-assets index snapshots into a searchable asset registry; consumers own any model-facing projection. |
+| `ctx.dragonBridge` | `core` | `dragon-bridge` | - | `host-runtime` | - | Joins the roster, index, and license-policy services into one classified, searchable asset list. |
+| `ctx.licensePolicy` | `core` | `license-policy` | - | `dragon-bridge` | - | Classifies each asset as allow, attribute, artifact-only, or reject; consumers surface the decision text if at all. |
 
 Maintenance mode: hybrid: services are discovered from Cordis declarations; interface/implementation/consumer roles are classified in `scripts/gen-doc-graphs.ts` with a completeness guard.
