@@ -1,0 +1,11 @@
+# kabage-tool-guard 的 patch 层：dsh plugin add 安装本包后自动追加到
+# web profile 的 dsh.profile.bundles 栈（package.json 的 dsh.bundle.patch 指向本文件）。
+# config 用 !!js 表达式在条目激活时求值：实例由 supervisor 注入 DSH_HOME
+# （一人一实例的 home），precheck 等无 DSH_HOME 的环境落到 "."（缺策略文件=全放行）。
+# 仓库规则只允许 `!!js`（表达式节点），不允许 `!js`。
+- insert:
+    - id: kabage-tool-guard
+      name: kabage-tool-guard
+      config:
+        policyPath: !!js '(process.env.DSH_HOME ?? ".") + "/tool-policy.json"'
+        eventsPath: !!js '(process.env.DSH_HOME ?? ".") + "/guard-events.jsonl"'

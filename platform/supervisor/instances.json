@@ -26,7 +26,8 @@
       "uid": 30000,
       "port": 3181,
       "env": {
-        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills",
+        "KABAGE_SERVICE_TOKEN": ""
       }
     },
     {
