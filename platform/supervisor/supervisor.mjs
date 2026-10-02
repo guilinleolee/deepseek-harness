@@ -29,7 +29,7 @@ import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, mont
 import { fmtPoints, migrateLegacyQuotas } from './quotas.mjs'
 import { generatePassword } from './security.mjs'
 import { clearTwofa, deriveKey } from './totp.mjs'
-import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, saveDriftState } from './introspect.mjs'
+import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDriftState, mergeDiffs, pluginSpecDrifts, saveDriftState } from './introspect.mjs'
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
 import { auditAppend, initAudit } from './audit.mjs'
 import { syncAllHomes, transcribeGuardEvents } from './toolpolicy.mjs'
@@ -850,16 +850,8 @@ async function main() {
       const diffs = [
         ...compareSets(grantedM, effM, 'model'),
         ...compareSets(grantedP.map((p) => p.name), effP, 'plugin'),
+        ...pluginSpecDrifts(grantedP, effPluginsRaw),
       ]
-      for (const g of grantedP) {
-        // 期望 spec 是裸包名（无版本段）时只比存在性：pnpm 落盘的是解析后的版本号。
-        if (g.spec !== g.name) {
-          const installed = effPluginsRaw.find((p) => p.name === g.name)
-          if (installed !== undefined && installed.spec !== g.spec) {
-            diffs.push({ kind: 'plugin-version', detail: `${g.name}（期望 ${g.spec}，实际 ${installed.spec}）` })
-          }
-        }
-      }
       const merged = mergeDiffs(state.checks[spec.id]?.diffs, diffs, now)
         .map((d) => ({ ...d, stale: now - Date.parse(d.detectedAt) > staleMs }))
       state.checks[spec.id] = {

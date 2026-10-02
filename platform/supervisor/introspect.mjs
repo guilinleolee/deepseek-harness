@@ -75,6 +75,26 @@ export function compareSets(granted, effective, kindPrefix) {
   return diffs
 }
 
+/**
+ * 本地路径插件的期望 spec ↔ 安装记录比对。两侧书写形式不同：期望侧经
+ * `resolve()` 落成 `\` 绝对路径，安装侧是包管理器落盘的 `link:` + `/`，
+ * 同一路径须规范化后再比，否则每次部署都误报 plugin-version 并在时限后
+ * 转红。期望 spec 是裸包名（无版本段）时跳过——安装侧落的是解析后的版本
+ * 号，存在性已由 compareSets 的 plugin-missing/plugin-extra 覆盖。
+ */
+export function pluginSpecDrifts(desired, effective) {
+  const norm = (s) => (s.startsWith('link:') ? s.slice('link:'.length) : s).replaceAll('\\', '/')
+  const diffs = []
+  for (const g of desired) {
+    if (g.spec === g.name) continue
+    const installed = effective.find((p) => p.name === g.name)
+    if (installed !== undefined && norm(installed.spec) !== norm(g.spec)) {
+      diffs.push({ kind: 'plugin-version', detail: `${g.name}（期望 ${g.spec}，实际 ${installed.spec}）` })
+    }
+  }
+  return diffs
+}
+
 export function loadDriftState(dataDir) {
   try {
     return JSON.parse(readFileSync(join(dataDir, 'drift.json'), 'utf8'))
