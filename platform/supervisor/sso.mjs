@@ -148,6 +148,16 @@ export function buildAuthorizeUrl(provider, config, state, redirectUri) {
     + `&state=${enc(state)}`
 }
 
+/** 错误响应摘要：供应商失败 body 截断进异常文案——403 类失败的原因（权限/发布状态）只在其 body 里，真机排障必须可见。 */
+async function errBody(res) {
+  try {
+    const text = await res.text()
+    return text === '' ? '' : `：${text.slice(0, 300)}`
+  } catch {
+    return ''
+  }
+}
+
 /** 用 code 换用户标识。返回 { ssoId, name? }；任一步失败抛错（调用方转 502）。 */
 export async function resolveSsoIdentity(provider, code, dataDir, key, fetchImpl = fetch) {
   const config = loadSsoConfig(dataDir)[provider]
@@ -155,11 +165,11 @@ export async function resolveSsoIdentity(provider, code, dataDir, key, fetchImpl
   if (provider === 'wecom') {
     const secret = getSsoSecret(dataDir, provider, key)
     const tokenRes = await fetchImpl(`${config.apiBase}/gettoken?corpid=${encodeURIComponent(config.corpId)}&corpsecret=${encodeURIComponent(secret)}`, { signal: AbortSignal.timeout(10_000) })
-    if (!tokenRes.ok) throw new Error(`企业微信 token 接口失败（HTTP ${tokenRes.status}）`)
+    if (!tokenRes.ok) throw new Error(`企业微信 token 接口失败（HTTP ${tokenRes.status}）${await errBody(tokenRes)}`)
     const accessToken = (await tokenRes.json()).access_token
     if (typeof accessToken !== 'string' || accessToken === '') throw new Error('企业微信 token 接口未返回 access_token')
     const userRes = await fetchImpl(`${config.apiBase}/auth/getuserinfo?access_token=${encodeURIComponent(accessToken)}&code=${encodeURIComponent(code)}`, { signal: AbortSignal.timeout(10_000) })
-    if (!userRes.ok) throw new Error(`企业微信用户接口失败（HTTP ${userRes.status}）`)
+    if (!userRes.ok) throw new Error(`企业微信用户接口失败（HTTP ${userRes.status}）${await errBody(userRes)}`)
     const userBody = await userRes.json()
     if (typeof userBody.userid !== 'string' || userBody.userid === '') throw new Error('企业微信用户接口未返回 userid')
     return { ssoId: `wecom:${userBody.userid}`, name: userBody.name }
@@ -174,14 +184,14 @@ export async function resolveSsoIdentity(provider, code, dataDir, key, fetchImpl
     body: JSON.stringify({ clientId: config.appKey, clientSecret: secret, grantType: 'authorization_code', code }),
     signal: AbortSignal.timeout(10_000),
   })
-  if (!tokenRes.ok) throw new Error(`钉钉 token 接口失败（HTTP ${tokenRes.status}）`)
+  if (!tokenRes.ok) throw new Error(`钉钉 token 接口失败（HTTP ${tokenRes.status}）${await errBody(tokenRes)}`)
   const accessToken = (await tokenRes.json()).accessToken
   if (typeof accessToken !== 'string' || accessToken === '') throw new Error('钉钉 token 接口未返回 accessToken')
   const userRes = await fetchImpl(`${config.apiBase}/v1.0/contact/users/me`, {
     headers: { 'x-acs-dingtalk-access-token': accessToken },
     signal: AbortSignal.timeout(10_000),
   })
-  if (!userRes.ok) throw new Error(`钉钉用户接口失败（HTTP ${userRes.status}）`)
+  if (!userRes.ok) throw new Error(`钉钉用户接口失败（HTTP ${userRes.status}）${await errBody(userRes)}`)
   const userBody = await userRes.json()
   const identity = typeof userBody.unionId === 'string' ? userBody.unionId : userBody.openId
   if (typeof identity !== 'string' || identity === '') throw new Error('钉钉用户接口未返回 unionId/openId')
