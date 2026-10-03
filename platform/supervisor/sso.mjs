@@ -143,12 +143,13 @@ export function buildAuthorizeUrl(provider, config, state, redirectUri) {
       + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=snsapi_base`
       + `&state=${enc(state)}&agentid=${enc(config.agentId)}#wechat_redirect`
   }
-  // users/me 的用户令牌按授权时申请的 scope 发放：必须显式带上 Contact.User.Read，
-  // 否则钉钉 403 Forbidden.AccessDenied.AccessTokenPermissionDenied（应用后台开通
-  // 权限只是前提，授权链接不申请令牌里就没有）。
+  // users/me 的用户令牌按授权时申请的 scope 发放：必须显式带上 Contact.User.Read
+  //（缺失时钉钉 403 Forbidden.AccessDenied.AccessTokenPermissionDenied，应用后台
+  // 开通权限只是前提）。个人权限属委托权限点，需用户本人显式同意——prompt=consent
+  // 强制进入授权确认页；登录态静默授权不会下发委托 scope。
   return `${config.authorizeBase}/oauth2/auth?client_id=${enc(config.appKey)}`
     + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=${enc('openid Contact.User.Read')}`
-    + `&state=${enc(state)}`
+    + `&state=${enc(state)}&prompt=consent`
 }
 
 /** 错误响应摘要：供应商失败 body 截断进异常文案——403 类失败的原因（权限/发布状态）只在其 body 里，真机排障必须可见。 */
