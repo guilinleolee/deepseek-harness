@@ -25,3 +25,17 @@
 2. 重启该实例生效（或 plugin-activate）。
 3. 停用 = plugin-remove + 重启；员工实例的 profile patch（cordis.patch.yml）
    中的 disabled 段与本体行可并存（禁用优先）。
+
+## gather 出网白名单（订阅抓取）
+
+订阅抓取（gather）在实例进程内直接出网取源，不经过工具守卫。放行范围由
+实例环境变量 `GATHER_ALLOWED_FEED_HOSTS` 控制（instances.json 按实例注入）：
+
+- 未设置 = 不限制（独立部署缺省）；
+- 空串 = 全部拒绝（员工实例的平台缺省）；
+- 逗号/空格分隔的域名 = 白名单，条目同时放行其子域
+  （`example.com` 放行 `api.example.com`，不放行 `notexample.com`）。
+
+改动 env 后需重启实例生效；白名单机制见 content-outputs 的
+`src/gather/feed.ts`（`resolveAllowedFeedHosts` / `isFeedHostAllowed`）。
+
