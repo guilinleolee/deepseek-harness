@@ -1,4 +1,4 @@
-# Agent Note: 落云宗认证网关以 Host 子域路由实现实例零改动的登录边界
+# Agent Note: 卡巴格认证网关以 Host 子域路由实现实例零改动的登录边界
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-Task-book stage 2 (`落云宗企业平台任务书.md`) requires login + JWT + instance binding, with two acceptance criteria: unauthenticated access to any entry is refused, and user A's session list never contains user B's session ids. DSH's web stack deliberately has no auth layer (`client/connection` blocks `0.0.0.0` "until a real authentication layer exists"; the webserver README states "No TLS, auth, or origin policy"), and the task book forbids harness-core changes when an extension point suffices. The open question: where does auth live so the DSH web SPA — which assumes root-path URLs for both `/api` and its WebSocket downlinks — keeps working untouched?
+Task-book stage 2 (`卡巴格企业平台任务书.md`) requires login + JWT + instance binding, with two acceptance criteria: unauthenticated access to any entry is refused, and user A's session list never contains user B's session ids. DSH's web stack deliberately has no auth layer (`client/connection` blocks `0.0.0.0` "until a real authentication layer exists"; the webserver README states "No TLS, auth, or origin policy"), and the task book forbids harness-core changes when an extension point suffices. The open question: where does auth live so the DSH web SPA — which assumes root-path URLs for both `/api` and its WebSocket downlinks — keeps working untouched?
 
 ## Decision
 

@@ -1,4 +1,4 @@
-# Agent Note: 落云宗漂移对齐以 home 内省为生效事实，插件治理以真启动预检为投放闸门
+# Agent Note: 卡巴格漂移对齐以 home 内省为生效事实，插件治理以真启动预检为投放闸门
 
 Status: implemented
 

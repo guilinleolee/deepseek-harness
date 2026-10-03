@@ -1,4 +1,4 @@
-# Agent Note: 落云宗 Relay 以 OpenAI 兼容上游接缝实现真实 Key 零下发
+# Agent Note: 卡巴格 Relay 以 OpenAI 兼容上游接缝实现真实 Key 零下发
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-Task-book stage 3 (`落云宗企业平台任务书.md`): real upstream keys must live only in a Relay process; instances hold only revocable virtual keys; acceptance = no real key anywhere in an instance (env, config dump, disk), revocation rejects new requests immediately, and switching upstream vendors requires zero instance changes. The DSH LLM path already resolves credentials per request through the credentials capability and sends them as `Authorization: Bearer` to a provider-configured `baseURL` — the question was whether that seam is enough or a new `credentials-broker` Provider seam (the task book's default landing spot) is required.
+Task-book stage 3 (`卡巴格企业平台任务书.md`): real upstream keys must live only in a Relay process; instances hold only revocable virtual keys; acceptance = no real key anywhere in an instance (env, config dump, disk), revocation rejects new requests immediately, and switching upstream vendors requires zero instance changes. The DSH LLM path already resolves credentials per request through the credentials capability and sends them as `Authorization: Bearer` to a provider-configured `baseURL` — the question was whether that seam is enough or a new `credentials-broker` Provider seam (the task book's default landing spot) is required.
 
 ## Decision
 
