@@ -66,11 +66,17 @@ const waitForAudit = async (pred, timeoutMs = 4000) => {
   return undefined
 }
 
-/* mock OAuth 服务器（企业微信协议形态）*/
+/* mock OAuth 服务器（企业微信 + 钉钉两种协议形态）*/
 const MOCK_USER_ID = 'mock-user-1'
+const MOCK_DT_UNION_ID = 'mock-dt-union-1'
 let authorizeHits = 0
 let tokenHits = 0
 let userinfoHits = 0
+let dtAuthorizeHits = 0
+let dtTokenHits = 0
+let dtTokenBody = null
+let dtMeHits = 0
+let dtMeAuth = null
 const mock = createServer((req, res) => {
   const url = new URL(req.url, 'http://mock')
   if (url.pathname === '/connect/oauth2/authorize') {
@@ -90,6 +96,31 @@ const mock = createServer((req, res) => {
     userinfoHits += 1
     res.writeHead(200, { 'content-type': 'application/json' })
     res.end(JSON.stringify({ errcode: 0, userid: MOCK_USER_ID, name: 'Mock 用户' }))
+    return
+  }
+  if (url.pathname === '/oauth2/auth') {
+    dtAuthorizeHits += 1
+    const back = `${decodeURIComponent(url.searchParams.get('redirect_uri'))}?code=mock-dt-code-${dtAuthorizeHits}&state=${url.searchParams.get('state')}`
+    res.writeHead(303, { location: back })
+    res.end()
+    return
+  }
+  if (url.pathname === '/v1.0/oauth2/userAccessToken') {
+    dtTokenHits += 1
+    let raw = ''
+    req.on('data', (chunk) => { raw += chunk })
+    req.on('end', () => {
+      dtTokenBody = JSON.parse(raw)
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ accessToken: 'mock-dt-access-token' }))
+    })
+    return
+  }
+  if (url.pathname === '/v1.0/contact/users/me') {
+    dtMeHits += 1
+    dtMeAuth = req.headers['x-acs-dingtalk-access-token'] ?? null
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ unionId: MOCK_DT_UNION_ID, nick: 'Mock 钉钉用户' }))
     return
   }
   res.writeHead(404)
@@ -156,6 +187,42 @@ try {
   const direct = await getAbs(cb3)
   check('二次 SSO 直达登录（303 + cookie，无绑定页）', direct.status === 303 && direct.headers.getSetCookie()[0] !== undefined && !(await direct.text()).includes('绑定'))
   check('auth.sso_login 留痕', await waitForAudit((e) => e.action === 'auth.sso_login' && e.result === 'ok' && e.actor?.account === 'member@t' && e.detail?.provider === 'wecom') !== undefined)
+
+  /* 4a. 钉钉分支：真实端点契约回归（2026-10-03 真机发现 /oauth2/token+snake_case
+     被钉钉拒绝，须为 /v1.0/oauth2/userAccessToken + 驼峰字段；mock 原样钉钉协议） */
+  saveSsoConfig(DATA, { dingtalk: {
+    enabled: true, appKey: 'dt-key-1', appSecret: 'dt-secret-plain',
+    redirectUri: `${base}/api/auth/sso/dingtalk/callback`,
+    authorizeBase: mockBase, apiBase: mockBase,
+  } }, key)
+  check('sso.json 不含钉钉明文 secret', !readFileSync(join(DATA, 'sso.json'), 'utf8').includes('dt-secret-plain'))
+  const loginDt = await (await get('/login')).text()
+  check('登录页出现钉钉按钮', loginDt.includes('/api/auth/sso/dingtalk/start') && loginDt.includes('钉钉'))
+  const dtStart = await get('/api/auth/sso/dingtalk/start')
+  const dtAuthorizeUrl = dtStart.headers.get('location')
+  check('start 303 到 mock authorize（client_id/state/redirect_uri）', dtStart.status === 303
+    && dtAuthorizeUrl.startsWith(`${mockBase}/oauth2/auth`)
+    && dtAuthorizeUrl.includes('client_id=dt-key-1') && dtAuthorizeUrl.includes('state=')
+    && dtAuthorizeUrl.includes(encodeURIComponent(`${base}/api/auth/sso/dingtalk/callback`)))
+  const dtAuthorizeRes = await fetch(dtAuthorizeUrl, { redirect: 'manual' })
+  const dtCallbackUrl = dtAuthorizeRes.headers.get('location')
+  check('钉钉 mock authorize 303 回调（code+state）', dtAuthorizeRes.status === 303
+    && dtCallbackUrl.includes('code=mock-dt-code-1') && /state=[^&]+/.test(dtCallbackUrl))
+  const dtCallbackText = await (await getAbs(dtCallbackUrl)).text()
+  check('钉钉未绑定 → 200 绑定页', dtCallbackText.includes('绑定钉钉账号') && dtCallbackText.includes('bindToken'))
+  const dtBindToken = /id="bt" value="([^"]+)"/.exec(dtCallbackText)?.[1]
+  const dtGoodBind = await post('/api/auth/sso/bind', { bindToken: dtBindToken, account: 'admin@t', password: 'AdminPass1' })
+  const dtGoodBody = await dtGoodBind.json()
+  check('钉钉绑定成功 200 + cookie', dtGoodBind.status === 200 && dtGoodBody.ok === true && dtGoodBind.headers.getSetCookie()[0] !== undefined)
+  check('userAccessToken 端点命中一次', dtTokenHits === 1 && dtAuthorizeHits === 1 && dtMeHits === 1)
+  check('token 请求为钉钉真实契约（驼峰字段）', dtTokenBody !== null
+    && dtTokenBody.clientId === 'dt-key-1' && dtTokenBody.clientSecret === 'dt-secret-plain'
+    && dtTokenBody.grantType === 'authorization_code' && typeof dtTokenBody.code === 'string' && dtTokenBody.code !== '')
+  check('users/me 携带访问令牌头', dtMeAuth === 'mock-dt-access-token')
+  const dtEvent = await waitForAudit((e) => e.action === 'auth.sso_bind' && e.result === 'ok' && e.target === 'admin@t')
+  check('钉钉 bind ok 留痕（ssoId=dingtalk:unionId）', dtEvent !== undefined && dtEvent.detail?.ssoId === `dingtalk:${MOCK_DT_UNION_ID}`)
+  const adminPersisted = JSON.parse(readFileSync(join(DATA, 'accounts.json'), 'utf8')).accounts.find((a) => a.account === 'admin@t')
+  check('钉钉 ssoIds 落盘 accounts.json', Array.isArray(adminPersisted.ssoIds) && adminPersisted.ssoIds.includes(`dingtalk:${MOCK_DT_UNION_ID}`))
 
   /* 4b. P2-2 fetch 超时 signal + P2-3 bind 并发走账号锁（无丢更新） */
   let capturedSignal = null

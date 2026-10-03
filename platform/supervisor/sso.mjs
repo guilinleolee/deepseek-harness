@@ -165,10 +165,13 @@ export async function resolveSsoIdentity(provider, code, dataDir, key, fetchImpl
     return { ssoId: `wecom:${userBody.userid}`, name: userBody.name }
   }
   const secret = getSsoSecret(dataDir, provider, key)
-  const tokenRes = await fetchImpl(`${config.apiBase}/v1.0/oauth2/token`, {
+  // 钉钉新版 OAuth2 契约（2026-10-03 真机探针核对）：换用户令牌的端点是
+  // /v1.0/oauth2/userAccessToken，字段为驼峰 clientId/clientSecret/grantType；
+  // snake_case 或 /v1.0/oauth2/token 均被钉钉拒绝（404 API 不存在 / 缺 clientId）。
+  const tokenRes = await fetchImpl(`${config.apiBase}/v1.0/oauth2/userAccessToken`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ client_id: config.appKey, client_secret: secret, code, grant_type: 'authorization_code' }),
+    body: JSON.stringify({ clientId: config.appKey, clientSecret: secret, grantType: 'authorization_code', code }),
     signal: AbortSignal.timeout(10_000),
   })
   if (!tokenRes.ok) throw new Error(`钉钉 token 接口失败（HTTP ${tokenRes.status}）`)
