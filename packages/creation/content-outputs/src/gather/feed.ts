@@ -28,6 +28,30 @@ export interface GatherFetchDeps {
   readonly fetchImpl?: typeof fetch
 }
 
+/**
+ * Feed-host allowlist, read from `GATHER_ALLOWED_FEED_HOSTS` at fetch time:
+ * unset = unrestricted (standalone deployments); empty = deny every host;
+ * otherwise a comma/space-separated domain list where an entry also admits
+ * its subdomains. The platform injects it per instance (instances.json env),
+ * the same channel as CREATOR_WORKBENCH_SKILLS_PATH.
+ */
+export function resolveAllowedFeedHosts(raw = process.env.GATHER_ALLOWED_FEED_HOSTS): readonly string[] | undefined {
+  if (raw === undefined) return undefined
+  return raw.split(/[\s,]+/).map(entry => entry.trim().toLowerCase()).filter(entry => entry.length > 0)
+}
+
+/**
+ * Match one feed host against the allowlist: an entry admits itself and its
+ * subdomains (`example.com` admits `api.example.com`, not `notexample.com`).
+ * @param host - URL hostname (already port-free) lowercased by the caller or this helper.
+ * @param allowed - the resolved allowlist; `undefined` admits everything.
+ */
+export function isFeedHostAllowed(host: string, allowed: readonly string[] | undefined): boolean {
+  if (allowed === undefined) return true
+  const normalized = host.toLowerCase()
+  return allowed.some(entry => normalized === entry || normalized.endsWith(`.${entry}`))
+}
+
 /** The fetch failure carries the HTTP status for caller-facing messages. */
 export class GatherFeedHttpError extends Error {
   /** HTTP status of the failed response. */
@@ -37,6 +61,18 @@ export class GatherFeedHttpError extends Error {
     super(`feed request to ${url} failed with HTTP ${status}`)
     this.name = 'GatherFeedHttpError'
     this.status = status
+  }
+}
+
+/** Raised before any network I/O when the feed host misses the configured allowlist. */
+export class GatherFeedBlockedError extends Error {
+  /** Hostname that missed the allowlist (`(unparseable)` when the URL had none). */
+  readonly host: string
+
+  constructor(host: string, url: string) {
+    super(`feed host ${host} is not allowed by the configured gather allowlist (${url})`)
+    this.name = 'GatherFeedBlockedError'
+    this.host = host
   }
 }
 
@@ -175,6 +211,19 @@ export async function fetchFeedDocument(
   }
   if (request.etag !== undefined && request.etag.length > 0) headers['if-none-match'] = request.etag
   if (request.lastModified !== undefined && request.lastModified.length > 0) headers['if-modified-since'] = request.lastModified
+
+  // Allowlist gate before any network I/O. An unparseable URL leaves the
+  // hostname empty, which a configured allowlist then rejects; without one
+  // the URL falls through to fetch, which fails on it natively.
+  let host = ''
+  try {
+    host = new URL(request.url).hostname
+  } catch {
+    host = ''
+  }
+  if (!isFeedHostAllowed(host, resolveAllowedFeedHosts())) {
+    throw new GatherFeedBlockedError(host === '' ? '(unparseable)' : host, request.url)
+  }
 
   const deadline = AbortSignal.timeout(GATHER_FETCH_TIMEOUT_MS)
   const response = await (deps.fetchImpl ?? fetch)(request.url, {

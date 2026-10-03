@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import {
-  GatherFeedHttpError, dedupKey, fetchFeedDocument, normalizeDedupUrl, normalizeParsedFeed,
+  GatherFeedBlockedError, GatherFeedHttpError, dedupKey, fetchFeedDocument, isFeedHostAllowed,
+  normalizeDedupUrl, normalizeParsedFeed, resolveAllowedFeedHosts,
 } from '../src/gather/feed.ts'
 import type { GatherFeedRequest } from '../src/types.ts'
 
@@ -135,5 +136,57 @@ describe('fetchFeedDocument', () => {
     const huge = (async () => response('x', { headers: { 'content-length': String(10 * 1024 * 1024 + 1) } })) as typeof fetch
     await expect(fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: huge }))
       .rejects.toMatchObject({ status: 413 })
+  })
+})
+
+describe('gather feed-host allowlist', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('splits the env value into a lowercased host list across commas and whitespace', () => {
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', 'Example.com,  feeds.example.org \n rsshub.local')
+    expect(resolveAllowedFeedHosts()).toEqual(['example.com', 'feeds.example.org', 'rsshub.local'])
+  })
+
+  it('maps an empty value to deny-all and an unset value to unrestricted', () => {
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', '  ')
+    expect(resolveAllowedFeedHosts()).toEqual([])
+    vi.unstubAllEnvs()
+    expect(resolveAllowedFeedHosts(undefined)).toBeUndefined()
+  })
+
+  it('admits the entry itself and its subdomains, case-insensitively', () => {
+    expect(isFeedHostAllowed('example.com', ['example.com'])).toBe(true)
+    expect(isFeedHostAllowed('API.Example.com', ['example.com'])).toBe(true)
+    expect(isFeedHostAllowed('notexample.com', ['example.com'])).toBe(false)
+    expect(isFeedHostAllowed('example.com', undefined)).toBe(true)
+  })
+
+  it('blocks a host outside the configured allowlist before any network I/O', async () => {
+    const offline = (async () => {
+      throw new Error('network must not be reached')
+    }) as typeof fetch
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', 'feeds.example.org')
+    await expect(fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: offline }))
+      .rejects.toMatchObject({ name: 'GatherFeedBlockedError', host: 'example.com' })
+    expect(new GatherFeedBlockedError('h', 'https://h').host).toBe('h')
+  })
+
+  it('rejects an unparseable URL whenever a deny-all list is configured', async () => {
+    const offline = (async () => new Response(RSS_DOCUMENT)) as typeof fetch
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', '')
+    await expect(fetchFeedDocument({ url: 'not a url' }, { fetchImpl: offline }))
+      .rejects.toMatchObject({ name: 'GatherFeedBlockedError', host: '(unparseable)' })
+  })
+
+  it('lets a whitelisted host through and denies everything under deny-all', async () => {
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', 'example.com')
+    const result = await fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: (async () => new Response(RSS_DOCUMENT)) as typeof fetch })
+    expect(result.items).toHaveLength(2)
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', '')
+    const offline = (async () => new Response(RSS_DOCUMENT)) as typeof fetch
+    await expect(fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: offline }))
+      .rejects.toBeInstanceOf(GatherFeedBlockedError)
   })
 })
