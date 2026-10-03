@@ -100,23 +100,9 @@
     - id: plugin-inventory
       name: '@deepseek-ai/dsh-host-plugin-inventory'
 
-    # Read-only projection of the content-creation outputs library
-    # (contentOutputs/list) behind the Content Studio library view.
-    - id: content-outputs
-      name: '@deepseek-ai/dsh-content-outputs'
-      config:
-        provider: minimax-0801
-        model: MiniMax-M3
-
-    # Publication calendar (contentSchedule/list|put|remove) behind the
-    # Content Studio calendar view.
-    - id: content-schedule
-      name: '@deepseek-ai/dsh-content-schedule'
-
-    # Topic bank (contentTopics/list|put|delete) behind the Content Studio
-    # topic-bank view.
-    - id: content-topics
-      name: '@deepseek-ai/dsh-content-topics'
+    # The content-creation rows (content-outputs/schedule/topics + the
+    # ui-content-studio surface) moved to the kabage-content-studio managed
+    # plugin, delivered per instance by the Kabage platform console.
 
     # The API gateway: the transport-agnostic dispatch face every client shape
     # shares. The base layer's agent-default-model service owns the default model.
@@ -254,11 +240,6 @@
 
     - id: ui-workspace
       name: '@deepseek-ai/dsh-client-ui-workspace'
-
-    # Content Studio: the sidebar footer entry and the frame-wide creation
-    # workbench surface (dual-tab capability menu over the shell overlay).
-    - id: ui-content-studio
-      name: '@deepseek-ai/dsh-client-ui-content-studio'
 
     # Input triggers: the '/' | '@' pipeline (ui-input-trigger), the command surface over
     # it (ui-commands), and the reference sources (ui-skill / ui-reference).
