@@ -143,8 +143,11 @@ export function buildAuthorizeUrl(provider, config, state, redirectUri) {
       + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=snsapi_base`
       + `&state=${enc(state)}&agentid=${enc(config.agentId)}#wechat_redirect`
   }
+  // users/me 的用户令牌按授权时申请的 scope 发放：必须显式带上 Contact.User.Read，
+  // 否则钉钉 403 Forbidden.AccessDenied.AccessTokenPermissionDenied（应用后台开通
+  // 权限只是前提，授权链接不申请令牌里就没有）。
   return `${config.authorizeBase}/oauth2/auth?client_id=${enc(config.appKey)}`
-    + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=openid`
+    + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=${enc('openid Contact.User.Read')}`
     + `&state=${enc(state)}`
 }
 
