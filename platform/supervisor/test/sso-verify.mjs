@@ -203,6 +203,7 @@ try {
   check('start 303 到 mock authorize（client_id/state/redirect_uri）', dtStart.status === 303
     && dtAuthorizeUrl.startsWith(`${mockBase}/oauth2/auth`)
     && dtAuthorizeUrl.includes('client_id=dt-key-1') && dtAuthorizeUrl.includes('state=')
+    && dtAuthorizeUrl.includes('scope=openid%20Contact.User.Read')
     && dtAuthorizeUrl.includes(encodeURIComponent(`${base}/api/auth/sso/dingtalk/callback`)))
   const dtAuthorizeRes = await fetch(dtAuthorizeUrl, { redirect: 'manual' })
   const dtCallbackUrl = dtAuthorizeRes.headers.get('location')
