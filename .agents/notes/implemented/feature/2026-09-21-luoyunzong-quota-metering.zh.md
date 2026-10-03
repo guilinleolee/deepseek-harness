@@ -1,4 +1,4 @@
-# Agent Note：落云宗月度 Token 配额以 Relay 每请求检查硬停，用量抽取带缓冲上限
+# Agent Note：卡巴格月度 Token 配额以 Relay 每请求检查硬停，用量抽取带缓冲上限
 
 Status: implemented
 

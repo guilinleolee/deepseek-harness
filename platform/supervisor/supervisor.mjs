@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 落云宗企业平台 · 实例编排 supervisor MVP（任务书阶段 1）。
+ * 卡巴格企业平台 · 实例编排 supervisor MVP（任务书阶段 1）。
  *
  * 职责：按 instances.json 清单把每个员工实例拉起为一个独立 DSH web 进程
  * （独立 DSH_HOME + 独立端口 + 名义 uid），做健康检查、崩溃自动重启

@@ -1,4 +1,4 @@
-# Agent Note：落云宗 Relay 以 OpenAI 兼容上游接缝实现真实 Key 零下发
+# Agent Note：卡巴格 Relay 以 OpenAI 兼容上游接缝实现真实 Key 零下发
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-任务书阶段 3（`落云宗企业平台任务书.md`）：真实上游 Key 只存在于 Relay 进程；实例只持可吊销的虚拟钥匙；验收 = 实例内（环境变量、配置 dump、磁盘）任何地方无真实 Key，吊销后新请求立即被拒，换上游供应商实例零改动。DSH 的 LLM 路径本来就每请求经 credentials capability 解析凭证、以 `Authorization: Bearer` 发往 provider 配置的 `baseURL`——问题是这个接缝够不够，还是必须按任务书默认落点新增 `credentials-broker` Provider seam。
+任务书阶段 3（`卡巴格企业平台任务书.md`）：真实上游 Key 只存在于 Relay 进程；实例只持可吊销的虚拟钥匙；验收 = 实例内（环境变量、配置 dump、磁盘）任何地方无真实 Key，吊销后新请求立即被拒，换上游供应商实例零改动。DSH 的 LLM 路径本来就每请求经 credentials capability 解析凭证、以 `Authorization: Bearer` 发往 provider 配置的 `baseURL`——问题是这个接缝够不够，还是必须按任务书默认落点新增 `credentials-broker` Provider seam。
 
 ## 决策
 

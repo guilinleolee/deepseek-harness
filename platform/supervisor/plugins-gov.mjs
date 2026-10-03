@@ -1,5 +1,5 @@
 /**
- * 落云宗企业平台 · 插件治理（任务书阶段 6）。
+ * 卡巴格企业平台 · 插件治理（任务书阶段 6）。
  *
  * 期望态存 data/plugins.json：{ instances: { <实例id>: [{ name, spec, state, since, history }] } }。
  * 命令语义（对齐任务书术语）：

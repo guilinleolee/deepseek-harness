@@ -1,4 +1,4 @@
-# Agent Note：落云宗实例编排 supervisor MVP 以零依赖文件 IPC 形态独立于 harness 发布
+# Agent Note：卡巴格实例编排 supervisor MVP 以零依赖文件 IPC 形态独立于 harness 发布
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-企业平台任务书（`落云宗企业平台任务书.md`，阶段 1）要求服务端托管的一人一实例：一账号、一实例、一独立目录，带健康检查、30 秒上限的崩溃自动重启，以及实例页数据（端口/pid/uid/内存/磁盘）。harness 本体是单用户的，没有实例概念；而 `DSH_HOME` 已完全参数化（`packages/util/home-paths`）、profile 首次使用自动初始化，所以"一人一 home 一进程"只差外层调度。问题是：这个调度器放哪、如何在不改 harness 的前提下与实例通信（任务书决定 4：独立控制面，不动 harness 本体）。
+企业平台任务书（`卡巴格企业平台任务书.md`，阶段 1）要求服务端托管的一人一实例：一账号、一实例、一独立目录，带健康检查、30 秒上限的崩溃自动重启，以及实例页数据（端口/pid/uid/内存/磁盘）。harness 本体是单用户的，没有实例概念；而 `DSH_HOME` 已完全参数化（`packages/util/home-paths`）、profile 首次使用自动初始化，所以"一人一 home 一进程"只差外层调度。问题是：这个调度器放哪、如何在不改 harness 的前提下与实例通信（任务书决定 4：独立控制面，不动 harness 本体）。
 
 ## 决策
 

@@ -1,4 +1,4 @@
-# Agent Note：落云宗认证网关以 Host 子域路由实现实例零改动的登录边界
+# Agent Note：卡巴格认证网关以 Host 子域路由实现实例零改动的登录边界
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-任务书阶段 2（`落云宗企业平台任务书.md`）要求登录 + JWT + 实例绑定，验收两条：未登录访问任意入口被拒；用户 A 的会话列表不含用户 B 的 session id。DSH 的 web 栈刻意没有认证层（`client/connection` 对 `0.0.0.0` 的禁用注释写着"直到真正的认证层出现"；webserver README 声明"No TLS, auth, or origin policy"），而任务书禁止在扩展点够用时改动 harness 本体。悬而未决的问题是：认证放在哪，才能让假设根路径 URL（`/api` 与两条 WebSocket 下行）的 DSH web SPA 原样工作？
+任务书阶段 2（`卡巴格企业平台任务书.md`）要求登录 + JWT + 实例绑定，验收两条：未登录访问任意入口被拒；用户 A 的会话列表不含用户 B 的 session id。DSH 的 web 栈刻意没有认证层（`client/connection` 对 `0.0.0.0` 的禁用注释写着"直到真正的认证层出现"；webserver README 声明"No TLS, auth, or origin policy"），而任务书禁止在扩展点够用时改动 harness 本体。悬而未决的问题是：认证放在哪，才能让假设根路径 URL（`/api` 与两条 WebSocket 下行）的 DSH web SPA 原样工作？
 
 ## 决策
 

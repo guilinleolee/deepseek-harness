@@ -1,4 +1,4 @@
-# Agent Note: 落云宗实例编排 supervisor MVP 以零依赖文件 IPC 形态独立于 harness 发布
+# Agent Note: 卡巴格实例编排 supervisor MVP 以零依赖文件 IPC 形态独立于 harness 发布
 
 Status: implemented
 
@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-The enterprise platform task book (`落云宗企业平台任务书.md`, stage 1) requires server-hosted per-employee DSH instances — one account, one instance, one isolated directory — with health checks, crash auto-restart within 30 seconds, and instance-page data (port/pid/uid/memory/disk). The harness itself is single-user and has no instance concept; `DSH_HOME` is fully parameterized (`packages/util/home-paths`) and profiles auto-initialize on first use, so "one user = one home = one process" only needs an outer scheduler. The question was where that scheduler lives and how it talks to the instances without touching the harness (task-book decision 4: standalone control plane, no harness-core changes).
+The enterprise platform task book (`卡巴格企业平台任务书.md`, stage 1) requires server-hosted per-employee DSH instances — one account, one instance, one isolated directory — with health checks, crash auto-restart within 30 seconds, and instance-page data (port/pid/uid/memory/disk). The harness itself is single-user and has no instance concept; `DSH_HOME` is fully parameterized (`packages/util/home-paths`) and profiles auto-initialize on first use, so "one user = one home = one process" only needs an outer scheduler. The question was where that scheduler lives and how it talks to the instances without touching the harness (task-book decision 4: standalone control plane, no harness-core changes).
 
 ## Decision
 
