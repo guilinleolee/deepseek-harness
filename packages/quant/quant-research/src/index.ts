@@ -30,9 +30,10 @@ export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
 export { complianceDenialSchema, quantResearchDomainSpec } from './domain/spec.ts'
 export type { ComplianceDenial, ComplianceDenialId } from './domain/spec.ts'
 export {
-  BARS_HARD_LIMIT, BROKER_MARKERS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, TOOL_PREFIX,
-  collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectToolCall, installQuantComplianceGate, recordComplianceDenial,
+  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT,
+  SHOCK_LIMITS, TOOL_PREFIX, collectArgStrings, denialAuditCallback, inspectBarCap,
+  inspectBacktestCaps, inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall,
+  installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
 export type { ComplianceDenialInput, ComplianceVerdict } from './compliance.ts'
 export {
@@ -54,12 +55,19 @@ export type { Series } from './paat/indicators.ts'
 export {
   FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
 } from './pcpt/backtest.ts'
+export {
+  CONFIDENCE_LIMITS as PRT_CONFIDENCE_LIMITS, DEFAULT_STRESS_SEGMENT, SHOCK_LIMITS as PRT_SHOCK_LIMITS,
+  TRADING_DAYS_PER_YEAR, annualVolatility, concentrationBreaches, dailyReturns, empiricalQuantile,
+  historicalCVar, historicalVar, maxDrawdown, shockBars, validateStressParams,
+} from './prt/risk.ts'
+export type { StressParams, StressScenario } from './prt/risk.ts'
 export type {
   BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
 } from './pcpt/backtest.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
-  computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  assessRiskTool, computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  stressTestTool,
 } from './tools.ts'
 export type { QuantToolDeps } from './tools.ts'
 

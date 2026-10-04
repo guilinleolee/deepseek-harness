@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标，以及受"仅供研究"合规门禁约束的日线双均线回测。插件注册三个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
+面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、日线双均线回测，以及受"仅供研究"合规门禁约束的 PRT 风险套件。插件注册五个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
 
 ## 安装
 
@@ -46,6 +46,8 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_get_kline` | 经内核获取某标的最近 N 根日线（OHLCV）。 |
 | `quant_compute_indicator` | 对收盘价计算 `ma` / `ema` / `macd` / `rsi` / `boll` / `atr`。 |
 | `quant_run_backtest` | 运行日线双均线模拟（收盘出信号、次日开盘成交、全进全出），返回净值曲线、成交与绩效指标。 |
+| `quant_assess_risk` | 单标的历史模拟法尾部风险：VaR、CVaR、年化波动率与区间最大回撤。 |
+| `quant_stress_test` | 在冲击后的价格路径上重跑同一回测（crash 黑天鹅跳空 / liquidity 流动性阴跌），对比基准与冲击后指标。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
@@ -59,11 +61,11 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 #### 模型看到什么
 
-插件加载后，`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest` 三个工具 schema 加入提示装配；文本渲染包括：K 线尾部的日期化 OHLCV 列表、指标近期读数与窗口、回测头条指标（总/年化收益、最大回撤、夏普、胜率、交易笔数、期末净值）。拒绝以错误结果形式出现，携带门禁的中文理由。
+插件加载后，`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test` 五个工具 schema 加入提示装配；文本渲染包括：K 线尾部的日期化 OHLCV 列表、指标近期读数与窗口、回测头条指标（总/年化收益、最大回撤、夏普、胜率、交易笔数、期末净值）、历史模拟尾部指标（VaR/CVaR/波动率/回撤），以及压力对比（基准 vs 冲击后收益/回撤/夏普）。拒绝以错误结果形式出现，携带门禁的中文理由。
 
 #### Token 影响
 
-有界：插件加载期间，每次装配请求包含三个工具 schema（约 500 token）；渲染最多输出 10 行 K 线与 5 条指标读数。
+有界：插件加载期间，每次装配请求包含五个工具 schema（约 900 token）；渲染最多输出 10 行 K 线与 5 条指标读数。
 
 #### KV Cache 影响
 
@@ -72,7 +74,7 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 ## 已知限制与延期工作
 
 - **无实盘通道（设计使然）** — 这是插件的永久红线，不是缺失功能；门禁拒绝意图标记，内核只有虚拟账户。
-- **Phase 2 范围** — PRT 风控套件（VaR/CVaR、集中度、压力测试）、PET 虚拟账户与 `ctx.approval` 审核、含 IC/IR 的因子库、jobs 运行时上的参数寻优、图表卡片随后落地；PRT/PET 模块名已预留。
+- **Phase 2 剩余** — PRT 已上线（`src/prt`：历史模拟法 VaR/CVaR、年化波动率、回撤、集中度检查，以及复用内核模拟器的两套压力价格路径变换）；PET 虚拟账户与 `ctx.approval` 审核（集中度检查已为其就绪）、含 IC/IR 的因子库、jobs 运行时上的参数寻优、图表卡片随后落地。
 - **面板为占位** — Web 面板目前声明"仅供研究"范围并从侧边栏打开；带图表的真面板与核心包 Remote 面随 Phase 2 到来。
 - **内核缓存无 TTL 策略** — `akshare` 缓存按文件存在性命中，不看新鲜度；刷新策略等具体部署需求出现后再定。
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。

@@ -6,7 +6,8 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
 import type { QuantKernelClient } from '../src/kernel-client/client.ts'
 import {
-  computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  assessRiskTool, computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  stressTestTool,
 } from '../src/tools.ts'
 import type { QuantToolDeps } from '../src/tools.ts'
 
@@ -255,6 +256,125 @@ describe('quant_run_backtest', () => {
   })
 })
 
+describe('quant_assess_risk', () => {
+  const tool = (): ToolDefinition => assessRiskTool(deps(syntheticBarsKernel()))
+
+  it('computes the tail-risk metrics and renders them with the disclaimer', async () => {
+    const definition = tool()
+    const value = await definition.execute?.({ symbol: '000001', bars: 30, confidence: 0.9 }, execWith())
+    expect(value).toMatchObject({ code: 0 })
+    const data = (value as { data: { sample_count: number; confidence: number } }).data
+    expect(data.sample_count).toBe(29)
+    expect(data.confidence).toBe(0.9)
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('历史模拟法')
+    expect(rendered).toContain('VaR')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('defaults the confidence when omitted and reports the friendly failure', async () => {
+    const failing = assessRiskTool(deps(kernelByOp(() => {
+      throw new QuantError('NETWORK', '数据源超时')
+    })))
+    const failed = await failing.execute?.({ symbol: '000001' }, execWith())
+    expect(failed).toMatchObject({ code: 1001 })
+    expect(textOf(failing.output.render({}, failed as never))).toContain('请求失败')
+
+    const definition = assessRiskTool(deps(syntheticBarsKernel()))
+    const value = await definition.execute?.({ symbol: '000001' }, execWith())
+    expect((value as { data: { confidence: number } }).data.confidence).toBe(0.95)
+  })
+
+  it('renders placeholder segments when the envelope omits optional fields', () => {
+    const definition = tool()
+    const rendered = textOf(definition.output.render({}, {
+      code: 0,
+      msg: 'ok',
+      data: { symbol: '000001', var: 0.02, cvar: 0.03 },
+    } as never))
+    expect(rendered).toContain('置信度 ?')
+    expect(rendered).toContain('样本 ? 个')
+    expect(rendered).toContain('年化波动率 0.00%')
+  })
+
+  it('renders the empty fallback and the call card', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never)))
+      .toContain('风险评估为空')
+    expect(definition.presentCall?.({ symbol: '600000' } as never))
+      .toEqual({ card: 'generic', title: '风险评估：600000' })
+  })
+})
+
+describe('quant_stress_test', () => {
+  const tool = (): ToolDefinition => stressTestTool(deps(syntheticBarsKernel()))
+
+  it('reruns the backtest on shocked bars and renders the comparison', async () => {
+    const kernel = syntheticBarsKernel()
+    const definition = stressTestTool(deps(kernel))
+    const value = await definition.execute?.(
+      { symbol: '000001', scenario: 'crash', bars: 60, fast: 3, slow: 10, shock: 0.2 },
+      execWith(),
+    )
+    expect(value).toMatchObject({ code: 0 })
+    const calls = (kernel.request as ReturnType<typeof vi.fn>).mock.calls as Array<[string, Record<string, unknown>]>
+    expect(calls.filter(([op]) => op === 'backtest')).toHaveLength(2)
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('crash')
+    expect(rendered).toContain('冲击 20.00%')
+    expect(rendered).toContain('最大回撤')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('renders the failure envelope for stress failures', async () => {
+    const kernel = kernelByOp((op) => {
+      if (op === 'get_kline') return BARS
+      throw new QuantError('KERNEL', '压力回测崩溃')
+    })
+    const definition = stressTestTool(deps(kernel))
+    const value = await definition.execute?.({ symbol: '000001', scenario: 'crash' }, execWith())
+    expect(value).toMatchObject({ code: 1003 })
+    expect(textOf(definition.output.render({}, value as never))).toContain('请求失败')
+  })
+
+  it('defaults the shock magnitude and reports the friendly failure', async () => {
+    const definition = tool()
+    const value = await definition.execute?.({ symbol: '000001', scenario: 'liquidity' }, execWith())
+    expect(value).toMatchObject({ code: 0 })
+    const data = (value as { data: { shock: number; scenario: string } }).data
+    expect(data.scenario).toBe('liquidity')
+    expect(data.shock).toBe(0.1)
+
+    const invalid = stressTestTool(deps(syntheticBarsKernel()))
+    const bad = await invalid.execute?.({ symbol: '000001', scenario: 'crash', shock: 0.9 }, execWith())
+    expect(bad).toMatchObject({ code: 1002 })
+    expect((bad as { msg: string }).msg).toContain('冲击幅度')
+  })
+
+  it('renders placeholders when stress metrics omit optional fields', () => {
+    const definition = tool()
+    const rendered = textOf(definition.output.render({}, {
+      code: 0,
+      msg: 'ok',
+      data: {
+        symbol: '000001',
+        baseline: { total_return: 0.05, max_drawdown: 0.1, sharpe: 1.2 },
+        stressed: { total_return: -0.2, max_drawdown: 0.4, sharpe: -0.5 },
+      },
+    } as never))
+    expect(rendered).toContain('压力测试（?')
+    expect(rendered).toContain('冲击 0.00%')
+  })
+
+  it('renders the empty fallback and the call card', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never)))
+      .toContain('压力测试结果为空')
+    expect(definition.presentCall?.({ symbol: '600000', scenario: 'crash' } as never))
+      .toEqual({ card: 'generic', title: '压力测试：600000 crash' })
+  })
+})
+
 describe('render fallbacks', () => {
   it('treats non-envelope values as empty for every renderer', () => {
     const tools = [
@@ -339,7 +459,7 @@ describe('render fallbacks', () => {
 })
 
 describe('registerQuantTools', () => {
-  it('registers the three tools and disposes them together', () => {
+  it('registers the five tools and disposes them together', () => {
     const disposers: Array<() => void> = []
     const register = vi.fn((tool: { name: string }) => {
       void tool
@@ -349,10 +469,13 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(3)
+    expect(register).toHaveBeenCalledTimes(5)
     const names = register.mock.calls.map(call => call[0].name)
-    expect(names).toEqual(['quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest'])
+    expect(names).toEqual([
+      'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
+      'quant_assess_risk', 'quant_stress_test',
+    ])
     dispose()
-    expect(disposers).toHaveLength(3)
+    expect(disposers).toHaveLength(5)
   })
 })

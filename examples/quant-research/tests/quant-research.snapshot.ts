@@ -17,10 +17,13 @@ function parseJsonl(content: string): JsonObject[] {
     .map(line => JSON.parse(line) as JsonObject)
 }
 
-const TOOL_CALL_SEQUENCE = ['quant_get_kline', 'quant_run_backtest', 'quant_get_kline']
+const TOOL_CALL_SEQUENCE = [
+  'quant_get_kline', 'quant_run_backtest', 'quant_assess_risk', 'quant_stress_test',
+  'quant_get_kline',
+]
 
 describe('quant-research keyless snapshot', () => {
-  it('runs the full research loop: two tool rounds plus one red-line denial', async () => {
+  it('runs the full research loop: four tool rounds plus one red-line denial', async () => {
     const result = await runLoaderSmoke({
       label: 'quant-research snapshot',
       tempDirPrefix: 'quant-research-snapshot-',
@@ -50,9 +53,9 @@ describe('quant-research keyless snapshot', () => {
       .map(event => (event.data as JsonObject | undefined)?.name)
     expect(toolCalls).toEqual(TOOL_CALL_SEQUENCE)
 
-    // The red-line denial: the third call fails with the friendly Chinese reason.
+    // The red-line denial: the fifth call fails with the friendly Chinese reason.
     const results = events.filter(event => event.type === 'tool/result')
-    const denial = results[2]
+    const denial = results[4]
     const denialText = JSON.stringify(denial)
     expect(denialText).toContain('实盘')
     expect(denialText).toContain('禁止实盘交易指令')
@@ -66,5 +69,12 @@ describe('quant-research keyless snapshot', () => {
     expect(backtestText).toContain('总收益')
     expect(backtestText).toContain('最大回撤')
     expect(backtestText).toContain('仅供研究参考，不构成投资建议')
+    const riskText = JSON.stringify(results[2])
+    expect(riskText).toContain('历史模拟法')
+    expect(riskText).toContain('VaR')
+    const stressText = JSON.stringify(results[3])
+    expect(stressText).toContain('压力测试')
+    expect(stressText).toContain('crash')
+    expect(stressText).toContain('冲击 20.00%')
   }, 120_000)
 })

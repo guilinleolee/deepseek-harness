@@ -47,7 +47,10 @@ describe('apply', () => {
     const disposer = await apply(ctx, resolveConfig(undefined, { platform: 'linux', dshHome: '/tmp' }))
     expect(open).toHaveBeenCalledTimes(1)
     const names = register.mock.calls.map(call => (call[0] as { name: string }).name)
-    expect(names).toEqual(['quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest'])
+    expect(names).toEqual([
+      'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
+      'quant_assess_risk', 'quant_stress_test',
+    ])
     await disposer()
     expect(close).toHaveBeenCalledTimes(1)
   })

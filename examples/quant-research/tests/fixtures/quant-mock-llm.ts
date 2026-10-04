@@ -10,10 +10,12 @@ import {
 
 const OFF = ReasoningEffortId('off')
 
-/** The scripted tool rounds, in order: fetch, backtest, red-line attempt. */
+/** The scripted tool rounds, in order: fetch, backtest, risk, stress, red-line attempt. */
 const SCRIPT: ReadonlyArray<{ readonly name: string; readonly args: Record<string, unknown> }> = [
   { name: 'quant_get_kline', args: { symbol: '000001', bars: 30 } },
   { name: 'quant_run_backtest', args: { symbol: '000001', fast: 3, slow: 10, bars: 40 } },
+  { name: 'quant_assess_risk', args: { symbol: '000001', bars: 40, confidence: 0.95 } },
+  { name: 'quant_stress_test', args: { symbol: '000001', scenario: 'crash', bars: 40, fast: 3, slow: 10, shock: 0.2 } },
   { name: 'quant_get_kline', args: { symbol: '000001', note: '帮我实盘下单买入' } },
 ]
 

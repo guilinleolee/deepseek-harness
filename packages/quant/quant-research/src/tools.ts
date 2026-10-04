@@ -15,7 +15,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition, ToolExecution } from '@deepseek-ai/dsh-tools'
 import { DEFAULT_CASH_LIMITS, FEE_RATE_LIMITS } from './config.ts'
 import type { ResolvedConfig } from './config.ts'
-import { BARS_HARD_LIMIT } from './compliance.ts'
+import { BARS_HARD_LIMIT, CONFIDENCE_LIMITS, SHOCK_LIMITS } from './compliance.ts'
 import { errorEnvelope, isQuantError, okEnvelope } from './errors.ts'
 import type { QuantEnvelope } from './errors.ts'
 import { DataSourceBreaker, BARS_MIN, fetchKline } from './pdat/datasource.ts'
@@ -23,6 +23,10 @@ import type { KlineBar } from './pdat/datasource.ts'
 import * as indicators from './paat/indicators.ts'
 import type { Series } from './paat/indicators.ts'
 import { runBacktest, validateBacktestParams } from './pcpt/backtest.ts'
+import {
+  annualVolatility, dailyReturns, historicalCVar, historicalVar, maxDrawdown, shockBars,
+  validateStressParams,
+} from './prt/risk.ts'
 import type { QuantKernelClient } from './kernel-client/client.ts'
 
 /** Bar-count default for one kline/indicator request. */
@@ -250,6 +254,67 @@ async function envelopeFrom(op: string, exec: ToolExecution, run: () => Promise<
 }
 
 /**
+ * Render the risk-assessment envelope: the tail-risk metrics and the
+ * disclaimer.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderRisk(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    symbol?: string
+    confidence?: number
+    var?: number
+    cvar?: number
+    annual_volatility?: number
+    max_drawdown?: number
+    sample_count?: number
+  } | undefined
+  if (data?.symbol === undefined || data.var === undefined || data.cvar === undefined) {
+    return [{ type: 'text', text: `风险评估为空。\n\n${DISCLAIMER}` }]
+  }
+  const percent = (ratio: number): string => `${(ratio * 100).toFixed(2)}%`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 日频风险指标（历史模拟法，置信度 ${String(data.confidence ?? '?')}，样本 ${String(data.sample_count ?? '?')} 个）：\n`
+      + `- VaR ${percent(data.var)}；CVaR ${percent(data.cvar)}\n`
+      + `- 年化波动率 ${percent(data.annual_volatility ?? 0)}；区间最大回撤 ${percent(data.max_drawdown ?? 0)}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
+ * Render the stress-test envelope: the scenario, the baseline/stressed
+ * headline metrics, and the disclaimer.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderStress(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    symbol?: string
+    scenario?: string
+    shock?: number
+    baseline?: { total_return: number; max_drawdown: number; sharpe: number }
+    stressed?: { total_return: number; max_drawdown: number; sharpe: number }
+  } | undefined
+  if (data?.baseline === undefined || data.stressed === undefined || data.symbol === undefined) {
+    return [{ type: 'text', text: `压力测试结果为空。\n\n${DISCLAIMER}` }]
+  }
+  const percent = (ratio: number): string => `${(ratio * 100).toFixed(2)}%`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 压力测试（${data.scenario ?? '?'}，冲击 ${percent(data.shock ?? 0)}）：\n`
+      + `- 总收益：基准 ${percent(data.baseline.total_return)} → 冲击后 ${percent(data.stressed.total_return)}\n`
+      + `- 最大回撤：基准 ${percent(data.baseline.max_drawdown)} → 冲击后 ${percent(data.stressed.max_drawdown)}\n`
+      + `- 夏普：基准 ${data.baseline.sharpe.toFixed(2)} → 冲击后 ${data.stressed.sharpe.toFixed(2)}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
  * Build the kline tool.
  * @param deps - the tool layer dependencies.
  * @returns the tool definition.
@@ -441,13 +506,117 @@ export function runBacktestTool(deps: QuantToolDeps): ToolDefinition {
 }
 
 /**
- * Register the three research tools on one context.
+ * Build the risk-assessment tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function assessRiskTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_assess_risk',
+    description: '评估标的的日频风险指标（研究用，历史模拟法）：VaR、CVaR、年化波动率与区间最大回撤。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      bars: { type: 'integer', description: `样本K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+      confidence: { type: 'number', description: '置信度（0.8-0.99），默认 0.95；越界由合规校验拒绝' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderRisk(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `风险评估：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('get_kline', exec, async () => {
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource,
+          symbol: args.symbol,
+          bars: args.bars ?? DEFAULT_BACKTEST_BARS,
+          retries: deps.config.sourceMaxRetries,
+          cacheDir: deps.config.cacheDir,
+          signal: exec.signal,
+        })
+        const closes = series.map(bar => bar.close)
+        const returns = dailyReturns(closes)
+        const confidence = args.confidence ?? CONFIDENCE_LIMITS.default
+        return {
+          symbol: args.symbol,
+          confidence,
+          var: historicalVar(returns, confidence),
+          cvar: historicalCVar(returns, confidence),
+          annual_volatility: annualVolatility(returns),
+          max_drawdown: maxDrawdown(closes),
+          sample_count: returns.length,
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Build the stress-test tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function stressTestTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_stress_test',
+    description: '对双均线策略做压力测试（研究用，模拟盘）：在冲击后的K线上重跑同一回测，对比基准与冲击后的收益、回撤与夏普。场景：crash（黑天鹅跳空）与 liquidity（流动性枯竭阴跌）。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      scenario: { type: 'string', required: true, enum: ['crash', 'liquidity'], description: '压力场景：crash（黑天鹅跳空）或 liquidity（流动性枯竭阴跌）' },
+      shock: { type: 'number', description: '冲击总幅度（0.01-0.5），默认 0.1；越界由合规校验拒绝' },
+      bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+      fast: { type: 'integer', description: `快线窗口（2-120），默认 ${String(DEFAULT_BACKTEST_FAST)}` },
+      slow: { type: 'integer', description: `慢线窗口（3-250，需大于快线），默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderStress(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `压力测试：${args.symbol} ${args.scenario}` }),
+    async execute(args, exec) {
+      const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+      const params = {
+        fast: args.fast ?? DEFAULT_BACKTEST_FAST,
+        slow: args.slow ?? DEFAULT_BACKTEST_SLOW,
+        initialCash: deps.config.defaultCash,
+        feeRate: deps.config.feeRate,
+      }
+      const stress = { scenario: args.scenario, shock: args.shock ?? SHOCK_LIMITS.default }
+      return envelopeFrom('backtest', exec, async () => {
+        validateBacktestParams(bars, params)
+        validateStressParams(stress)
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource,
+          symbol: args.symbol,
+          bars,
+          retries: deps.config.sourceMaxRetries,
+          cacheDir: deps.config.cacheDir,
+          signal: exec.signal,
+        })
+        const baseline = await runBacktest(deps.kernel, args.symbol, series, params, exec.signal)
+        const stressed = await runBacktest(deps.kernel, args.symbol, shockBars(series, stress), params, exec.signal)
+        return {
+          symbol: args.symbol,
+          scenario: stress.scenario,
+          shock: stress.shock,
+          baseline: baseline.metrics,
+          stressed: stressed.metrics,
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
  * @param deps - the tool layer dependencies.
  * @returns the registration's disposer.
  */
 export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => void {
-  const tools = [getKlineTool(deps), computeIndicatorTool(deps), runBacktestTool(deps)]
+  const tools = [
+    getKlineTool(deps),
+    computeIndicatorTool(deps),
+    runBacktestTool(deps),
+    assessRiskTool(deps),
+    stressTestTool(deps),
+  ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {
     for (const dispose of disposers) dispose()

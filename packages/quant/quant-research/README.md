@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, and a daily SMA-cross backtester behind a research-only compliance gate. The plugin registers three model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
+Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, a daily SMA-cross backtester, and the PRT risk suite behind a research-only compliance gate. The plugin registers five model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`, `quant_assess_risk`, `quant_stress_test`), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
 
 ## Installation
 
@@ -46,6 +46,8 @@ Each red line has at least one illegal-path unit test, and the keyless snapshot 
 | `quant_get_kline` | Fetch the latest N daily bars (OHLCV) for one symbol through the kernel. |
 | `quant_compute_indicator` | Compute `ma` / `ema` / `macd` / `rsi` / `boll` / `atr` over the fetched closes. |
 | `quant_run_backtest` | Run the daily SMA-cross simulation (signal on close, fill at next open, all-in/all-out) and return the equity curve, fills, and metrics. |
+| `quant_assess_risk` | Historical-simulation tail risk for one symbol: VaR, CVaR, annualized volatility, and window max drawdown. |
+| `quant_stress_test` | Re-run the same backtest over a stressed price path (`crash` overnight gap, `liquidity` cascading slide) and compare baseline vs stressed metrics. |
 
 Every result is the unified `{code, msg, data}` envelope — `code: 0` on success, the error tier's numeric code with `data: null` on failure (`NETWORK`, `DATA`, `KERNEL`, `RISK`, `CONFIG`, `CANCELLED`, `INTERNAL`) — and every rendered output ends with the research-only disclaimer.
 
@@ -59,11 +61,11 @@ Every result is the unified `{code, msg, data}` envelope — `code: 0` on succes
 
 #### What the model sees
 
-`quant_get_kline`, `quant_compute_indicator`, and `quant_run_backtest` schemas joined to prompt assembly while the plugin is loaded, plus text renders: the kline tail as a dated OHLCV list, the indicator's recent readings with its window, and the backtest's headline metrics (total/annual return, max drawdown, Sharpe, win rate, trade count, final equity). Denials surface as error results carrying the gate's Chinese reason.
+`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`, `quant_assess_risk`, and `quant_stress_test` schemas joined to prompt assembly while the plugin is loaded, plus text renders: the kline tail as a dated OHLCV list, the indicator's recent readings with its window, the backtest's headline metrics (total/annual return, max drawdown, Sharpe, win rate, trade count, final equity), the historical-simulation tail metrics (VaR/CVaR/volatility/drawdown), and the stress comparison (baseline vs stressed return/drawdown/Sharpe). Denials surface as error results carrying the gate's Chinese reason.
 
 #### Token effect
 
-Bounded: three tool schemas (roughly 500 tokens) in every assembled request while loaded; renders cap the kline tail at ten rows and indicator readings at five.
+Bounded: five tool schemas (roughly 900 tokens) in every assembled request while loaded; renders cap the kline tail at ten rows and indicator readings at five.
 
 #### KV Cache effect
 
@@ -72,7 +74,7 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 ## Known Limitations and Deferred Work
 
 - **No live-trading channel, by design** — this is the plugin's permanent red line, not a missing feature; the gate denies intent markers and the kernel holds only virtual accounts.
-- **Phase 2 scope** — the PRT risk suite (VaR/CVaR, concentration, stress tests), the PET virtual accounts with `ctx.approval` review, the factor library with IC/IR, parameter optimization on the jobs runtime, and the chart cards land next; the module names (PRT/PET) are reserved.
+- **Phase 2 remaining** — PRT is live (`src/prt`: historical-simulation VaR/CVaR, annual volatility, drawdown, concentration checks, and the two stress transforms whose price paths re-run the kernel simulator); the PET virtual accounts with `ctx.approval` review (the concentration checks are ready for them), the factor library with IC/IR, parameter optimization on the jobs runtime, and the chart cards land next.
 - **Panel is a placeholder** — the web surface states the research-only scope and opens from the sidebar; the real panel with charts and the core package's Remote face arrive with phase 2.
 - **Kernel cache has no TTL policy** — `akshare` cache files are read by existence, not freshness; a refresh strategy waits for a concrete deployment requirement.
 - **`akshare` depends on the host environment** — the source fails with a friendly config error until `kernel-py/requirements.txt` is installed; Tushare is a later optional source (its open-source library has been stale since 2024-03).
