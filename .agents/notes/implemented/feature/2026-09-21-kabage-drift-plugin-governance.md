@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-luoyunzong-drift-plugin-governance.zh.md) | English
+[中文](2026-09-21-kabage-drift-plugin-governance.zh.md) | English
 
 ## Problem
 

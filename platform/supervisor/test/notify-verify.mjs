@@ -37,7 +37,7 @@ const check = (name, cond) => {
 const early = await notifyAccountAndAdmins('a@x', 's', 't')
 check('未初始化时早退不抛（P2-6）', early.sent === false && early.via === 'disabled')
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-notify-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-notify-'))
 const now = new Date().toISOString()
 initAudit(DATA)
 initNotify(DATA, 'notify-test-secret')

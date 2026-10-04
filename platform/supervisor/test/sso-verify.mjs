@@ -27,7 +27,7 @@ const check = (name, cond) => {
   if (cond === true) { passed += 1; console.log(`  ok  ${name}`) } else { failed += 1; console.error(`FAIL  ${name}`) }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-sso-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-sso-'))
 const now = new Date().toISOString()
 const mkAccount = (id, acc, role, pw) => ({
   id, account: acc, displayName: id, role, department: '验证组', instanceId: 'e02',

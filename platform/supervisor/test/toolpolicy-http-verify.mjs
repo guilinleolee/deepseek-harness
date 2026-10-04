@@ -31,7 +31,7 @@ const check = (name, cond) => {
   if (cond === true) { passed += 1; console.log(`  ok  ${name}`) } else { failed += 1; console.error(`FAIL  ${name}`) }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-toolpolicy-http-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-toolpolicy-http-'))
 const now = new Date().toISOString()
 const homeOf = (id) => join(DATA, 'homes', id)
 const homePolicyOf = (id) => JSON.parse(readFileSync(join(homeOf(id), 'tool-policy.json'), 'utf8'))

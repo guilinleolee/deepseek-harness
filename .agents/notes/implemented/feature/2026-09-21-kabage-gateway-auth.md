@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-luoyunzong-gateway-auth.zh.md) | English
+[中文](2026-09-21-kabage-gateway-auth.zh.md) | English
 
 ## Problem
 

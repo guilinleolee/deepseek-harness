@@ -14,7 +14,7 @@ import { join } from 'node:path'
 
 import { estimatePoints, initQuotas, loadRatios, migrateLegacyQuotas, resolveRatios, setGroupRatio, setModelRatio, tokensToPoints } from '../quotas.mjs'
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-quota-smoke-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-quota-smoke-'))
 let passed = 0
 let failed = 0
 const check = (name, cond) => {
@@ -104,7 +104,7 @@ check('剔除后回写文件无危险键', !Object.hasOwn(onDisk.models, '__prot
 
 /* ── 旧制→点数一次性迁移 ─────────────────────────────────────────────────── */
 console.log('# 旧制→点数迁移')
-const MIG = mkdtempSync(join(tmpdir(), 'lyz-quota-migrate-'))
+const MIG = mkdtempSync(join(tmpdir(), 'kabage-quota-migrate-'))
 writeFileSync(join(MIG, 'accounts.json'), `${JSON.stringify({ accounts: [
   { account: 'legacy@x', monthlyTokens: 500 },
   { account: 'points@x', monthlyPoints: 1000, monthlyTokens: 200 },

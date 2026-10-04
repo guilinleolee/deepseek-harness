@@ -36,7 +36,7 @@ const check = (name, cond) => {
   if (cond === true) { passed += 1; console.log(`  ok  ${name}`) } else { failed += 1; console.error(`FAIL  ${name}`) }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-audit-http-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-audit-http-'))
 const now = new Date().toISOString()
 const account = (id, acc, role, pw, extra = {}) => ({
   id, account: acc, displayName: id, role, department: '验证组', instanceId: 'e01',

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-luoyunzong-quota-metering.zh.md) | English
+[中文](2026-09-21-kabage-quota-metering.zh.md) | English
 
 ## Problem
 
