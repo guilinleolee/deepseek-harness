@@ -1,11 +1,12 @@
 /**
  * AI processing for the persona write face: one explicit, controlled model
  * call per request behind the 画像 view's explicit buttons (field fill,
- * résumé extraction, report generation). Calls ride the shared `llm` Service
- * Definition through the same one-shot helper as the gather and competitor
- * faces; the processor runs one call at a time and retries only upstream
- * rate limits. Nothing is persisted here: the caller previews the result and
- * writes adopted values back through the persona store.
+ * résumé extraction, website extraction, report generation). Calls ride the
+ * shared `llm` Service Definition through the same one-shot helper as the
+ * gather and competitor faces; the processor runs one call at a time and
+ * retries only upstream rate limits. Nothing is persisted here: the caller
+ * previews the result and writes adopted values back through the persona
+ * store.
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -20,7 +21,8 @@ import {
   AI_RETRY_MAX, honorRetryAfter, isRateLimitError, resolveAiConfig, streamLlmText,
   type AiCallPolicy, type GatherAiConfig, type ResolvedAiConfig,
 } from '../gather/ai.ts'
-import { PERSONA_MAX_FIELD_VALUE, PERSONA_MAX_TEXT } from './store.ts'
+import { PERSONA_MAX_FIELD_VALUE, PERSONA_MAX_LINKS, PERSONA_MAX_TEXT } from './store.ts'
+import { fetchSiteText, type PersonaSiteFetchDeps } from './site.ts'
 
 /** Timeout reason code carried by aborted persona AI calls. */
 export const PERSONA_AI_TIMEOUT_CODE = 'PERSONA_AI_TIMEOUT'
@@ -31,11 +33,20 @@ export const PERSONA_FILL_PROMPT_VERSION = 'persona-fill@1'
 /** Prompt version of the résumé extraction face; stamped into adopted fields' provenance. */
 export const PERSONA_RESUME_PROMPT_VERSION = 'persona-resume@1'
 
+/** Prompt version of the website extraction face; stamped into adopted fields' provenance. */
+export const PERSONA_SITE_PROMPT_VERSION = 'persona-site@1'
+
+/** Prompt version of the social-profile extraction face; stamped into adopted fields' provenance. */
+export const PERSONA_SOCIAL_PROMPT_VERSION = 'persona-social@1'
+
 /** Prompt version of the report face; stamped onto the stored report. */
 export const PERSONA_REPORT_PROMPT_VERSION = 'persona-report@1'
 
 /** Longest single extracted field value accepted from the model. */
 const PERSONA_AI_FIELD_CAP = 2_000
+
+/** Character cap of one social homepage's fetched section, so every link gets a fair share of the model input. */
+const PERSONA_SOCIAL_SECTION_CAP = 2_500
 
 const FILL_SYSTEM_PROMPT = [
   '你是内容创作工作台的账号画像助手。根据已有画像信息，推断并填写空白字段。',
@@ -50,6 +61,24 @@ const RESUME_SYSTEM_PROMPT = [
   '字段：whoAmI（主体背景概括，不超过 500 字）、niche（赛道/行业）、audience（目标受众推断）、oneLiner（人设一句话简介）、goal（核心目标推断）、phrases（文字表达习惯）。',
   '要求：',
   '- 只提取文本中有依据的内容；没有依据的字段不要出现在输出里；',
+  '- 每个值用中文，不超过 500 字；',
+  '- 只输出一个 JSON 对象，不要输出其他任何文字。',
+].join('\n')
+
+const SITE_SYSTEM_PROMPT = [
+  '你是内容创作工作台的官网解析助手。从给定的个人博客或企业官网文本中提取账号画像字段。',
+  '字段：whoAmI（主体背景概括，不超过 500 字）、niche（赛道/行业）、audience（目标受众推断）、oneLiner（人设一句话简介）、goal（核心目标推断）、monetize（变现方式推断）、contentValue（内容核心价值推断）、phrases（文字表达习惯推断）。',
+  '要求：',
+  '- 只提取文本中有依据的内容；没有依据的字段不要出现在输出里；',
+  '- 每个值用中文，不超过 500 字；',
+  '- 只输出一个 JSON 对象，不要输出其他任何文字。',
+].join('\n')
+
+const SOCIAL_SYSTEM_PROMPT = [
+  '你是内容创作工作台的社媒主页解析助手。给定的内容来自画像主人的社媒主页（小红书、抖音、公众号等）抓取文本，可能不完整或只是登录页残留。',
+  '字段：whoAmI（主体背景概括，不超过 500 字）、niche（赛道/行业）、audience（目标受众推断）、oneLiner（人设一句话简介）、goal（核心目标推断）、monetize（变现方式推断）、contentValue（内容核心价值推断）、phrases（文字表达习惯推断）。',
+  '要求：',
+  '- 主页文本多为碎片信息（昵称、简介、作品标题），只做有依据的保守推断；没有依据的字段不要出现在输出里；',
   '- 每个值用中文，不超过 500 字；',
   '- 只输出一个 JSON 对象，不要输出其他任何文字。',
 ].join('\n')
@@ -155,7 +184,8 @@ export function buildFactsText(entry: PersonaEntry): string {
   lines.push(`写作风格：${styleText}（遵循强度：${entry.style.strength === 'strict' ? '严格遵循' : '轻度遵循'}）`)
   lines.push(`禁用词：${entry.style.bannedWords.length > 0 ? entry.style.bannedWords.join('、') : '无'}`)
   lines.push(`内容红线：${entry.style.redLines.length > 0 ? entry.style.redLines.join('、') : '无'}`)
-  if (entry.site.pastedText !== null) lines.push(`企业官网信息：${entry.site.pastedText}`)
+  if (entry.site.url !== null) lines.push(`官网 / 博客：${entry.site.url}`)
+  if (entry.site.pastedText !== null) lines.push(`官网内容：${entry.site.pastedText}`)
   for (const link of entry.links) {
     const detail = [link.bio, link.sampleText].filter((part): part is string => part !== null && part.trim().length > 0).join('；')
     lines.push(`社媒链接（${PERSONA_PLATFORM_LABELS[link.platform]}）：${link.url}${detail.length > 0 ? `；${detail}` : ''}`)
@@ -175,12 +205,17 @@ export class PersonaAiProcessor {
   /** Single-slot call queue: one model call at a time, per the plugin AI policy. */
   private readonly queue = new PQueue({ concurrency: 1 })
 
+  /** Injected fetch for the site face; the global fetch is the default. */
+  private readonly siteDeps: PersonaSiteFetchDeps
+
   /**
    * @param ctx - context exposing the registered LLM service.
    * @param config - declared AI policy; defaults resolve here, fail loud.
+   * @param siteDeps - injected fetch implementation for the site face's tests.
    */
-  constructor(private readonly ctx: Context, config: GatherAiConfig) {
+  constructor(private readonly ctx: Context, config: GatherAiConfig, siteDeps: PersonaSiteFetchDeps = {}) {
     this.resolved = resolveAiConfig(config)
+    this.siteDeps = siteDeps
   }
 
   /**
@@ -193,6 +228,8 @@ export class PersonaAiProcessor {
     switch (request.operation) {
       case 'fill': return this.enqueue(() => this.fill(request))
       case 'resume': return this.enqueue(() => this.resume(request))
+      case 'site': return this.enqueue(() => this.site(request))
+      case 'social': return this.enqueue(() => this.social(request))
       case 'report': return this.enqueue(() => this.report(request))
       default: throw new Error(`unsupported persona AI operation: ${String((request as { operation?: unknown }).operation)}`)
     }
@@ -234,6 +271,67 @@ export class PersonaAiProcessor {
     return {
       operation: 'resume',
       promptVersion: PERSONA_RESUME_PROMPT_VERSION,
+      fields: parsePersonaFieldsOutput(output, PERSONA_FIELD_KEYS),
+    }
+  }
+
+  /**
+   * Extract structured fields from the persona's own blog or company
+   * website: the page is fetched server-side when a url is given (the pasted
+   * text is the fallback for a fetch that comes back empty), otherwise the
+   * pasted text is analyzed as-is. The fetched text rides the result so the
+   * caller can persist it as the site's pasted text — the report facts and
+   * every later analysis then read the same content.
+   */
+  private async site(request: Extract<PersonaAiRequest, { operation: 'site' }>): Promise<PersonaAiResult> {
+    const url = request.url?.trim() ?? ''
+    const pasted = request.pastedText?.trim() ?? ''
+    if (url.length === 0 && pasted.length === 0) throw new Error('persona site analysis has neither a url nor pasted text to analyze')
+    let fetched: string | undefined
+    let text = pasted
+    if (url.length > 0) {
+      fetched = (await fetchSiteText(url, this.siteDeps)).slice(0, PERSONA_MAX_TEXT)
+      if (fetched.length > 0) text = fetched
+    }
+    if (text.length === 0) throw new Error('persona site analysis has no text to extract from')
+    const output = await this.call(SITE_SYSTEM_PROMPT, text.slice(0, this.resolved.maxInputChars))
+    return {
+      operation: 'site',
+      promptVersion: PERSONA_SITE_PROMPT_VERSION,
+      fields: parsePersonaFieldsOutput(output, PERSONA_FIELD_KEYS),
+      // An empty fetch (the pasted-text fallback ran) returns no text so the caller keeps its pasted content.
+      ...(fetched !== undefined && fetched.length > 0 ? { text: fetched } : {}),
+    }
+  }
+
+  /**
+   * Extract structured fields from the persona's social profile homepages.
+   * Each link is fetched and sectioned under its platform label; a homepage
+   * that yields nothing readable (social pages are frequently login-walled)
+   * is skipped so one unreachable page never kills the batch, and a batch
+   * with no readable section at all rejects. The fetched sections are
+   * ephemeral — only the adopted fields reach the form.
+   */
+  private async social(request: Extract<PersonaAiRequest, { operation: 'social' }>): Promise<PersonaAiResult> {
+    const links = request.links
+      .filter(link => typeof link.url === 'string' && link.url.trim().length > 0)
+      .slice(0, PERSONA_MAX_LINKS)
+    if (links.length === 0) throw new Error('persona social analysis has no links to analyze')
+    const sections: string[] = []
+    for (const link of links) {
+      let text = ''
+      try {
+        text = (await fetchSiteText(link.url, this.siteDeps)).slice(0, PERSONA_SOCIAL_SECTION_CAP)
+      } catch {
+        // One unreachable or login-walled homepage is skipped; an all-failed batch rejects below.
+      }
+      if (text.length > 0) sections.push(`【${PERSONA_PLATFORM_LABELS[link.platform]}】${link.url.trim()}\n${text}`)
+    }
+    if (sections.length === 0) throw new Error('persona social analysis has no readable homepage content')
+    const output = await this.call(SOCIAL_SYSTEM_PROMPT, sections.join('\n\n').slice(0, this.resolved.maxInputChars))
+    return {
+      operation: 'social',
+      promptVersion: PERSONA_SOCIAL_PROMPT_VERSION,
       fields: parsePersonaFieldsOutput(output, PERSONA_FIELD_KEYS),
     }
   }

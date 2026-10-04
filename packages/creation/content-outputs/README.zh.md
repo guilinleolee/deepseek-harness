@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-内容创作产物库的 Remote 网关：面向"内容库"视图的只读投影，加上 gather 写面——工作台"信息收集"视图唯一获授权的写入路径。
+内容创作产物库的 Remote 网关：面向「内容库」视图的只读投影，加上各栏目获授权的写入面——信息收集、对标账号、创作、画像、发布、复盘、全局模板库与互动。每个栏目的存储遵循同一约定：主题级 sidecar 清单（`_<栏目>.json`）位于 `outputs/<主题>/assets/`，隐藏的根级索引（`_<栏目>-index.json`），且绝不触碰 `.dsh-output.json`。
 
 库约定：库根目录（默认 `<dsh home>/outputs`，可用 `root` 配置项覆盖）下一次创作一个目录——成品文件放项目根，中间素材放 `assets/`，`.dsh-output.json` 是唯一元数据文件（format 版本 0——本后端同样拒绝更旧与更新的格式）。以 `.` 或 `_` 开头的目录名是系统条目，不是项目。`contentOutputs/list` Remote 每次调用直接扫描库根，按主题名序返回项目；损坏或未来格式的元数据不会隐藏其目录——项目以回退值投影并标记 `hasMetadata: false`，无法读取的目录在 `problems` 中具名报告。
 
@@ -24,7 +24,7 @@ gather 的全部存储都位于 `outputs/<主题>/assets/` 下：`_gather.json` 
 
 #### What the model sees
 
-每次用户点击恰好组装一个框架化请求，走共享 `llm` 服务：素材处理、创作生成/改写/评估、对标拆解与报告、画像补全/简历解析/报告、发布适配、复盘诊断与周期报告、模板生成/优化/提炼，以及互动回复草稿、语气/诉求识别与洞察提取。提示词是按面版本化的网关冻结常量（`processMaterial`、`generateCreateContent`、`analyzeCompetitorWork`），输入按配置字符上限截断，JSON 契约面严格解析并逐字段记入 problems；失败或限流的调用向调用方报错，绝不阻塞文件操作。
+每次用户点击恰好组装一个框架化请求，走共享 `llm` 服务：素材处理、创作生成/改写/评估、对标拆解与报告、画像补全/简历解析/官网解析/社媒主页解析/报告、发布适配、复盘诊断与周期报告、模板生成/优化/提炼，以及互动回复草稿、语气/诉求识别与洞察提取。提示词是按面版本化的网关冻结常量（`processMaterial`、`generateCreateContent`、`analyzeCompetitorWork`），输入按配置字符上限截断，JSON 契约面严格解析并逐字段记入 problems；失败或限流的调用向调用方报错，绝不阻塞文件操作。
 
 #### Token effect
 

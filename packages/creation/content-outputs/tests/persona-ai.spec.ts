@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { streamLlmText } from '../src/gather/ai.ts'
 import {
   PERSONA_AI_TIMEOUT_CODE, PERSONA_FILL_PROMPT_VERSION, PERSONA_REPORT_PROMPT_VERSION,
-  PERSONA_RESUME_PROMPT_VERSION, PersonaAiProcessor, buildFactsText, parsePersonaFieldsOutput,
-  parsePersonaReportOutput,
+  PERSONA_RESUME_PROMPT_VERSION, PERSONA_SITE_PROMPT_VERSION, PERSONA_SOCIAL_PROMPT_VERSION,
+  PersonaAiProcessor, buildFactsText, parsePersonaFieldsOutput, parsePersonaReportOutput,
 } from '../src/persona/ai.ts'
 import type { PersonaEntry, PersonaFieldKey } from '../src/types.ts'
 import { PERSONA_FIELD_KEYS } from '../src/persona/types.ts'
@@ -61,7 +61,7 @@ describe('buildFactsText', () => {
       phrases: { value: null, source: 'user', aiMeta: null },
     },
     links: [{ platform: 'xhs', url: 'https://xhs.example/laoli', bio: '简介', sampleText: null }],
-    site: { url: null, pastedText: '官网内容' },
+    site: { url: 'https://laoli.example', pastedText: '官网内容' },
     style: { preset: 'humor', customText: null, strength: 'strict', bannedWords: ['最好'], redLines: [] },
     assets: { resumeText: '简历文本', resumeName: null },
     report: null,
@@ -80,7 +80,8 @@ describe('buildFactsText', () => {
     expect(facts).toContain('幽默网感（遵循强度：严格遵循）')
     expect(facts).toContain('禁用词：最好')
     expect(facts).toContain('内容红线：无')
-    expect(facts).toContain('企业官网信息：官网内容')
+    expect(facts).toContain('官网 / 博客：https://laoli.example')
+    expect(facts).toContain('官网内容：官网内容')
     expect(facts).toContain('社媒链接（小红书）：https://xhs.example/laoli；简介')
     expect(facts).toContain('简历/背景文本：简历文本')
   })
@@ -138,6 +139,111 @@ describe('PersonaAiProcessor', () => {
     expect(result.promptVersion).toBe(PERSONA_RESUME_PROMPT_VERSION)
     expect(result.fields.whoAmI).toBe('十年后端工程师')
     expect(result.fields.niche).toBe('AI 工具')
+  })
+
+  it('fetches the site, extracts fields, and returns the fetched text', async () => {
+    streamMock.mockResolvedValue(JSON.stringify({ whoAmI: '独立开发者', niche: '效率工具', audience: '' }))
+    const fetchImpl = (async () => new Response('<html><body><p>独立开发者的博客</p></body></html>')) as typeof fetch
+    const processor = new PersonaAiProcessor({} as never, {}, { fetchImpl })
+    const result = await processor.process({ operation: 'site', url: 'blog.example' })
+    expect(result.operation).toBe('site')
+    if (result.operation !== 'site') return
+    expect(result.promptVersion).toBe(PERSONA_SITE_PROMPT_VERSION)
+    expect(result.fields.whoAmI).toBe('独立开发者')
+    expect(result.fields.audience).toBeUndefined()
+    expect(result.text).toBe('独立开发者的博客')
+    expect(streamMock).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.stringContaining('官网解析助手'),
+      expect.stringContaining('独立开发者的博客'), PERSONA_AI_TIMEOUT_CODE,
+    )
+  })
+
+  it('falls back to the pasted text when the fetch comes back empty and analyzes pasted-only input as-is', async () => {
+    streamMock.mockResolvedValue(JSON.stringify({ niche: '企业服务' }))
+    const blank = (async () => new Response('<html><body><script>x()</script></body></html>')) as typeof fetch
+    const processor = new PersonaAiProcessor({} as never, {}, { fetchImpl: blank })
+    const result = await processor.process({ operation: 'site', url: 'https://example.com', pastedText: '手工粘贴的官网文案' })
+    if (result.operation !== 'site') return
+    expect(result.text).toBeUndefined()
+    expect(streamMock).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.anything(), '手工粘贴的官网文案', PERSONA_AI_TIMEOUT_CODE,
+    )
+
+    const pastedOnly = await processor.process({ operation: 'site', pastedText: '  粘贴正文  ' })
+    if (pastedOnly.operation !== 'site') return
+    expect(pastedOnly.text).toBeUndefined()
+    expect(streamMock).toHaveBeenLastCalledWith(
+      expect.anything(), expect.anything(), expect.anything(), '粘贴正文', PERSONA_AI_TIMEOUT_CODE,
+    )
+  })
+
+  it('refuses a site analysis with neither a url nor pasted text', async () => {
+    const processor = new PersonaAiProcessor({} as never, {})
+    await expect(processor.process({ operation: 'site' })).rejects.toThrow('neither a url nor pasted text')
+    await expect(processor.process({ operation: 'site', url: '  ', pastedText: '  ' })).rejects.toThrow('neither a url nor pasted text')
+  })
+
+  it('fetches every social homepage, sections them under platform labels, and extracts once', async () => {
+    streamMock.mockResolvedValue(JSON.stringify({ audience: '宝妈群体', phrases: '' }))
+    const seen: string[] = []
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+      seen.push(url)
+      if (url.includes('douyin')) return new Response('<html><body>抖音主页正文</body></html>')
+      return new Response('<html><body>小红书主页正文</body></html>')
+    }
+    const processor = new PersonaAiProcessor({} as never, {}, { fetchImpl })
+    const result = await processor.process({
+      operation: 'social',
+      links: [
+        { platform: 'xhs', url: 'https://xhs.example/laoli' },
+        { platform: 'douyin', url: 'https://douyin.example/laoli' },
+      ],
+    })
+    expect(seen).toEqual(['https://xhs.example/laoli', 'https://douyin.example/laoli'])
+    expect(result.operation).toBe('social')
+    if (result.operation !== 'social') return
+    expect(result.promptVersion).toBe(PERSONA_SOCIAL_PROMPT_VERSION)
+    expect(result.fields.audience).toBe('宝妈群体')
+    expect(result.fields.phrases).toBeUndefined()
+    expect(streamMock).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.stringContaining('社媒主页解析助手'),
+      expect.stringContaining('【小红书】https://xhs.example/laoli\n小红书主页正文'), PERSONA_AI_TIMEOUT_CODE,
+    )
+    expect(streamMock).toHaveBeenLastCalledWith(
+      expect.anything(), expect.anything(), expect.anything(),
+      expect.stringContaining('【抖音】https://douyin.example/laoli\n抖音主页正文'), PERSONA_AI_TIMEOUT_CODE,
+    )
+  })
+
+  it('skips an unreachable homepage, and rejects a batch with no readable section', async () => {
+    streamMock.mockResolvedValue(JSON.stringify({ niche: '职场' }))
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+      if (url.includes('douyin')) throw new Error('login wall')
+      return new Response('<html><body>小红书主页正文</body></html>')
+    }
+    const processor = new PersonaAiProcessor({} as never, {}, { fetchImpl })
+    const result = await processor.process({
+      operation: 'social',
+      links: [
+        { platform: 'xhs', url: 'https://xhs.example/laoli' },
+        { platform: 'douyin', url: 'https://douyin.example/laoli' },
+      ],
+    })
+    if (result.operation !== 'social') return
+    expect(result.fields.niche).toBe('职场')
+    expect(streamMock).toHaveBeenLastCalledWith(
+      expect.anything(), expect.anything(), expect.anything(),
+      expect.not.stringContaining('抖音'), PERSONA_AI_TIMEOUT_CODE,
+    )
+
+    const blank = (async () => new Response('<html><body><script>x()</script></body></html>')) as typeof fetch
+    const blind = new PersonaAiProcessor({} as never, {}, { fetchImpl: blank })
+    await expect(blind.process({ operation: 'social', links: [{ platform: 'xhs', url: 'https://xhs.example' }] }))
+      .rejects.toThrow('no readable homepage content')
+    await expect(processor.process({ operation: 'social', links: [] })).rejects.toThrow('no links to analyze')
+    await expect(processor.process({ operation: 'social', links: [{ platform: 'xhs', url: '   ' }] })).rejects.toThrow('no links to analyze')
   })
 
   it('generates the report markdown with the report prompt version', async () => {

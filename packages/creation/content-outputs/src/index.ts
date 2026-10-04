@@ -109,7 +109,12 @@ export { PERSONAS_FILENAME, personaDigest, parsePersonasManifest } from './perso
 export {
   buildFactsText, parsePersonaFieldsOutput, parsePersonaReportOutput, PERSONA_AI_TIMEOUT_CODE,
   PERSONA_FILL_PROMPT_VERSION, PERSONA_REPORT_PROMPT_VERSION, PERSONA_RESUME_PROMPT_VERSION,
+  PERSONA_SITE_PROMPT_VERSION, PERSONA_SOCIAL_PROMPT_VERSION,
 } from './persona/ai.ts'
+export {
+  fetchSiteText, normalizeSiteUrl, PERSONA_SITE_FETCH_TIMEOUT_MS, PERSONA_SITE_MAX_BYTES,
+  PersonaSiteHttpError,
+} from './persona/site.ts'
 export {
   PUBLISH_DIRNAME, PUBLISH_INDEX_FILENAME, PUBLISH_MANIFEST_FILENAME, PUBLISH_PROFILES_FILENAME,
   assertPublishManifest, buildPublishPackageFile, isPlatformId, isTaskId, parsePublishManifest,

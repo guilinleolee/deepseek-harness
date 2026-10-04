@@ -2,8 +2,9 @@
  * Wire vocabulary of the persona write face on the content-outputs Remote:
  * the account-persona entries behind the 画像 view, their `_personas.json`
  * manifest at the library root, and the persona AI operations (field fill,
- * résumé extraction, report generation). Client-safe by construction — no
- * Node or filesystem imports. Entry text is embedded in the manifest, so a
+ * résumé extraction, website extraction, social-profile extraction, report
+ * generation). Client-safe by construction — no Node or filesystem imports.
+ * Entry text is embedded in the manifest, so a
  * persona never references an external file and the manifest is the whole
  * backup. Enum label tables live here (not in locales) so the browser
  * dropdowns, the packed prompt preview, and the gateway-side digest all read
@@ -188,7 +189,7 @@ export interface PersonaInput {
 }
 
 /** Operation identifier of the persona AI call. */
-export type PersonaAiOperation = 'fill' | 'resume' | 'report'
+export type PersonaAiOperation = 'fill' | 'resume' | 'site' | 'social' | 'report'
 
 /** Request face of the persona AI call; exactly one operation per request. */
 export type PersonaAiRequest =
@@ -206,6 +207,27 @@ export type PersonaAiRequest =
     readonly resumeText: string
   }
   | {
+    /** Extract structured fields from the persona's own blog or company
+     * website; `whoAmI` is allowed here. When `url` is set the gateway
+     * fetches the page server-side and falls back to `pastedText` only if the
+     * fetched text comes back empty; without `url` the pasted text is
+     * analyzed as-is. At least one of the two must carry content. */
+    readonly operation: 'site'
+    readonly url?: string
+    readonly pastedText?: string
+  }
+  | {
+    /**
+     * Extract structured fields from the persona's social profile homepages
+     * (wizard step 4); `whoAmI` is allowed here. The gateway fetches each
+     * link server-side and skips the ones that yield nothing readable —
+     * social pages are frequently login-walled — then extracts from the
+     * surviving sections in one model call. At least one link is required.
+     */
+    readonly operation: 'social'
+    readonly links: ReadonlyArray<{ readonly platform: PersonaPlatform; readonly url: string }>
+  }
+  | {
     /** Generate the full persona report from one saved entry's facts. */
     readonly operation: 'report'
     readonly facts: PersonaEntry
@@ -215,4 +237,12 @@ export type PersonaAiRequest =
 export type PersonaAiResult =
   | { readonly operation: 'fill'; readonly promptVersion: string; readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>> }
   | { readonly operation: 'resume'; readonly promptVersion: string; readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>> }
+  | {
+    readonly operation: 'site'
+    readonly promptVersion: string
+    readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>>
+    /** The fetched page text, present only when the fetch produced text; the caller persists it as the site's pasted text. */
+    readonly text?: string
+  }
+  | { readonly operation: 'social'; readonly promptVersion: string; readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>> }
   | { readonly operation: 'report'; readonly promptVersion: string; readonly markdown: string }
