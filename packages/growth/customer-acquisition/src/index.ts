@@ -1,18 +1,25 @@
 /**
  * Customer-acquisition operations plugin (GEO + lead ledger + AI lead
- * scoring), P0 foundation: the frozen v1 storage domain, the
- * PermissionContext seam with its bundled local provider, the pre-execute
- * compliance gate enforcing the feed-in red lines, the audit trail, the four
- * P0 model-facing tools, and the browser Remote gateway the panel mounts.
+ * scoring), P0 foundation plus the P1 lead ledger and AI scoring modules:
+ * the frozen v1 storage domain, the PermissionContext seam with its bundled
+ * local provider, the pre-execute compliance gate enforcing the feed-in red
+ * lines, the audit trail, the P0 settings/audit tools, the P1 lead-ledger
+ * and scoring tools with the preset industry seeds, and the browser Remote
+ * gateway the panel mounts.
  * @module @deepseek-ai/dsh-customer-acquisition
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import { installComplianceGate } from './compliance.ts'
+import { LeadLedgerService } from './leads/service.ts'
+import { resolveAiPolicy, type AiPolicyConfig } from './llm/oneshot.ts'
 import { operatorRequest } from './permission/types.ts'
 import { LocalPermissionProvider } from './permission/local-provider.ts'
 import { CustomerAcquisitionService } from './service.ts'
+import { LeadScoringService } from './scoring/service.ts'
 import { registerAcquisitionTools } from './tools/register.ts'
+import { registerP1Tools } from './tools/register-p1.ts'
+import { seedIndustryTemplates } from './scoring/seed.ts'
 
 export { customerAcquisitionDomainSpec } from './domain/spec.ts'
 export {
@@ -59,6 +66,46 @@ export type {
   AuditExportValue, AuditListRequest, AuditListValue, AuditLogValue,
   SettingsPatchInput, SettingsSnapshotValue,
 } from './types.ts'
+export { LeadLedgerService, DOCUMENT_MAX_CHARS } from './leads/service.ts'
+export { registerP1Tools, P1_TOOL_NAMES } from './tools/register-p1.ts'
+export type { LeadToolDeps } from './tools/leads.ts'
+export type { ScoringToolDeps } from './tools/scoring.ts'
+export type {
+  DecisionRole, DocumentListValue, DocumentRefValue, DocumentValue, ExtractedLeadFields,
+  FollowupValue, IntentLevel, LeadCreateInput, LeadDetailValue, LeadExportValue, LeadListRequest,
+  LeadListValue, LeadMutationValue, LeadOwnerValue, LeadPurgeValue, LeadRefValue, LeadStatusValue,
+  LeadStatus, LeadUpdateInput, OpportunityStage,
+} from './leads/types.ts'
+export { EXTRACT_MAX_CHARS, EXTRACT_SYSTEM_PROMPT, frameExtractPrompt, parseExtractOutput } from './leads/extract.ts'
+export type { ExtractOutput } from './leads/extract.ts'
+export { LEAD_EXPORT_COLUMNS, renderLeadExport } from './leads/export.ts'
+export { toDocumentRef, toDocumentValue, toFollowupValue, toLeadDetail, toLeadRef } from './leads/project.ts'
+export { LeadScoringService, SCORE_BATCH_LIMIT, toIcpProfileRef, toScoreTemplateRef } from './scoring/service.ts'
+export type { LeadScoringDeps, ScoreOutcome } from './scoring/service.ts'
+export type {
+  IcpCreateInput, IcpDimensionInput, IcpDimensionValue, IcpListValue, IcpProfileRefValue,
+  IcpProfileValue, IcpUpdateInput, ScoreBatchEntryValue, ScoreBatchFailedValue, ScoreBatchInput,
+  ScoreBatchValue, ScoreHistoryEntryValue, ScoreHistoryItemValue, ScoreHistoryRequest,
+  ScoreHistoryRunValue, ScoreHistoryValue, ScoreItemValue, ScoreOneInput, ScoreOneValue,
+  ScoreRunValue, ScoreTemplateCreateInput, ScoreTemplateListValue, ScoreTemplateRefValue,
+  ScoreTemplateUpdateInput, ScoreTemplateValue,
+} from './scoring/types.ts'
+export {
+  INTENT_LABELS, SCORE_INTENT_HIGH_MIN, SCORE_INTENT_LOW_MIN, SCORE_INTENT_MID_MIN,
+  SCORE_SYSTEM_PROMPT, intentTagFor, parseScoreOutput,
+} from './scoring/evaluate.ts'
+export { aggregateKnowledge, KNOWLEDGE_INJECT_MAX_CHARS, KNOWLEDGE_TRUNCATED_MARK, renderScorePrompt } from './scoring/prompt.ts'
+export { SEED_IDS, seedIndustryTemplates } from './scoring/seed.ts'
+export {
+  AI_TIMEOUT_CODE, llmPromptCompletion, resolveAiPolicy,
+} from './llm/oneshot.ts'
+export type { AiPolicyConfig, PromptCompletion, ResolvedAiPolicy } from './llm/oneshot.ts'
+
+/** Bundle-row config of the plugin (`config:` on the `customer-acquisition` row). */
+export interface CustomerAcquisitionPluginConfig {
+  /** Policy for the plugin's internal model calls (lead extraction, AI scoring). */
+  readonly ai?: AiPolicyConfig
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -67,27 +114,50 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** Services required before the plugin body runs. */
-export const inject = ['storageDomain', 'tools'] as const
+export const inject = ['storageDomain', 'tools']
 
 /**
  * Compose the plugin: the local permission provider and the domain service
  * install as services, then a runtime fiber declares both plus `tools` and
- * registers the P0 tools and the compliance gate. Every registration is an
- * effect; the returned disposer unwinds runtime, service, and provider.
+ * `llm`, seeds the preset industry templates, and registers the P0 tools,
+ * the P1 lead/scoring tools, and the compliance gate. Every registration is
+ * an effect; the returned disposer unwinds runtime, service, and provider.
  * @param ctx - host context providing storage, tools, and the loader.
+ * @param config - bundle-row config; `ai` tunes the internal model calls.
  * @returns resolution to the disposer releasing every registration, after
  * the runtime fiber finished its registrations.
  */
-export async function apply(ctx: Context): Promise<() => Promise<void>> {
+export async function apply(
+  ctx: Context,
+  config?: CustomerAcquisitionPluginConfig,
+): Promise<() => Promise<void>> {
+  const policy = resolveAiPolicy(config?.ai)
   const permissionFiber = await ctx.plugin(LocalPermissionProvider).await()
   const serviceFiber = await ctx.plugin(CustomerAcquisitionService).await()
   const runtimeFiber = await ctx.plugin({
     name: 'customer-acquisition:runtime',
-    inject: ['tools', 'permissionContext', 'customerAcquisition'],
-    apply: (runtimeCtx: Context) => {
+    inject: ['tools', 'permissionContext', 'customerAcquisition', 'llm'],
+    // Seeding runs inside the fiber so the injected service (never the outer
+    // context) provides the domain; the tools register only after the preset
+    // industries exist.
+    apply: async (runtimeCtx: Context) => {
       const service = runtimeCtx.customerAcquisition
-      const permission = runtimeCtx.permissionContext
-      const unregisterTools = registerAcquisitionTools(runtimeCtx, service, permission)
+      await seedIndustryTemplates(service.requireDomain())
+      const ledger = new LeadLedgerService(service.requireDomain(), service.requireAuditTable())
+      const scoring = new LeadScoringService({
+        ctx: runtimeCtx,
+        domain: service.requireDomain(),
+        audit: service.requireAuditTable(),
+        ledger,
+        policy,
+      })
+      const unregisterTools = registerAcquisitionTools(runtimeCtx, service, runtimeCtx.permissionContext)
+      const unregisterP1Tools = registerP1Tools(runtimeCtx, {
+        ledger,
+        scoring,
+        permission: runtimeCtx.permissionContext,
+        policy,
+      })
       const uninstallGate = installComplianceGate(runtimeCtx, (name, reason, agentId) => {
         // A failed denial audit never un-denies the call; the medium rejected
         // the write, so containment is warn-and-continue.
@@ -97,6 +167,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       return () => {
         uninstallGate()
         unregisterTools()
+        unregisterP1Tools()
       }
     },
   }).await()

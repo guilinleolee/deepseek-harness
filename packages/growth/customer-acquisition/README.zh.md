@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-DSH 的获客运营插件：合规边界内的 GEO 诊断、线索台账与 AI 线索打分，面向 OPC 交付一体打包。P0 交付地基——冻结的 v1 存储域、PermissionContext 能力缝、pre-execute 合规校验器、审计日志、四个模型可见工具，以及 Web 面板挂载的浏览器 Remote 网关。冻结数据契约与全量工具清单见 [docs/data-contract.md](docs/data-contract.md) 与 [docs/tools-manifest.md](docs/tools-manifest.md)。
+DSH 的获客运营插件：合规边界内的 GEO 诊断、线索台账与 AI 线索打分，面向 OPC 交付一体打包。P0 交付地基——冻结的 v1 存储域、PermissionContext 能力缝、pre-execute 合规校验器、审计日志，以及 Web 面板挂载的浏览器 Remote 网关。P1 新增线索台账（模块 2）与 AI 线索打分（模块 3）：27 个模型可见工具、三套行业模板幂等种子、按调用粒度的归属人权限。冻结数据契约与全量工具清单见 [docs/data-contract.md](docs/data-contract.md) 与 [docs/tools-manifest.md](docs/tools-manifest.md)。
 
 ## 安装
 
@@ -14,7 +14,19 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 
 ## 配置
 
-无。插件没有部署可变项：红线限值是代码常量并由合规校验器二次执行（见下），用户可调项全部存在域的 `settings` 全局槽中，运行时经 `customer_acquisition_settings_set` 或面板修改。
+行级配置（插件行的 `config:`）调整 AI 面（线索抽取、线索打分）内部模型调用的路由：
+
+```yaml
+- name: '@deepseek-ai/dsh-customer-acquisition'
+  config:
+    ai:
+      provider: deepseek
+      model: deepseek-chat
+      timeoutMs: 120000
+      maxOutputTokens: 2000
+```
+
+全部字段可选、默认值如上（`provider` = 已注册的 LLM provider 路由，`timeoutMs` = 单次调用截止，限 1000-300000，`maxOutputTokens` = 输出上限，限 256-32000）；越界值在插件加载时 fail loud。红线限值（页数上限、超时上限、批量上限）是代码常量并由合规校验器二次执行——不可配置。运行时用户可调项全部存在域的 `settings` 全局槽中，经 `customer_acquisition_settings_set` 修改。
 
 ## 存储域
 
@@ -37,6 +49,14 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 
 每条红线至少一个非法路径单测。
 
+## 线索台账（模块 2）
+
+`LeadLedgerService` 是线索、跟进与挂接资料的唯一权威；16 个 `customer_acquisition_lead_*` 工具是它的薄投影。归属权限在服务端逐调用强制：`lead_scope=own` 的操作者只能读自己名下与公海（`owner_id` 缺省）的线索、只能写自己名下的；公海经 `lead_assign` 领取，`lead_transfer` 不带目标归属人即释放回公海。删除是软删（回收站）——`lead_restore` 恢复，`lead_purge` 物理删除线索及其全部跟进、文档、打分记录、生成产物与 SOP 任务，需 `can_delete_any_lead`。挂接资料（单份 2 万字符）是打分与文案生成的知识注入源。`lead_extract` 只解析本次提供的文本——一次模型调用，无任何网络采集——只返回字段不写库，确认后经 `lead_create` 落库。导出渲染 Markdown 表格或防公式注入 CSV 并写审计。
+
+## AI 线索打分（模块 3）
+
+打分是每条线索一次模型调用：服务解析 ICP 画像与提示词模板（显式 id → 启用中的全局默认 → 行业精确匹配 → 无行业模板 → 任一启用），渲染模板的 `{{lead}}`/`{{icp_profile}}`/`{{dimensions}}`/`{{knowledge}}` 占位符，严格校验 JSON 答案（维度全覆盖且各一次、分数 0-100、理由非空），落库时逐分项保存权重快照——之后改权重不歪曲历史，历史可复算。加权总分映射意向标签（≥80 高、≥60 中、≥30 低、否则无效）并回填线索。`score_batch` 串行至多 50 条，单条失败不中断批次。画像与模板 CRUD 需 `can_manage_global_templates`；被任何打分记录引用的画像/模板拒绝删除（请停用）。三套行业包——实体门店、B2B 工厂商贸、软件服务商——挂载时按固定 `seed-*` id 幂等播种，绝不覆盖用户修改。
+
 ## 工具
 
 | 名称 | 功能 |
@@ -45,6 +65,17 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 | `customer_acquisition_settings_set` | 合并式修改全局参数；需 `can_manage_settings`，引用不存在的画像/模板即拒绝。 |
 | `customer_acquisition_audit_list` | 分页、可过滤的审计日志查询。 |
 | `customer_acquisition_audit_export` | 按相同过滤条件导出 Markdown 或防公式注入 CSV；需 `can_export`。 |
+| `customer_acquisition_lead_create` / `lead_update` / `lead_get` / `lead_list` | 台账 CRUD：多维筛选、关键词搜索、分页。 |
+| `customer_acquisition_lead_delete` / `lead_restore` / `lead_purge` | 回收站生命周期；purge 级联清除全部关联记录。 |
+| `customer_acquisition_lead_assign` / `lead_transfer` | 公海领取与归属转移。 |
+| `customer_acquisition_lead_extract` | 从一段用户提供的文本抽取字段；模型驱动，不写库。 |
+| `customer_acquisition_lead_export` | 按筛选条件导出 Markdown 或防注入 CSV；需 `can_export`。 |
+| `customer_acquisition_lead_document_add` / `lead_document_list` / `lead_document_remove` | 挂接纯文本知识资料。 |
+| `customer_acquisition_lead_followup_add` / `lead_followup_list` | 跟进记录，按时间倒序。 |
+| `customer_acquisition_score_one` / `score_batch` | AI 打分：权重快照 + 意向回填；批量串行、单条失败隔离。 |
+| `customer_acquisition_score_history` | 打分历史全留存，含逐维度权重快照。 |
+| `customer_acquisition_icp_create` / `icp_update` / `icp_list` / `icp_delete` | ICP 画像；权重须合计 100，被引用即拒删。 |
+| `customer_acquisition_score_template_create` / `score_template_update` / `score_template_list` / `score_template_delete` | 打分提示词模板（四类占位符）；被引用即拒删。 |
 
 ## Remote 面
 
@@ -56,11 +87,11 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 
 #### 模型看到什么
 
-插件加载后四个工具（`customer_acquisition_settings_get/set`、`customer_acquisition_audit_list/export`）加入提示词组装，及其文本渲染：参数快照为字段清单、审计行为带时间戳的行、导出为表格/CSV 文档。合规校验器的拒绝以工具错误形式呈现，携带中文原因。
+插件加载后 31 个工具加入提示词组装——四个 P0 settings/audit 工具加 27 个线索台账与打分工具——及其文本渲染：线索概要为一行摘要、打分结果为总分加逐维度行、导出为表格/CSV 文档、抽取结果为字段清单。合规校验器与能力检查的拒绝以工具错误形式呈现，携带中文原因。三套行业种子在首次启动后即为可直接使用的画像与模板。
 
 #### Token 影响
 
-有界：插件加载期间每次组装请求多四个工具 schema（约 600 token）；结果分页（审计单页上限 100 行）。
+有界：插件加载期间每次组装请求多 31 个工具 schema（约 4k token）；列表类单页上限 100 行，打分渲染随画像维度数伸缩（通常 5-6 行）。
 
 #### KV Cache 影响
 
@@ -68,9 +99,10 @@ schema 进入提示词前缀的工具块；插件加载或卸载会使该点之�
 
 ## Known Limitations and Deferred Work
 
-- **P0 范围**——冻结清单中的线索、打分、GEO、文案、SOP、看板工具尚未实现；域表已存在，但 P0 只有 settings 与 audit 有行为。各期按契约顺序 P1 → P2 → P3 → P4 落地。
-- **种子模板未播种**——三套行业模板包（实体门店 / B2B 工厂商贸 / 软件服务商）随 P1/P3 到货；其固定 id 空间与幂等策略已在契约中冻结。
-- **面板为占位**——Web 面板挂载 Remote 面，展示设置与最近审计；八页完整面板随 P4 交付。
-- **本地操作者身份是平凡的**——`local-default` 持有全部能力；有意义的 `lead_scope` 强制从平台 Provider 与 P1 线索工具开始。
+- **P1 范围**——冻结清单中的 GEO、文案、SOP、看板工具尚未实现；域表已存在，但只有线索、打分、settings、audit 有行为。各期按契约顺序 P2 → P3 → P4 落地。
+- **种子只覆盖 ICP 与打分**——三套行业包播种画像与提示词模板；SOP 与文案模板随 P3 在同一 id 空间下到货。
+- **面板为占位**——Web 面板挂载 Remote 面，展示设置与最近审计；八页完整面板随 P4 交付，线索/打分的 Remote 读写也在那时落地。
+- **打分需要可达的模型路由**——`ai.provider`/`ai.model` 必须指向已注册且有凭据的路由；否则打分与抽取按调用失败，批量按线索隔离。
+- **本地操作者身份是平凡的**——`local-default` 持有全部能力；有意义的 `lead_scope` 强制从平台 Provider 注入真实用户开始。
 - **审计无限增长**——记录从不清理；保留策略等待具体部署需求。
 - **抓取编排未接线**——P2 的 GEO 扫描器须先核实 web-fetch 的确切消费形态再复用；校验器的 URL 与上限规则已生效。

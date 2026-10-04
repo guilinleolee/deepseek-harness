@@ -13,6 +13,10 @@ import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import { ToolRuntime } from '@deepseek-ai/dsh-tools'
 import apply from '../src/index.ts'
+import { P1_TOOL_NAMES } from '../src/tools/register-p1.ts'
+
+/** The P1 runtime fiber injects `llm`; the loader composition provides a stub never called. */
+const LLM_STUB = { stream: () => (async function* () {})() }
 
 let root: string | undefined
 const contexts: Context[] = []
@@ -27,6 +31,7 @@ async function loadComposition(configPath: string): Promise<Context> {
   const ctx = new Context()
   contexts.push(ctx)
   ctx.baseUrl = pathToFileURL(root as string).href + '/'
+  ctx.provide('llm', LLM_STUB)
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
@@ -57,7 +62,7 @@ async function loadComposition(configPath: string): Promise<Context> {
 }
 
 describe('customer-acquisition through a real Loader composition', () => {
-  it('installs the patch rows, provides both services, registers the P0 tools, and persists settings across a restart', async () => {
+  it('installs the patch rows, provides both services, registers the P0 and P1 tools, and persists settings across a restart', async () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-customer-acquisition-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
@@ -85,6 +90,7 @@ describe('customer-acquisition through a real Loader composition', () => {
       'customer_acquisition_settings_set',
       'customer_acquisition_audit_list',
       'customer_acquisition_audit_export',
+      ...P1_TOOL_NAMES,
     ]) {
       expect(first.tools.get(name), name).toBeDefined()
     }

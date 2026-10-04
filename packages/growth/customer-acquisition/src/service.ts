@@ -64,8 +64,12 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return this.auditTable
   }
 
-  /** Authoritative domain, valid after init; a miss is a broken lifecycle. */
-  private requireDomain(): Domain<typeof customerAcquisitionDomainSpec> {
+  /**
+   * Authoritative domain, valid after init; a miss is a broken lifecycle.
+   * Open to the P1 module services (lead ledger, scoring), which borrow the
+   * domain's tables — the P0 service stays its single owner and closer.
+   */
+  requireDomain(): Domain<typeof customerAcquisitionDomainSpec> {
     if (this.domain === undefined) {
       throw new Error('customer-acquisition: durable domain is not initialized')
     }
