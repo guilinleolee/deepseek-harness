@@ -28,7 +28,7 @@ const throws = (fn) => {
   }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-audit-smoke-'))
 let passed = 0
 let failed = 0
 const check = (name, cond) => {
@@ -126,7 +126,7 @@ check('被拒参数不落盘', loadSecurityConfig(DATA).loginMaxFails === 4)
 threw = false
 try { saveSecurityConfig(DATA, { nonsense: 1 }) } catch { threw = true }
 check('未知参数被拒', threw)
-const DATA2 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke2-'))
+const DATA2 = mkdtempSync(join(tmpdir(), 'kabage-audit-smoke2-'))
 let freshOk = false
 try {
   freshOk = loadSecurityConfig(DATA2).lockoutMinutes === 15 && existsSync(join(DATA2, 'security.json'))
@@ -137,7 +137,7 @@ check('全新目录缺省生成', freshOk)
 
 /* ── 5. 限流计数桶持久化（重建 guard = 模拟 daemon 重启）─────────────────── */
 console.log('# 限流持久化')
-const DATA3 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke3-'))
+const DATA3 = mkdtempSync(join(tmpdir(), 'kabage-audit-smoke3-'))
 const limits = () => ({ windowMs: 60_000, maxFails: 3, lockoutMs: 60_000 })
 const guardP = createLoginRateGuard(limits, { dataDir: DATA3, file: 'rate-limits.json' })
 guardP.fail('p@x', '3.3.3.3')
@@ -159,7 +159,7 @@ rmSync(DATA3, { recursive: true, force: true })
 
 /* ── 5b. 账号级全局桶（跨 IP 分布式撞库封口）────────────────────────────── */
 console.log('# 账号级限流桶')
-const DATA5 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke5-'))
+const DATA5 = mkdtempSync(join(tmpdir(), 'kabage-audit-smoke5-'))
 const limitsG = () => ({ windowMs: 60_000, maxFails: 3, accountMaxFails: 5, lockoutMs: 60_000 })
 const guardG = createLoginRateGuard(limitsG, { dataDir: DATA5, file: 'rl-g.json' })
 for (let i = 1; i <= 4; i++) guardG.fail('g@x', `10.0.0.${i}`)
@@ -177,7 +177,7 @@ rmSync(DATA5, { recursive: true, force: true })
 
 /* ── 6. 审计按大小轮转（归档 + 保留 + 跨档查询）──────────────────────────── */
 console.log('# 审计轮转')
-const DATA_ROT = mkdtempSync(join(tmpdir(), 'lyz-audit-rotate-'))
+const DATA_ROT = mkdtempSync(join(tmpdir(), 'kabage-audit-rotate-'))
 writeFileSync(join(DATA_ROT, 'security.json'), `${JSON.stringify({
   loginWindowMinutes: 15, loginMaxFails: 10, lockoutMinutes: 15,
   passwordMinLength: 8, passwordMinClasses: 3,
@@ -201,7 +201,7 @@ initAudit(DATA)
 
 /* ── 7. 存储函数内强制密码策略（CLI 无绕过面）────────────────────────────── */
 console.log('# 建号/改密策略收口')
-const DATA4 = mkdtempSync(join(tmpdir(), 'lyz-audit-smoke4-'))
+const DATA4 = mkdtempSync(join(tmpdir(), 'kabage-audit-smoke4-'))
 check('addAccount 弱密码被拒', throws(() => addAccount(DATA4, { account: 'weak@x', instanceId: 'e01', role: 'employee', password: 'weak' })))
 check('被拒建号不落盘', loadAccounts(DATA4).accounts.length === 0)
 const created = addAccount(DATA4, { account: 'ok@x', instanceId: 'e01', role: 'employee', password: 'GoodPass123' })

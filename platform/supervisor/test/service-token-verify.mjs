@@ -26,9 +26,9 @@ const check = (name, cond) => {
 }
 
 // P2-7：模块级缓存按 dataDir 键控——第二个目录在 import 早期即参与断言。
-const DATA_B = mkdtempSync(join(tmpdir(), 'lyz-svc-token-b-'))
+const DATA_B = mkdtempSync(join(tmpdir(), 'kabage-svc-token-b-'))
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-svc-token-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-svc-token-'))
 const now = new Date().toISOString()
 const mkAccount = (id, acc, role, pw, extra = {}) => ({
   id, account: acc, displayName: id, role, department: '验证组', instanceId: 'e02',

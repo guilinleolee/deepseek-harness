@@ -46,7 +46,7 @@ const DEFAULT_SSO = () => ({
     authorizeBase: 'https://open.weixin.qq.com', apiBase: 'https://qyapi.weixin.qq.com',
   },
   dingtalk: {
-    enabled: false, appKey: '', appSecretEnc: '', redirectUri: '',
+    enabled: false, appKey: '', redirectUri: '',
     authorizeBase: 'https://login.dingtalk.com', apiBase: 'https://api.dingtalk.com',
   },
 })

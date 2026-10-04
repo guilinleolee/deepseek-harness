@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-luoyunzong-relay-virtual-key.zh.md) | English
+[中文](2026-09-21-kabage-relay-virtual-key.zh.md) | English
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-luoyunzong-supervisor-mvp.zh.md) | English
+[中文](2026-09-21-kabage-supervisor-mvp.zh.md) | English
 
 ## Problem
 

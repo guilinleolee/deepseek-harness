@@ -40,7 +40,7 @@ const check = (name, cond) => {
   if (cond === true) { passed += 1; console.log(`  ok  ${name}`) } else { failed += 1; console.error(`FAIL  ${name}`) }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-me-invite-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-me-invite-'))
 const now = new Date().toISOString()
 const month = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 const account = (id, acc, role, pw, extra = {}) => ({
@@ -285,7 +285,7 @@ try {
 
   /* ── 7. 速率限制（独立网关隔离计数桶）────────────────────────────────── */
   console.log('# 注册速率限制')
-  const DATA2 = mkdtempSync(join(tmpdir(), 'lyz-me-invite-rate-'))
+  const DATA2 = mkdtempSync(join(tmpdir(), 'kabage-me-invite-rate-'))
   writeFileSync(join(DATA2, 'accounts.json'), `${JSON.stringify({ accounts: [adminRec] }, null, 2)}\n`)
   writeFileSync(join(DATA2, 'security.json'), `${JSON.stringify({ loginWindowMinutes: 15, loginMaxFails: 3, lockoutMinutes: 15, passwordMinLength: 8, passwordMinClasses: 3 })}\n`)
   initAudit(DATA2)

@@ -77,7 +77,7 @@ check('错误密钥 GCM 认证失败拒绝', threw)
 
 /* ── 3. HTTP 全流程 ─────────────────────────────────────────────────────── */
 console.log('# HTTP 全流程')
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-twofa-http-'))
+const DATA = mkdtempSync(join(tmpdir(), 'kabage-twofa-http-'))
 const now = new Date().toISOString()
 const mkAccount = (id, acc, role, pw) => ({
   id, account: acc, displayName: id, role, department: '验证组', instanceId: 'e02',
