@@ -7,3 +7,4 @@
 | [`customer-acquisition/`](customer-acquisition/README.zh.md) | 获客运营存储域、PermissionContext 能力缝、合规校验器、P0 工具、Remote 网关 | `customerAcquisition`、`permissionContext` |
 
 [English](README.md) | 中文
+| [`customer-acquisition-geo/`](customer-acquisition-geo/README.md) | GEO 诊断模块：边界受控的串行爬虫、确定性分析器、四个模型可见工具 | `geoDiagnosis` |

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-customer-acquisition-geo-diagnosis.md
+2026-10-04-customer-acquisition-geo-diagnosis.md: a9180374809ab5ba2fa932afd2a9673996576e66
+2026-10-04-customer-acquisition-geo-diagnosis.zh.md: 7df51edff192c695162904d01725924bd311c583
