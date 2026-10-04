@@ -107,6 +107,24 @@ export interface CustomerAcquisitionPluginConfig {
   readonly ai?: AiPolicyConfig
 }
 
+/**
+ * The compliance gate's denial auditor: best-effort audit with
+ * warn-and-continue — a failed denial audit never un-denies the call, the
+ * medium rejected the write, so containment only warns.
+ * @param service - the customer-acquisition service owning the audit table.
+ * @param runtimeCtx - the fiber context whose logger carries the warning.
+ * @returns the `onDeny` callback for {@link installComplianceGate}.
+ */
+export function complianceDenyAuditor(
+  service: CustomerAcquisitionService,
+  runtimeCtx: Context,
+): (name: string, reason: string, agentId?: string) => void {
+  return (name, reason, agentId) => {
+    void service.recordComplianceDeny(name, reason, operatorRequest('agent', agentId))
+      .catch((error: unknown) => { runtimeCtx.logger.warn(`customer-acquisition: denial audit failed: ${String(error)}`) })
+  }
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     customerAcquisition: CustomerAcquisitionService
@@ -158,12 +176,7 @@ export async function apply(
         permission: runtimeCtx.permissionContext,
         policy,
       })
-      const uninstallGate = installComplianceGate(runtimeCtx, (name, reason, agentId) => {
-        // A failed denial audit never un-denies the call; the medium rejected
-        // the write, so containment is warn-and-continue.
-        void service.recordComplianceDeny(name, reason, operatorRequest('agent', agentId))
-          .catch((error: unknown) => { runtimeCtx.logger.warn(`customer-acquisition: denial audit failed: ${String(error)}`) })
-      })
+      const uninstallGate = installComplianceGate(runtimeCtx, complianceDenyAuditor(service, runtimeCtx))
       return () => {
         uninstallGate()
         unregisterTools()

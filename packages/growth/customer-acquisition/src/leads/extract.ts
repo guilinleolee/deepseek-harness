@@ -77,7 +77,7 @@ export function parseExtractOutput(raw: string): ExtractOutput {
   } catch {
     throw new Error('抽取输出 JSON 解析失败，请重试')
   }
-  if (typeof parsed !== 'object' || parsed === null) throw new Error('抽取输出不是 JSON 对象')
+  // A brace-sliced body that parses at all is a JSON object by construction.
   const record = parsed as Record<string, unknown>
   const notes: string[] = []
   const fields: ExtractedLeadFields = {}

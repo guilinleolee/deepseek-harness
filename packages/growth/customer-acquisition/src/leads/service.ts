@@ -671,9 +671,9 @@ export class LeadLedgerService {
   private requireWritableLead(leadId: string, operator: ResolvedOperator): Lead {
     const lead = this.getLead(leadId, operator)
     if (operator.capabilities.lead_scope === 'all' || lead.owner_id === operator.userId) return lead
-    throw new Error(lead.owner_id === undefined
-      ? '当前操作者无权修改公海线索，请先领取（assign 给自己）'
-      : '当前操作者无权修改他人线索')
+    // The read gate above already rejects other operators' leads, so the only
+    // reachable write failure here is a pool lead.
+    throw new Error('当前操作者无权修改公海线索，请先领取（assign 给自己）')
   }
 
   /** Delete/restore permission: own leads freely; others and pool need the global cap. */

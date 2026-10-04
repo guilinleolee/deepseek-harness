@@ -30,6 +30,7 @@ import { llmPromptCompletion, type PromptCompletion, type ResolvedAiPolicy } fro
 import type { LeadLedgerService } from '../leads/service.ts'
 import type { OperatorChannel, ResolvedOperator } from '../permission/types.ts'
 import { INTENT_LABELS, intentTagFor, parseScoreOutput, SCORE_SYSTEM_PROMPT } from './evaluate.ts'
+import type { ParsedScoreOutput } from './evaluate.ts'
 import { aggregateKnowledge, renderScorePrompt } from './prompt.ts'
 import { seedIndustryTemplates } from './seed.ts'
 import type {
@@ -109,6 +110,8 @@ export interface LeadScoringDeps {
 export interface ScoreOutcome {
   run: ScoreRun
   items: ScoreRunItem[]
+  /** The validated model answer the items persist; carries dimension names for the wire. */
+  parsed: ParsedScoreOutput
 }
 
 /**
@@ -396,7 +399,7 @@ export class LeadScoringService {
       object_id: outcome.run.id,
       summary: `AI 打分 ${outcome.run.total} 分（${INTENT_LABELS[outcome.run.intent_tag]}）：${outcome.leadName}`,
     }, operator, channel)
-    return toScoreOneValue(outcome.run, outcome.items, outcome.profile)
+    return toScoreOneValue(outcome.run, outcome.parsed)
   }
 
   /**
@@ -502,13 +505,9 @@ export class LeadScoringService {
     input: ScoreOneInput,
     operator: ResolvedOperator,
     signal?: AbortSignal,
-  ): Promise<ScoreOutcome & { leadName: string; profile: IcpProfile }> {
+  ): Promise<ScoreOutcome & { leadName: string }> {
     const lead = this.deps.ledger.getLead(input.lead_id, operator)
-    if (operator.capabilities.lead_scope !== 'all' && lead.owner_id !== operator.userId) {
-      throw new Error(lead.owner_id === undefined
-        ? `公海线索需先领取（assign 给自己）再打分：${lead.company_name}`
-        : `当前操作者无权为他人线索打分：${lead.company_name}`)
-    }
+    assertScoringScope(lead, operator)
     const profile = this.resolveProfile(input.icp_profile_id, lead)
     const template = this.resolveTemplate(input.score_template_id, lead)
     const knowledge = aggregateKnowledge(this.deps.ledger.getLeadDocuments(lead.id, operator))
@@ -529,23 +528,19 @@ export class LeadScoringService {
       intent_tag: intentTag,
       created_at: now,
     })
-    const items = parsed.items.map((item) => {
-      const dimension = profile.dimensions.find(candidate => candidate.id === item.dimension_id)
-      if (dimension === undefined) throw new Error(`打分输出引用了未知维度：${item.dimension_id}`)
-      return scoreRunItemSchema.parse({
-        id: newId<ScoreRunItemId>(),
-        run_id: run.id,
-        dimension_id: item.dimension_id,
-        score: item.score,
-        weight: dimension.weight,
-        reason: item.reason,
-        created_at: now,
-      })
-    })
+    const items = parsed.items.map(item => scoreRunItemSchema.parse({
+      id: newId<ScoreRunItemId>(),
+      run_id: run.id,
+      dimension_id: item.dimension_id,
+      score: item.score,
+      weight: item.weight,
+      reason: item.reason,
+      created_at: now,
+    }))
     await this.scoreRuns.put(run.id, run)
     for (const item of items) await this.scoreRunItems.put(item.id, item)
     await this.deps.ledger.applyIntent(lead.id, intentTag)
-    return { run, items, leadName: lead.company_name, profile }
+    return { run, items, parsed, leadName: lead.company_name }
   }
 
   /** Resolve the ICP profile: explicit id, else global default, else industry match, else any enabled. */
@@ -625,6 +620,20 @@ export class LeadScoringService {
   }
 }
 
+/**
+ * Scoring writes the lead's intent tag, so it is a lead write: `lead_scope=own`
+ * operators may only score leads they own — a pool lead must be claimed first.
+ * @param lead - the lead about to be scored.
+ * @param operator - the caller's resolved operator.
+ */
+export function assertScoringScope(lead: Lead, operator: ResolvedOperator): void {
+  if (operator.capabilities.lead_scope !== 'all' && lead.owner_id !== operator.userId) {
+    throw new Error(lead.owner_id === undefined
+      ? `公海线索需先领取（assign 给自己）再打分：${lead.company_name}`
+      : `当前操作者无权为他人线索打分：${lead.company_name}`)
+  }
+}
+
 /** Project a stored profile to its wire value. */
 function toIcpProfileValue(profile: IcpProfile): IcpProfileValue {
   return {
@@ -657,19 +666,16 @@ export function toScoreTemplateRef(template: ScoreTemplate): ScoreTemplateRefVal
   return { id: template.id, name: template.name, enabled: template.enabled }
 }
 
-/** Project one persisted scoring outcome to the `score_one` envelope. */
-function toScoreOneValue(run: ScoreRun, items: readonly ScoreRunItem[], profile?: IcpProfile): ScoreOneValue {
+/** Project one scoring outcome to the `score_one` envelope; names ride the parsed answer. */
+function toScoreOneValue(run: ScoreRun, parsed: ParsedScoreOutput): ScoreOneValue {
   return {
     run: { id: run.id, total: run.total, intent_tag: run.intent_tag, reason: run.reason },
-    items: items.map((item) => {
-      const dimension = profile?.dimensions.find(candidate => candidate.id === item.dimension_id)
-      return {
-        dimension_id: item.dimension_id,
-        name: dimension?.name ?? item.dimension_id,
-        score: item.score,
-        weight: item.weight,
-        reason: item.reason,
-      }
-    }),
+    items: parsed.items.map(item => ({
+      dimension_id: item.dimension_id,
+      name: item.name,
+      score: item.score,
+      weight: item.weight,
+      reason: item.reason,
+    })),
   }
 }

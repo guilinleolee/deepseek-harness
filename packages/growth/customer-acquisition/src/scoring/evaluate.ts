@@ -46,10 +46,12 @@ export const SCORE_SYSTEM_PROMPT = [
   '"items" 必须覆盖全部给定维度且不新增维度，不要输出 JSON 以外的任何文字。',
 ].join('')
 
-/** One parsed per-dimension score. */
+/** One parsed per-dimension score, with the profile's name and weight snapshot resolved. */
 export interface ParsedScoreItem {
   dimension_id: string
+  name: string
   score: number
+  weight: number
   reason: string
 }
 
@@ -89,7 +91,7 @@ export function parseScoreOutput(raw: string, profile: IcpProfile): ParsedScoreO
   } catch {
     throw new Error('打分输出 JSON 解析失败，请重试')
   }
-  if (typeof parsed !== 'object' || parsed === null) throw new Error('打分输出不是 JSON 对象')
+  // A brace-sliced body that parses at all is a JSON object by construction.
   const record = parsed as Record<string, unknown>
   if (!Array.isArray(record.items)) throw new Error('打分输出缺少 items 数组')
   if (typeof record.reason !== 'string' || record.reason.trim().length === 0) {
@@ -126,7 +128,7 @@ export function parseScoreOutput(raw: string, profile: IcpProfile): ParsedScoreO
     if (scored === undefined) throw new Error(`打分输出缺少维度 ${dimension.id}（${dimension.name}）的评分`)
     const rounded = Math.round(scored.score * 100) / 100
     total += rounded * dimension.weight
-    items.push({ dimension_id: dimension.id, score: rounded, reason: scored.reason })
+    items.push({ dimension_id: dimension.id, name: dimension.name, score: rounded, weight: dimension.weight, reason: scored.reason })
   }
   return {
     items,

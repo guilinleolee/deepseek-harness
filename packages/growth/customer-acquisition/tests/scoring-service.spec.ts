@@ -4,6 +4,7 @@ import {
 } from './helpers-p1.ts'
 import type { P1Harness } from './helpers-p1.ts'
 import { SEED_IDS } from '../src/scoring/seed.ts'
+import { LeadScoringService } from '../src/scoring/service.ts'
 import { intentTagFor, parseScoreOutput, SCORE_INTENT_HIGH_MIN, SCORE_INTENT_LOW_MIN, SCORE_INTENT_MID_MIN } from '../src/scoring/evaluate.ts'
 import { aggregateKnowledge, renderScorePrompt, KNOWLEDGE_INJECT_MAX_CHARS } from '../src/scoring/prompt.ts'
 import { resolveAiPolicy } from '../src/llm/oneshot.ts'
@@ -58,6 +59,8 @@ describe('P1 industry seeds', () => {
       expect(profile.enabled).toBe(true)
     }
     expect(p1.scoring.listScoreTemplates()).toHaveLength(3)
+    expect(p1.scoring.listIcpProfiles(true)).toHaveLength(3)
+    expect(p1.scoring.listScoreTemplates(true)).toHaveLength(3)
 
     await p1.scoring.updateIcpProfile(SEED_IDS.retailIcp, { name: '用户改过的画像' }, FULL_OPERATOR, 'agent')
     await seedFor(p1)
@@ -150,8 +153,14 @@ describe('P1 ICP profile and template CRUD', () => {
     expect(template.prompt_text).toBe('评估 {{lead}}')
     const updated = await p1.scoring.updateScoreTemplate(template.id, { prompt_text: '评估 {{lead}} {{knowledge}}' }, FULL_OPERATOR, 'agent')
     expect(updated.prompt_text).toContain('{{knowledge}}')
+    await p1.scoring.updateScoreTemplate(template.id, { enabled: false }, FULL_OPERATOR, 'agent')
+    expect(p1.scoring.listScoreTemplates(true)).toHaveLength(0)
+    expect(p1.scoring.listScoreTemplates()).toHaveLength(1)
+    // A scored run referencing another template makes the deletion guard scan
+    // a non-empty run table; the unreferenced template still deletes cleanly.
+    await makeScoredLead(p1, '扫描用线索')
     await p1.scoring.deleteScoreTemplate(template.id, FULL_OPERATOR, 'agent')
-    expect(p1.scoring.listScoreTemplates()).toHaveLength(0)
+    expect(p1.scoring.listScoreTemplates().find(candidate => candidate.id === template.id)).toBeUndefined()
     const actions = [...p1.harness.service.requireAuditTable().entries()].map(([, record]) => record.action)
     expect(actions).toEqual(expect.arrayContaining(['score_template.create', 'score_template.update', 'score_template.delete']))
   })
@@ -434,6 +443,71 @@ describe('P1 scoring prompt and evaluation pure functions', () => {
     expect(resolveAiPolicy({ provider: 'zhipu', model: 'glm-4.6' }).provider).toBe('zhipu')
   })
 })
+
+
+describe('scoring prompt knowledge injection through the service', () => {
+  let p1: P1Harness
+  let stopClock: () => void
+
+  beforeEach(async () => {
+    p1 = await setupP1(completionReturning('{}'))
+    stopClock = mockClock()
+  })
+
+  afterEach(async () => {
+    stopClock()
+    await p1.harness.dispose()
+  })
+
+  it('builds the default completion over the llm service when no factory is injected', async () => {
+    await seedFor(p1)
+    const retail = retailProfile(p1)
+    const answer = JSON.stringify({
+      items: retail.dimensions.map(dimension => ({ dimension_id: dimension.id, score: 70, reason: 'r' })),
+      reason: '整体',
+    })
+    const ctx = {
+      llm: {
+        stream: () => (async function* replay() {
+          yield { type: 'text-delta', index: 0, text: answer }
+          yield { type: 'block-end', index: 0, block: { type: 'text', text: answer } }
+          yield { type: 'finish', reason: { kind: 'stop' } }
+        })(),
+      },
+    } as never
+    const scoring = new LeadScoringService({
+      ctx,
+      domain: p1.harness.service.requireDomain(),
+      audit: p1.harness.service.requireAuditTable(),
+      ledger: p1.ledger,
+      policy: resolveAiPolicy({ timeoutMs: 5_000, maxOutputTokens: 4_096 }),
+    })
+    const lead = await p1.ledger.createLead({ company_name: '默认工厂公司', industry: '实体门店' }, FULL_OPERATOR, 'agent')
+    const outcome = await scoring.scoreOne({ lead_id: lead.id }, FULL_OPERATOR, 'agent')
+    expect(outcome.run.total).toBe(70)
+    expect(outcome.items[0]?.weight).toBeGreaterThan(0)
+  })
+
+  it('injects the lead documents into the scoring prompt through the service', async () => {
+    await seedFor(p1)
+    const retail = retailProfile(p1)
+    const lead = await p1.ledger.createLead({ company_name: '资料公司', industry: '实体门店' }, FULL_OPERATOR, 'agent')
+    await p1.ledger.addDocument(lead.id, '门店档案', '主营奶茶，日流水两万', FULL_OPERATOR, 'agent')
+    const captured: string[] = []
+    p1.setCompletion({ complete: async (prompt) => {
+      captured.push(prompt)
+      return JSON.stringify({
+        items: retail.dimensions.map(dimension => ({ dimension_id: dimension.id, score: 70, reason: 'r' })),
+        reason: '整体',
+      })
+    } })
+    await p1.scoring.scoreOne({ lead_id: lead.id }, FULL_OPERATOR, 'agent')
+    expect(captured[0]).toContain('门店档案')
+    expect(captured[0]).toContain('主营奶茶')
+  })
+
+})
+
 
 const SEED_DIMENSIONS = [
   { id: 'budget_scale', name: '预算规模', description: '改过的说明', weight: 100 },

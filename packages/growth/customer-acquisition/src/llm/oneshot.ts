@@ -91,7 +91,7 @@ export interface PromptCompletion {
  * @param finish - the model call's finish reason.
  * @returns the failure as an `Error`, or undefined for a clean `stop`.
  */
-function finishFailure(finish: FinishReason): Error | undefined {
+export function finishFailure(finish: FinishReason): Error | undefined {
   switch (finish.kind) {
     case 'stop': return undefined
     case 'max-tokens': return new Error('模型输出达到 token 上限被截断，请重试或调大 ai.maxOutputTokens')

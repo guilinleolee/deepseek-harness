@@ -164,6 +164,18 @@ describe('P1 lead tools wiring', () => {
       FULL_OPERATOR,
       'agent',
     )
+
+    const noHint = await tool.execute({ text: '另一段' }, EXEC) as { fields: { company_name?: string } }
+    expect(noHint.fields.company_name).toBe('抽取公司')
+    expect(extractLeadFields).toHaveBeenLastCalledWith(
+      { text: '另一段' },
+      completion,
+      FULL_OPERATOR,
+      'agent',
+    )
+    const long = '字'.repeat(61)
+    expect(tool.presentCall?.({ text: long })).toMatchObject({ rawInput: `${long.slice(0, 60)}…` })
+    expect(tool.presentCall?.({ text: '短文本' })).toMatchObject({ rawInput: '短文本' })
   })
 })
 
@@ -185,24 +197,42 @@ describe('P1 scoring tools wiring', () => {
     const [block] = tool.output.render({}, value)
     expect((block as { text: string }).text).toContain('77.5')
     expect(tool.timeoutMs).toBe(120_000)
+
+    await tool.execute({ lead_id: 'l1', icp_profile_id: 'p1', score_template_id: 't1' }, EXEC)
+    expect(scoreOne).toHaveBeenLastCalledWith(
+      { lead_id: 'l1', icp_profile_id: 'p1', score_template_id: 't1' },
+      FULL_OPERATOR,
+      'agent',
+      EXEC.signal,
+    )
   })
 
   it('score_batch and score_history forward their parameters', async () => {
     const scoreBatch = vi.fn(async () => ({ runs: [], failed: [] }))
     const batchTool = scoreBatchTool({ scoring: scoringStub({ scoreBatch }), permission: permissionSpy().permission })
-    await batchTool.execute({ lead_ids: ['a', 'b'], icp_profile_id: 'p1' }, EXEC)
+    await batchTool.execute({ lead_ids: ['a', 'b'], icp_profile_id: 'p1', score_template_id: 't1' }, EXEC)
     expect(scoreBatch).toHaveBeenCalledWith(
-      { lead_ids: ['a', 'b'], icp_profile_id: 'p1' },
+      { lead_ids: ['a', 'b'], icp_profile_id: 'p1', score_template_id: 't1' },
       FULL_OPERATOR,
       'agent',
       EXEC.signal,
     )
     expect(batchTool.timeoutMs).toBe(600_000)
 
+    await batchTool.execute({ lead_ids: ['l1'] }, EXEC)
+    expect(scoreBatch).toHaveBeenLastCalledWith(
+      { lead_ids: ['l1'] },
+      FULL_OPERATOR,
+      'agent',
+      EXEC.signal,
+    )
+
     const history = vi.fn(() => ({ items: [], total: 0 }))
     const historyTool = scoreHistoryTool({ scoring: scoringStub({ history }), permission: permissionSpy().permission })
     await historyTool.execute({ lead_id: 'l1', limit: 5, offset: 5 }, EXEC)
     expect(history).toHaveBeenCalledWith({ lead_id: 'l1', limit: 5, offset: 5 }, FULL_OPERATOR)
+    await historyTool.execute({ run_id: 'r1' }, EXEC)
+    expect(history).toHaveBeenLastCalledWith({ run_id: 'r1' }, FULL_OPERATOR)
   })
 
   it('icp_create passes explicit fields and the agent channel', async () => {
@@ -214,11 +244,18 @@ describe('P1 scoring tools wiring', () => {
     const tool = icpCreateTool({ scoring: scoringStub({ createIcpProfile }), permission: permissionSpy().permission })
     const value = await tool.execute({
       name: '画像',
+      industry: '餐饮',
       dimensions: [{ id: 'a', name: 'A', description: 'x', weight: 100 }],
+      enabled: false,
     }, EXEC) as { profile: { id: string } }
     expect(value.profile.id).toBe('icp1')
     expect(createIcpProfile).toHaveBeenCalledWith(
-      { name: '画像', dimensions: [{ id: 'a', name: 'A', description: 'x', weight: 100 }] },
+      {
+        name: '画像',
+        industry: '餐饮',
+        dimensions: [{ id: 'a', name: 'A', description: 'x', weight: 100 }],
+        enabled: false,
+      },
       FULL_OPERATOR,
       'agent',
     )
