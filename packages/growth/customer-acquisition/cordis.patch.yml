@@ -1,0 +1,8 @@
+# dsh bundle patch: one command installs the whole customer-acquisition feature —
+# this plugin (domain, permission seam, compliance gate, P0 tools, Remote gateway)
+# plus its web panel surface (`dsh plugin add` consumes this via dsh.bundle.patch).
+- insert:
+    - id: customer-acquisition
+      name: '@deepseek-ai/dsh-customer-acquisition'
+    - id: ui-customer-acquisition
+      name: '@deepseek-ai/dsh-client-ui-customer-acquisition'

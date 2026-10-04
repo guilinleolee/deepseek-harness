@@ -20,6 +20,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@deepseek-ai/dsh-<pkg>`. **Gr
 | [`llm/`](llm/README.md) | LLM capability family: the abstract service + provider adapters | Product — stable API |
 | [`e2b/`](e2b/README.md) | E2B providers | POC |
 | [`creation/`](creation/README.md) | Content-creation domain: the on-disk library convention and its Remote gateways (outputs, schedule, topics) | Product — stable API |
+| [`growth/`](growth/README.md) | Customer-acquisition domain: GEO diagnosis, lead ledger, AI lead scoring behind the compliance gate | Product — stable API |
 | [`subprocess/`](subprocess/README.md) | Subprocess capability family: Service Definition + local process-tree provider | Product — stable API |
 | [`shell/`](shell/README.md) | Bash capability family: executor seam, local impl, model-facing tool | Product — stable API |
 | [`terminal/`](terminal/README.md) | Persistent PTY capability family: owner-scoped sessions, local implementation, and model-facing tools | Product — stable API |

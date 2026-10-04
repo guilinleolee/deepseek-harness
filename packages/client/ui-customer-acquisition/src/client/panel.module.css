@@ -1,0 +1,97 @@
+/* Placeholder styling for the acquisition panel: one centered column over a
+   dimmed overlay. The real eight-page workbench brings its own shell (P4). */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 32%);
+}
+
+.card {
+  width: min(560px, 86vw);
+  max-height: 78vh;
+  overflow: auto;
+  border-radius: 12px;
+  padding: 24px 28px;
+  background: var(--dsh-bg, #fff);
+  color: var(--dsh-fg, #1f2329);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.phase {
+  font-size: 12px;
+  opacity: 0.64;
+}
+
+.intro {
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.8;
+  margin: 0 0 16px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+
+.settingsList {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  font-size: 13px;
+  margin: 0;
+}
+
+.settingsKey {
+  opacity: 0.64;
+}
+
+.auditList {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.empty {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.error {
+  font-size: 12px;
+  color: #c0392b;
+}
+
+.closeRow {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.closeButton {
+  border: 1px solid rgb(127 127 127 / 40%);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+}
