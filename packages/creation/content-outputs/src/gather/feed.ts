@@ -26,6 +26,8 @@ const GATHER_USER_AGENT = 'dsh-content-gather/0.1 (dsh content studio gather vie
 /** Injection face for tests: the fetch implementation defaults to the global one. */
 export interface GatherFetchDeps {
   readonly fetchImpl?: typeof fetch
+  /** Config-channel allowlist (content-outputs `allowedFeedHosts`); when defined it wins over the env fallback. */
+  readonly allowedHosts?: readonly string[] | undefined
 }
 
 /**
@@ -212,16 +214,18 @@ export async function fetchFeedDocument(
   if (request.etag !== undefined && request.etag.length > 0) headers['if-none-match'] = request.etag
   if (request.lastModified !== undefined && request.lastModified.length > 0) headers['if-modified-since'] = request.lastModified
 
-  // Allowlist gate before any network I/O. An unparseable URL leaves the
-  // hostname empty, which a configured allowlist then rejects; without one
-  // the URL falls through to fetch, which fails on it natively.
+  // Allowlist gate before any network I/O. Config (deps.allowedHosts) wins;
+  // without it the GATHER_ALLOWED_FEED_HOSTS env is the fallback channel. An
+  // unparseable URL leaves the hostname empty, which a configured allowlist
+  // then rejects; without one the URL falls through to fetch, which fails on
+  // it natively.
   let host = ''
   try {
     host = new URL(request.url).hostname
   } catch {
     host = ''
   }
-  if (!isFeedHostAllowed(host, resolveAllowedFeedHosts())) {
+  if (!isFeedHostAllowed(host, deps.allowedHosts ?? resolveAllowedFeedHosts())) {
     throw new GatherFeedBlockedError(host === '' ? '(unparseable)' : host, request.url)
   }
 

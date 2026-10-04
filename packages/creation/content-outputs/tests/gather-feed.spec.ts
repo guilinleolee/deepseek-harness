@@ -189,4 +189,14 @@ describe('gather feed-host allowlist', () => {
     await expect(fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: offline }))
       .rejects.toBeInstanceOf(GatherFeedBlockedError)
   })
+
+  it('lets the config-channel allowlist win over the env fallback', async () => {
+    const offline = (async () => new Response(RSS_DOCUMENT)) as typeof fetch
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', '')
+    const result = await fetchFeedDocument({ url: 'https://example.com/feed' }, { fetchImpl: offline, allowedHosts: ['example.com'] })
+    expect(result.items).toHaveLength(2)
+    vi.stubEnv('GATHER_ALLOWED_FEED_HOSTS', 'example.com')
+    await expect(fetchFeedDocument({ url: 'https://example.org/feed' }, { fetchImpl: offline, allowedHosts: [] }))
+      .rejects.toBeInstanceOf(GatherFeedBlockedError)
+  })
 })

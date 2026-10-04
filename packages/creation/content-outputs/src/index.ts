@@ -160,6 +160,12 @@ export interface Config extends GatherAiConfig, CreateQuotaConfig {
   root?: string
   /** Home the global template library resolves under (`<templatesRoot>/templates`). Defaults to the dsh home. */
   templatesRoot?: string
+  /**
+   * Gather feed-host allowlist: an entry admits itself and its subdomains.
+   * Absent = unrestricted (the `GATHER_ALLOWED_FEED_HOSTS` env applies as the
+   * fallback channel); empty = deny every host. Config wins over the env.
+   */
+  allowedFeedHosts?: string[]
 }
 
 export const Config: Schema<Config> = z.object({
@@ -173,6 +179,7 @@ export const Config: Schema<Config> = z.object({
   freeDailyGenerates: z.number(),
   freeDailyRewrites: z.number(),
   paidTierEnabled: z.boolean(),
+  allowedFeedHosts: z.array(z.string()),
 })
 
 /**
@@ -223,9 +230,13 @@ export class ContentOutputsGateway extends TypertRemoteService {
   /** Freemium gate over the create AI faces. */
   private readonly createQuota: CreateQuotaGate
 
+  /** Gather feed-host allowlist from config; absent value = the env fallback in feed.ts applies. */
+  private readonly allowedFeedHosts: readonly string[] | undefined
+
   constructor(ctx: Context, config: Config) {
     super(ctx, 'contentOutputs')
     this.root = join(resolveDshHome(config.root), 'outputs')
+    this.allowedFeedHosts = config.allowedFeedHosts
     this.ai = new GatherAiProcessor(ctx, config)
     this.competitorAi = new CompetitorAiProcessor(ctx, config)
     this.createAi = new CreateAiProcessor(ctx, resolveAiConfig(config))
@@ -263,7 +274,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    */
   @Remote('fetchFeed')
   async fetchFeed(request: GatherFeedRequest, signal?: AbortSignal): Promise<GatherFeedResult> {
-    return fetchFeedDocument(request, {}, signal)
+    return fetchFeedDocument(request, { allowedHosts: this.allowedFeedHosts }, signal)
   }
 
   /**
