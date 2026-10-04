@@ -52,6 +52,7 @@
     { "path": "./packages/client/ui-slots" },
     { "path": "./packages/client/ui-content-studio" },
     { "path": "./packages/client/ui-customer-acquisition" },
+    { "path": "./packages/client/ui-quant-research" },
     { "path": "./packages/client/ui-attachment" },
     { "path": "./packages/client/ui-primitives" },
     { "path": "./packages/client/modules" },

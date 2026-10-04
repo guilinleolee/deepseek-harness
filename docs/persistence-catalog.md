@@ -533,6 +533,33 @@ Source: [`packages/interaction/permission-presets/src/index.ts:50`](../packages/
 
 Source: [`packages/plan/plan-mode/src/index.ts:53`](../packages/plan/plan-mode/src/index.ts)
 
+### `quant/*`
+
+<a id="quantkernel-fault--log-only"></a>
+
+#### `quant/kernel-fault` — log-only
+
+```ts persistence-catalog
+/**
+ * One Python-kernel plane fault (spawn failure, crash, deadline, or wire
+ * violation), recorded at the moment the kernel client classified it.
+ * Log-only: never model-visible, never a surface event, and never a
+ * substitute for the tool result's friendly envelope.
+ */
+'quant/kernel-fault': {
+  /** The kernel request correlation id (a fresh UUID per request). */
+  requestId: string
+  /** The kernel operation that failed (`ping` / `get_kline` / `backtest`). */
+  op: string
+  /** The classified error tier. */
+  code: QuantErrorCode
+  /** The friendly Chinese message the tool layer will surface. */
+  message: string
+}
+```
+
+Source: [`packages/quant/quant-research/src/events.ts:19`](../packages/quant/quant-research/src/events.ts)
+
 ### `request/*`
 
 <a id="requestcontext--log-only"></a>

@@ -151,6 +151,14 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-client-ui-theme': ['lib/styles'],
   // The CPython side ships as source .py files, published as-is rather than built.
   '@deepseek-ai/dsh-code-runtime-python': ['py/**/*.py'],
+  // The quant kernel ships its stdlib-only Python sources beside the lib.
+  '@deepseek-ai/dsh-quant-research': [
+    'kernel-py/main.py',
+    'kernel-py/pdat/**/*.py',
+    'kernel-py/pcpt/**/*.py',
+    'kernel-py/utils/**/*.py',
+    'kernel-py/requirements.txt',
+  ],
   // The Python runtime uses a distinct closed-resolution bin; the public CLI
   // keeps config-owned bare-package resolution through lib/bin.js.
   '@deepseek-ai/dsh-sdk-jsonrpc-demo': ['lib/packaged-bin.js'],

@@ -1,0 +1,137 @@
+/**
+ * Quant research plugin (phase 1): kernel-backed market data, deterministic
+ * TypeScript indicators, and a daily SMA-cross backtester for research-only
+ * workflows. The plugin opens the `quant_research` storage domain (the
+ * compliance-denial audit trail), registers the three `quant_*` tools, and
+ * installs the pre-execute compliance gate enforcing the research-only red
+ * lines. No real-broker path exists anywhere in the plugin.
+ * @module @deepseek-ai/dsh-quant-research
+ */
+
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
+import type { Context } from '@deepseek-ai/cordis'
+import { defaultDshHome } from '@deepseek-ai/dsh-home-paths'
+import { resolveConfig } from './config.ts'
+import type { Config } from './config.ts'
+import { denialAuditCallback, installQuantComplianceGate } from './compliance.ts'
+import { quantResearchDomainSpec } from './domain/spec.ts'
+import { DataSourceBreaker } from './pdat/datasource.ts'
+import { QuantKernelClient } from './kernel-client/client.ts'
+import { registerQuantTools } from './tools.ts'
+
+export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
+export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
+export { KERNEL_REQUEST_TIMEOUT_MS_LIMITS, TOOL_TIMEOUT_MS_LIMITS } from './config.ts'
+export {
+  ENVELOPE_CODES, QuantError, errorEnvelope, isQuantError, okEnvelope,
+} from './errors.ts'
+export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
+export { complianceDenialSchema, quantResearchDomainSpec } from './domain/spec.ts'
+export type { ComplianceDenial, ComplianceDenialId } from './domain/spec.ts'
+export {
+  BARS_HARD_LIMIT, BROKER_MARKERS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, TOOL_PREFIX,
+  collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
+  inspectToolCall, installQuantComplianceGate, recordComplianceDenial,
+} from './compliance.ts'
+export type { ComplianceDenialInput, ComplianceVerdict } from './compliance.ts'
+export {
+  KERNEL_PROTOCOL_VERSION, ResponseParser, encodeRequest, kernelErrorToQuantCode, parseResponseLine,
+} from './kernel-client/protocol.ts'
+export type { KernelOp, KernelRequest, KernelResponse } from './kernel-client/protocol.ts'
+export {
+  KERNEL_POLL_INTERVAL_MS, KERNEL_STDERR_MAX_BYTES, KERNEL_STDOUT_MAX_BYTES,
+  KERNEL_TERMINATE_GRACE_MS, QuantKernelClient,
+} from './kernel-client/client.ts'
+export type { KernelProcess, QuantKernelClientOptions, SpawnKernel } from './kernel-client/client.ts'
+export {
+  BARS_MIN, DataSourceBreaker, fetchKline, klineBarSchema, klineSeriesSchema,
+  validateBars, validateSymbol,
+} from './pdat/datasource.ts'
+export type { FetchKlineOptions, KlineBar } from './pdat/datasource.ts'
+export { atr, boll, ema, macd, rsi, sma } from './paat/indicators.ts'
+export type { Series } from './paat/indicators.ts'
+export {
+  FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
+} from './pcpt/backtest.ts'
+export type {
+  BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
+} from './pcpt/backtest.ts'
+export {
+  DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
+  computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+} from './tools.ts'
+export type { QuantToolDeps } from './tools.ts'
+
+/** Cordis plugin name used by loader diagnostics. */
+export const name = 'quant-research'
+
+/** Services required before the plugin body runs. */
+export const inject = ['storageDomain', 'subprocess']
+
+/**
+ * Locate the kernel entry script shipped inside this package. Resolution goes
+ * through this package's own manifest, so it works from a workspace source
+ * tree and from an installed profile alike.
+ * @param createRequireAt - the `createRequire` factory (injected for tests).
+ * @returns the absolute path of `kernel-py/main.py`.
+ */
+export function resolveKernelScriptPath(
+  createRequireAt: (filename: string | URL) => ReturnType<typeof createRequire> = createRequire,
+): string {
+  const require = createRequireAt(import.meta.url)
+  const manifest = require.resolve('@deepseek-ai/dsh-quant-research/package.json')
+  return join(dirname(manifest), 'kernel-py', 'main.py')
+}
+
+/**
+ * Compose the plugin: resolve the config, open the `quant_research` domain,
+ * and run a runtime fiber that registers the three research tools and the
+ * compliance gate. Every registration is an effect; the returned disposer
+ * unwinds the runtime fiber and closes the domain.
+ * @param ctx - host context providing storage and the subprocess capability.
+ * @param config - bundle-row config; see {@link Config} for the tunables.
+ * @returns resolution to the disposer releasing every registration.
+ * @throws {@link QuantError} code `CONFIG` when the config is invalid.
+ */
+export async function apply(ctx: Context, config?: Config): Promise<() => Promise<void>> {
+  const resolved = resolveConfig(config, { platform: process.platform, dshHome: defaultDshHome() })
+  const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
+  const runtimeFiber = await ctx.plugin({
+    name: 'quant-research:runtime',
+    inject: ['tools'],
+    apply: (runtimeCtx: Context) => {
+      const kernel = new QuantKernelClient({
+        // Adapt the subprocess handle onto the kernel process face: the
+        // collected readers live under `handle.collected`.
+        spawn: (spec) => {
+          const handle = ctx.subprocess.spawn(spec)
+          return {
+            stdin: handle.stdin,
+            stdout: handle.collected.stdout,
+            stderr: handle.collected.stderr,
+            waitForExit: signal => handle.waitForExit(signal),
+            terminate: () => { handle.terminate() },
+          }
+        },
+        command: resolved.kernelCommand,
+        scriptPath: resolveKernelScriptPath(),
+        requestTimeoutMs: resolved.kernelRequestTimeoutMs,
+      })
+      const breaker = new DataSourceBreaker(resolved.fuseThreshold)
+      const unregisterTools = registerQuantTools(runtimeCtx, { config: resolved, kernel, breaker })
+      const uninstallGate = installQuantComplianceGate(
+        runtimeCtx,
+        denialAuditCallback(domain.table('compliance_denials'), runtimeCtx.logger),
+      )
+      return () => {
+        unregisterTools()
+        uninstallGate()
+      }
+    },
+  }).await()
+  return async () => {
+    await runtimeFiber.dispose()
+    await domain.close()
+  }
+}

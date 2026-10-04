@@ -1,0 +1,63 @@
+# Quant research plugin, real-use composition: kernel-backed market data,
+# deterministic indicators, and the daily SMA-cross backtester, all behind the
+# research-only compliance gate. The synthetic data source keeps every call
+# offline; switch it to akshare (and install kernel-py/requirements.txt) for
+# live A-share data.
+
+- id: settings
+  name: '@deepseek-ai/dsh-settings-file'
+
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-local'
+
+# Managed child-process groups: the Python kernel runs here, one short-lived
+# process per request, terminated through the seam's terminate ladder.
+- id: subprocess
+  name: '@deepseek-ai/dsh-subprocess-local'
+
+# Storage hub + json backend + domain layer: the quant_research domain's
+# compliance-denial audit lives here.
+- id: storage
+  name: '@deepseek-ai/dsh-storage'
+
+- id: storage-json
+  name: '@deepseek-ai/dsh-storage-json'
+  config:
+    root: './.storages'
+
+- id: storage-domain
+  name: '@deepseek-ai/dsh-storage-domain'
+  config:
+    backend: json
+
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek'
+
+- id: agent-spine
+  name: '@deepseek-ai/dsh-agent-spine-demo'
+  config:
+    agents:
+      - id: main
+        provider: deepseek-official
+        model: deepseek-v4-flash
+        cwd: !!js process.cwd()
+    workspaceContext: false
+    dshHome: './.dsh-home'
+    persona: |
+      你是量化研究助手：只做投研、技术指标与模拟回测；所有结论仅供研究参考，
+      不构成投资建议；插件没有实盘通道，也不要尝试绕过合规拦截。
+
+# Session persistence for the demo runs (replay-friendly, uncompressed in the
+# snapshot lane).
+- id: session-persistence-jsonl
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  config:
+    root: './.sessions'
+    compression: !!js "process.env.DSH_SNAPSHOT === undefined ? 'zstd' : 'none'"
+
+- id: quant-research
+  name: '@deepseek-ai/dsh-quant-research'
+  config:
+    dataSource: synthetic
+    kernelCommand: !!js "process.platform === 'win32' ? 'python' : 'python3'"
+    cacheDir: './.cache'

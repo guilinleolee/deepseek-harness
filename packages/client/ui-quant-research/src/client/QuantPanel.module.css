@@ -1,0 +1,54 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 35%);
+}
+
+.card {
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  padding: 20px 22px;
+  border-radius: 12px;
+  background: var(--dsh-bg-elevated, #fff);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.phase {
+  font-size: 11px;
+  color: var(--dsh-text-secondary, #888);
+}
+
+.intro {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--dsh-text-secondary, #555);
+}
+
+.close {
+  align-self: flex-end;
+  padding: 4px 14px;
+  border: 1px solid var(--dsh-border, #ddd);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}

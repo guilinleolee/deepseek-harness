@@ -309,6 +309,7 @@
     { "path": "./packages/creation/content-schedule" },
     { "path": "./packages/creation/content-topics" },
     { "path": "./packages/growth/customer-acquisition" },
+    { "path": "./packages/quant/quant-research" },
     { "path": "./packages/host/webserver" },
     { "path": "./packages/sdk/client" },
     { "path": "./packages/sdk/protocol" },

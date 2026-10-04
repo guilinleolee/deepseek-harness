@@ -67,7 +67,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** Services required before the plugin body runs. */
-export const inject = ['storageDomain', 'tools'] as const
+export const inject = ['storageDomain', 'tools']
 
 /**
  * Compose the plugin: the local permission provider and the domain service

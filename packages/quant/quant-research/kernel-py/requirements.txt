@@ -1,0 +1,2 @@
+# The kernel itself is stdlib-only; akshare is the optional real-data source.
+akshare>=1.14.0
