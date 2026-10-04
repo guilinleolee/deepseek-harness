@@ -1,0 +1,8 @@
+# dsh bundle patch: installs the GEO diagnosis module of the customer-acquisition
+# feature. It rides on the main plugin's storage domain and audit service, so the
+# patch inserts both; `dsh plugin add` consumes this via dsh.bundle.patch.
+- insert:
+    - id: customer-acquisition
+      name: '@deepseek-ai/dsh-customer-acquisition'
+    - id: customer-acquisition-geo
+      name: '@deepseek-ai/dsh-customer-acquisition-geo'
