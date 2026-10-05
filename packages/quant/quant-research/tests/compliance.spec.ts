@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   BROKER_MARKERS, collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps,
-  inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall,
+  inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall, inspectWeightCaps,
   installQuantComplianceGate, recordComplianceDenial,
 } from '../src/compliance.ts'
 import type { KvTable } from '@deepseek-ai/dsh-storage-domain'
@@ -96,6 +96,24 @@ describe('inspectShockCap', () => {
     expect(inspectShockCap(rawArgs({ shock: 0.005 }))).toMatchObject({ kind: 'deny' })
     expect(inspectShockCap(rawArgs({ shock: 0.6 }))).toMatchObject({ kind: 'deny' })
     expect(inspectShockCap(rawArgs({ shock: null }))).toMatchObject({ kind: 'deny' })
+  })
+})
+
+describe('inspectWeightCaps', () => {
+  it('allows absent and compliant weight lists', () => {
+    expect(inspectWeightCaps(rawArgs({}))).toEqual({ kind: 'allow' })
+    expect(inspectWeightCaps(rawArgs({ targets: [{ symbol: 'A', weight: 0.4 }] }))).toEqual({ kind: 'allow' })
+  })
+
+  it('denies non-list targets and per-symbol weights past 1', () => {
+    expect(inspectWeightCaps(rawArgs({ targets: 'all-in' }))).toMatchObject({ kind: 'deny' })
+    expect(inspectWeightCaps(rawArgs({ targets: [{ symbol: 'A', weight: 1.5 }] }))).toMatchObject({ kind: 'deny' })
+    expect(inspectWeightCaps(rawArgs({ targets: [{ symbol: 'A', weight: -0.1 }] }))).toMatchObject({ kind: 'deny' })
+  })
+
+  it('denies leveraged sums', () => {
+    const verdict = inspectWeightCaps(rawArgs({ targets: [{ weight: 0.7 }, { weight: 0.7 }] }))
+    expect(verdict).toMatchObject({ kind: 'deny', reason: expect.stringContaining('杠杆') })
   })
 })
 

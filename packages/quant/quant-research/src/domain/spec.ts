@@ -12,6 +12,16 @@ import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
 
 /** One audited red-line denial. */
 export type ComplianceDenialId = Branded<'ComplianceDenialId'>
+/** One virtual research account (PET). */
+export type AccountId = Branded<'AccountId'>
+/** One simulated fill inside a virtual account. */
+export type OrderId = Branded<'OrderId'>
+
+/** Brand a plain string as an account id. */
+export const AccountId = (value: string): AccountId => value as AccountId
+
+/** Brand a plain string as an order id. */
+export const OrderId = (value: string): OrderId => value as OrderId
 
 /**
  * Brand a plain string as a denial id.
@@ -36,14 +46,56 @@ export const complianceDenialSchema = z.object({
   denied_at: epochMs,
 })
 
+/** One virtual account: cash plus long-only positions. */
+export const accountSchema = z.object({
+  id: z.string().min(1).transform(AccountId),
+  name: z.string().min(1),
+  initial_cash: z.number().positive(),
+  cash: z.number(),
+  positions: z.array(z.object({
+    symbol: z.string().min(1),
+    shares: z.number(),
+    avg_cost: z.number(),
+  })).refine(
+    positions => new Set(positions.map(p => p.symbol)).size === positions.length,
+    { message: 'duplicate position symbol' },
+  ),
+  created_at: epochMs,
+  updated_at: epochMs,
+})
+
+/** One virtual account. */
+export type Account = z.infer<typeof accountSchema>
+
+/** One simulated fill. */
+export const orderSchema = z.object({
+  id: z.string().min(1).transform(OrderId),
+  account_id: z.string().min(1).transform(AccountId),
+  symbol: z.string().min(1),
+  side: z.enum(['buy', 'sell']),
+  shares: z.number(),
+  price: z.number(),
+  fee: z.number(),
+  executed_at: epochMs,
+})
+
+/** One simulated fill record. */
+export type Order = z.infer<typeof orderSchema>
+
 /** One red-line denial record. */
 export type ComplianceDenial = z.infer<typeof complianceDenialSchema>
 
-/** The quant-research domain: the denial audit table only; research ledgers arrive with later phases. */
+/**
+ * The quant-research domain v2: the denial audit trail plus the PET virtual
+ * accounts and their simulated fills. v2 adds the two PET tables; there is
+ * no migration (pre-release stance), so a v1 medium rejects at open.
+ */
 export const quantResearchDomainSpec = defineDomain({
   name: 'quant_research',
-  version: 1,
+  version: 2,
   tables: {
     compliance_denials: domainTable<ComplianceDenialId, ComplianceDenial>(complianceDenialSchema),
+    accounts: domainTable<AccountId, Account>(accountSchema),
+    orders: domainTable<OrderId, Order>(orderSchema),
   },
 })
