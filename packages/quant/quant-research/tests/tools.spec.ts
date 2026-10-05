@@ -6,8 +6,8 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
 import type { QuantKernelClient } from '../src/kernel-client/client.ts'
 import {
-  assessRiskTool, computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
-  stressTestTool,
+  accountCreateTool, accountStateTool, assessRiskTool, computeIndicatorTool, executeRebalanceTool,
+  getKlineTool, registerQuantTools, runBacktestTool, stressTestTool,
 } from '../src/tools.ts'
 import type { QuantToolDeps } from '../src/tools.ts'
 
@@ -68,7 +68,14 @@ function textOf(blocks: unknown): string {
 }
 
 function deps(kernel: QuantKernelClient): QuantToolDeps {
-  return { config: CONFIG, kernel, breaker: new DataSourceBreaker(3) }
+  return {
+    config: CONFIG,
+    kernel,
+    breaker: new DataSourceBreaker(3),
+    accounts: new Map() as never,
+    orders: new Map() as never,
+    approval: { request: vi.fn(async () => 'rejected' as const) },
+  }
 }
 
 describe('quant_get_kline', () => {
@@ -351,6 +358,7 @@ describe('quant_stress_test', () => {
     expect((bad as { msg: string }).msg).toContain('冲击幅度')
   })
 
+
   it('renders placeholders when stress metrics omit optional fields', () => {
     const definition = tool()
     const rendered = textOf(definition.output.render({}, {
@@ -373,6 +381,134 @@ describe('quant_stress_test', () => {
     expect(definition.presentCall?.({ symbol: '600000', scenario: 'crash' } as never))
       .toEqual({ card: 'generic', title: '压力测试：600000 crash' })
   })
+})
+
+describe('PET tool renders', () => {
+  // 内存版 KvTable：put/get/entries 齐全，供 PET 工具落盘。
+  const memTable = (): never => {
+    const store = new Map()
+    return {
+      entries: () => store.entries(),
+      get size() { return store.size },
+      get: key => store.get(key),
+      put: async (key, value) => { store.set(key, value) },
+    } as never
+  }
+  const petDepsLocal = (outcome: 'allowed-once' | 'rejected' = 'rejected'): QuantToolDeps => ({
+    ...deps(syntheticBarsKernel()),
+    accounts: memTable(),
+    orders: memTable(),
+    approval: { request: Object.assign(async (req: unknown) => { console.log('P2-APPROVAL-CALLED:', JSON.stringify(req?.constructor?.name)); return outcome }, { _isMockFunction: true }) },
+  })
+
+  it('renders the create/state/rebalance failure and empty paths', () => {
+    const failure = { code: 1002, msg: '未找到账户', data: null }
+    for (const render of [
+      accountCreateTool(petDepsLocal()).output.render,
+      accountStateTool(petDepsLocal()).output.render,
+      executeRebalanceTool(petDepsLocal()).output.render,
+    ]) {
+      expect(textOf(render({}, failure as never))).toContain('请求失败')
+    }
+    const empty = accountCreateTool(petDepsLocal()).output.render({}, { code: 0, msg: 'ok', data: {} } as never)
+    expect(textOf(empty)).toContain('账户信息为空')
+    const emptyRebalance = executeRebalanceTool(petDepsLocal()).output.render(
+      {}, { code: 0, msg: 'ok', data: {} } as never,
+    )
+    expect(textOf(emptyRebalance)).toContain('调仓结果为空')
+
+    // renderAccount 的持仓列表与缺省 equityLine；renderRebalance 的缺省 cash_after
+    const stateRender = accountStateTool(petDepsLocal()).output.render
+    const fullState = {
+      code: 0, msg: 'ok',
+      data: {
+        name: '研究一号', cash: 500,
+        positions: [{ symbol: '000001', shares: 100, market_value: 1000 }],
+        equity: 1500,
+      },
+    }
+    const stateText = textOf(stateRender({}, fullState as never))
+    expect(stateText).toContain('000001')
+    expect(stateText).toContain('总权益 1500')
+
+    const rebalanceRender = executeRebalanceTool(petDepsLocal()).output.render
+    const rebalanceText = textOf(rebalanceRender({}, {
+      code: 0, msg: 'ok',
+      data: {
+        account_name: '研究一号',
+        executed: [
+          { symbol: '000001', side: 'sell', shares: 10, price: 10, fee: 0.3 },
+          { symbol: 'AAPL', side: 'buy', shares: 1, price: 100, fee: 0.03 },
+        ],
+        cash_after: 499.67,
+      },
+    } as never))
+    expect(rebalanceText).toContain('卖出 000001')
+    expect(rebalanceText).toContain('买入 AAPL')
+    expect(rebalanceText).toContain('现金余额 499.67')
+  })
+
+  it('renders account positions and rebalance fills end to end', async () => {
+    const approving = petDepsLocal('allowed-once')
+    console.log('DEBUG approval:', JSON.stringify(approving.approval))
+    await accountCreateTool(approving).execute?.({ name: '研究一号' }, execWith(() => {}))
+    const rebalance = await executeRebalanceTool(approving).execute?.(
+      { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },
+      execWith(() => {}),
+    )
+    console.log('P2-REBALANCE-RESULT:', JSON.stringify(rebalance).slice(0, 200))
+    expect(rebalance).toMatchObject({ code: 0 })
+    const rebalanceText = textOf(executeRebalanceTool(approving).output.render({}, rebalance as never))
+    expect(rebalanceText).toContain('调仓完成')
+    expect(rebalanceText).toContain('现金余额')
+    const state = await accountStateTool(approving).execute?.({ account_name: '研究一号' }, execWith())
+    const stateText = textOf(accountStateTool(approving).output.render({}, state as never))
+    expect(stateText).toContain('总权益')
+    expect(stateText).toContain('000001')
+  })
+
+  it('presents all three PET tools from args alone', () => {
+    expect(accountCreateTool(petDepsLocal()).presentCall?.({ name: 'x' } as never))
+      .toEqual({ card: 'generic', title: '创建虚拟账户：x' })
+    expect(accountStateTool(petDepsLocal()).presentCall?.({ account_name: 'x' } as never))
+      .toEqual({ card: 'generic', title: '查询账户：x' })
+    expect(accountStateTool(petDepsLocal()).presentCall?.({ account_id: 'a-1' } as never))
+      .toEqual({ card: 'generic', title: '查询账户：a-1' })
+    expect(executeRebalanceTool(petDepsLocal()).presentCall?.(
+      { account_name: 'x', targets: [{ symbol: '000001', weight: 0.5 }] } as never,
+    )).toEqual({ card: 'generic', title: '调仓审核：x' })
+  })
+
+  it('presents the state tool without any args (all defaults)', () => {
+    const card = accountStateTool(petDepsLocal()).presentCall?.({} as never)
+    expect(card).toEqual({ card: 'generic', title: '查询账户：?' })
+  })
+
+  it('renders rebalance placeholders when cash_after is omitted', () => {
+    const definition = executeRebalanceTool(petDepsLocal())
+    const rendered = textOf(definition.output.render({}, {
+      code: 0, msg: 'ok',
+      data: {
+        account_name: 'x',
+        executed: [{ symbol: '000001', side: 'sell', shares: 10, price: 10, fee: 0.3 }],
+      },
+    } as never))
+    expect(rendered).toContain('现金余额 ?')
+  })
+
+  it('fails loud without an agent session for the approval flow', async () => {
+    const kernel = syntheticBarsKernel()
+    const d = petDepsLocal('allowed-once')
+    d.kernel = kernel
+    await accountCreateTool(d).execute?.({ name: '研究一号' }, execWith())
+    const value = await executeRebalanceTool(d).execute?.(
+      { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },
+      { signal: new AbortController().signal, agent: undefined } as never,
+    )
+    expect(value).toMatchObject({ code: 1005 })
+    expect((value as { msg: string }).msg).toContain('agent 会话')
+  })
+
 })
 
 describe('render fallbacks', () => {
@@ -469,13 +605,14 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(5)
+    expect(register).toHaveBeenCalledTimes(8)
     const names = register.mock.calls.map(call => call[0].name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
       'quant_assess_risk', 'quant_stress_test',
+      'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
     ])
     dispose()
-    expect(disposers).toHaveLength(5)
+    expect(disposers).toHaveLength(8)
   })
 })

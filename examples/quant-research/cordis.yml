@@ -55,6 +55,11 @@
     root: './.sessions'
     compression: !!js "process.env.DSH_SNAPSHOT === undefined ? 'zstd' : 'none'"
 
+# Approval capability for the PET tools' human-review flow. In headless
+# compositions without an answerer, asks fail closed (unavailable → rejected).
+- id: approval
+  name: '@deepseek-ai/dsh-user-approval'
+
 - id: quant-research
   name: '@deepseek-ai/dsh-quant-research'
   config:
