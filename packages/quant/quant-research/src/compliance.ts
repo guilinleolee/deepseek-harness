@@ -30,6 +30,10 @@ export const FEE_RATE_HARD_LIMIT = 0.05
 export const CONFIDENCE_LIMITS = { min: 0.8, max: 0.99, default: 0.95 } as const
 /** Hard bounds for a stress shock's total magnitude; not configurable. */
 export const SHOCK_LIMITS = { min: 0.01, max: 0.5, default: 0.1 } as const
+/** Hard cap for one rebalance target weight (no single-name overconcentration); not configurable. */
+export const WEIGHT_POSITION_HARD_LIMIT = 1
+/** Hard cap for the rebalance targets' weight sum (no leverage); not configurable. */
+export const WEIGHT_TOTAL_HARD_LIMIT = 1
 
 /** Argument substrings that indicate real-trading or broker-API intent. */
 export const BROKER_MARKERS: readonly string[] = [
@@ -128,6 +132,9 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_run_backtest: [inspectBrokerMarkers, inspectBarCap, inspectBacktestCaps],
   quant_assess_risk: [inspectBrokerMarkers, inspectBarCap, inspectConfidenceCap],
   quant_stress_test: [inspectBrokerMarkers, inspectBarCap, inspectShockCap],
+  quant_execute_rebalance: [inspectBrokerMarkers, inspectWeightCaps],
+  quant_compute_factor: [inspectBrokerMarkers, inspectBarCap],
+  quant_factor_ic: [inspectBrokerMarkers, inspectBarCap],
 })
 
 /**
@@ -164,6 +171,36 @@ export function inspectShockCap(args: RawArgs): ComplianceVerdict {
       kind: 'deny',
       reason: `shock 必须是 ${String(SHOCK_LIMITS.min)}-${String(SHOCK_LIMITS.max)} 之间的数值（合规硬上限）`,
     }
+  }
+  return { kind: 'allow' }
+}
+
+/**
+ * Red line 6 (no leverage, long-only): every rebalance target weight stays
+ * within `[0, 1]` and the weights' sum stays within `[0, 1]` — the virtual
+ * book never goes short or levered, regardless of what the schema accepts.
+ * @param args - raw tool arguments.
+ * @returns the verdict for the weight-cap rule.
+ */
+export function inspectWeightCaps(args: RawArgs): ComplianceVerdict {
+  const targets = (args as Record<string, unknown>)['targets']
+  if (targets === undefined) return { kind: 'allow' }
+  if (!Array.isArray(targets)) {
+    return { kind: 'deny', reason: 'targets 必须是目标权重列表（合规硬上限：仅限多头、无杠杆）' }
+  }
+  let total = 0
+  for (const item of targets) {
+    const weight = (item as Record<string, unknown> | null)?.['weight']
+    if (typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0 || weight > WEIGHT_POSITION_HARD_LIMIT) {
+      return {
+        kind: 'deny',
+        reason: `每个目标权重必须是 0-${String(WEIGHT_POSITION_HARD_LIMIT)} 之间的数值（合规硬上限：仅限多头、无杠杆）`,
+      }
+    }
+    total += weight
+  }
+  if (total > WEIGHT_TOTAL_HARD_LIMIT + 1e-9) {
+    return { kind: 'deny', reason: `目标权重合计 ${total.toFixed(4)} 超过 ${String(WEIGHT_TOTAL_HARD_LIMIT)}（合规硬上限：不允许杠杆）` }
   }
   return { kind: 'allow' }
 }

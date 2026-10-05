@@ -23,7 +23,7 @@ const TOOL_CALL_SEQUENCE = [
 ]
 
 describe('quant-research keyless snapshot', () => {
-  it('runs the full research loop: four tool rounds plus one red-line denial', async () => {
+  it('runs the full research loop: five tool rounds plus one red-line denial', async () => {
     const result = await runLoaderSmoke({
       label: 'quant-research snapshot',
       tempDirPrefix: 'quant-research-snapshot-',
@@ -55,7 +55,7 @@ describe('quant-research keyless snapshot', () => {
 
     // The red-line denial: the fifth call fails with the friendly Chinese reason.
     const results = events.filter(event => event.type === 'tool/result')
-    const denial = results[4]
+    const denial = results[5]
     const denialText = JSON.stringify(denial)
     expect(denialText).toContain('实盘')
     expect(denialText).toContain('禁止实盘交易指令')
@@ -76,5 +76,8 @@ describe('quant-research keyless snapshot', () => {
     expect(stressText).toContain('压力测试')
     expect(stressText).toContain('crash')
     expect(stressText).toContain('冲击 20.00%')
+    const factorText = JSON.stringify(results[4])
+    expect(factorText).toContain('momentum')
+    expect(factorText).toContain('仅供研究参考')
   }, 120_000)
 })

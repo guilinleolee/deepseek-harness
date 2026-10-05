@@ -7,7 +7,7 @@ import { apply as invariantApply } from '../src/invariant.ts'
 describe('plugin surface', () => {
   it('declares the plugin identity and service requirements', () => {
     expect(name).toBe('quant-research')
-    expect(inject).toEqual(['storageDomain', 'subprocess'])
+    expect(inject).toEqual(['storageDomain', 'subprocess', 'approval'])
   })
 
   it('locates the shipped kernel script inside the package', () => {
@@ -38,6 +38,7 @@ function preparedContext(): {
   ctx.provide('storageDomain', { open } as never)
   ctx.provide('subprocess', { spawn: vi.fn() } as never)
   ctx.provide('tools', { register } as never)
+  ctx.provide('approval', { request: vi.fn(async () => 'rejected' as const) } as never)
   return { ctx, register, close, open }
 }
 
@@ -50,6 +51,8 @@ describe('apply', () => {
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
       'quant_assess_risk', 'quant_stress_test',
+      'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
+      'quant_compute_factor', 'quant_factor_ic',
     ])
     await disposer()
     expect(close).toHaveBeenCalledTimes(1)
@@ -77,6 +80,7 @@ describe('kernel round trip through apply', () => {
         return () => {}
       }),
     } as never)
+    ctx.provide('approval', { request: vi.fn(async () => 'rejected' as const) } as never)
     ctx.provide('subprocess', {
       spawn: (spec: { argv: string[] }) => {
         spawnedPath = spec.argv[1] ?? ''

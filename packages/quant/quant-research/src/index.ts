@@ -27,8 +27,10 @@ export {
   ENVELOPE_CODES, QuantError, errorEnvelope, isQuantError, okEnvelope,
 } from './errors.ts'
 export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
-export { complianceDenialSchema, quantResearchDomainSpec } from './domain/spec.ts'
-export type { ComplianceDenial, ComplianceDenialId } from './domain/spec.ts'
+export {
+  AccountId, OrderId, accountSchema, complianceDenialSchema, orderSchema, quantResearchDomainSpec,
+} from './domain/spec.ts'
+export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
 export {
   BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT,
   SHOCK_LIMITS, TOOL_PREFIX, collectArgStrings, denialAuditCallback, inspectBarCap,
@@ -53,6 +55,12 @@ export type { FetchKlineOptions, KlineBar } from './pdat/datasource.ts'
 export { atr, boll, ema, macd, rsi, sma } from './paat/indicators.ts'
 export type { Series } from './paat/indicators.ts'
 export {
+  DEFAULT_FACTOR_WINDOWS, FACTOR_NAMES, computeFactor, momentum, pricePosition, volumeRatio, volatility,
+} from './paat/factors.ts'
+export type { FactorName, FactorSeries } from './paat/factors.ts'
+export { informationRatio, rollingIC, spearman } from './paat/ic.ts'
+export type { ICPeriod } from './paat/ic.ts'
+export {
   FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
 } from './pcpt/backtest.ts'
 export {
@@ -61,12 +69,23 @@ export {
   historicalCVar, historicalVar, maxDrawdown, shockBars, validateStressParams,
 } from './prt/risk.ts'
 export type { StressParams, StressScenario } from './prt/risk.ts'
+export {
+  applyTrades, cashDelta, createAccount, listAccounts, requireAccount,
+} from './pet/service.ts'
+export type { AccountCreateInput } from './pet/service.ts'
+export type { PetPosition } from './pet/rebalance.ts'
+export {
+  computeRebalanceTrades, latestClose,
+} from './pet/rebalance.ts'
+export type { RebalanceInput, RebalancePlan, RebalanceTarget, RebalanceTrade } from './pet/rebalance.ts'
+export type { ApprovalAsk } from './tools.ts'
 export type {
   BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
 } from './pcpt/backtest.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
-  assessRiskTool, computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
+  executeRebalanceTool, factorICTool, getKlineTool, registerQuantTools, runBacktestTool,
   stressTestTool,
 } from './tools.ts'
 export type { QuantToolDeps } from './tools.ts'
@@ -74,8 +93,8 @@ export type { QuantToolDeps } from './tools.ts'
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
 
-/** Services required before the plugin body runs. */
-export const inject = ['storageDomain', 'subprocess']
+/** Services required before the plugin body runs (`approval` backs the PET review flow). */
+export const inject = ['storageDomain', 'subprocess', 'approval']
 
 /**
  * Locate the kernel entry script shipped inside this package. Resolution goes
@@ -107,7 +126,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
   const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
   const runtimeFiber = await ctx.plugin({
     name: 'quant-research:runtime',
-    inject: ['tools'],
+    inject: ['tools', 'approval'],
     apply: (runtimeCtx: Context) => {
       const kernel = new QuantKernelClient({
         // Adapt the subprocess handle onto the kernel process face: the
@@ -127,7 +146,14 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         requestTimeoutMs: resolved.kernelRequestTimeoutMs,
       })
       const breaker = new DataSourceBreaker(resolved.fuseThreshold)
-      const unregisterTools = registerQuantTools(runtimeCtx, { config: resolved, kernel, breaker })
+      const unregisterTools = registerQuantTools(runtimeCtx, {
+        config: resolved,
+        kernel,
+        breaker,
+        accounts: domain.table('accounts'),
+        orders: domain.table('orders'),
+        approval: runtimeCtx.approval,
+      })
       const uninstallGate = installQuantComplianceGate(
         runtimeCtx,
         denialAuditCallback(domain.table('compliance_denials'), runtimeCtx.logger),
