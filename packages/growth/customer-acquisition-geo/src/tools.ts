@@ -39,7 +39,7 @@ export function geoScanTool(service: GeoDiagnosisService, permission: Permission
       max_pages: { type: 'integer', description: '最多抓取页数，默认 10，上限 20 的整数；超出范围由合规校验拒绝' },
     },
     timeoutMs: 300_000,
-    presentCall: args => card('GEO 诊断', `站点：${String(args.url ?? '')}，页数上限：${String(args.max_pages ?? 10)}`),
+    presentCall: args => card('GEO 诊断', `站点：${args.url}，页数上限：${args.max_pages ?? 10}`),
     output: {
       schema: {
         type: 'object',
@@ -79,7 +79,7 @@ export function geoHistoryTool(service: GeoDiagnosisService): ToolDefinition {
       limit: { type: 'integer', description: '每页条数，默认 20，最大 100' },
       offset: { type: 'integer', description: '偏移量，默认 0' },
     },
-    presentCall: args => card('GEO 历史查询', args.url_filter === undefined ? '全部站点' : `前缀：${String(args.url_filter)}`),
+    presentCall: args => card('GEO 历史查询', args.url_filter === undefined ? '全部站点' : `前缀：${args.url_filter}`),
     output: {
       schema: {
         type: 'object',
@@ -128,7 +128,7 @@ export function geoReportGetTool(service: GeoDiagnosisService): ToolDefinition {
     name: 'customer_acquisition_geo_report_get',
     description: '按报告 id 读取一轮 GEO 诊断的完整报告：综合分、全部发现项、llms.txt 产物、FAQ/品牌素材、优化任务清单与 Markdown 报告原文。',
     parameters: { report_id: { type: 'string', required: true, description: '报告 id' } },
-    presentCall: args => card('GEO 报告详情', `报告：${String(args.report_id ?? '')}`),
+    presentCall: args => card('GEO 报告详情', `报告：${args.report_id}`),
     output: {
       schema: {
         type: 'object',
@@ -188,7 +188,7 @@ export function geoCompareTool(service: GeoDiagnosisService): ToolDefinition {
       report_a_id: { type: 'string', required: true, description: '基线报告 id' },
       report_b_id: { type: 'string', required: true, description: '对比报告 id' },
     },
-    presentCall: args => card('GEO 报告对比', `${String(args.report_a_id ?? '')} vs ${String(args.report_b_id ?? '')}`),
+    presentCall: args => card('GEO 报告对比', `${args.report_a_id} vs ${args.report_b_id}`),
     output: {
       schema: {
         type: 'object',

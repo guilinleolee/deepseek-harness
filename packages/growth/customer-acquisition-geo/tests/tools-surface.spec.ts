@@ -12,7 +12,7 @@ import {
 
 const EXEC = { callId: 'c', rootCallId: 'c', name: 'probe', arguments: {}, signal: new AbortController().signal, agent: { id: 'a1' } } as never
 
-const LOCAL_OPERATOR = LOCAL_OPERATOR
+const LOCAL_OPERATOR = { userId: 'u', displayName: 'n', capabilities: {} }
 
 function permissionOf(): PermissionContextService {
   return { resolve: async () => LOCAL_OPERATOR } as never
@@ -54,7 +54,7 @@ function serviceOf(overrides: Record<string, unknown> = {}): GeoDiagnosisService
       resolved: ['缺 llms.txt'], introduced: [], summary_md: '提升 13 分',
     }),
     ...overrides,
-  } as never as GeoDiagnosisService
+  } as never
 }
 
 function renderText(tool: ToolDefinition, value: unknown): string {
