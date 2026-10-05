@@ -12,10 +12,7 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { LeadScoringService } from '../scoring/service.ts'
 import { toIcpProfileRef, toScoreTemplateRef } from '../scoring/service.ts'
 import { INTENT_LABELS } from '../scoring/evaluate.ts'
-import type {
-  IcpListValue, IcpProfileRefValue, ScoreBatchValue, ScoreHistoryValue, ScoreOneValue,
-  ScoreTemplateListValue, ScoreTemplateRefValue,
-} from '../scoring/types.ts'
+import type { ScoreBatchValue, ScoreHistoryValue, ScoreOneValue } from '../scoring/types.ts'
 import { operatorRequest } from '../permission/types.ts'
 import type { PermissionContextService } from '../permission/types.ts'
 
@@ -332,7 +329,7 @@ export function icpCreateTool(deps: ScoringToolDeps): ToolDefinition {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `已新建 ICP 画像：${(value as { profile: IcpProfileRefValue }).profile.name}（id ${(value as { profile: IcpProfileRefValue }).profile.id}，${(value as { profile: IcpProfileRefValue }).profile.enabled ? '启用中' : '已停用'}）`,
+        text: `已新建 ICP 画像：${(value).profile.name}（id ${(value).profile.id}，${(value).profile.enabled ? '启用中' : '已停用'}）`,
       }],
     },
     presentCall: args => ({
@@ -389,7 +386,7 @@ export function icpUpdateTool(deps: ScoringToolDeps): ToolDefinition {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `已更新 ICP 画像：${(value as { profile: IcpProfileRefValue }).profile.name}（id ${(value as { profile: IcpProfileRefValue }).profile.id}，${(value as { profile: IcpProfileRefValue }).profile.enabled ? '启用中' : '已停用'}）`,
+        text: `已更新 ICP 画像：${(value).profile.name}（id ${(value).profile.id}，${(value).profile.enabled ? '启用中' : '已停用'}）`,
       }],
     },
     presentCall: args => ({
@@ -459,7 +456,7 @@ export function icpListTool(deps: ScoringToolDeps): ToolDefinition {
         },
       },
       render: (_args, value) => {
-        const icps = value as IcpListValue
+        const icps = value
         return [{
           type: 'text',
           text: icps.items.length === 0
@@ -554,7 +551,7 @@ export function scoreTemplateCreateTool(deps: ScoringToolDeps): ToolDefinition {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `已新建打分模板：${(value as { template: ScoreTemplateRefValue }).template.name}（id ${(value as { template: ScoreTemplateRefValue }).template.id}，${(value as { template: ScoreTemplateRefValue }).template.enabled ? '启用中' : '已停用'}）`,
+        text: `已新建打分模板：${(value).template.name}（id ${(value).template.id}，${(value).template.enabled ? '启用中' : '已停用'}）`,
       }],
     },
     presentCall: args => ({
@@ -611,7 +608,7 @@ export function scoreTemplateUpdateTool(deps: ScoringToolDeps): ToolDefinition {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `已更新打分模板：${(value as { template: ScoreTemplateRefValue }).template.name}（id ${(value as { template: ScoreTemplateRefValue }).template.id}，${(value as { template: ScoreTemplateRefValue }).template.enabled ? '启用中' : '已停用'}）`,
+        text: `已更新打分模板：${(value).template.name}（id ${(value).template.id}，${(value).template.enabled ? '启用中' : '已停用'}）`,
       }],
     },
     presentCall: args => ({
@@ -668,7 +665,7 @@ export function scoreTemplateListTool(deps: ScoringToolDeps): ToolDefinition {
         },
       },
       render: (_args, value) => {
-        const templates = value as ScoreTemplateListValue
+        const templates = value
         return [{
           type: 'text',
           text: templates.items.length === 0

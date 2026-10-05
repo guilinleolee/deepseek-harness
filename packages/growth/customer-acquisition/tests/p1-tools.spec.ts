@@ -31,7 +31,7 @@ function permissionSpy(returning: ResolvedOperator | Error = FULL_OPERATOR): {
     if (returning instanceof Error) throw returning
     return returning
   })
-  return { permission: { resolve } as never as PermissionContextService, resolve }
+  return { permission: { resolve } as never, resolve }
 }
 
 const completion: PromptCompletion = { complete: async () => '{}' }
@@ -52,7 +52,7 @@ function ledgerStub(overrides: Record<string, unknown> = {}): LeadLedgerService 
     extractLeadFields: async () => ({ fields: { company_name: '抽取公司' }, notes: '预算未识别' }),
     exportLeads: async () => [],
     ...overrides,
-  } as never as LeadLedgerService
+  } as never
 }
 
 function scoringStub(overrides: Record<string, unknown> = {}): LeadScoringService {

@@ -17,8 +17,11 @@ import { operatorRequest } from './permission/types.ts'
 import { LocalPermissionProvider } from './permission/local-provider.ts'
 import { CustomerAcquisitionService } from './service.ts'
 import { LeadScoringService } from './scoring/service.ts'
+import { NurtureContentService } from './content/service.ts'
+import { SopService } from './sop/service.ts'
 import { registerAcquisitionTools } from './tools/register.ts'
 import { registerP1Tools } from './tools/register-p1.ts'
+import { registerP3Tools } from './tools/register-p3.ts'
 import { seedIndustryTemplates } from './scoring/seed.ts'
 
 export { customerAcquisitionDomainSpec } from './domain/spec.ts'
@@ -68,6 +71,7 @@ export type {
 } from './types.ts'
 export { LeadLedgerService, DOCUMENT_MAX_CHARS } from './leads/service.ts'
 export { registerP1Tools, P1_TOOL_NAMES } from './tools/register-p1.ts'
+export { registerP3Tools, P3_TOOL_NAMES } from './tools/register-p3.ts'
 export type { LeadToolDeps } from './tools/leads.ts'
 export type { ScoringToolDeps } from './tools/scoring.ts'
 export type {
@@ -81,6 +85,8 @@ export type { ExtractOutput } from './leads/extract.ts'
 export { LEAD_EXPORT_COLUMNS, renderLeadExport } from './leads/export.ts'
 export { toDocumentRef, toDocumentValue, toFollowupValue, toLeadDetail, toLeadRef } from './leads/project.ts'
 export { LeadScoringService, SCORE_BATCH_LIMIT, toIcpProfileRef, toScoreTemplateRef } from './scoring/service.ts'
+export { NurtureContentService, CONTENT_SYSTEM_PROMPT, assertCopyScope } from './content/service.ts'
+export { SopService, assertSopScope, cadenceOffsets } from './sop/service.ts'
 export type { LeadScoringDeps, ScoreOutcome } from './scoring/service.ts'
 export type {
   IcpCreateInput, IcpDimensionInput, IcpDimensionValue, IcpListValue, IcpProfileRefValue,
@@ -169,10 +175,28 @@ export async function apply(
         ledger,
         policy,
       })
+      const content = new NurtureContentService({
+        ctx: runtimeCtx,
+        domain: service.requireDomain(),
+        audit: service.requireAuditTable(),
+        ledger,
+        policy,
+      })
+      const sop = new SopService({
+        domain: service.requireDomain(),
+        audit: service.requireAuditTable(),
+        ledger,
+      })
       const unregisterTools = registerAcquisitionTools(runtimeCtx, service, runtimeCtx.permissionContext)
       const unregisterP1Tools = registerP1Tools(runtimeCtx, {
         ledger,
         scoring,
+        permission: runtimeCtx.permissionContext,
+        policy,
+      })
+      const unregisterP3Tools = registerP3Tools(runtimeCtx, {
+        content,
+        sop,
         permission: runtimeCtx.permissionContext,
         policy,
       })
@@ -181,6 +205,7 @@ export async function apply(
         uninstallGate()
         unregisterTools()
         unregisterP1Tools()
+        unregisterP3Tools()
       }
     },
   }).await()

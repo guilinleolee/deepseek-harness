@@ -58,7 +58,7 @@ describe('the prompt-completion port over the llm Service Definition', () => {
       [{ kind: 'max-tokens' }, 'token 上限'],
       [{ kind: 'tool-calls' }, '工具调用'],
       [{ kind: 'aborted' }, '已取消'],
-      [{ kind: 'error', failure: { code: 'RATE_LIMIT', message: '限流' } } as FinishReason, '限流'],
+      [{ kind: 'error', failure: { code: 'RATE_LIMIT', message: '限流' } }, '限流'],
       [{ kind: 'weird' } as FinishReason, '不支持的结果'],
     ]
     for (const [finish, message] of cases) {
@@ -92,7 +92,7 @@ describe('the prompt-completion port over the llm Service Definition', () => {
             const timer = setTimeout(resolve, 30_000)
             options.signal.addEventListener('abort', () => {
               clearTimeout(timer)
-              reject(options.signal.reason)
+              reject(options.signal.reason instanceof Error ? options.signal.reason : new Error(String(options.signal.reason)))
             })
           })
           yield* []

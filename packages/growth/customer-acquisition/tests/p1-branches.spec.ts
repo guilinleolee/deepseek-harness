@@ -228,10 +228,10 @@ describe('scoring service and parser branches behind the friendly errors', () =>
       id: 'pl1', owner_id: undefined, source: 'manual', company_name: '公海评分', tags: [],
       opportunity_stage: 'new', status: 'active', created_at: 1, updated_at: 1,
     } as never
-    expect(() => assertScoringScope(poolLead, OWN_OPERATOR)).toThrow('先领取')
+    expect(() =>{  assertScoringScope(poolLead, OWN_OPERATOR) }).toThrow('先领取')
     const otherLead = { ...poolLead, owner_id: OWN_OPERATOR_2.userId }
-    expect(() => assertScoringScope(otherLead, OWN_OPERATOR)).toThrow('无权为他人线索打分')
-    expect(() => assertScoringScope({ ...poolLead, owner_id: OWN_OPERATOR.userId }, OWN_OPERATOR)).not.toThrow()
+    expect(() =>{  assertScoringScope(otherLead, OWN_OPERATOR) }).toThrow('无权为他人线索打分')
+    expect(() =>{  assertScoringScope({ ...poolLead, owner_id: OWN_OPERATOR.userId }, OWN_OPERATOR) }).not.toThrow()
   })
 
   it('parser carries dimension names and weights into the items', () => {

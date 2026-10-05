@@ -560,8 +560,7 @@ export function leadExtractTool(deps: LeadToolDeps): ToolDefinition {
       },
       render: (_args, value) => {
         const lines = Object.entries(value.fields)
-          .filter(([, fieldValue]) => fieldValue !== undefined)
-          .map(([key, fieldValue]) => `- ${key}：${String(fieldValue)}`)
+          .map(([key, fieldValue]) => `- ${key}：${fieldValue}`)
         const notes = value.notes === undefined ? [] : [`识别说明：${value.notes}`]
         return [{
           type: 'text',

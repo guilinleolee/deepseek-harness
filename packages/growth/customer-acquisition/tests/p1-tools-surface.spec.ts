@@ -42,7 +42,7 @@ function ledgerOf(overrides: Record<string, unknown> = {}): LeadLedgerService {
     addFollowup: async () => ({ id: 'f1', lead_id: 'l1', content: '跟进', created_at: 3 }),
     listFollowups: () => ({ items: [{ id: 'f1', content: '跟进', created_at: 3 }], total: 1 }),
     ...overrides,
-  } as never as LeadLedgerService
+  } as never
 }
 
 function scoringOf(overrides: Record<string, unknown> = {}): LeadScoringService {

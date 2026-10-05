@@ -127,7 +127,7 @@ export class LeadLedgerService {
    */
   async createLead(input: LeadCreateInput, operator: ResolvedOperator, channel: OperatorChannel): Promise<Lead> {
     const companyName = input.company_name
-    if (companyName === undefined || companyName.trim().length === 0) throw new Error('公司名称不能为空')
+    if (companyName.trim().length === 0) throw new Error('公司名称不能为空')
     const source = requireNonEmpty(input.source, '线索来源') ?? 'manual'
     const tags = requireTags(input.tags) ?? []
     const nextFollowupAt = requireEpochMs(input.next_followup_at, '下次跟进时间')

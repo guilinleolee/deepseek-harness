@@ -99,10 +99,10 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 
 ## Known Limitations and Deferred Work
 
-- **P1 scope** — the GEO, copy, SOP, and dashboard tools of the frozen manifest are not implemented yet; their domain tables exist but only the lead, scoring, settings, and audit tables carry behavior. Phases land in order P2 → P3 → P4 per the data contract.
-- **Seeds cover ICP and scoring only** — the three industry packs seed profiles and prompt templates; their SOP and copy templates arrive with P3 under the same id space.
+- **P1+P3 scope** — GEO diagnosis lives in the sibling `customer-acquisition-geo` package, and the dashboard tool lands with P4; the copy and SOP tools shipped with P3.
+- **Seeds cover ICP, scoring, SOP, and copy** — the three industry packs seed profiles, prompt templates, follow-up SOPs, and two copy templates each.
 - **Panel is a placeholder** — the web surface mounts the Remote face and shows settings plus recent audit entries; the eight-page panel ships with P4, and the lead/scoring Remote reads and writes land there.
-- **Scoring needs a reachable model route** — `ai.provider`/`ai.model` must name a registered route with credentials; scoring and extraction fail per call otherwise, and batch failures isolate by lead.
+- **Scoring needs a reachable model route** — `ai.provider`/`ai.model` must name a registered route with credentials; scoring, extraction, and copy generation fail per call otherwise, and batch failures isolate by lead.
+- **Todo linkage is forward-only** — DSH todos are the agent's own `todo_write` checklist with no writable service; `sop_generate_tasks` returns a ready-to-forward list when the settings flag is on, and `todo_written` stays false.
 - **Operator identity is trivial locally** — `local-default` holds every capability; meaningful `lead_scope` enforcement begins when platform providers inject real users.
 - **Audit growth is unbounded** — records are never pruned; retention policy waits for a concrete deployment requirement.
-- **Fetch orchestration not wired** — the P2 GEO scanner must verify the exact web-fetch consumption form before reuse; the gate's URL and cap rules are already in force.

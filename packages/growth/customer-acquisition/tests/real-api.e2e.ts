@@ -89,7 +89,7 @@ async function bootReal(): Promise<RealHarness> {
       llmPromptCompletion(ctx, policy, EXTRACT_SYSTEM_PROMPT),
       FULL_OPERATOR,
       'agent',
-    ) as ReturnType<LeadLedgerService['extractLeadFields']>,
+    ),
     dispose: async () => {
       await ctx.fiber.dispose()
       await rm(root, { recursive: true, force: true })

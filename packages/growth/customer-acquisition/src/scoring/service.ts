@@ -69,7 +69,9 @@ function validateDimension(dimension: IcpDimensionInput, index: number): void {
 /** Validate a whole dimensions list: per-dimension shape, unique ids, weights summing to 100. */
 function validateDimensions(dimensions: IcpDimensionInput[]): void {
   if (!Array.isArray(dimensions) || dimensions.length < 1) throw new Error('ICP 画像至少需要一个评分维度')
-  dimensions.forEach((dimension, index) => validateDimension(dimension, index))
+  dimensions.forEach((dimension, index) => {
+    validateDimension(dimension, index)
+  })
   const seen = new Set<string>()
   for (const dimension of dimensions) {
     if (seen.has(dimension.id)) throw new Error(`维度 id 重复：${dimension.id}`)
