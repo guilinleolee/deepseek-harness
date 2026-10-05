@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   BROKER_MARKERS, collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps,
-  inspectBrokerMarkers, inspectToolCall, installQuantComplianceGate, recordComplianceDenial,
+  inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall,
+  installQuantComplianceGate, recordComplianceDenial,
 } from '../src/compliance.ts'
 import type { KvTable } from '@deepseek-ai/dsh-storage-domain'
 import type { ComplianceDenial, ComplianceDenialId } from '../src/domain/spec.ts'
@@ -72,6 +73,32 @@ describe('inspectBacktestCaps', () => {
   })
 })
 
+describe('inspectConfidenceCap', () => {
+  it('allows absent and in-range confidence levels', () => {
+    expect(inspectConfidenceCap(rawArgs({}))).toEqual({ kind: 'allow' })
+    expect(inspectConfidenceCap(rawArgs({ confidence: 0.95 }))).toEqual({ kind: 'allow' })
+  })
+
+  it('denies out-of-range and non-numeric confidence', () => {
+    expect(inspectConfidenceCap(rawArgs({ confidence: 0.5 }))).toMatchObject({ kind: 'deny' })
+    expect(inspectConfidenceCap(rawArgs({ confidence: 0.999 }))).toMatchObject({ kind: 'deny' })
+    expect(inspectConfidenceCap(rawArgs({ confidence: 'high' }))).toMatchObject({ kind: 'deny' })
+  })
+})
+
+describe('inspectShockCap', () => {
+  it('allows absent and in-range shocks', () => {
+    expect(inspectShockCap(rawArgs({}))).toEqual({ kind: 'allow' })
+    expect(inspectShockCap(rawArgs({ shock: 0.2 }))).toEqual({ kind: 'allow' })
+  })
+
+  it('denies out-of-range and non-numeric shocks', () => {
+    expect(inspectShockCap(rawArgs({ shock: 0.005 }))).toMatchObject({ kind: 'deny' })
+    expect(inspectShockCap(rawArgs({ shock: 0.6 }))).toMatchObject({ kind: 'deny' })
+    expect(inspectShockCap(rawArgs({ shock: null }))).toMatchObject({ kind: 'deny' })
+  })
+})
+
 describe('inspectToolCall', () => {
   it('passes tools outside the plugin namespace', () => {
     expect(inspectToolCall('bash', { command: '实盘下单' })).toEqual({ kind: 'allow' })
@@ -82,7 +109,10 @@ describe('inspectToolCall', () => {
   })
 
   it('applies the marker rule to every owned tool', () => {
-    for (const name of ['quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest']) {
+    for (const name of [
+      'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
+      'quant_assess_risk', 'quant_stress_test',
+    ]) {
       expect(inspectToolCall(name, { note: '实盘' }).kind).toBe('deny')
     }
   })
@@ -93,6 +123,9 @@ describe('inspectToolCall', () => {
     const verdict = inspectToolCall('quant_run_backtest', { bars: 10, initial_cash: 1e13 })
     const expectedReason: unknown = expect.stringContaining('initial_cash')
     expect(verdict).toMatchObject({ kind: 'deny', reason: expectedReason })
+    expect(inspectToolCall('quant_assess_risk', { bars: 10, confidence: 0.5 }).kind).toBe('deny')
+    expect(inspectToolCall('quant_stress_test', { bars: 10, shock: 0.9 }).kind).toBe('deny')
+    expect(inspectToolCall('quant_get_kline', { confidence: 0.5 })).toEqual({ kind: 'allow' })
   })
 })
 

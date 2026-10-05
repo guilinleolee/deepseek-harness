@@ -51,5 +51,7 @@ export function apply(ctx: Context): Promise<() => Promise<void>> {
       inject: () => ({ panel }),
     }, QuantPanel)
   })
+  // The generator owns the registrations' lifetime, so the plugin disposer
+  // is a no-op; the promise shape stays for the plugin contract.
   return Promise.resolve(() => Promise.resolve())
 }

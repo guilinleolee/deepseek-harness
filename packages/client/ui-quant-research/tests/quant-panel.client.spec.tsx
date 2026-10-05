@@ -107,7 +107,7 @@ describe('client apply', () => {
   it('registers the sidebar entry and the overlay surface atomically', async () => {
     const { ctx, slots } = await bench()
     const dispose = declare(slots)
-    const fiber = await ctx.plugin({ inject: [...inject], apply }).await()
+    const disposer = await apply(ctx)
     const entry = slots.entries('sidebar.footer.action')[0]
     const surface = slots.entries('shell.overlay')[0]
     expect(entry?.options.id).toBe('quant-research-entry')
@@ -119,13 +119,11 @@ describe('client apply', () => {
     expect(surfaceFace.panel.isOpen()).toBe(false)
     surfaceFace.panel.open()
     expect(surfaceFace.panel.isOpen()).toBe(true)
+    expect(disposer).toBeInstanceOf(Function)
     dispose()
+    await disposer()
     await Promise.resolve()
     expect(slots.entries('sidebar.footer.action')).toEqual([])
     expect(slots.entries('shell.overlay')).toEqual([])
-
-    // The plugin disposer resolves (a no-op while the generator owns the
-    // registrations' lifetime) and the fiber unwinds cleanly.
-    await fiber.dispose()
   })
 })

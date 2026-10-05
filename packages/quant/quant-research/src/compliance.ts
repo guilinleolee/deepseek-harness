@@ -26,6 +26,10 @@ export const BARS_HARD_LIMIT = 1500
 export const INITIAL_CASH_HARD_LIMIT = 1e12
 /** Hard cap on the backtest fee rate; not configurable. */
 export const FEE_RATE_HARD_LIMIT = 0.05
+/** Hard bounds for the VaR/CVaR confidence level; not configurable. */
+export const CONFIDENCE_LIMITS = { min: 0.8, max: 0.99, default: 0.95 } as const
+/** Hard bounds for a stress shock's total magnitude; not configurable. */
+export const SHOCK_LIMITS = { min: 0.01, max: 0.5, default: 0.1 } as const
 
 /** Argument substrings that indicate real-trading or broker-API intent. */
 export const BROKER_MARKERS: readonly string[] = [
@@ -122,7 +126,47 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_get_kline: [inspectBrokerMarkers, inspectBarCap],
   quant_compute_indicator: [inspectBrokerMarkers, inspectBarCap],
   quant_run_backtest: [inspectBrokerMarkers, inspectBarCap, inspectBacktestCaps],
+  quant_assess_risk: [inspectBrokerMarkers, inspectBarCap, inspectConfidenceCap],
+  quant_stress_test: [inspectBrokerMarkers, inspectBarCap, inspectShockCap],
 })
+
+/**
+ * Red line 4 (risk-parameter caps): the VaR/CVaR confidence stays inside the
+ * hard bounds even if a caller smuggles extremes past the schema.
+ * @param args - raw tool arguments.
+ * @returns the verdict for the confidence rule.
+ */
+export function inspectConfidenceCap(args: RawArgs): ComplianceVerdict {
+  const confidence = (args as Record<string, unknown>)['confidence']
+  if (confidence === undefined) return { kind: 'allow' }
+  if (typeof confidence !== 'number' || !Number.isFinite(confidence)
+    || confidence < CONFIDENCE_LIMITS.min || confidence > CONFIDENCE_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `confidence 必须是 ${String(CONFIDENCE_LIMITS.min)}-${String(CONFIDENCE_LIMITS.max)} 之间的数值（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
+/**
+ * Red line 5 (stress-magnitude cap): a stress shock's total magnitude stays
+ * inside the hard bounds even if a caller smuggles extremes past the schema.
+ * @param args - raw tool arguments.
+ * @returns the verdict for the shock rule.
+ */
+export function inspectShockCap(args: RawArgs): ComplianceVerdict {
+  const shock = (args as Record<string, unknown>)['shock']
+  if (shock === undefined) return { kind: 'allow' }
+  if (typeof shock !== 'number' || !Number.isFinite(shock)
+    || shock < SHOCK_LIMITS.min || shock > SHOCK_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `shock 必须是 ${String(SHOCK_LIMITS.min)}-${String(SHOCK_LIMITS.max)} 之间的数值（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
 
 /**
  * Decide one tool call against the red lines. Non-plugin tools always pass;
