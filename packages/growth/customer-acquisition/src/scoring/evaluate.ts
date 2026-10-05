@@ -9,6 +9,7 @@
  */
 
 import type { IcpProfile } from '../domain/spec.ts'
+import { repairJsonBody } from '../leads/extract.ts'
 import type { IntentLevel } from '../leads/types.ts'
 
 /** Total score at or above which a lead tags `high` intent. */
@@ -89,7 +90,13 @@ export function parseScoreOutput(raw: string, profile: IcpProfile): ParsedScoreO
   try {
     parsed = JSON.parse(slice)
   } catch {
-    throw new Error('打分输出 JSON 解析失败，请重试')
+    // Flash-model slips: literal line breaks inside string values, or
+    // full-width separators at structural positions.
+    try {
+      parsed = JSON.parse(repairJsonBody(slice))
+    } catch {
+      throw new Error('打分输出 JSON 解析失败，请重试')
+    }
   }
   // A brace-sliced body that parses at all is a JSON object by construction.
   const record = parsed as Record<string, unknown>

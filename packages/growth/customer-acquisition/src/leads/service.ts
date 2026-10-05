@@ -627,7 +627,17 @@ export class LeadLedgerService {
     if (text.length > EXTRACT_MAX_CHARS) {
       throw new Error(`文本超出上限：${text.length}/${EXTRACT_MAX_CHARS} 字符`)
     }
-    const output = parseExtractOutput(await completion.complete(frameExtractPrompt(text, input.sourceHint)))
+    const prompt = frameExtractPrompt(text, input.sourceHint)
+    // One self-heal retry: flash models occasionally answer in prose or
+    // half-structured text; a stiffer reminder recovers most of those.
+    let output: ExtractOutput
+    try {
+      output = parseExtractOutput(await completion.complete(prompt))
+    } catch {
+      output = parseExtractOutput(await completion.complete(
+        `${prompt}\n\n（上一次回复无法解析为 JSON。请严格只输出一个 JSON 对象，键名用英文契约键名。）`,
+      ))
+    }
     const recognized = Object.values(output.fields).filter(value => value !== undefined).length
     await appendAuditRecord(this.audit, {
       action: 'lead.extract',
