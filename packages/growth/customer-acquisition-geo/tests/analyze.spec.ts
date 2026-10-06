@@ -12,9 +12,9 @@ const GOOD_PAGE = '<!doctype html><html><head><title>示例站 - 智能客服</t
 
 const THIN_PAGE = '<!doctype html><html><body><p>hi</p></body></html>'
 
-function crawlOf(pages: { url: string; body: string }[], extras: Partial<CrawlResult> = {}): CrawlResult {
+function crawlOf(pages: { url: string; body: string; status?: number }[], extras: Partial<CrawlResult> = {}): CrawlResult {
   return {
-    pages: pages.map(page => ({ url: page.url, statusCode: 200, body: page.body })),
+    pages: pages.map(page => ({ url: page.url, statusCode: page.status ?? 200, body: page.body })),
     robotsSkippedPaths: [],
     oversizedUrls: [],
     failures: [],
@@ -45,6 +45,41 @@ describe('deterministic GEO analysis', () => {
     const llms = thin.findings.find(finding => finding.category === 'llms_txt')
     expect(llms?.severity).toBe('high')
     expect(llms?.detail).toContain('https://x.com/llms.txt')
+  })
+
+  it('a served llms.txt clears the finding; a non-200 llms.txt does not', () => {
+    const served = analyzeSite('https://x.com/', crawlOf([
+      { url: 'https://x.com/', body: GOOD_PAGE },
+      { url: 'https://x.com/llms.txt', body: '# 示例站\n- [首页](https://x.com/)' },
+    ]))
+    expect(served.findings.find(finding => finding.category === 'llms_txt')).toBeUndefined()
+
+    const errored = analyzeSite('https://x.com/', crawlOf([
+      { url: 'https://x.com/', body: GOOD_PAGE },
+      { url: 'https://x.com/llms.txt', body: 'internal error', status: 503 },
+    ]))
+    expect(errored.findings.find(finding => finding.category === 'llms_txt')).toBeDefined()
+  })
+
+  it('names a page that has h1 but no h2 as the headings-evidence page', () => {
+    const partial = analyzeSite('https://x.com/', crawlOf([
+      { url: 'https://x.com/', body: GOOD_PAGE },
+      { url: 'https://x.com/h1only', body: '<!doctype html><html><head><title>t</title></head><body><h1>只有一级</h1><p>正文</p></body></html>' },
+    ]))
+    const headings = partial.findings.find(finding => finding.category === 'headings')
+    expect(headings).toBeDefined()
+    expect(headings?.evidence_page).toBe('https://x.com/h1only')
+  })
+
+  it('harvests question lines into the FAQ draft, capped at ten', () => {
+    const questions = Array.from({ length: 12 }, (_, index) => `<p>第${index}个常见问题怎么解决？</p>`).join('')
+    const rich = analyzeSite('https://x.com/', crawlOf([
+      { url: 'https://x.com/', body: `<!doctype html><html><body>${questions}</body></html>` },
+    ]))
+    expect(rich.faqMaterial).toContain('- 第0个常见问题怎么解决？')
+    expect(rich.faqMaterial).toContain('- 第9个常见问题怎么解决？')
+    expect(rich.faqMaterial).not.toContain('第10个')
+    expect(rich.faqMaterial).not.toContain('起步问题')
   })
 
   it('is pure: identical crawls analyze identically (two-round comparability)', () => {

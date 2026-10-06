@@ -28,7 +28,7 @@ export interface GeoAnalysis {
 }
 
 /** Per-check weight; the pass ratio of each check contributes weight to the score. */
-const CHECKS: Readonly<Record<string, number>> = Object.freeze({
+const CHECKS = Object.freeze({
   llms_txt: 15,
   meta_description: 15,
   title: 10,
@@ -38,6 +38,9 @@ const CHECKS: Readonly<Record<string, number>> = Object.freeze({
   content_depth: 10,
   crawlability: 10,
 })
+
+/** The scored check names, in CHECKS declaration order. */
+type CheckName = keyof typeof CHECKS
 
 /**
  * Extract the first regex capture on a page, case-insensitive.
@@ -84,7 +87,7 @@ function visibleTextLength(page: FetchedPage): number {
 export function analyzeSite(seedUrl: string, crawl: CrawlResult): GeoAnalysis {
   const pages = crawl.pages.filter(page => looksLikeHtml(page))
   const crawled = pages.length
-  const pass: Record<string, number> = {}
+  const pass = {} as Record<CheckName, number>
   const evidence: Record<string, string | undefined> = {}
 
   const llmsPage = crawl.pages.find(page => new URL(page.url).pathname === '/llms.txt')
@@ -126,20 +129,19 @@ export function analyzeSite(seedUrl: string, crawl: CrawlResult): GeoAnalysis {
   pass.crawlability = blocked === 0 ? 1 : Math.max(0, 1 - blocked / 10)
 
   let score = 0
-  for (const [name, weight] of Object.entries(CHECKS)) {
-    score += weight * (pass[name] ?? 0)
+  for (const name of Object.keys(CHECKS) as CheckName[]) {
+    score += CHECKS[name] * pass[name]
   }
   score = Math.round(Math.max(0, Math.min(100, score)))
 
   const findings: FindingSeed[] = []
-  const pushFinding = (name: string, title: string, detail: string) => {
-    const ratio = pass[name] ?? 0
+  const pushFinding = (name: CheckName, title: string, detail: string) => {
+    const ratio = pass[name]
     if (ratio >= 1) return
     const weight = CHECKS[name]
-    if (weight === undefined) return
     findings.push({
       category: name,
-      severity: weight >= 15 ? 'high' : weight >= 10 ? 'mid' : 'low',
+      severity: weight >= 15 ? 'high' : 'mid',
       title,
       detail,
       ...(evidence[name] === undefined ? {} : { evidence_page: evidence[name] }),
@@ -203,8 +205,11 @@ function buildFaqMaterial(pages: readonly FetchedPage[]): string {
   for (const page of pages) {
     for (const match of page.body.matchAll(/<[^>]+>([^<>]{6,80}[?？])</g)) {
       if (questions.size >= 10) break
-      const question = match[1]
-      if (question !== undefined) questions.add(question.trim())
+      // The full match spans `…>问题？<`; slice off the leading tag and the
+      // trailing `<` instead of reading the capture group, which the type
+      // system cannot prove defined.
+      const full = match[0]
+      questions.add(full.slice(full.indexOf('>') + 1, -1).trim())
     }
   }
   const lines = ['# FAQ 素材草案', '']

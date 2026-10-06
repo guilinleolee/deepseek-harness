@@ -10,7 +10,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { installGeoBoundaryGate } from './boundary.ts'
-import { operatorRequest } from './main-package.ts'
+import { operatorRequest, type CustomerAcquisitionService } from './main-package.ts'
 import { GeoDiagnosisService } from './service.ts'
 import { registerGeoTools } from './tools.ts'
 
@@ -39,6 +39,23 @@ declare module '@deepseek-ai/cordis' {
 export const inject = ['storageDomain', 'tools', 'customerAcquisition', 'web'] as const
 
 /**
+ * The denial auditor: warn-and-continue when the audit write fails — a failed
+ * denial audit never un-denies the call (red line 6).
+ * @param service - the main plugin's service carrying the audit write.
+ * @param runtimeCtx - the fiber whose logger receives the failure warning.
+ * @returns the `onDeny` callback for {@link installGeoBoundaryGate}.
+ */
+export function geoDenyAuditor(
+  service: CustomerAcquisitionService,
+  runtimeCtx: Context,
+): (name: string, reason: string, agentId?: string) => void {
+  return (name, reason, agentId) => {
+    void service.recordComplianceDeny(name, reason, operatorRequest('agent', agentId))
+      .catch((error: unknown) => { runtimeCtx.logger.warn(`customer-acquisition-geo: denial audit failed: ${String(error)}`) })
+  }
+}
+
+/**
  * Compose the plugin: the GEO diagnosis service installs first (it resolves
  * the domain the main plugin opened), then a runtime fiber declares `tools`,
  * `web`, the permission seam, and the service, and registers the four GEO
@@ -51,17 +68,12 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   const serviceFiber = await ctx.plugin(GeoDiagnosisService).await()
   const runtimeFiber = await ctx.plugin({
     name: 'customer-acquisition-geo:runtime',
-    inject: ['tools', 'web', 'permissionContext', 'geoDiagnosis'],
+    inject: ['tools', 'web', 'permissionContext', 'geoDiagnosis', 'customerAcquisition'],
     apply: (runtimeCtx: Context) => {
       const service = runtimeCtx.geoDiagnosis
       const permission = runtimeCtx.permissionContext
       const unregisterTools = registerGeoTools(runtimeCtx, service, permission)
-      const uninstallGate = installGeoBoundaryGate(runtimeCtx, (name, reason, agentId) => {
-        // A failed denial audit never un-denies the call; containment is
-        // warn-and-continue, mirroring the main plugin's gate.
-        void runtimeCtx.customerAcquisition.recordComplianceDeny(name, reason, operatorRequest('agent', agentId))
-          .catch((error: unknown) => { runtimeCtx.logger.warn(`customer-acquisition-geo: denial audit failed: ${String(error)}`) })
-      })
+      const uninstallGate = installGeoBoundaryGate(runtimeCtx, geoDenyAuditor(runtimeCtx.customerAcquisition, runtimeCtx))
       return () => {
         uninstallGate()
         unregisterTools()

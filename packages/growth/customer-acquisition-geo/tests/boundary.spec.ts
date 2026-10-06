@@ -65,6 +65,13 @@ describe('geo fetch-boundary gate (feed-in §4 red line 1, GEO scope)', () => {
     expect(foreign).toEqual({ kind: 'allow' })
     expect(next).toHaveBeenCalledTimes(1)
 
+    const outside = await ctx.waterfall(ctx as never, 'tools/pre-execute', {
+      name: 'bash',
+      arguments: {},
+    } as never, next)
+    expect(outside).toEqual({ kind: 'allow' })
+    expect(next).toHaveBeenCalledTimes(2)
+
     disposer()
   })
 })

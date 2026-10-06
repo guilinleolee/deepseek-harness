@@ -90,12 +90,8 @@ export class GeoDiagnosisService extends Service {
     const scanTable = domain.table('geo_scans')
     const reportTable = domain.table('geo_reports')
 
-    await scanTable.put(scanId, {
-      id: scanId,
-      url: input.url,
-      status: 'running',
-      started_at: Date.now(),
-    })
+    const runningScan: GeoScan = { id: scanId, url: input.url, status: 'running', started_at: Date.now() }
+    await scanTable.put(scanId, runningScan)
     await appendAuditRecord(domain.table('audit_logs'), {
       action: 'geo.scan.start',
       object_type: 'geo_scan',
@@ -110,9 +106,7 @@ export class GeoDiagnosisService extends Service {
         { maxPages, timeoutMs, maxBytes: GEO_RESPONSE_MAX_BYTES },
       )
       const analysis = analyzeSite(input.url, crawl)
-      const scan = scanTable.get(scanId)
-      if (scan === undefined) throw new Error(`GEO 扫描不存在：${scanId}`)
-      const finishedScan: GeoScan = { ...scan, status: 'done', finished_at: Date.now() }
+      const finishedScan: GeoScan = { ...runningScan, status: 'done', finished_at: Date.now() }
       await scanTable.put(scanId, finishedScan)
       const reportId = newId<'GeoReportId'>()
       const report: GeoReport = {
@@ -139,14 +133,12 @@ export class GeoDiagnosisService extends Service {
         findings_count: report.findings.length,
         pages_fetched: report.pages_fetched,
         robots_skipped_paths: report.robots_skipped_paths,
-        llms_txt: report.llms_txt ?? '',
+        llms_txt: analysis.llmsTxt,
         report_md: report.report_md,
       }
     } catch (error) {
-      const scan = scanTable.get(scanId)
-      if (scan === undefined) throw new Error(`GEO 扫描不存在：${scanId}`)
-      await scanTable.put(scanId, { ...scan, status: 'failed', finished_at: Date.now(), error: String(error) })
-      throw error instanceof Error ? error : new Error(`GEO 诊断失败：${String(error)}`)
+      await scanTable.put(scanId, { ...runningScan, status: 'failed', finished_at: Date.now(), error: String(error) })
+      throw error
     }
   }
 
@@ -230,8 +222,13 @@ export class GeoDiagnosisService extends Service {
     const reportB = reportTable.get(reportBId as GeoReportId)
     if (reportA === undefined) throw new Error(`GEO 报告不存在：${reportAId}`)
     if (reportB === undefined) throw new Error(`GEO 报告不存在：${reportBId}`)
-    const originA = new URL(scanTable.get(reportA.scan_id)?.url ?? '').origin
-    const originB = new URL(scanTable.get(reportB.scan_id)?.url ?? '').origin
+    const scanA = scanTable.get(reportA.scan_id)
+    const scanB = scanTable.get(reportB.scan_id)
+    if (scanA === undefined || scanB === undefined) {
+      throw new Error('GEO 扫描记录不存在：报告缺少可考的站点来源')
+    }
+    const originA = new URL(scanA.url).origin
+    const originB = new URL(scanB.url).origin
     if (originA !== originB) {
       throw new Error(`两份报告须来自同一站点：${originA} 与 ${originB} 不一致`)
     }

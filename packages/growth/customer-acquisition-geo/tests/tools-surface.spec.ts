@@ -101,6 +101,9 @@ describe('GEO tools full-surface sweep', () => {
       }],
       total: 1,
     })).toContain('共 1 条 GEO 诊断记录')
+    // without a url_filter the call card names the unfiltered scope
+    const view = tool.presentCall?.({})
+    expect(JSON.stringify(view)).toContain('全部站点')
   })
 
   it('report-get renders the report body', () => {

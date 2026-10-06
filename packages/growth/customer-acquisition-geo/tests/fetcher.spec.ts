@@ -40,6 +40,12 @@ describe('robots.txt interpretation', () => {
     expect(isDisallowed('https://x.com/drafts/2024/a', rules)).toBe(true)
     expect(isDisallowed('https://x.com/', parseRobots(undefined))).toBe(false)
   })
+
+  it('ignores a Disallow that appears before any User-agent group', () => {
+    const rules = parseRobots('Disallow: /orphan\nUser-agent: *\nDisallow: /real')
+    expect(isDisallowed('https://x.com/orphan', rules)).toBe(false)
+    expect(isDisallowed('https://x.com/real', rules)).toBe(true)
+  })
 })
 
 describe('link extraction stays same-origin', () => {
@@ -50,6 +56,14 @@ describe('link extraction stays same-origin', () => {
       'https://x.com',
     )
     expect(links).toEqual(['https://x.com/a', 'https://x.com/b'])
+  })
+
+  it('skips a malformed href attribute and an href that no URL parser accepts', () => {
+    const links = extractSameOriginLinks(
+      '<a href>无值</a><a href="http://[">坏地址</a><a href="/ok">好</a>',
+      'https://x.com',
+    )
+    expect(links).toEqual(['https://x.com/ok'])
   })
 })
 
@@ -140,5 +154,55 @@ describe('crawlSite enforces every runtime red-line edge', () => {
     }
     await crawlSite(serial, 'https://x.com/', { maxPages: 4, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
     expect(peak).toBe(1)
+  })
+
+  it('a zero page budget fetches nothing at all', async () => {
+    const fetchOne = htmlFetch({ 'https://x.com/robots.txt': '', 'https://x.com/': '<html></html>' })
+    const result = await crawlSite(fetchOne, 'https://x.com/', { maxPages: 0, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
+    expect(fetchOne.calls).toEqual([])
+    expect(result).toMatchObject({ pages: [], robotsFetched: false })
+  })
+
+  it('a missing or failing robots.txt means allow-all, and a hard failure is recorded', async () => {
+    const missing = htmlFetch({ 'https://x.com/': '<html><body><a href="/x">x</a></body></html>', 'https://x.com/x': '<html></html>' })
+    const missingResult = await crawlSite(missing, 'https://x.com/', { maxPages: 3, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
+    expect(missingResult.robotsFetched).toBe(false)
+    expect(missingResult.pages).toHaveLength(2) // robots.txt 404s, then seed + /x fit the budget
+
+    const failing: FetchOne = async (url) => {
+      if (url.endsWith('robots.txt')) throw new Error('network down')
+      return { url, statusCode: 200, body: { kind: 'html', content: '<html></html>' }, truncated: false }
+    }
+    const failed = await crawlSite(failing, 'https://x.com/', { maxPages: 3, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
+    expect(failed.robotsFetched).toBe(false)
+    expect(failed.failures[0]).toMatchObject({ url: 'https://x.com/robots.txt' })
+    expect(failed.failures[0]!.reason).toContain('robots.txt 获取失败')
+  })
+
+  it('does not refetch a doubly queued candidate nor requeue a visited one', async () => {
+    // seed queues /b and /c; /b also links /c while /c is still unvisited, so
+    // /c enters the queue twice and the second pop must skip it; /c links back
+    // to the already-visited /b, which must not requeue
+    const fetchOne = htmlFetch({
+      'https://x.com/robots.txt': '',
+      'https://x.com/': '<html><body><a href="/b">b</a><a href="/c">c</a></body></html>',
+      'https://x.com/b': '<html><body><a href="/c">c 再次</a></body></html>',
+      'https://x.com/c': '<html><body><a href="/b">b 已访问</a></body></html>',
+    })
+    const result = await crawlSite(fetchOne, 'https://x.com/', { maxPages: 6, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
+    expect(fetchOne.calls.filter(url => url === 'https://x.com/c')).toHaveLength(1)
+    expect(result.pages).toHaveLength(3) // seed, /b, /c
+  })
+
+  it('records a non-2xx page as a failure instead of a page', async () => {
+    const routes: Record<string, string | { status: number; body: string }> = {
+      'https://x.com/robots.txt': '',
+      'https://x.com/': '<html><body><a href="/gone">已删除</a></body></html>',
+      'https://x.com/gone': { status: 404, body: 'deleted' },
+    }
+    const fetchOne = htmlFetch(routes)
+    const result = await crawlSite(fetchOne, 'https://x.com/', { maxPages: 4, timeoutMs: 1000, maxBytes: GEO_RESPONSE_MAX_BYTES })
+    expect(result.pages).toHaveLength(1)
+    expect(result.failures).toEqual([{ url: 'https://x.com/gone', reason: 'HTTP 404' }])
   })
 })

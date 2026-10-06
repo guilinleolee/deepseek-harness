@@ -54,13 +54,12 @@ export function parseRobots(text: string | undefined, userAgent: string = GEO_US
         groupAgents = []
         groupHasRule = false
       }
-      const key = value.toLowerCase()
-      groupAgents.push(key)
-      if (!collected.has(key)) collected.set(key, [])
+      groupAgents.push(value.toLowerCase())
     } else if (field === 'disallow' && groupAgents.length > 0) {
       for (const agent of groupAgents) {
         const rules = collected.get(agent)
-        if (rules !== undefined) rules.push({ pattern: value })
+        if (rules === undefined) collected.set(agent, [{ pattern: value }])
+        else rules.push({ pattern: value })
       }
       groupHasRule = true
     }

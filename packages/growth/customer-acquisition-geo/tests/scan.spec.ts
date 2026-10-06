@@ -1,5 +1,13 @@
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { Context } from '@deepseek-ai/cordis'
+import Storage from '@deepseek-ai/dsh-storage'
+import * as StorageJson from '@deepseek-ai/dsh-storage-json'
+import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
 import { describe, expect, it } from 'vitest'
 import { geoCompareTool, geoHistoryTool, geoReportGetTool, geoScanTool } from '../src/tools.ts'
+import { GeoDiagnosisService, renderReportMd } from '../src/service.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import { localOperator, setupHarness, type Harness } from './helpers.ts'
 
@@ -24,6 +32,29 @@ async function scan(harness: Harness, url = 'https://x.com/') {
 }
 
 describe('geo scan end-to-end over the composed stack', () => {
+  it('refuses to start when the main plugin has not opened the shared domain', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-customer-acquisition-geo-test-'))
+    const ctx = new Context()
+    try {
+      await ctx.plugin(Storage)
+      await ctx.plugin(StorageJson, { root })
+      await ctx.plugin(StorageDomain, { backend: 'json' })
+      // satisfy the inject seam with inert stand-ins so init itself runs and
+      // hits the missing-domain check
+      ctx.provide('customerAcquisition', {} as never)
+      ctx.provide('web', {} as never)
+      await expect(ctx.plugin(GeoDiagnosisService)).rejects.toThrow('domain is not open')
+    } finally {
+      await ctx.fiber.dispose()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('fails loud when a method runs before the service finished init', () => {
+    const bare = new GeoDiagnosisService(new Context())
+    expect(() => bare.listHistory({})).toThrow(/domain handle is not initialized/)
+  })
+
   it('runs a scan, records robots skips, and persists a comparable report', async () => {
     const harness = await setupHarness(routes(ROUND1_HOME))
     try {
@@ -82,6 +113,8 @@ describe('geo scan end-to-end over the composed stack', () => {
       const after = Date.now() + 1
 
       expect(harness.service.listHistory({ from: before, to: after }).total).toBe(1)
+      expect(harness.service.listHistory({ from: after + 10_000 }).total).toBe(0)
+      expect(harness.service.listHistory({ to: before - 1_000 }).total).toBe(0)
       expect(harness.service.listHistory({ url_filter: 'https://other.com' }).total).toBe(0)
       expect(() => harness.service.getReport('no-such-report')).toThrow(/不存在/)
 
@@ -134,5 +167,78 @@ describe('geo scan end-to-end over the composed stack', () => {
     } finally {
       await harness.dispose()
     }
+  })
+
+  it('marks the scan failed and rethrows when the crawl cannot even start', async () => {
+    const harness = await setupHarness(routes(ROUND1_HOME))
+    try {
+      await expect(scan(harness, '不是网址')).rejects.toThrow()
+      const failedRow = harness.service.listHistory({}).items.find(row => row.status === 'failed')
+      expect(failedRow).toBeDefined()
+      // a failed scan has no report: history degrades the joined fields
+      expect(failedRow!.report_id).toBe('')
+      expect(failedRow!.score).toBe(0)
+      expect(failedRow!.pages_fetched).toBe(0)
+    } finally {
+      await harness.dispose()
+    }
+  })
+
+  it('projects an orphan report with its provenance degraded and fails loud on a ghost scan', async () => {
+    const harness = await setupHarness(routes(ROUND1_HOME))
+    try {
+      const domain = harness.ctx.storageDomain.get('customer_acquisition') as never as {
+        table: (name: string) => { put(id: never, value: never): Promise<void> }
+      }
+      const reports = domain.table('geo_reports')
+      // llms_txt omitted: a stored report predating the llms.txt artifact
+      const orphan = {
+        id: 'r-orphan', scan_id: 'scan-ghost', score: 10, findings: [],
+        report_md: '', pages_fetched: 0, robots_skipped_paths: [], created_at: 1,
+      }
+      await reports.put('r-orphan' as never, orphan as never)
+      expect(harness.service.getReport('r-orphan').report.url).toBe('')
+      expect(harness.service.getReport('r-orphan').report.llms_txt).toBe('')
+      expect(() => harness.service.compareReports('r-orphan', 'r-orphan')).toThrow(/扫描记录不存在/)
+    } finally {
+      await harness.dispose()
+    }
+  })
+
+  it('compares two findings-free reports with a negative delta and no resolved or introduced items', async () => {
+    const harness = await setupHarness(routes(ROUND1_HOME))
+    try {
+      const domain = harness.ctx.storageDomain.get('customer_acquisition') as never as {
+        table: (name: string) => { put(id: never, value: never): Promise<void> }
+      }
+      const scans = domain.table('geo_scans')
+      const reports = domain.table('geo_reports')
+      await scans.put('s-a' as never, { id: 's-a', url: 'https://x.com/', status: 'done', started_at: 1 } as never)
+      await scans.put('s-b' as never, { id: 's-b', url: 'https://x.com/', status: 'done', started_at: 2 } as never)
+      const base = {
+        scan_id: '', findings: [], llms_txt: '', report_md: '',
+        pages_fetched: 0, robots_skipped_paths: [] as string[], created_at: 1,
+      }
+      await reports.put('r-a' as never, { ...base, id: 'r-a', scan_id: 's-a', score: 50 } as never)
+      await reports.put('r-b' as never, { ...base, id: 'r-b', scan_id: 's-b', score: 10 } as never)
+
+      expect(() => harness.service.compareReports('no-such-a', 'r-b')).toThrow(/报告不存在/)
+      expect(() => harness.service.compareReports('r-a', 'no-such-b')).toThrow(/报告不存在/)
+      const compared = harness.service.compareReports('r-a', 'r-b')
+      expect(compared.score_delta).toBe(-40)
+      expect(compared.resolved).toEqual([])
+      expect(compared.introduced).toEqual([])
+      expect(compared.summary_md).toContain('50 → 10（-40）')
+      expect(compared.summary_md).not.toContain('✅')
+      expect(compared.summary_md).not.toContain('⚠️')
+    } finally {
+      await harness.dispose()
+    }
+  })
+
+  it('renders a clean report when there are no findings and no tasks', () => {
+    const md = renderReportMd('https://x.com/', 100, [], [], [], 1)
+    expect(md).toContain('未发现明显短板')
+    expect(md).toContain('暂无')
   })
 })

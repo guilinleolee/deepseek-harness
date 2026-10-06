@@ -59,9 +59,6 @@ function inspectScanUrl(args: RawArgs): ComplianceVerdict {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     return { kind: 'deny', reason: `仅允许 http/https 网址，收到协议「${parsed.protocol}」` }
   }
-  if (parsed.hostname.length === 0) {
-    return { kind: 'deny', reason: 'url 缺少主机名，无法执行诊断' }
-  }
   return { kind: 'allow' }
 }
 

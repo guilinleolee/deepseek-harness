@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { apply, inject } from '../src/index.ts'
+import { Context } from '@deepseek-ai/cordis'
+import { describe, expect, it, vi } from 'vitest'
+import { apply, geoDenyAuditor, inject } from '../src/index.ts'
 import { localOperator, setupHarness } from './helpers.ts'
 
 describe('customer-acquisition-geo plugin composition', () => {
@@ -40,5 +41,28 @@ describe('customer-acquisition-geo plugin composition', () => {
     } finally {
       await harness.dispose()
     }
+  })
+
+  it('the denial auditor records every denial through the main service', async () => {
+    const recordComplianceDeny = vi.fn(() => Promise.resolve())
+    const onDeny = geoDenyAuditor(
+      { recordComplianceDeny } as never,
+      { logger: { warn: vi.fn() } } as never as Context,
+    )
+    onDeny('customer_acquisition_geo_scan', '仅允许 http/https 网址', 'agent-1')
+    onDeny('customer_acquisition_geo_scan', 'urls 批量收集被拒绝')
+    await vi.waitFor(() => expect(recordComplianceDeny).toHaveBeenCalledTimes(2))
+    expect(recordComplianceDeny).toHaveBeenCalledWith('customer_acquisition_geo_scan', '仅允许 http/https 网址', { via: 'agent', agentId: 'agent-1' })
+    expect(recordComplianceDeny).toHaveBeenLastCalledWith('customer_acquisition_geo_scan', 'urls 批量收集被拒绝', { via: 'agent' })
+  })
+
+  it('a failing denial audit warns and continues', async () => {
+    const warn = vi.fn()
+    const onDeny = geoDenyAuditor(
+      { recordComplianceDeny: () => Promise.reject(new Error('介质只读')) } as never,
+      { logger: { warn } } as never as Context,
+    )
+    onDeny('customer_acquisition_geo_scan', 'url 为空', 'agent-1')
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('介质只读')))
   })
 })

@@ -88,6 +88,30 @@ describe('parseExtractOutput repair and normalization integration', () => {
     expect(parsed.fields.company_name).toBe('甲公司')
     expect(parsed.notes).toContain('未知键')
   })
+
+  it('drops unknown decision roles and model notes into the note line', () => {
+    const parsed = parseExtractOutput('{"company_name":"甲公司","decision_role":"看门人","notes":"预算未提及"}')
+    expect(parsed.fields.decision_role).toBeUndefined()
+    expect(parsed.notes).toContain('预算未提及')
+    expect(parsed.notes).toContain('不在已知取值中')
+  })
+
+  it('reports the model keys when company_name is missing', () => {
+    const empty = parseExtractOutput('{}')
+    expect(empty.fields.company_name).toBeUndefined()
+    expect(empty.notes).toContain('（无）')
+    const drifted = parseExtractOutput('{"闲聊":"只有闲聊"}')
+    expect(drifted.notes).toContain('闲聊')
+    expect(drifted.notes).toContain('未识别 company_name')
+  })
+
+  it('stops descending when the sole wrapper value is not an object', () => {
+    const scalar = parseExtractOutput('{"包装":"纯文本"}')
+    expect(scalar.fields.company_name).toBeUndefined()
+    expect(scalar.notes).toContain('包装')
+    const listed = parseExtractOutput('{"包装":["甲公司"]}')
+    expect(listed.fields.company_name).toBeUndefined()
+  })
 })
 
 describe('parseScoreOutput repair integration', () => {

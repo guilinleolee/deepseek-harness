@@ -68,7 +68,7 @@ function timedFetch(fetchOne: FetchOne, url: string, timeoutMs: number): Promise
 export function extractSameOriginLinks(html: string, origin: string): string[] {
   const links: string[] = []
   const seen = new Set<string>()
-  for (const match of html.matchAll(/<a\b[^>]*\shref\s*=\s*["']([^"'\s]+)["']/gi)) {
+  for (const match of html.matchAll(/<a\b[^>]*\shref(?:\s*=\s*["']([^"'\s]+)["'])?/gi)) {
     let candidate: URL
     const href = match[1]
     if (href === undefined) continue

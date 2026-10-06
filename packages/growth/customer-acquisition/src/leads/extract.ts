@@ -220,9 +220,7 @@ export function parseExtractOutput(raw: string): ExtractOutput {
     if (fieldKeys.some(key => key in record) || 'decision_role' in record || 'notes' in record) break
     const recordKeys = Object.keys(record)
     if (recordKeys.length !== 1) break
-    const soleKey = recordKeys[0]
-    if (soleKey === undefined) break
-    const sole: unknown = record[soleKey]
+    const sole: unknown = record[recordKeys[0] as string]
     if (sole === null || typeof sole !== 'object' || Array.isArray(sole)) break
     const inner = sole as Record<string, unknown>
     const innerNormalized: Record<string, unknown> = {}

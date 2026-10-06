@@ -214,6 +214,23 @@ describe('P1 lead ledger service', () => {
       .rejects.toThrow('请提供要抽取的原始文本')
   })
 
+  it('retries once with a stiffer prompt when the first answer is not JSON', async () => {
+    const { ledger } = p1
+    const prompts: string[] = []
+    let turn = 0
+    const completion = {
+      complete: async (prompt: string) => {
+        prompts.push(prompt)
+        turn += 1
+        return turn === 1 ? '抱歉，这段文字里没有找到公司信息。' : '{"company_name":"重试公司"}'
+      },
+    }
+    const output = await ledger.extractLeadFields({ text: '表单内容' }, completion, FULL_OPERATOR, 'agent')
+    expect(output.fields.company_name).toBe('重试公司')
+    expect(prompts[1]).toContain('无法解析为 JSON')
+    expect(await auditActions()).toContain('lead.extract')
+  })
+
   it('export applies the same filters and audits the export', async () => {
     await p1.ledger.createLead({ company_name: '导出一', source: 'form' }, FULL_OPERATOR, 'agent')
     await p1.ledger.createLead({ company_name: '导出二', source: 'chat' }, FULL_OPERATOR, 'agent')
