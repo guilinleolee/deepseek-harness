@@ -62,18 +62,14 @@ export function canonicalKeyOf(rawKey: string): string {
 /**
  * Repair the common flash-model JSON slips while never touching string
  * values: escape literal line breaks inside strings, and normalize
- * full-width separators（，：、）that sit at structural positions (immediately
- * before the next quote). Value-internal full-width punctuation is safe —
- * the patterns only fire where a quote follows.
+ * full-width separators（，：、）at structural positions. Position is decided
+ * by string state during the scan, so value-internal full-width punctuation
+ * stays intact and separators before numbers（"score"：85）repair too.
  * @param slice - a brace-delimited JSON-looking body.
  * @returns the repaired body.
  */
 export function repairJsonBody(slice: string): string {
-  const newlineEscaped = repairJsonNewlines(slice)
-  return newlineEscaped
-    .replace(/，(?=\s*")/g, ',')
-    .replace(/：(?=\s*")/g, ':')
-    .replace(/、(?=\s*")/g, ',')
+  return scanJsonBody(slice, 'newlines-and-separators')
 }
 
 /**
@@ -109,14 +105,23 @@ function jsonObjectSlice(text: string): string | undefined {
   return fenced.slice(start, end + 1)
 }
 
+/** Which repairs the body scan applies beyond escaping in-string newlines. */
+type BodyRepairMode = 'newlines-only' | 'newlines-and-separators'
+
+const FULLWIDTH_SEPARATOR_REPAIRS: Record<string, string> = {
+  '，': ',',
+  '：': ':',
+  '、': ',',
+}
+
 /**
- * Escape literal newlines/carriage returns that the model left inside JSON
- * string values (invalid JSON, but a common flash-model slip). Outside
- * strings the text is untouched.
- * @param slice - a brace-delimited JSON-looking body.
- * @returns the body with in-string raw line breaks escaped.
+ * Single string-aware scan over a JSON-looking body: inside strings, escape
+ * literal line breaks and pass everything else through; outside strings,
+ * optionally normalize full-width separators（，：、）to their JSON
+ * equivalents. The string state is what keeps value-internal full-width
+ * punctuation untouched.
  */
-export function repairJsonNewlines(slice: string): string {
+function scanJsonBody(slice: string, mode: BodyRepairMode): string {
   let out = ''
   let inString = false
   let escaped = false
@@ -149,9 +154,27 @@ export function repairJsonNewlines(slice: string): string {
       continue
     }
     if (ch === '"') inString = true
+    if (mode === 'newlines-and-separators') {
+      const repaired = FULLWIDTH_SEPARATOR_REPAIRS[ch]
+      if (repaired !== undefined) {
+        out += repaired
+        continue
+      }
+    }
     out += ch
   }
   return out
+}
+
+/**
+ * Escape literal newlines/carriage returns that the model left inside JSON
+ * string values (invalid JSON, but a common flash-model slip). Outside
+ * strings the text is untouched.
+ * @param slice - a brace-delimited JSON-looking body.
+ * @returns the body with in-string raw line breaks escaped.
+ */
+export function repairJsonNewlines(slice: string): string {
+  return scanJsonBody(slice, 'newlines-only')
 }
 
 /**
@@ -179,6 +202,10 @@ export function parseExtractOutput(raw: string): ExtractOutput {
   }
   // A brace-sliced body that parses at all is a JSON object by construction.
   let record = parsed as Record<string, unknown>
+  const fieldKeys = [
+    'company_name', 'contact_name', 'phone', 'email', 'industry',
+    'company_size', 'demand_desc', 'budget_range',
+  ] as const
   // Normalize drifted keys (Chinese echoes, English variants) into canonical
   // contract keys via the matcher table.
   const normalized: Record<string, unknown> = {}
@@ -187,23 +214,31 @@ export function parseExtractOutput(raw: string): ExtractOutput {
   }
   record = normalized
   // Flash models often wrap the answer under arbitrary natural-language keys
-  //（"报名信息"、"抽取结果"…）or nest one level deep; descend through
-  // single-object wrappers until a level actually carries field keys.
+  //（"报名信息"、"抽取结果"…）; descend through single-object wrappers,
+  // re-normalizing keys at each level until the level carries contract keys.
   for (let depth = 0; depth < 3; depth += 1) {
+    if (fieldKeys.some(key => key in record) || 'decision_role' in record || 'notes' in record) break
     const recordKeys = Object.keys(record)
     if (recordKeys.length !== 1) break
     const soleKey = recordKeys[0]
     if (soleKey === undefined) break
     const sole: unknown = record[soleKey]
     if (sole === null || typeof sole !== 'object' || Array.isArray(sole)) break
-    record = sole as Record<string, unknown>
+    const inner = sole as Record<string, unknown>
+    const innerNormalized: Record<string, unknown> = {}
+    for (const [innerKey, value] of Object.entries(inner)) {
+      innerNormalized[canonicalKeyOf(innerKey)] = value
+    }
+    record = innerNormalized
   }
   const notes: string[] = []
   const fields: ExtractedLeadFields = {}
-  const fieldKeys = [
-    'company_name', 'contact_name', 'phone', 'email', 'industry',
-    'company_size', 'demand_desc', 'budget_range',
-  ] as const
+  // A key the contract does not recognize at the adopted level is model
+  // drift; surface it in notes instead of silently dropping it.
+  const knownKeys = new Set<string>([...fieldKeys, 'decision_role', 'notes'])
+  for (const key of Object.keys(record)) {
+    if (!knownKeys.has(key)) notes.push(`未识别的键「${key}」，已忽略`)
+  }
   for (const key of fieldKeys) {
     const value = record[key]
     if (typeof value === 'string' && value.trim().length > 0) fields[key] = value.trim()
