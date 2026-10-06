@@ -25,18 +25,18 @@ import {
 } from './domain/spec.ts'
 import { LeadLedgerService } from './leads/service.ts'
 import { toLeadRef } from './leads/project.ts'
-import type { LeadListRequest, LeadListValue } from './leads/types.ts'
 import { DEFAULT_USER_DISPLAY_NAME, DEFAULT_USER_ID } from './permission/local-provider.ts'
 import { FULL_CAPABILITIES } from './permission/types.ts'
 import type { OperatorChannel, OperatorRequest, ResolvedOperator } from './permission/types.ts'
 import { resolveAiPolicy } from './llm/oneshot.ts'
 import { ReportService } from './report/service.ts'
-import type { OverviewRequest, OverviewValue } from './report/types.ts'
 import { LeadScoringService } from './scoring/service.ts'
 import { SopService } from './sop/service.ts'
 import type {
-  AuditListRequest, AuditListValue, AuditLogValue, GeoScanListValue, GeoScanRowValue,
-  SettingsPatchInput, SettingsSnapshotValue, SettingsValue,
+  AuditListRequest, AuditListValue, AuditLogValue, ContentTemplate, GeoScanListValue,
+  GeoScanRowValue, IcpProfileValue, LeadListRequest, LeadListValue, OverviewRequest,
+  OverviewValue, ScoreTemplateValue, SettingsPatchInput, SettingsSnapshotValue,
+  SettingsValue, SopTemplate,
 } from './types.ts'
 
 /**
@@ -184,36 +184,37 @@ export class CustomerAcquisitionService extends TypertRemoteService {
 
   /** Lead list read face; the ledger's list scope applies unchanged. */
   @Remote('listLeads')
-  async listLeadsRemote(request: LeadListRequest): Promise<LeadListValue> {
+  async listLeadsRemote(request?: LeadListRequest): Promise<LeadListValue> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
-    const { items, total } = this.panelStack().ledger.listLeads(request, operator)
+    const { items, total } = this.panelStack().ledger.listLeads(request ?? {}, operator)
     return { items: items.map(toLeadRef), total }
   }
 
   /** Score-run history read face across the operator's visible leads, newest first. */
   @Remote('listScoreRuns')
-  async listScoreRunsRemote(request: { lead_id?: string; limit?: number } = {}): Promise<{ items: ScoreRun[]; total: number }> {
+  async listScoreRunsRemote(request?: { lead_id?: string; limit?: number }): Promise<{ items: ScoreRun[]; total: number }> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
     const { ledger } = this.panelStack()
+    const filter = request ?? {}
     const runs = [...this.requireDomain().table('score_runs').entries()]
       .map(([, run]) => run)
       .filter(run => ledger.isLeadVisible(run.lead_id, operator)
-        && (request.lead_id === undefined || run.lead_id === request.lead_id))
+        && (filter.lead_id === undefined || run.lead_id === filter.lead_id))
       .sort((left, right) => right.created_at - left.created_at)
-    const limit = request.limit ?? 20
+    const limit = filter.limit ?? 20
     return { items: runs.slice(0, limit), total: runs.length }
   }
 
   /** ICP profile read face for the scoring page. */
   @Remote('listIcpProfiles')
-  async listIcpProfilesRemote(enabled_only?: boolean): Promise<ReturnType<LeadScoringService['listIcpProfiles']>> {
+  async listIcpProfilesRemote(enabled_only?: boolean): Promise<IcpProfileValue[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().scoring.listIcpProfiles(enabled_only)
   }
 
   /** Score-template read face for the scoring page. */
   @Remote('listScoreTemplates')
-  async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ReturnType<LeadScoringService['listScoreTemplates']>> {
+  async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ScoreTemplateValue[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().scoring.listScoreTemplates(enabled_only)
   }
@@ -256,38 +257,39 @@ export class CustomerAcquisitionService extends TypertRemoteService {
   /** Generated-copy read face across the operator's visible leads, newest first. */
   @Remote('listGeneratedContents')
   async listGeneratedContentsRemote(
-    request: { lead_id?: string; limit?: number } = {},
+    request?: { lead_id?: string; limit?: number },
   ): Promise<{ items: GeneratedContent[]; total: number }> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
     const { ledger } = this.panelStack()
+    const filter = request ?? {}
     const contents = [...this.requireDomain().table('generated_contents').entries()]
       .map(([, content]) => content)
       .filter(content => ledger.isLeadVisible(content.lead_id, operator)
-        && (request.lead_id === undefined || content.lead_id === request.lead_id))
+        && (filter.lead_id === undefined || content.lead_id === filter.lead_id))
       .sort((left, right) => right.created_at - left.created_at)
-    const limit = request.limit ?? 20
+    const limit = filter.limit ?? 20
     return { items: contents.slice(0, limit), total: contents.length }
   }
 
   /** Copy-template read face for the templates page. */
   @Remote('listContentTemplates')
-  async listContentTemplatesRemote(filters: { type?: string; enabled_only?: boolean } = {}): Promise<ReturnType<NurtureContentService['listTemplates']>> {
+  async listContentTemplatesRemote(filters?: { type?: string; enabled_only?: boolean }): Promise<ContentTemplate[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
-    return this.panelStack().content.listTemplates(filters)
+    return this.panelStack().content.listTemplates(filters ?? {})
   }
 
   /** SOP task read face; the service's lead-visibility scope applies unchanged. */
   @Remote('listSopTasks')
   async listSopTasksRemote(
-    request: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number } = {},
+    request?: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number },
   ): Promise<{ items: SopTask[]; total: number }> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
-    return this.panelStack().sop.listTasks(request, operator)
+    return this.panelStack().sop.listTasks(request ?? {}, operator)
   }
 
   /** SOP-template read face for the templates page. */
   @Remote('listSopTemplates')
-  async listSopTemplatesRemote(enabled_only?: boolean): Promise<ReturnType<SopService['listTemplates']>> {
+  async listSopTemplatesRemote(enabled_only?: boolean): Promise<SopTemplate[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().sop.listTemplates(enabled_only)
   }

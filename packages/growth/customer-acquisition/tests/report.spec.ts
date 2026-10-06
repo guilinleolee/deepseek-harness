@@ -285,11 +285,14 @@ describe('P4 panel Remote read faces', () => {
 
     const leads = await service.listLeadsRemote({ owner: 'me' })
     expect(leads.items.map(lead => lead.company_name)).toEqual(['自有一'])
+    // the panel may omit the filter object entirely: own + pool scope applies
+    await expect(service.listLeadsRemote()).resolves.toMatchObject({ total: 1 })
 
     const runs = await service.listScoreRunsRemote({ limit: 10 })
     expect(runs.items.map(run => run.id)).toEqual(['run-2', 'run-1'])
     // the lead filter never smuggles another operator's runs through
     await expect(service.listScoreRunsRemote({ lead_id: other.id })).resolves.toMatchObject({ total: 0 })
+    await expect(service.listScoreRunsRemote()).resolves.toMatchObject({ total: 2 })
 
     await p1.scoring.seedTemplates()
     const icp = await service.listIcpProfilesRemote()
@@ -311,10 +314,12 @@ describe('P4 panel Remote read faces', () => {
     const contents = await service.listGeneratedContentsRemote({})
     expect(contents.items.map(content => content.id)).toEqual(['g1', 'g3'])
     await expect(service.listGeneratedContentsRemote({ lead_id: other.id })).resolves.toMatchObject({ total: 0 })
+    await expect(service.listGeneratedContentsRemote()).resolves.toMatchObject({ total: 2 })
 
     // the seeded industries ship copy and SOP templates
     await expect(service.listContentTemplatesRemote({})).resolves.toHaveLength(6)
     await expect(service.listSopTasksRemote({ status: 'pending' })).resolves.toMatchObject({ total: 1 })
+    await expect(service.listSopTasksRemote()).resolves.toMatchObject({ total: 1 })
     await expect(service.listSopTemplatesRemote(true)).resolves.toHaveLength(3)
 
     // the web operator's own scope: emp-1 sees their lead, not the other operator's

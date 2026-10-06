@@ -10,7 +10,7 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { operatorRequest } from '../permission/types.ts'
 import type { PermissionContextService } from '../permission/types.ts'
 import type { ReportService } from '../report/service.ts'
-import type { OverviewValue } from '../report/types.ts'
+import type { OverviewValue } from '../types.ts'
 
 /** Dependencies the overview tool shares. */
 export interface ReportToolDeps {

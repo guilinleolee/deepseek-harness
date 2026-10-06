@@ -69,7 +69,9 @@ export { auditExportTool, auditListTool, renderAuditExport } from './tools/audit
 export { settingsGetTool, settingsSetTool } from './tools/settings.ts'
 export type {
   AuditExportValue, AuditListRequest, AuditListValue, AuditLogValue, GeoScanListValue,
-  GeoScanRowValue, SettingsPatchInput, SettingsSnapshotValue,
+  GeoScanRowValue, GeoStats, IntentDistribution, OverviewBreakdownGroup, OverviewGroupBy,
+  OverviewPeriod, OverviewRequest, OverviewTotals, OverviewValue,
+  ScoreDistribution, SettingsPatchInput, SettingsSnapshotValue, TaskStats,
 } from './types.ts'
 export { LeadLedgerService, DOCUMENT_MAX_CHARS } from './leads/service.ts'
 export { registerP1Tools, P1_TOOL_NAMES } from './tools/register-p1.ts'
@@ -78,11 +80,6 @@ export { registerP4Tools, P4_TOOL_NAMES } from './tools/register-p4.ts'
 export { ReportService } from './report/service.ts'
 export { reportOverviewTool, renderOverviewMd } from './tools/report.ts'
 export type { ReportToolDeps } from './tools/report.ts'
-export type {
-  GeoStats, IntentDistribution, OverviewBreakdownGroup, OverviewGroupBy,
-  OverviewPeriod, OverviewRequest, OverviewTotals, OverviewValue,
-  ScoreDistribution, TaskStats,
-} from './report/types.ts'
 export type { LeadToolDeps } from './tools/leads.ts'
 export type { ScoringToolDeps } from './tools/scoring.ts'
 export type {

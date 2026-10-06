@@ -11,7 +11,7 @@ import type { ResolvedOperator } from '../permission/types.ts'
 import type {
   GeoStats, IntentDistribution, OverviewBreakdownGroup, OverviewGroupBy,
   OverviewRequest, OverviewTotals, OverviewValue, ScoreDistribution, TaskStats,
-} from './types.ts'
+} from '../types.ts'
 
 type AcquisitionDomain = Domain<typeof customerAcquisitionDomainSpec>
 
