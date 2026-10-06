@@ -1,11 +1,11 @@
 /**
  * Customer-acquisition operations plugin (GEO + lead ledger + AI lead
- * scoring), P0 foundation plus the P1 lead ledger and AI scoring modules:
- * the frozen v1 storage domain, the PermissionContext seam with its bundled
- * local provider, the pre-execute compliance gate enforcing the feed-in red
- * lines, the audit trail, the P0 settings/audit tools, the P1 lead-ledger
- * and scoring tools with the preset industry seeds, and the browser Remote
- * gateway the panel mounts.
+ * scoring + nurture copy + follow-up SOP + data dashboard), P0 foundation
+ * through the P4 dashboard: the frozen v1 storage domain, the
+ * PermissionContext seam with its bundled local provider, the pre-execute
+ * compliance gate enforcing the feed-in red lines, the audit trail, the
+ * model-facing tools for every module, the preset industry seeds, and the
+ * browser Remote gateway the panel mounts.
  * @module @deepseek-ai/dsh-customer-acquisition
  */
 
@@ -22,6 +22,8 @@ import { SopService } from './sop/service.ts'
 import { registerAcquisitionTools } from './tools/register.ts'
 import { registerP1Tools } from './tools/register-p1.ts'
 import { registerP3Tools } from './tools/register-p3.ts'
+import { registerP4Tools } from './tools/register-p4.ts'
+import { ReportService } from './report/service.ts'
 import { seedIndustryTemplates } from './scoring/seed.ts'
 
 export { customerAcquisitionDomainSpec } from './domain/spec.ts'
@@ -66,12 +68,21 @@ export { registerAcquisitionTools } from './tools/register.ts'
 export { auditExportTool, auditListTool, renderAuditExport } from './tools/audit.ts'
 export { settingsGetTool, settingsSetTool } from './tools/settings.ts'
 export type {
-  AuditExportValue, AuditListRequest, AuditListValue, AuditLogValue,
-  SettingsPatchInput, SettingsSnapshotValue,
+  AuditExportValue, AuditListRequest, AuditListValue, AuditLogValue, GeoScanListValue,
+  GeoScanRowValue, SettingsPatchInput, SettingsSnapshotValue,
 } from './types.ts'
 export { LeadLedgerService, DOCUMENT_MAX_CHARS } from './leads/service.ts'
 export { registerP1Tools, P1_TOOL_NAMES } from './tools/register-p1.ts'
 export { registerP3Tools, P3_TOOL_NAMES } from './tools/register-p3.ts'
+export { registerP4Tools, P4_TOOL_NAMES } from './tools/register-p4.ts'
+export { ReportService } from './report/service.ts'
+export { reportOverviewTool, renderOverviewMd } from './tools/report.ts'
+export type { ReportToolDeps } from './tools/report.ts'
+export type {
+  GeoStats, IntentDistribution, OverviewBreakdownGroup, OverviewGroupBy,
+  OverviewPeriod, OverviewRequest, OverviewTotals, OverviewValue,
+  ScoreDistribution, TaskStats,
+} from './report/types.ts'
 export type { LeadToolDeps } from './tools/leads.ts'
 export type { ScoringToolDeps } from './tools/scoring.ts'
 export type {
@@ -187,6 +198,7 @@ export async function apply(
         audit: service.requireAuditTable(),
         ledger,
       })
+      const report = new ReportService(service.requireDomain())
       const unregisterTools = registerAcquisitionTools(runtimeCtx, service, runtimeCtx.permissionContext)
       const unregisterP1Tools = registerP1Tools(runtimeCtx, {
         ledger,
@@ -200,12 +212,17 @@ export async function apply(
         permission: runtimeCtx.permissionContext,
         policy,
       })
+      const unregisterP4Tools = registerP4Tools(runtimeCtx, {
+        report,
+        permission: runtimeCtx.permissionContext,
+      })
       const uninstallGate = installComplianceGate(runtimeCtx, complianceDenyAuditor(service, runtimeCtx))
       return () => {
         uninstallGate()
         unregisterTools()
         unregisterP1Tools()
         unregisterP3Tools()
+        unregisterP4Tools()
       }
     },
   }).await()

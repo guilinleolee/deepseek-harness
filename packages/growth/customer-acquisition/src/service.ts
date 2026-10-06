@@ -11,19 +11,32 @@ import { Service } from '@deepseek-ai/cordis'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import { appendAuditRecord, selectAuditRecords, type AuditTable } from './audit.ts'
+import { NurtureContentService } from './content/service.ts'
 import { IcpProfileId, ScoreTemplateId } from './domain/ids.ts'
 import {
   customerAcquisitionDomainSpec,
   customerAcquisitionSettingsSchema,
   type AuditLog,
   type CustomerAcquisitionSettings,
+  type GeneratedContent,
+  type GeoReport,
+  type ScoreRun,
+  type SopTask,
 } from './domain/spec.ts'
+import { LeadLedgerService } from './leads/service.ts'
+import { toLeadRef } from './leads/project.ts'
+import type { LeadListRequest, LeadListValue } from './leads/types.ts'
 import { DEFAULT_USER_DISPLAY_NAME, DEFAULT_USER_ID } from './permission/local-provider.ts'
 import { FULL_CAPABILITIES } from './permission/types.ts'
 import type { OperatorChannel, OperatorRequest, ResolvedOperator } from './permission/types.ts'
+import { resolveAiPolicy } from './llm/oneshot.ts'
+import { ReportService } from './report/service.ts'
+import type { OverviewRequest, OverviewValue } from './report/types.ts'
+import { LeadScoringService } from './scoring/service.ts'
+import { SopService } from './sop/service.ts'
 import type {
-  AuditListRequest, AuditListValue, AuditLogValue, SettingsPatchInput,
-  SettingsSnapshotValue, SettingsValue,
+  AuditListRequest, AuditListValue, AuditLogValue, GeoScanListValue, GeoScanRowValue,
+  SettingsPatchInput, SettingsSnapshotValue, SettingsValue,
 } from './types.ts'
 
 /**
@@ -156,6 +169,151 @@ export class CustomerAcquisitionService extends TypertRemoteService {
   async listAuditLogs(request: AuditListRequest): Promise<AuditListValue> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.listAudit(request)
+  }
+
+  /**
+   * Dashboard read face: the seven overview metrics through the same
+   * aggregation the model tool serves. Resolves the web operator per call so
+   * `lead_scope=own` panels never see another operator's leads.
+   */
+  @Remote('getOverview')
+  async getOverviewRemote(request: OverviewRequest): Promise<OverviewValue> {
+    const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
+    return new ReportService(this.requireDomain()).overview(request, operator)
+  }
+
+  /** Lead list read face; the ledger's list scope applies unchanged. */
+  @Remote('listLeads')
+  async listLeadsRemote(request: LeadListRequest): Promise<LeadListValue> {
+    const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
+    const { items, total } = this.panelStack().ledger.listLeads(request, operator)
+    return { items: items.map(toLeadRef), total }
+  }
+
+  /** Score-run history read face across the operator's visible leads, newest first. */
+  @Remote('listScoreRuns')
+  async listScoreRunsRemote(request: { lead_id?: string; limit?: number } = {}): Promise<{ items: ScoreRun[]; total: number }> {
+    const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
+    const { ledger } = this.panelStack()
+    const runs = [...this.requireDomain().table('score_runs').entries()]
+      .map(([, run]) => run)
+      .filter(run => ledger.isLeadVisible(run.lead_id, operator)
+        && (request.lead_id === undefined || run.lead_id === request.lead_id))
+      .sort((left, right) => right.created_at - left.created_at)
+    const limit = request.limit ?? 20
+    return { items: runs.slice(0, limit), total: runs.length }
+  }
+
+  /** ICP profile read face for the scoring page. */
+  @Remote('listIcpProfiles')
+  async listIcpProfilesRemote(enabled_only?: boolean): Promise<ReturnType<LeadScoringService['listIcpProfiles']>> {
+    await this.ctx.permissionContext.resolve({ via: 'web' })
+    return this.panelStack().scoring.listIcpProfiles(enabled_only)
+  }
+
+  /** Score-template read face for the scoring page. */
+  @Remote('listScoreTemplates')
+  async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ReturnType<LeadScoringService['listScoreTemplates']>> {
+    await this.ctx.permissionContext.resolve({ via: 'web' })
+    return this.panelStack().scoring.listScoreTemplates(enabled_only)
+  }
+
+  /** GEO scan-history read face: every scan joined with its report's score. */
+  @Remote('listGeoScans')
+  async listGeoScansRemote(limit?: number): Promise<GeoScanListValue> {
+    await this.ctx.permissionContext.resolve({ via: 'web' })
+    const domain = this.requireDomain()
+    const reportsByScan = new Map<string, GeoReport>()
+    for (const [, report] of domain.table('geo_reports').entries()) {
+      const current = reportsByScan.get(report.scan_id)
+      if (current === undefined || report.created_at > current.created_at) reportsByScan.set(report.scan_id, report)
+    }
+    const rows: GeoScanRowValue[] = [...domain.table('geo_scans').entries()]
+      .map(([, scan]) => {
+        const report = reportsByScan.get(scan.id)
+        return {
+          scan_id: scan.id,
+          url: scan.url,
+          status: scan.status,
+          started_at: scan.started_at,
+          ...(scan.finished_at === undefined ? {} : { finished_at: scan.finished_at }),
+          ...(report === undefined ? {} : { report_id: report.id, score: report.score }),
+        }
+      })
+      .sort((left, right) => right.started_at - left.started_at)
+    const bounded = limit === undefined ? rows : rows.slice(0, limit)
+    return { items: bounded, total: rows.length }
+  }
+
+  /** One full GEO report for the diagnosis page. */
+  @Remote('getGeoReport')
+  getGeoReportRemote(reportId: string): Promise<GeoReport> {
+    const report = this.requireDomain().table('geo_reports').get(reportId as never)
+    if (report === undefined) return Promise.reject(new Error(`GEO 报告不存在：${reportId}`))
+    return Promise.resolve(report)
+  }
+
+  /** Generated-copy read face across the operator's visible leads, newest first. */
+  @Remote('listGeneratedContents')
+  async listGeneratedContentsRemote(
+    request: { lead_id?: string; limit?: number } = {},
+  ): Promise<{ items: GeneratedContent[]; total: number }> {
+    const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
+    const { ledger } = this.panelStack()
+    const contents = [...this.requireDomain().table('generated_contents').entries()]
+      .map(([, content]) => content)
+      .filter(content => ledger.isLeadVisible(content.lead_id, operator)
+        && (request.lead_id === undefined || content.lead_id === request.lead_id))
+      .sort((left, right) => right.created_at - left.created_at)
+    const limit = request.limit ?? 20
+    return { items: contents.slice(0, limit), total: contents.length }
+  }
+
+  /** Copy-template read face for the templates page. */
+  @Remote('listContentTemplates')
+  async listContentTemplatesRemote(filters: { type?: string; enabled_only?: boolean } = {}): Promise<ReturnType<NurtureContentService['listTemplates']>> {
+    await this.ctx.permissionContext.resolve({ via: 'web' })
+    return this.panelStack().content.listTemplates(filters)
+  }
+
+  /** SOP task read face; the service's lead-visibility scope applies unchanged. */
+  @Remote('listSopTasks')
+  async listSopTasksRemote(
+    request: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number } = {},
+  ): Promise<{ items: SopTask[]; total: number }> {
+    const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
+    return this.panelStack().sop.listTasks(request, operator)
+  }
+
+  /** SOP-template read face for the templates page. */
+  @Remote('listSopTemplates')
+  async listSopTemplatesRemote(enabled_only?: boolean): Promise<ReturnType<SopService['listTemplates']>> {
+    await this.ctx.permissionContext.resolve({ via: 'web' })
+    return this.panelStack().sop.listTemplates(enabled_only)
+  }
+
+  /**
+   * Module-service stack behind the panel's read faces. Construction is
+   * cheap (plain classes over borrowed tables); every face resolves its
+   * operator per call, so nothing user-visible is cached here.
+   */
+  private panelStack(): {
+    ledger: LeadLedgerService
+    scoring: LeadScoringService
+    content: NurtureContentService
+    sop: SopService
+  } {
+    const domain = this.requireDomain()
+    const audit = this.requireAuditTable()
+    const ledger = new LeadLedgerService(domain, audit)
+    // the panel read faces never call the model; the defaults only satisfy the deps
+    const policy = resolveAiPolicy(undefined)
+    return {
+      ledger,
+      scoring: new LeadScoringService({ ctx: this.ctx, domain, audit, ledger, policy }),
+      content: new NurtureContentService({ ctx: this.ctx, domain, audit, ledger, policy }),
+      sop: new SopService({ domain, audit, ledger }),
+    }
   }
 
   /**

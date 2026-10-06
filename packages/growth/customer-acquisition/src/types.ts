@@ -71,3 +71,20 @@ export interface AuditExportValue {
   count: number
   content: string
 }
+
+/** One GEO scan-history row as the panel sees it: the scan joined with its report's score. */
+export interface GeoScanRowValue {
+  scan_id: string
+  url: string
+  status: 'running' | 'done' | 'failed'
+  started_at: number
+  finished_at?: number
+  report_id?: string
+  score?: number
+}
+
+/** Paged GEO scan history, newest first. */
+export interface GeoScanListValue {
+  items: GeoScanRowValue[]
+  total: number
+}

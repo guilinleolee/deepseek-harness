@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { P1_TOOL_NAMES } from '../src/tools/register-p1.ts'
 import { P3_TOOL_NAMES } from '../src/tools/register-p3.ts'
+import { P4_TOOL_NAMES } from '../src/tools/register-p4.ts'
 import { setupStorageOnly } from './helpers.ts'
 
 /** The P1 runtime fiber injects `llm`; composition tests mount a stub never called. */
@@ -34,6 +35,7 @@ describe('customer-acquisition plugin composition', () => {
         'customer_acquisition_audit_export',
         ...P1_TOOL_NAMES,
         ...P3_TOOL_NAMES,
+        ...P4_TOOL_NAMES,
       ])
 
       await dispose()
