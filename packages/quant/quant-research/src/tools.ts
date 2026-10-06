@@ -23,6 +23,7 @@ import type { KlineBar } from './pdat/datasource.ts'
 import * as indicators from './paat/indicators.ts'
 import type { Series } from './paat/indicators.ts'
 import { runBacktest, validateBacktestParams } from './pcpt/backtest.ts'
+import { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
 import {
   annualVolatility, dailyReturns, historicalCVar, historicalVar, maxDrawdown, shockBars,
   validateStressParams,
@@ -36,7 +37,7 @@ import {
   applyTrades, createAccount, requireAccount,
 } from './pet/service.ts'
 import { computeRebalanceTrades, latestClose } from './pet/rebalance.ts'
-import { deleteNote as deleteNoteRecord, exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNoteEntry } from './pet/notes.ts'
+import { exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNoteEntry } from './pet/notes.ts'
 import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
@@ -1100,6 +1101,139 @@ function renderNoteExport(value: unknown): { type: 'text'; text: string }[] {
 }
 
 /**
+ * Build the backtest-comparison tool: runs the same strategy with two
+ * parameter sets and compares metrics side by side.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function compareBacktestsTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_compare_backtests',
+    description: '对比两组双均线策略参数的回测结果（研究用，模拟盘）：同标的同时跑 A/B 两组回测，对比总收益、最大回撤与夏普。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码' },
+      fast_a: { type: 'integer', description: `A 组快线（2-120），默认 ${String(DEFAULT_BACKTEST_FAST)}` },
+      slow_a: { type: 'integer', description: `A 组慢线（3-250），默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
+      fast_b: { type: 'integer', description: `B 组快线（2-120），默认 20` },
+      slow_b: { type: 'integer', description: `B 组慢线（3-250），默认 60` },
+      bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderComparison(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `对比回测：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest', exec, async () => {
+        const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+        const paramsA = { fast: args.fast_a ?? 10, slow: args.slow_a ?? 30, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
+        const paramsB = { fast: args.fast_b ?? 20, slow: args.slow_b ?? 60, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
+        validateBacktestParams(bars, paramsA)
+        validateBacktestParams(bars, paramsB)
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource, symbol: args.symbol, bars,
+          retries: deps.config.sourceMaxRetries, cacheDir: deps.config.cacheDir, signal: exec.signal,
+        })
+        const runA = await runBacktest(deps.kernel, args.symbol, series, paramsA, exec.signal)
+        const runB = await runBacktest(deps.kernel, args.symbol, series, paramsB, exec.signal)
+        const delta = compareBacktests(runA, runB)
+        return {
+          symbol: args.symbol, bars,
+          baseline: { fast: paramsA.fast, slow: paramsA.slow, metrics: runA.metrics },
+          challenger: { fast: paramsB.fast, slow: paramsB.slow, metrics: runB.metrics },
+          delta,
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the comparison envelope.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderComparison(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    symbol?: string
+    baseline?: { fast: number; slow: number; metrics: { total_return: number; max_drawdown: number; sharpe: number } }
+    challenger?: { fast: number; slow: number; metrics: { total_return: number; max_drawdown: number; sharpe: number } }
+    delta?: { total_return_delta: number; winner: string }
+  } | undefined
+  if (data?.baseline === undefined || data?.challenger === undefined || data.symbol === undefined) {
+    return [{ type: 'text', text: `对比结果为空。\n\n${DISCLAIMER}` }]
+  }
+  const pct = (v: number): string => `${(v * 100).toFixed(2)}%`
+  const b = data.baseline
+  const c = data.challenger
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 策略对比（SMA(${b.fast}/${b.slow}) vs SMA(${c.fast}/${c.slow})）：\n`
+      + `- 总收益：${pct(b.metrics.total_return)} vs ${pct(c.metrics.total_return)}\n`
+      + `- 最大回撤：${pct(b.metrics.max_drawdown)} vs ${pct(c.metrics.max_drawdown)}\n`
+      + `- 夏普：${b.metrics.sharpe.toFixed(2)} vs ${c.metrics.sharpe.toFixed(2)}\n`
+      + `- 优胜方：${data.delta?.winner ?? '?'}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
+ * Build the report-export tool: runs one backtest and formats the full
+ * research report as markdown.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function researchReportTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_research_report',
+    description: '生成结构化量化研究报告（研究用）：运行双均线回测后输出包含参数、绩效指标、净值曲线与成交记录的 Markdown 报告。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码' },
+      fast: { type: 'integer', description: `快线窗口，默认 ${String(DEFAULT_BACKTEST_FAST)}` },
+      slow: { type: 'integer', description: `慢线窗口，默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
+      bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderReportExport(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `研究报告：${args.symbol}` }),
+    async execute(args, exec) {
+      const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+      const params = {
+        fast: args.fast ?? DEFAULT_BACKTEST_FAST,
+        slow: args.slow ?? DEFAULT_BACKTEST_SLOW,
+        initialCash: deps.config.defaultCash,
+        feeRate: deps.config.feeRate,
+      }
+      return envelopeFrom('backtest', exec, async () => {
+        validateBacktestParams(bars, params)
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource, symbol: args.symbol, bars,
+          retries: deps.config.sourceMaxRetries, cacheDir: deps.config.cacheDir, signal: exec.signal,
+        })
+        const report = await runBacktest(deps.kernel, args.symbol, series, params, exec.signal)
+        const markdown = formatBacktestReport(report, `双均线策略研究报告：${report.symbol}`)
+        return { report: report, markdown, title: `双均线策略研究报告：${report.symbol}` }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the report-export envelope.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderReportExport(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { markdown?: string; title?: string } | undefined
+  if (data?.markdown === undefined) {
+    return [{ type: 'text', text: `报告为空。\n\n${DISCLAIMER}` }]
+  }
+  return [{ type: 'text', text: data.markdown }]
+}
+
+/**
  * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
  * @param deps - the tool layer dependencies.
@@ -1120,6 +1254,8 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     saveNoteTool(deps),
     listNotesTool(deps),
     exportReportTool(deps),
+    compareBacktestsTool(deps),
+    researchReportTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

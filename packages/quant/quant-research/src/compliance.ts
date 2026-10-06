@@ -135,6 +135,8 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_execute_rebalance: [inspectBrokerMarkers, inspectWeightCaps],
   quant_compute_factor: [inspectBrokerMarkers, inspectBarCap],
   quant_factor_ic: [inspectBrokerMarkers, inspectBarCap],
+  quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
+  quant_research_report: [inspectBrokerMarkers, inspectBarCap],
 })
 
 /**

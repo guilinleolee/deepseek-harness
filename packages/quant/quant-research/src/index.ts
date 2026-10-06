@@ -19,7 +19,6 @@ import { quantResearchDomainSpec } from './domain/spec.ts'
 import { DataSourceBreaker } from './pdat/datasource.ts'
 import { QuantKernelClient } from './kernel-client/client.ts'
 import { registerQuantTools } from './tools.ts'
-import { QuantResearchService } from './service.ts'
 
 export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
 export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
@@ -88,11 +87,12 @@ export type { ApprovalAsk } from './tools.ts'
 export type {
   BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
 } from './pcpt/backtest.ts'
+export { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
-  registerQuantTools, runBacktestTool, saveNoteTool, stressTestTool,
+  compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
 } from './tools.ts'
 export type { QuantToolDeps } from './tools.ts'
 export { QuantResearchService, type AccountSummaryValue } from './service.ts'
@@ -159,6 +159,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         breaker,
         accounts: domain.table('accounts'),
         orders: domain.table('orders'),
+        notes: domain.table('research_notes'),
         approval: runtimeCtx.approval,
       })
       const uninstallGate = installQuantComplianceGate(
