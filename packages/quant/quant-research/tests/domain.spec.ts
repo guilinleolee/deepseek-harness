@@ -41,7 +41,7 @@ describe('quantResearchDomainSpec', () => {
     expect(quantResearchDomainSpec.name).toBe('quant_research')
     expect(quantResearchDomainSpec.version).toBe(2)
     expect(Object.keys(quantResearchDomainSpec.tables)).toEqual([
-      'compliance_denials', 'accounts', 'orders',
+      'compliance_denials', 'accounts', 'orders', 'research_notes',
     ])
   })
 })

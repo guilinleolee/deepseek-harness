@@ -7,6 +7,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { QuantKernelClient } from '../src/kernel-client/client.ts'
 import {
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
+  exportReportTool, listNotesTool, saveNoteTool,
   executeRebalanceTool, factorICTool, getKlineTool, registerQuantTools, runBacktestTool,
   stressTestTool,
 } from '../src/tools.ts'
@@ -391,8 +392,8 @@ describe('PET tool renders', () => {
     return {
       entries: () => store.entries(),
       get size() { return store.size },
-      get: key => store.get(key),
-      put: async (key, value) => { store.set(key, value) },
+      get: (key: unknown) => store.get(key),
+      put: async (key: unknown, value: unknown) => { store.set(key, value) },
     } as never
   }
   const petDepsLocal = (outcome: 'allowed-once' | 'rejected' = 'rejected'): QuantToolDeps => ({
@@ -524,7 +525,7 @@ describe('PET tool renders', () => {
   it('fails loud without an agent session for the approval flow', async () => {
     const kernel = syntheticBarsKernel()
     const d = petDepsLocal('allowed-once')
-    d.kernel = kernel
+    Object.assign(d, { kernel })
     await accountCreateTool(d).execute?.({ name: '研究一号' }, execWith())
     const value = await executeRebalanceTool(d).execute?.(
       { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },
@@ -676,15 +677,16 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(10)
+    expect(register).toHaveBeenCalledTimes(13)
     const names = register.mock.calls.map(call => call[0].name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
       'quant_assess_risk', 'quant_stress_test',
       'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
       'quant_compute_factor', 'quant_factor_ic',
+      'quant_save_note', 'quant_list_notes', 'quant_export_report',
     ])
     dispose()
-    expect(disposers).toHaveLength(10)
+    expect(disposers).toHaveLength(13)
   })
 })

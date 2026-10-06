@@ -16,12 +16,16 @@ export type ComplianceDenialId = Branded<'ComplianceDenialId'>
 export type AccountId = Branded<'AccountId'>
 /** One simulated fill inside a virtual account. */
 export type OrderId = Branded<'OrderId'>
+export type ResearchNoteId = Branded<'ResearchNoteId'>
 
 /** Brand a plain string as an account id. */
 export const AccountId = (value: string): AccountId => value as AccountId
 
 /** Brand a plain string as an order id. */
 export const OrderId = (value: string): OrderId => value as OrderId
+
+/** Brand a plain string as a research note id. */
+export const ResearchNoteId = (value: string): ResearchNoteId => value as ResearchNoteId
 
 /**
  * Brand a plain string as a denial id.
@@ -82,6 +86,19 @@ export const orderSchema = z.object({
 /** One simulated fill record. */
 export type Order = z.infer<typeof orderSchema>
 
+export const researchNoteSchema = z.object({
+  id: z.string().min(1).transform(ResearchNoteId),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  symbol: z.string().min(1).optional(),
+  tags: z.array(z.string().min(1)).refine(
+    tags => new Set(tags).size === tags.length,
+    { message: 'duplicate tag' },
+  ),
+  created_at: epochMs,
+})
+export type ResearchNote = z.infer<typeof researchNoteSchema>
+
 /** One red-line denial record. */
 export type ComplianceDenial = z.infer<typeof complianceDenialSchema>
 
@@ -97,5 +114,6 @@ export const quantResearchDomainSpec = defineDomain({
     compliance_denials: domainTable<ComplianceDenialId, ComplianceDenial>(complianceDenialSchema),
     accounts: domainTable<AccountId, Account>(accountSchema),
     orders: domainTable<OrderId, Order>(orderSchema),
+    research_notes: domainTable<ResearchNoteId, ResearchNote>(researchNoteSchema),
   },
 })

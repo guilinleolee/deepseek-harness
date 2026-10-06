@@ -53,6 +53,7 @@ describe('apply', () => {
       'quant_assess_risk', 'quant_stress_test',
       'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
       'quant_compute_factor', 'quant_factor_ic',
+      'quant_save_note', 'quant_list_notes', 'quant_export_report',
     ])
     await disposer()
     expect(close).toHaveBeenCalledTimes(1)

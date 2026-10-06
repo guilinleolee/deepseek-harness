@@ -19,6 +19,7 @@ import { quantResearchDomainSpec } from './domain/spec.ts'
 import { DataSourceBreaker } from './pdat/datasource.ts'
 import { QuantKernelClient } from './kernel-client/client.ts'
 import { registerQuantTools } from './tools.ts'
+import { QuantResearchService } from './service.ts'
 
 export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
 export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
@@ -72,6 +73,11 @@ export type { StressParams, StressScenario } from './prt/risk.ts'
 export {
   applyTrades, cashDelta, createAccount, listAccounts, requireAccount,
 } from './pet/service.ts'
+export {
+  deleteNote, exportNotesMarkdown, listNotes, renderNoteMarkdown, saveNote,
+} from './pet/notes.ts'
+export type { NoteSaveInput } from './pet/notes.ts'
+export type { ResearchNote } from './domain/spec.ts'
 export type { AccountCreateInput } from './pet/service.ts'
 export type { PetPosition } from './pet/rebalance.ts'
 export {
@@ -85,10 +91,11 @@ export type {
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  executeRebalanceTool, factorICTool, getKlineTool, registerQuantTools, runBacktestTool,
-  stressTestTool,
+  executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  registerQuantTools, runBacktestTool, saveNoteTool, stressTestTool,
 } from './tools.ts'
 export type { QuantToolDeps } from './tools.ts'
+export { QuantResearchService, type AccountSummaryValue } from './service.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'

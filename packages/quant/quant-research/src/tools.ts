@@ -36,6 +36,8 @@ import {
   applyTrades, createAccount, requireAccount,
 } from './pet/service.ts'
 import { computeRebalanceTrades, latestClose } from './pet/rebalance.ts'
+import { deleteNote as deleteNoteRecord, exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNoteEntry } from './pet/notes.ts'
+import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import type { QuantKernelClient } from './kernel-client/client.ts'
@@ -99,6 +101,8 @@ export interface QuantToolDeps {
   readonly accounts: AccountsTable
   /** The simulated-fill table (domain v2). */
   readonly orders: OrdersTable
+  /** The research-notes table (domain v2). */
+  readonly notes: NotesTable
   /** The user-approval ask face, when the host composes it. */
   readonly approval?: ApprovalAsk
 }
@@ -989,6 +993,113 @@ export function factorICTool(deps: QuantToolDeps): ToolDefinition {
 }
 
 /**
+ * Build the note-save tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function saveNoteTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_save_note',
+    description: '保存量化研究笔记（策略思路、回测结论），按 symbol 和标签归档，可通过 quant_list_notes 查询。',
+    parameters: {
+      title: { type: 'string', required: true, description: '笔记标题' },
+      body: { type: 'string', required: true, description: '笔记正文' },
+      symbol: { type: 'string', description: '关联标的（可选）' },
+      tags: { type: 'array', items: { type: 'string' }, description: '标签列表（可选）' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteSave(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `保存笔记：${args.title}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const note = await saveNoteEntry(deps.notes, {
+          title: args.title, body: args.body,
+          ...(args.symbol === undefined ? {} : { symbol: args.symbol }),
+          ...(args.tags === undefined ? {} : { tags: args.tags }),
+        })
+        return { note_id: note.id, title: note.title, tags: note.tags }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Build the note-list tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function listNotesTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_list_notes',
+    description: '列出量化研究笔记，可按标的或标签筛选，按创建时间降序排列。',
+    parameters: {
+      symbol: { type: 'string', description: '按标的筛选（可选）' },
+      tag: { type: 'string', description: '按标签筛选（可选）' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteList(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `查询笔记${args.symbol ? `：${args.symbol}` : ''}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const notes = listNoteEntries(deps.notes, {
+          ...(args.symbol === undefined ? {} : { symbol: args.symbol }),
+          ...(args.tag === undefined ? {} : { tag: args.tag }),
+        })
+        return { count: notes.length, notes: notes.map(note => ({ note_id: note.id, title: note.title, symbol: note.symbol ?? null, tags: note.tags, created_at: note.created_at })) }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Build the report-export tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function exportReportTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_export_report',
+    description: '导出量化研究笔记为 Markdown 报告（含标题、正文与标签），仅供研究参考。',
+    parameters: { symbol: { type: 'string', description: '按标的筛选（可选）' } },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteExport(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `导出报告${args.symbol ? `：${args.symbol}` : ''}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const notes = listNoteEntries(deps.notes, { ...(args.symbol === undefined ? {} : { symbol: args.symbol }) })
+        return { markdown: exportNotesMarkdown(notes), note_count: notes.length }
+      }) as never
+    },
+  })
+}
+
+function renderNoteSave(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { note_id?: string; title?: string; tags?: string[] } | undefined
+  if (data?.note_id === undefined) return [{ type: 'text', text: `保存结果为空。\n\n${DISCLAIMER}` }]
+  const tags = data.tags?.length ? ` [${data.tags.join(', ')}]` : ''
+  return [{ type: 'text', text: `笔记已保存${tags}\n\n${DISCLAIMER}` }]
+}
+
+function renderNoteList(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { count?: number; notes?: { title: string; symbol: string | null; tags: string[] }[] } | undefined
+  if (data?.notes === undefined) return [{ type: 'text', text: `笔记列表为空。\n\n${DISCLAIMER}` }]
+  const lines = data.notes.map(n => `- ${n.title}${n.symbol ? ` (${n.symbol})` : ''}${n.tags.length ? ` [${n.tags.join(', ')}]` : ''}`).join('\n')
+  return [{ type: 'text', text: `共 ${String(data.count ?? 0)} 条研究笔记：\n${lines}\n\n${DISCLAIMER}` }]
+}
+
+function renderNoteExport(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { markdown?: string } | undefined
+  if (data?.markdown === undefined) return [{ type: 'text', text: `报告为空。\n\n${DISCLAIMER}` }]
+  return [{ type: 'text', text: `${data.markdown}\n\n${DISCLAIMER}` }]
+}
+
+/**
  * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
  * @param deps - the tool layer dependencies.
@@ -1006,6 +1117,9 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     executeRebalanceTool(deps),
     computeFactorTool(deps),
     factorICTool(deps),
+    saveNoteTool(deps),
+    listNotesTool(deps),
+    exportReportTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {
