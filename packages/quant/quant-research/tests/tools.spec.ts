@@ -391,8 +391,8 @@ describe('PET tool renders', () => {
     return {
       entries: () => store.entries(),
       get size() { return store.size },
-      get: key => store.get(key),
-      put: async (key, value) => { store.set(key, value) },
+      get: (key: unknown) => store.get(key),
+      put: async (key: unknown, value: unknown) => { store.set(key, value) },
     } as never
   }
   const petDepsLocal = (outcome: 'allowed-once' | 'rejected' = 'rejected'): QuantToolDeps => ({
@@ -524,7 +524,7 @@ describe('PET tool renders', () => {
   it('fails loud without an agent session for the approval flow', async () => {
     const kernel = syntheticBarsKernel()
     const d = petDepsLocal('allowed-once')
-    d.kernel = kernel
+    Object.assign(d, { kernel })
     await accountCreateTool(d).execute?.({ name: '研究一号' }, execWith())
     const value = await executeRebalanceTool(d).execute?.(
       { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },

@@ -380,7 +380,7 @@ describe('PET tools', () => {
     expect(created).toMatchObject({ code: 0 })
     const state = await accountStateTool(deps).execute?.({ account_name: '研究一号' }, execLike())
     expect((state as { data: { equity: number } }).data.equity).toBe(1_000_000)
-    const rendered = accountStateTool(deps).output.render({}, state as never)[0]?.text
+    const rendered = String((accountStateTool(deps).output.render({}, state as never) as { text: string }[])[0]?.text ?? '')
     expect(String(rendered)).toContain('模拟盘记录仅供研究参考')
   })
 
@@ -399,7 +399,7 @@ describe('PET tools', () => {
     expect(data.executed).toHaveLength(1)
     expect(data.cash_after).toBeCloseTo(1_000_000 - 900_000 * 1.0003, 2)
     expect(approvals).toHaveLength(1)
-    const rendered = executeRebalanceTool(deps).output.render({}, value as never)[0]?.text
+    const rendered = String((executeRebalanceTool(deps).output.render({}, value as never) as { text: string }[])[0]?.text ?? '')
     expect(String(rendered)).toContain('模拟成交 1 笔')
   })
 
@@ -422,7 +422,7 @@ describe('PET tools', () => {
   })
 
   it('renders the empty fallback for account envelopes', () => {
-    expect(accountCreateTool(petDeps(petKernel())).output.render({}, { code: 0, msg: 'ok', data: {} } as never)[0]?.text)
+    expect(String((accountCreateTool(petDeps(petKernel())).output.render({}, { code: 0, msg: 'ok', data: {} } as never) as { text: string }[])[0]?.text ?? ''))
       .toContain('账户信息为空')
   })
 })

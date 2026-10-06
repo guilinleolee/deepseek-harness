@@ -19,6 +19,7 @@ import { quantResearchDomainSpec } from './domain/spec.ts'
 import { DataSourceBreaker } from './pdat/datasource.ts'
 import { QuantKernelClient } from './kernel-client/client.ts'
 import { registerQuantTools } from './tools.ts'
+import { QuantResearchService } from './service.ts'
 
 export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
 export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
@@ -89,6 +90,7 @@ export {
   stressTestTool,
 } from './tools.ts'
 export type { QuantToolDeps } from './tools.ts'
+export { QuantResearchService, type AccountSummaryValue } from './service.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
@@ -124,6 +126,7 @@ export function resolveKernelScriptPath(
 export async function apply(ctx: Context, config?: Config): Promise<() => Promise<void>> {
   const resolved = resolveConfig(config, { platform: process.platform, dshHome: defaultDshHome() })
   const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
+  const serviceFiber = await ctx.plugin(QuantResearchService).await()
   const runtimeFiber = await ctx.plugin({
     name: 'quant-research:runtime',
     inject: ['tools', 'approval'],
@@ -166,6 +169,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
   }).await()
   return async () => {
     await runtimeFiber.dispose()
+    await serviceFiber.dispose()
     await domain.close()
   }
 }
