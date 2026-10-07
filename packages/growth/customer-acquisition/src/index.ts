@@ -38,9 +38,9 @@ export {
 } from './domain/spec.ts'
 export type {
   AuditLog, ContentTemplate, ContentTemplateVariable, CustomerAcquisitionSettings,
-  GeoArtifacts, GeoFinding, GeoReport, GeoScan, IcpDimension, IcpProfile, Lead,
-  LeadDocument, LeadFollowup, ScoreRun, ScoreRunItem, ScoreTemplate, SopRule,
-  SopTask, SopTemplate,
+  GeneratedContent, GeoArtifacts, GeoFinding, GeoReport, GeoScan, IcpDimension,
+  IcpProfile, Lead, LeadDocument, LeadFollowup, ScoreRun, ScoreRunItem,
+  ScoreTemplate, SopRule, SopTask, SopTemplate,
 } from './domain/spec.ts'
 export { newId } from './domain/ids.ts'
 export type {

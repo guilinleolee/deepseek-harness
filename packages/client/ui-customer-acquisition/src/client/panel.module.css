@@ -95,3 +95,108 @@
   background: transparent;
   color: inherit;
 }
+
+.tabRow {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.tabButton {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tabButton[aria-pressed='true'] {
+  border-color: #4a7;
+  font-weight: 600;
+}
+
+.pageBody {
+  padding-top: 8px;
+  overflow: auto;
+}
+
+.selectorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+.selectorLabel {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.selectorButton {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.selectorButton[aria-pressed='true'] {
+  border-color: #4a7;
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 4px 0 12px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  padding: 4px 6px;
+}
+
+.list {
+  margin: 4px 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.input {
+  width: 72px;
+  margin-right: 6px;
+}
+
+.saved {
+  margin-left: 6px;
+  color: #4a7;
+  font-size: 12px;
+}
+
+.reportBox {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 8px;
+}
+
+.reportPre {
+  white-space: pre-wrap;
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.reading {
+  font-size: 12px;
+  opacity: 0.7;
+}
