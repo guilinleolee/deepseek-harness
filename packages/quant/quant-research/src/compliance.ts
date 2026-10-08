@@ -40,6 +40,8 @@ export const GRID_COMBO_HARD_LIMIT = 200
 export const FAST_WINDOW_LIMITS = { min: 2, max: 120 } as const
 /** Bounds for the slow SMA window; the single-run backtest and the grid share it. */
 export const SLOW_WINDOW_LIMITS = { min: 3, max: 250 } as const
+/** Bounds for the walk-forward train/test split ratio; not configurable. */
+export const TRAIN_RATIO_LIMITS = { min: 0.5, max: 0.9, default: 0.7 } as const
 /** One inclusive integer range walked by a step. */
 export interface GridAxisSpec {
   /** First window in the axis (inclusive). */
@@ -205,6 +207,26 @@ export function inspectGridCaps(args: RawArgs): ComplianceVerdict {
   return { kind: 'allow' }
 }
 
+/**
+ * Red line 8 (train-ratio cap): the walk-forward split ratio stays inside
+ * the hard bounds so the test leg cannot be starved (or over-fed) by a
+ * smuggled ratio. Absent fields pass: the tool's default is valid.
+ * @param args - raw tool arguments.
+ * @returns the verdict for the train-ratio rule.
+ */
+export function inspectTrainRatioCap(args: RawArgs): ComplianceVerdict {
+  const trainRatio = (args as Record<string, unknown>)['train_ratio']
+  if (trainRatio === undefined) return { kind: 'allow' }
+  if (typeof trainRatio !== 'number' || !Number.isFinite(trainRatio)
+    || trainRatio < TRAIN_RATIO_LIMITS.min || trainRatio > TRAIN_RATIO_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `train_ratio 必须是 ${String(TRAIN_RATIO_LIMITS.min)}-${String(TRAIN_RATIO_LIMITS.max)} 之间的数值（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
 /** Rules per tool name; a tool absent from the map passes untouched. */
 const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerdict)[]>> = Object.freeze({
   quant_get_kline: [inspectBrokerMarkers, inspectBarCap],
@@ -218,6 +240,7 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
   quant_research_report: [inspectBrokerMarkers, inspectBarCap],
   quant_optimize_params: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps],
+  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap],
 })
 
 /**

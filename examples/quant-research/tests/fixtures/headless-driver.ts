@@ -79,6 +79,56 @@ try {
     jobText,
     deniedText,
   })}\n`)
+
+  // Phase-3 walk-forward round: one real background job that splits the
+  // fetched bars, runs the grid on the train leg, picks the best, and runs
+  // one backtest on the test leg — collected through job_output.
+  const walkForward = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: CallId('quant-walk-forward-start'),
+    name: 'quant_walk_forward',
+    arguments: { symbol: '000001', bars: 250, top_n: 5 },
+  })
+  const wfStartText = textOf(walkForward as never)
+  const wfEnvelope = (walkForward as unknown as { value: { code: number; data: { job_id: string; combos: number; train_ratio: number } } }).value
+  let wfJobText = ''
+  const wfDeadline = Date.now() + 30_000
+  while (Date.now() < wfDeadline) {
+    const read = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: CallId('quant-walk-forward-read'),
+      name: 'job_output',
+      arguments: { job_id: wfEnvelope.data.job_id },
+    })
+    wfJobText = textOf(read as never)
+    if (wfJobText.includes('[status: completed')) break
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  // The train-ratio red line on the same tool, through the real gate.
+  let wfDeniedText = ''
+  try {
+    const denied = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: CallId('quant-walk-forward-deny'),
+      name: 'quant_walk_forward',
+      arguments: { symbol: '000001', train_ratio: 0.3 },
+    })
+    wfDeniedText = textOf(denied as never)
+  } catch (error: unknown) {
+    wfDeniedText = error instanceof Error ? error.message : String(error)
+  }
+
+  process.stdout.write(`${JSON.stringify({
+    type: 'quant-walk-forward-check',
+    code: wfEnvelope.code,
+    jobId: wfEnvelope.data.job_id,
+    combos: wfEnvelope.data.combos,
+    trainRatio: wfEnvelope.data.train_ratio,
+    startText: wfStartText,
+    jobText: wfJobText,
+    deniedText: wfDeniedText,
+  })}\n`)
 } catch (error: unknown) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
   process.exitCode = 1

@@ -53,10 +53,14 @@ import {
   rankGridResults, runBacktestGrid, validateGridSpec,
 } from './pcpt/optimize.ts'
 import type { GridSpec, RankMetric } from './pcpt/optimize.ts'
+import {
+  TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars, validateWalkForwardParams,
+} from './pcpt/walk-forward.ts'
 
 declare module '@deepseek-ai/dsh-jobs' {
   interface JobKindMap {
     'quant-optimize': 'quant-optimize'
+    'quant-walk-forward': 'quant-walk-forward'
   }
 }
 
@@ -1425,6 +1429,155 @@ function renderOptimize(value: unknown): { type: 'text'; text: string }[] {
 }
 
 /**
+ * Build the walk-forward validation tool: starts one background job that
+ * splits the fetched bars into train/test, runs the grid on the train leg,
+ * picks the best (fast, slow), and runs one backtest on the test leg with
+ * those parameters. The markdown report carries the train ranking, the
+ * out-of-sample metrics, and the overfitting gap.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_walk_forward',
+    description: '双均线参数 walk-forward 样本外验证（研究用，后台任务）：把K线切训练/测试两段，在训练段网格寻优，用最优参数在测试段跑一次回测，报告样本外指标与过拟合差距。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      bars: { type: 'integer', description: `K线根数（需同时覆盖训练与测试段的最宽慢线窗口，上限 1500），默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+      train_ratio: { type: 'number', description: `训练段占比（0.5-0.9），默认 ${String(TRAIN_RATIO_LIMITS.default)}` },
+      fast_min: { type: 'integer', description: `快线起点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.min)}` },
+      fast_max: { type: 'integer', description: `快线终点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.max)}` },
+      fast_step: { type: 'integer', description: `快线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.fast.step)}` },
+      slow_min: { type: 'integer', description: `慢线起点（3-250，需整段大于快线），默认 ${String(DEFAULT_GRID_SPEC.slow.min)}` },
+      slow_max: { type: 'integer', description: `慢线终点（3-250），默认 ${String(DEFAULT_GRID_SPEC.slow.max)}` },
+      slow_step: { type: 'integer', description: `慢线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.slow.step)}` },
+      rank_by: {
+        type: 'string', enum: ['total_return', 'sharpe', 'max_drawdown'],
+        description: `训练段排名指标，默认 ${DEFAULT_RANK_METRIC}`,
+      },
+      top_n: { type: 'integer', description: `训练段报告保留前 N 名（1-${String(TOP_N_LIMITS.max)}），默认 ${String(TOP_N_LIMITS.default)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderWalkForward(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `Walk-forward：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest_grid', exec, async () => {
+        const jobs = deps.jobs?.()
+        if (jobs === undefined) {
+          throw new QuantError(
+            'CONFIG',
+            'walk-forward 验证需要后台任务运行时：请在组合中加入 @deepseek-ai/dsh-jobs-local 与 @deepseek-ai/dsh-tool-jobs',
+          )
+        }
+        const spec: GridSpec = {
+          fast: resolveAxis(args as Record<string, unknown>, 'fast'),
+          slow: resolveAxis(args as Record<string, unknown>, 'slow'),
+        }
+        const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+        const trainRatio = args.train_ratio ?? TRAIN_RATIO_LIMITS.default
+        const rankBy = (args.rank_by ?? DEFAULT_RANK_METRIC) as RankMetric
+        const topN = args.top_n ?? TOP_N_LIMITS.default
+        if (!Number.isSafeInteger(topN) || topN < TOP_N_LIMITS.min || topN > TOP_N_LIMITS.max) {
+          throw new QuantError('DATA', `top_n 必须是 ${String(TOP_N_LIMITS.min)}-${String(TOP_N_LIMITS.max)} 的整数`)
+        }
+        validateWalkForwardParams(bars, spec, trainRatio)
+        const combos = axisLength(spec.fast) * axisLength(spec.slow)
+        const label = `${args.symbol} walk-forward ${String(combos)} 组合 训练${String(Math.round(trainRatio * 100))}%`
+        const controller = new AbortController()
+        const id = jobs.start({
+          kind: 'quant-walk-forward',
+          label,
+          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          run: () => {
+            const done = (async (): Promise<JobOutcome> => {
+              try {
+                const series = await fetchKline(deps.kernel, deps.breaker, {
+                  source: deps.config.dataSource,
+                  symbol: args.symbol,
+                  bars,
+                  retries: deps.config.sourceMaxRetries,
+                  cacheDir: deps.config.cacheDir,
+                  signal: controller.signal,
+                })
+                const split = splitBars(series, trainRatio)
+                const { trainResults, ranked, testReport } = await runWalkForward(
+                  deps.kernel, args.symbol, split, spec,
+                  deps.config.defaultCash, deps.config.feeRate, rankBy, topN, controller.signal,
+                )
+                const markdown = formatWalkForwardSummary(
+                  args.symbol, spec, ranked, testReport, trainRatio, trainResults.length, rankBy,
+                )
+                const best = ranked[0]
+                return {
+                  status: 'completed' as const,
+                  output: markdown,
+                  ...(best === undefined ? {} : { detail: `最优 SMA(${best.fast}/${best.slow}) 测试总收益 ${(testReport.metrics.total_return * 100).toFixed(2)}%` }),
+                }
+              } catch (error: unknown) {
+                recordKernelFault(exec, 'backtest_grid', error)
+                if (controller.signal.aborted) {
+                  return { status: 'killed' as const, detail: 'walk-forward 验证已取消' }
+                }
+                const detail = isQuantError(error) ? error.message : 'walk-forward 验证任务失败'
+                return { status: 'failed' as const, detail }
+              }
+            })()
+            return {
+              cancel: () => { controller.abort() },
+              done,
+            }
+          },
+        })
+        return {
+          job_id: id,
+          kind: 'background',
+          symbol: args.symbol,
+          bars,
+          train_ratio: trainRatio,
+          combos,
+          grid: { fast: spec.fast, slow: spec.slow },
+          rank_by: rankBy,
+          top_n: topN,
+          combo_cap: GRID_COMBO_HARD_LIMIT,
+          hint: '后台 walk-forward 已启动：用 job_output(job_id, wait: true) 收取样本外报告；不再需要时用 job_kill(job_id) 取消',
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the walk-forward start envelope: the job id, the split, and the
+ * collection instruction.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderWalkForward(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    job_id?: string
+    symbol?: string
+    train_ratio?: number
+    combos?: number
+    grid?: { fast: GridAxisSpec; slow: GridAxisSpec }
+    hint?: string
+  } | undefined
+  if (data?.job_id === undefined || data.symbol === undefined || data.grid === undefined) {
+    return [{ type: 'text', text: `walk-forward 任务启动失败。\n\n${DISCLAIMER}` }]
+  }
+  const axisText = (axis: GridAxisSpec): string =>
+    `${String(axis.min)}-${String(axis.max)} 步长 ${String(axis.step)}（${String(axisLength(axis))} 个）`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} walk-forward 已转入后台任务 ${data.job_id}：`
+      + `训练 ${String(Math.round((data.train_ratio ?? 0) * 100))}% / 测试 ${String(Math.round((1 - (data.train_ratio ?? 0)) * 100))}%，`
+      + `快线 ${axisText(data.grid.fast)} × 慢线 ${axisText(data.grid.slow)}，共 ${String(data.combos ?? '?')} 组合。\n${data.hint ?? ''}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
  * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
  * @param deps - the tool layer dependencies.
@@ -1448,6 +1601,7 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     compareBacktestsTool(deps),
     researchReportTool(deps),
     optimizeParamsTool(deps),
+    walkForwardTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

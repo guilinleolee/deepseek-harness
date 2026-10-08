@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, the daily SMA-cross backtester with its risk/stress/factor/PET suite, and jobs-runtime parameter optimization — all behind a research-only compliance gate. The plugin registers sixteen model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`, `quant_assess_risk`, `quant_stress_test`, the PET account tools, the factor/IC tools, the notes/report tools, `quant_compare_backtests`, `quant_research_report`, and `quant_optimize_params`), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
+Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, the daily SMA-cross backtester with its risk/stress/factor/PET suite, and jobs-runtime parameter optimization — all behind a research-only compliance gate. The plugin registers seventeen model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`, `quant_assess_risk`, `quant_stress_test`, the PET account tools, the factor/IC tools, the notes/report tools, `quant_compare_backtests`, `quant_research_report`, and `quant_optimize_params` and `quant_walk_forward`), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
 
 ## Installation
 
@@ -57,6 +57,7 @@ Each red line has at least one illegal-path unit test, and the keyless snapshot 
 | `quant_compare_backtests` | Run two parameter sets on the same symbol and compare return, drawdown, and Sharpe side by side. |
 | `quant_research_report` | Run one backtest and format the structured markdown research report (parameters, metrics, equity, fills). |
 | `quant_optimize_params` | Grid-search the SMA windows as one cancellable background job on the jobs runtime; collect the ranked markdown report with `job_output`. |
+| `quant_walk_forward` | Split the bars into train/test, grid-search on train, run one backtest on test with the train-optimal parameters; report out-of-sample metrics and the overfitting gap as a background job. |
 
 Every result is the unified `{code, msg, data}` envelope — `code: 0` on success, the error tier's numeric code with `data: null` on failure (`NETWORK`, `DATA`, `KERNEL`, `RISK`, `CONFIG`, `CANCELLED`, `INTERNAL`) — and every rendered output ends with the research-only disclaimer.
 
@@ -74,7 +75,7 @@ Every result is the unified `{code, msg, data}` envelope — `code: 0` on succes
 
 #### Token effect
 
-Bounded: sixteen tool schemas (roughly 3,000 tokens) in every assembled request while loaded; renders cap the kline tail at ten rows and indicator readings at five.
+Bounded: sixteen tool schemas (roughly 3,200 tokens) in every assembled request while loaded; renders cap the kline tail at ten rows and indicator readings at five.
 
 #### KV Cache effect
 
@@ -83,8 +84,9 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 ## Known Limitations and Deferred Work
 
 - **No live-trading channel, by design** — this is the plugin's permanent red line, not a missing feature; the gate denies intent markers and the kernel holds only virtual accounts.
-- **Phase 3 remaining** — strategy comparison, the research report, and jobs-runtime parameter optimization are live; the chart cards (echarts vs bundle size) and the real panel with the core package's Remote face land next.
+- **Phase 3 remaining** — strategy comparison, the research report, jobs-runtime parameter optimization, and walk-forward out-of-sample validation are live; the chart cards (echarts vs bundle size) and the real panel with the core package's Remote face land next.
 - **Optimization reports top-N only** — per-combination equity curves and fills are dropped on the kernel wire to keep the response bounded; re-run `quant_run_backtest` on a chosen pair for the full curve.
+- **Walk-forward is one split, not rolling** — `quant_walk_forward` validates one train/test split at a caller-chosen ratio; rolling-window re-optimization (anchored or expanding) is deferred.
 - **Kernel cache has no TTL policy** — `akshare` cache files are read by existence, not freshness; a refresh strategy waits for a concrete deployment requirement.
 - **`akshare` depends on the host environment** — the source fails with a friendly config error until `kernel-py/requirements.txt` is installed; Tushare is a later optional source (its open-source library has been stale since 2024-03).
 - **pytest coverage is informational** — the repository's per-file 100% gate covers the TypeScript `src` only; the kernel's pytest suite runs independently and reports separately.

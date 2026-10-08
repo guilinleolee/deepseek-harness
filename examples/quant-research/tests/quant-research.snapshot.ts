@@ -95,5 +95,21 @@ describe('quant-research keyless snapshot', () => {
     expect(String(optimizeCheck?.jobText)).toContain('过拟合风险')
     expect(String(optimizeCheck?.jobText)).toContain('仅供研究参考')
     expect(String(optimizeCheck?.deniedText)).toContain('合规硬上限')
-  }, 120_000)
+
+    // The driver-phase walk-forward round: one real background job that
+    // splits, runs the grid on train, picks the best, and runs one backtest
+    // on test — plus one train-ratio denial through the gate.
+    const wfCheck = records.find(record => record.type === 'quant-walk-forward-check')
+    expect(wfCheck).toBeDefined()
+    expect(wfCheck?.code).toBe(0)
+    expect(wfCheck?.combos).toBe(16)
+    expect(wfCheck?.trainRatio).toBe(0.7)
+    expect(String(wfCheck?.jobId)).toMatch(/^quant-walk-forward-\d+$/)
+    expect(String(wfCheck?.startText)).toContain('训练 70% / 测试 30%')
+    expect(String(wfCheck?.jobText)).toContain('[status: completed')
+    expect(String(wfCheck?.jobText)).toContain('# Walk-forward 验证报告：000001')
+    expect(String(wfCheck?.jobText)).toContain('过拟合差距')
+    expect(String(wfCheck?.jobText)).toContain('仅供研究参考')
+    expect(String(wfCheck?.deniedText)).toContain('train_ratio')
+  }, 180_000)
 })

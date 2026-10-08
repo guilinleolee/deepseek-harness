@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十六个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report` 与 `quant_optimize_params`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
+面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十七个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report` 与 `quant_optimize_params` 与 `quant_walk_forward`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
 
 ## 安装
 
@@ -57,6 +57,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_compare_backtests` | 同标的同时跑两组参数，并排对比收益、回撤与夏普。 |
 | `quant_research_report` | 运行一次回测并输出结构化 Markdown 研究报告（参数/指标/净值/成交）。 |
 | `quant_optimize_params` | 在 jobs 运行时上以可取消后台任务做双均线网格寻优；用 `job_output` 收取排名报告。 |
+| `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
@@ -74,7 +75,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 #### Token 影响
 
-有界：插件加载期间，每次装配请求包含十六个工具 schema（约 3,000 token）；渲染最多输出 10 行 K 线与 5 条指标读数。
+有界：插件加载期间，每次装配请求包含十六个工具 schema（约 3,200 token）；渲染最多输出 10 行 K 线与 5 条指标读数。
 
 #### KV Cache 影响
 
@@ -83,8 +84,9 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 ## 已知限制与延期工作
 
 - **无实盘通道（设计使然）** — 这是插件的永久红线，不是缺失功能；门禁拒绝意图标记，内核只有虚拟账户。
-- **Phase 3 剩余** — 策略对比、研究报告与 jobs 运行时参数寻优均已上线；图表卡片（echarts 与包体权衡）与带核心包 Remote 面的真面板随后落地。
+- **Phase 3 剩余** — 策略对比、研究报告、jobs 运行时参数寻优与 walk-forward 样本外验证均已上线；图表卡片（echarts 与包体权衡）与带核心包 Remote 面的真面板随后落地。
 - **寻优报告只保留前 N 名** — 每组合的净值曲线与成交流量在内核线上被丢弃以控制响应体积；选中某组参数后用 `quant_run_backtest` 取完整曲线。
+- **walk-forward 是单次切分，非滚动** — `quant_walk_forward` 按调用方指定比例做一次训练/测试切分；滚动窗口再寻优（锚定或扩展）延期。
 - **内核缓存无 TTL 策略** — `akshare` 缓存按文件存在性命中，不看新鲜度；刷新策略等具体部署需求出现后再定。
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。
 - **pytest 覆盖率为信息性指标** — 仓库的逐文件 100% 门禁只覆盖 TypeScript `src`；内核 pytest 套件独立运行、独立报告。
