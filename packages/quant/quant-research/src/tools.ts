@@ -41,7 +41,24 @@ import { exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNote
 import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
+import type {} from '@deepseek-ai/dsh-jobs'
+import type { JobId, JobOutcome, JobStart } from '@deepseek-ai/dsh-jobs'
 import type { QuantKernelClient } from './kernel-client/client.ts'
+import {
+  DEFAULT_GRID_SPEC, GRID_COMBO_HARD_LIMIT,
+} from './compliance.ts'
+import type { GridAxisSpec } from './compliance.ts'
+import {
+  DEFAULT_RANK_METRIC, TOP_N_LIMITS, axisLength, formatOptimizationSummary,
+  rankGridResults, runBacktestGrid, validateGridSpec,
+} from './pcpt/optimize.ts'
+import type { GridSpec, RankMetric } from './pcpt/optimize.ts'
+
+declare module '@deepseek-ai/dsh-jobs' {
+  interface JobKindMap {
+    'quant-optimize': 'quant-optimize'
+  }
+}
 
 /** Bar-count default for one kline/indicator request. */
 export const DEFAULT_KLINE_BARS = 120
@@ -90,6 +107,16 @@ export interface ApprovalAsk {
   }): Promise<ApprovalOutcome>
 }
 
+/** The job-registry face the optimize tool starts background work through. */
+export interface JobsStartFace {
+  /**
+   * Start one background job; the registry owns identity and lifecycle.
+   * @param spec - the producer declaration.
+   * @returns the registry-issued job id.
+   */
+  start(spec: JobStart): JobId
+}
+
 /** The tool layer's resolved dependencies. */
 export interface QuantToolDeps {
   /** The resolved plugin configuration. */
@@ -105,10 +132,10 @@ export interface QuantToolDeps {
   /** The research-notes table (domain v2). */
   readonly notes: NotesTable
   /** The user-approval ask face, when the host composes it. */
-  readonly approval?: ApprovalAsk
-}
-
-/**
+  readonly approval?: ApprovalAsk | undefined
+  /** Lazy access to the host's job registry, when one is composed. */
+  readonly jobs?: (() => JobsStartFace | undefined) | undefined
+}/**
  * Read the envelope's failure message when the value is one.
  * @param value - the tool result value.
  * @returns the friendly failure line, or `undefined` for a success envelope.
@@ -920,7 +947,7 @@ export function computeFactorTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderFactor(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `计算因子：${args.symbol} ${args.factor}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `计算因子：${args.symbol} ${args.factor}` }),
     async execute(args, exec) {
       return envelopeFrom('get_kline', exec, async () => {
         const series = await fetchKline(deps.kernel, deps.breaker, {
@@ -962,7 +989,7 @@ export function factorICTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderIC(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `IC 分析：${args.symbol} ${args.factor}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `IC 分析：${args.symbol} ${args.factor}` }),
     async execute(args, exec) {
       return envelopeFrom('get_kline', exec, async () => {
         const series = await fetchKline(deps.kernel, deps.breaker, {
@@ -1010,7 +1037,7 @@ export function saveNoteTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteSave(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `保存笔记：${args.title}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `保存笔记：${args.title}` }),
     async execute(args) {
       return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
         const note = await saveNoteEntry(deps.notes, {
@@ -1039,7 +1066,7 @@ export function listNotesTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteList(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `查询笔记${args.symbol ? `：${args.symbol}` : ''}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `查询笔记${args.symbol ? `：${args.symbol}` : ''}` }),
     async execute(args) {
       return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
         const notes = listNoteEntries(deps.notes, {
@@ -1064,7 +1091,7 @@ export function exportReportTool(deps: QuantToolDeps): ToolDefinition {
     parameters: { symbol: { type: 'string', description: '按标的筛选（可选）' } },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteExport(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `导出报告${args.symbol ? `：${args.symbol}` : ''}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `导出报告${args.symbol ? `：${args.symbol}` : ''}` }),
     async execute(args) {
       return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
         const notes = listNoteEntries(deps.notes, { ...(args.symbol === undefined ? {} : { symbol: args.symbol }) })
@@ -1114,13 +1141,13 @@ export function compareBacktestsTool(deps: QuantToolDeps): ToolDefinition {
       symbol: { type: 'string', required: true, description: '标的代码' },
       fast_a: { type: 'integer', description: `A 组快线（2-120），默认 ${String(DEFAULT_BACKTEST_FAST)}` },
       slow_a: { type: 'integer', description: `A 组慢线（3-250），默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
-      fast_b: { type: 'integer', description: `B 组快线（2-120），默认 20` },
-      slow_b: { type: 'integer', description: `B 组慢线（3-250），默认 60` },
+      fast_b: { type: 'integer', description: 'B 组快线（2-120），默认 20' },
+      slow_b: { type: 'integer', description: 'B 组慢线（3-250），默认 60' },
       bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderComparison(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `对比回测：${args.symbol}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `对比回测：${args.symbol}` }),
     async execute(args, exec) {
       return envelopeFrom('backtest', exec, async () => {
         const bars = args.bars ?? DEFAULT_BACKTEST_BARS
@@ -1195,7 +1222,7 @@ export function researchReportTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderReportExport(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `研究报告：${args.symbol}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `研究报告：${args.symbol}` }),
     async execute(args, exec) {
       const bars = args.bars ?? DEFAULT_BACKTEST_BARS
       const params = {
@@ -1233,6 +1260,170 @@ function renderReportExport(value: unknown): { type: 'text'; text: string }[] {
   return [{ type: 'text', text: data.markdown }]
 }
 
+/** Bar-count default for one optimization grid run. */
+const DEFAULT_OPTIMIZE_BARS = DEFAULT_BACKTEST_BARS
+
+/**
+ * Resolve the caller's axis fields against {@link DEFAULT_GRID_SPEC}, exactly
+ * as the compliance gate does, so the tool and the gate agree on the grid.
+ * @param args - the raw tool arguments.
+ * @param axis - which axis to resolve.
+ * @returns the effective axis.
+ */
+function resolveAxis(args: Record<string, unknown>, axis: 'fast' | 'slow'): GridAxisSpec {
+  const fallback = DEFAULT_GRID_SPEC[axis]
+  return {
+    min: typeof args[`${axis}_min`] === 'number' ? args[`${axis}_min`] as number : fallback.min,
+    max: typeof args[`${axis}_max`] === 'number' ? args[`${axis}_max`] as number : fallback.max,
+    step: typeof args[`${axis}_step`] === 'number' ? args[`${axis}_step`] as number : fallback.step,
+  }
+}
+
+/**
+ * Build the parameter-optimization tool: starts one background job on the
+ * host's job registry, fetches the bars once, and runs the whole grid
+ * through a single `backtest_grid` kernel request inside the job. The tool
+ * returns the job id immediately; the model collects the ranked report with
+ * `job_output` and cancels with `job_kill`.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function optimizeParamsTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_optimize_params',
+    description: '双均线参数网格寻优（研究用，后台任务）：在快/慢线窗口网格上重跑同一内核回测引擎，按总收益/夏普/最大回撤排名并输出最优参数报告。寻优转入后台任务，用 job_output 收取结果。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      bars: { type: 'integer', description: `K线根数（需覆盖最宽慢线窗口，上限 1500），默认 ${String(DEFAULT_OPTIMIZE_BARS)}` },
+      fast_min: { type: 'integer', description: `快线起点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.min)}` },
+      fast_max: { type: 'integer', description: `快线终点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.max)}` },
+      fast_step: { type: 'integer', description: `快线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.fast.step)}` },
+      slow_min: { type: 'integer', description: `慢线起点（3-250，需整段大于快线），默认 ${String(DEFAULT_GRID_SPEC.slow.min)}` },
+      slow_max: { type: 'integer', description: `慢线终点（3-250），默认 ${String(DEFAULT_GRID_SPEC.slow.max)}` },
+      slow_step: { type: 'integer', description: `慢线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.slow.step)}` },
+      rank_by: {
+        type: 'string', enum: ['total_return', 'sharpe', 'max_drawdown'],
+        description: `排名指标：总收益/夏普/最大回撤（升序），默认 ${DEFAULT_RANK_METRIC}`,
+      },
+      top_n: { type: 'integer', description: `报告保留前 N 名（1-${String(TOP_N_LIMITS.max)}），默认 ${String(TOP_N_LIMITS.default)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderOptimize(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `参数寻优：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest_grid', exec, async () => {
+        const jobs = deps.jobs?.()
+        if (jobs === undefined) {
+          throw new QuantError(
+            'CONFIG',
+            '参数寻优需要后台任务运行时：请在组合中加入 @deepseek-ai/dsh-jobs-local 与 @deepseek-ai/dsh-tool-jobs',
+          )
+        }
+        const spec: GridSpec = {
+          fast: resolveAxis(args as Record<string, unknown>, 'fast'),
+          slow: resolveAxis(args as Record<string, unknown>, 'slow'),
+        }
+        const bars = args.bars ?? DEFAULT_OPTIMIZE_BARS
+        const rankBy = (args.rank_by ?? DEFAULT_RANK_METRIC) as RankMetric
+        const topN = args.top_n ?? TOP_N_LIMITS.default
+        if (!Number.isSafeInteger(topN) || topN < TOP_N_LIMITS.min || topN > TOP_N_LIMITS.max) {
+          throw new QuantError('DATA', `top_n 必须是 ${String(TOP_N_LIMITS.min)}-${String(TOP_N_LIMITS.max)} 的整数`)
+        }
+        validateGridSpec(bars, spec)
+        const combos = axisLength(spec.fast) * axisLength(spec.slow)
+        const label = `${args.symbol} 网格寻优 ${String(combos)} 组合`
+        const controller = new AbortController()
+        const id = jobs.start({
+          kind: 'quant-optimize',
+          label,
+          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          run: () => {
+            const done = (async (): Promise<JobOutcome> => {
+              try {
+                const series = await fetchKline(deps.kernel, deps.breaker, {
+                  source: deps.config.dataSource,
+                  symbol: args.symbol,
+                  bars,
+                  retries: deps.config.sourceMaxRetries,
+                  cacheDir: deps.config.cacheDir,
+                  signal: controller.signal,
+                })
+                const results = await runBacktestGrid(
+                  deps.kernel, args.symbol, series, spec,
+                  deps.config.defaultCash, deps.config.feeRate, controller.signal,
+                )
+                const ranked = rankGridResults(results, rankBy, topN)
+                const markdown = formatOptimizationSummary(args.symbol, spec, ranked, rankBy, results.length)
+                const best = ranked[0]
+                return {
+                  status: 'completed' as const,
+                  output: markdown,
+                  ...(best === undefined ? {} : { detail: `最优 SMA(${String(best.fast)}/${String(best.slow)})` }),
+                }
+              } catch (error: unknown) {
+                recordKernelFault(exec, 'backtest_grid', error)
+                if (controller.signal.aborted) {
+                  return { status: 'killed' as const, detail: '参数寻优已取消' }
+                }
+                const detail = isQuantError(error) ? error.message : '参数寻优任务失败'
+                return { status: 'failed' as const, detail }
+              }
+            })()
+            return {
+              cancel: () => { controller.abort() },
+              done,
+            }
+          },
+        })
+        return {
+          job_id: id,
+          kind: 'background',
+          symbol: args.symbol,
+          bars,
+          combos,
+          grid: { fast: spec.fast, slow: spec.slow },
+          rank_by: rankBy,
+          top_n: topN,
+          combo_cap: GRID_COMBO_HARD_LIMIT,
+          hint: '后台寻优已启动：用 job_output(job_id, wait: true) 收取排名报告；不再需要时用 job_kill(job_id) 取消',
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the optimization-start envelope: the job id, the grid shape, and
+ * the collection instruction.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderOptimize(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    job_id?: string
+    symbol?: string
+    combos?: number
+    grid?: { fast: GridAxisSpec; slow: GridAxisSpec }
+    rank_by?: string
+    top_n?: number
+    hint?: string
+  } | undefined
+  if (data?.job_id === undefined || data.symbol === undefined || data.grid === undefined) {
+    return [{ type: 'text', text: `寻优任务启动失败。\n\n${DISCLAIMER}` }]
+  }
+  const axisText = (axis: GridAxisSpec): string =>
+    `${String(axis.min)}-${String(axis.max)} 步长 ${String(axis.step)}（${String(axisLength(axis))} 个）`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 参数寻优已转入后台任务 ${data.job_id}：`
+      + `快线 ${axisText(data.grid.fast)} × 慢线 ${axisText(data.grid.slow)}，共 ${String(data.combos ?? '?')} 组合，`
+      + `按 ${data.rank_by ?? '?'} 排名取前 ${String(data.top_n ?? '?')}。\n${data.hint ?? ''}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
 /**
  * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
@@ -1256,6 +1447,7 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     exportReportTool(deps),
     compareBacktestsTool(deps),
     researchReportTool(deps),
+    optimizeParamsTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

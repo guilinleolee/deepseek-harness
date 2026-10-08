@@ -34,6 +34,26 @@ export const SHOCK_LIMITS = { min: 0.01, max: 0.5, default: 0.1 } as const
 export const WEIGHT_POSITION_HARD_LIMIT = 1
 /** Hard cap for the rebalance targets' weight sum (no leverage); not configurable. */
 export const WEIGHT_TOTAL_HARD_LIMIT = 1
+/** Hard cap on one parameter-optimization grid's combination count; not configurable. */
+export const GRID_COMBO_HARD_LIMIT = 200
+/** Bounds for the fast SMA window; the single-run backtest and the grid share it. */
+export const FAST_WINDOW_LIMITS = { min: 2, max: 120 } as const
+/** Bounds for the slow SMA window; the single-run backtest and the grid share it. */
+export const SLOW_WINDOW_LIMITS = { min: 3, max: 250 } as const
+/** One inclusive integer range walked by a step. */
+export interface GridAxisSpec {
+  /** First window in the axis (inclusive). */
+  readonly min: number
+  /** Last window in the axis (inclusive or stepped past; the walk stops there). */
+  readonly max: number
+  /** Step between consecutive windows; at least 1. */
+  readonly step: number
+}
+/** The optimization grid the tool applies when the caller omits every axis field. */
+export const DEFAULT_GRID_SPEC: { readonly fast: GridAxisSpec; readonly slow: GridAxisSpec } = Object.freeze({
+  fast: Object.freeze({ min: 5, max: 20, step: 5 }),
+  slow: Object.freeze({ min: 30, max: 60, step: 10 }),
+})
 
 /** Argument substrings that indicate real-trading or broker-API intent. */
 export const BROKER_MARKERS: readonly string[] = [
@@ -125,6 +145,66 @@ export function inspectBacktestCaps(args: RawArgs): ComplianceVerdict {
   return { kind: 'allow' }
 }
 
+/**
+ * Red line 7 (grid cap): a parameter-optimization grid resolves against the
+ * tool's default axes, then every provided field must be an integer inside
+ * the window bounds, each axis internally ordered with a positive step, the
+ * whole fast range strictly below the whole slow range, and the combination
+ * count at or below the hard cap — regardless of what the schema accepts.
+ * Absent fields inherit the defaults, which are valid by construction.
+ * @param args - raw tool arguments.
+ * @returns the verdict for the grid-cap rule.
+ */
+export function inspectGridCaps(args: RawArgs): ComplianceVerdict {
+  const record = args as Record<string, unknown>
+  const resolved: Record<'fast_min' | 'fast_max' | 'fast_step' | 'slow_min' | 'slow_max' | 'slow_step', number> = {
+    fast_min: DEFAULT_GRID_SPEC.fast.min,
+    fast_max: DEFAULT_GRID_SPEC.fast.max,
+    fast_step: DEFAULT_GRID_SPEC.fast.step,
+    slow_min: DEFAULT_GRID_SPEC.slow.min,
+    slow_max: DEFAULT_GRID_SPEC.slow.max,
+    slow_step: DEFAULT_GRID_SPEC.slow.step,
+  }
+  for (const axisName of ['fast', 'slow'] as const) {
+    const bounds = axisName === 'fast' ? FAST_WINDOW_LIMITS : SLOW_WINDOW_LIMITS
+    for (const field of ['min', 'max', 'step'] as const) {
+      const key = `${axisName}_${field}` as keyof typeof resolved
+      const raw = record[key]
+      if (raw === undefined) continue
+      if (typeof raw !== 'number' || !Number.isSafeInteger(raw)) {
+        return { kind: 'deny', reason: `${key} 必须是整数（合规硬上限）` }
+      }
+      if (field === 'step') {
+        if (raw < 1) return { kind: 'deny', reason: `${key} 必须 ≥ 1（合规硬上限）` }
+      } else if (raw < bounds.min || raw > bounds.max) {
+        return {
+          kind: 'deny',
+          reason: `${key} 必须落在 ${String(bounds.min)}-${String(bounds.max)}（合规硬上限）`,
+        }
+      }
+      resolved[key] = raw
+    }
+    if (resolved[`${axisName}_min` as keyof typeof resolved] > resolved[`${axisName}_max` as keyof typeof resolved]) {
+      return { kind: 'deny', reason: `${axisName}_min 不能大于 ${axisName}_max（合规硬上限）` }
+    }
+  }
+  if (resolved.fast_max >= resolved.slow_min) {
+    return {
+      kind: 'deny',
+      reason: `快线整段范围（≤ ${String(resolved.fast_max)}）必须小于慢线整段范围（≥ ${String(resolved.slow_min)}）（合规硬上限）`,
+    }
+  }
+  const fastLength = Math.floor((resolved.fast_max - resolved.fast_min) / resolved.fast_step) + 1
+  const slowLength = Math.floor((resolved.slow_max - resolved.slow_min) / resolved.slow_step) + 1
+  if (fastLength * slowLength > GRID_COMBO_HARD_LIMIT) {
+    return {
+      kind: 'deny',
+      reason: `参数组合数超过上限 ${String(GRID_COMBO_HARD_LIMIT)}（合规硬上限），请加大步长或收窄范围`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
 /** Rules per tool name; a tool absent from the map passes untouched. */
 const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerdict)[]>> = Object.freeze({
   quant_get_kline: [inspectBrokerMarkers, inspectBarCap],
@@ -137,6 +217,7 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_factor_ic: [inspectBrokerMarkers, inspectBarCap],
   quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
   quant_research_report: [inspectBrokerMarkers, inspectBarCap],
+  quant_optimize_params: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps],
 })
 
 /**

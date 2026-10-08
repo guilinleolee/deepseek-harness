@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from pcpt.backtest import _sma, run_backtest
+from pcpt.backtest import _sma, run_backtest, run_backtest_grid
 
 
 def make_bars(closes: list, start: str = "2024-01-01") -> list:
@@ -122,5 +122,41 @@ def test_validation_rejects_impossible_parameters() -> None:
     with pytest.raises(ValueError, match="date/open/close"):
         run_backtest(
             bars=[{"open": 1.0, "close": 1.0}] * 40, fast=3, slow=10,
+            initial_cash=1_000_000.0, fee_rate=0.0,
+        )
+
+
+def test_grid_runs_every_combination_through_the_same_simulator() -> None:
+    closes = [100.0 - index for index in range(30)] + [70.0 + 2 * index for index in range(30)]
+    bars = make_bars(closes)
+    combos = [{"fast": 3, "slow": 10}, {"fast": 5, "slow": 20}]
+    singles = [
+        run_backtest(bars=bars, fast=c["fast"], slow=c["slow"], initial_cash=1_000_000.0, fee_rate=0.0, symbol="TEST")
+        for c in combos
+    ]
+    grid = run_backtest_grid(bars=bars, combos=combos, initial_cash=1_000_000.0, fee_rate=0.0, symbol="TEST")
+    assert grid["symbol"] == "TEST"
+    assert grid["count"] == 2
+    for result, single in zip(grid["results"], singles):
+        assert set(result) == {"fast", "slow", "final_equity", "metrics"}
+        assert result["metrics"] == single["metrics"]
+        assert result["final_equity"] == single["final_equity"]
+
+
+def test_grid_validation_rejects_bad_shapes() -> None:
+    bars = make_bars([100.0] * 40)
+    with pytest.raises(ValueError, match="非空"):
+        run_backtest_grid(bars=bars, combos=[], initial_cash=1_000_000.0, fee_rate=0.0)
+    with pytest.raises(ValueError, match="上限"):
+        run_backtest_grid(
+            bars=bars, combos=[{"fast": 3, "slow": 10}] * 201,
+            initial_cash=1_000_000.0, fee_rate=0.0,
+        )
+    with pytest.raises(ValueError, match="fast/slow"):
+        run_backtest_grid(bars=bars, combos=[{"fast": 3}], initial_cash=1_000_000.0, fee_rate=0.0)
+    # Per-combo bounds stay with the single-run validator.
+    with pytest.raises(ValueError, match="必须小于"):
+        run_backtest_grid(
+            bars=bars, combos=[{"fast": 10, "slow": 5}],
             initial_cash=1_000_000.0, fee_rate=0.0,
         )

@@ -69,6 +69,31 @@ def test_get_kline_synthetic_round_trip() -> None:
         assert bar["low"] <= min(bar["open"], bar["close"])
 
 
+def test_backtest_grid_round_trip_over_synthetic_bars() -> None:
+    fetch = run_kernel({
+        "protocol": 1, "id": "p-g1", "op": "get_kline",
+        "params": {"source": "synthetic", "symbol": "000001", "period": "daily", "bars": 40},
+    })
+    bars = json.loads(fetch[1])["result"]
+    request = {
+        "protocol": 1, "id": "p-g2", "op": "backtest_grid",
+        "params": {
+            "bars": bars, "combos": [{"fast": 3, "slow": 10}, {"fast": 5, "slow": 20}],
+            "initial_cash": 1_000_000.0, "fee_rate": 0.0, "symbol": "000001",
+        },
+    }
+    code, stdout, stderr = run_kernel(request)
+    assert code == 0, stderr
+    response = json.loads(stdout)
+    assert response["ok"] is True
+    result = response["result"]
+    assert result["symbol"] == "000001"
+    assert result["count"] == 2
+    assert {tuple(sorted(entry)) for entry in (r.keys() for r in result["results"])} == {
+        ("fast", "final_equity", "metrics", "slow"),
+    }
+
+
 def test_bad_json_exits_nonzero() -> None:
     proc = subprocess.run(
         [sys.executable, str(KERNEL)],

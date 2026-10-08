@@ -15,8 +15,8 @@ import { QuantError } from '../errors.ts'
 /** The wire protocol version the TS side speaks; the kernel rejects others. */
 export const KERNEL_PROTOCOL_VERSION = 1
 
-/** Operations the kernel serves in phase 1. */
-export type KernelOp = 'ping' | 'get_kline' | 'backtest'
+/** Operations the kernel serves. */
+export type KernelOp = 'ping' | 'get_kline' | 'backtest' | 'backtest_grid'
 
 /** One kernel request line. */
 export interface KernelRequest {

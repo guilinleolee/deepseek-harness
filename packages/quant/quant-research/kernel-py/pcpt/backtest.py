@@ -3,11 +3,14 @@
 Signal discipline (documented contract): the fast/slow comparison runs on
 bar `t`'s closes, and the order executes at bar `t+1`'s open — no same-bar
 lookahead. Sizing is all-in/all-out; each fill pays `fee_rate` once.
+`run_backtest_grid` re-runs the SAME simulator over a caller-supplied
+parameter grid, returning metrics only per combination.
 """
 
 import math
 
 MAX_FEE_RATE = 0.05
+MAX_GRID_COMBOS = 200
 TRADING_DAYS_PER_YEAR = 252
 
 
@@ -124,3 +127,29 @@ def run_backtest(bars: list, fast: int, slow: int, initial_cash: float, fee_rate
         "trades": trades,
         "metrics": _metrics(equity, initial_cash, buy_prices, sell_prices),
     }
+
+
+def run_backtest_grid(bars: list, combos: list, initial_cash: float, fee_rate: float, symbol: str = "") -> dict:
+    """Run the simulator over every (fast, slow) combination, metrics only.
+
+    Each combination goes through ``run_backtest`` unchanged, so the grid's
+    engine is the audited simulator; per-combo equity curves and fills are
+    dropped to keep the response line bounded.
+    """
+    if not isinstance(combos, list) or len(combos) == 0:
+        raise ValueError("combos 必须是非空的 (fast, slow) 参数组合列表")
+    if len(combos) > MAX_GRID_COMBOS:
+        raise ValueError(f"参数组合数超过上限 {MAX_GRID_COMBOS}，收到 {len(combos)}")
+    for index, combo in enumerate(combos):
+        if not isinstance(combo, dict) or "fast" not in combo or "slow" not in combo:
+            raise ValueError(f"第 {index} 组参数缺少 fast/slow 字段")
+    results = []
+    for combo in combos:
+        report = run_backtest(bars, combo["fast"], combo["slow"], initial_cash, fee_rate, symbol)
+        results.append({
+            "fast": combo["fast"],
+            "slow": combo["slow"],
+            "final_equity": report["final_equity"],
+            "metrics": report["metrics"],
+        })
+    return {"symbol": symbol, "count": len(results), "results": results}

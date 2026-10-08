@@ -4,8 +4,9 @@
 The TS plugin spawns ``python main.py`` per request, writes one request line
 on stdin, and reads one response line on stdout. The kernel is a pure
 calculator over its inputs — ``get_kline`` (synthetic deterministic walk or
-akshare with an on-disk cache) and ``backtest`` (daily SMA-cross simulator
-over caller-supplied bars). Stderr carries diagnostics only; the protocol
+akshare with an on-disk cache), ``backtest`` (daily SMA-cross simulator over
+caller-supplied bars), and ``backtest_grid`` (the same simulator over a
+parameter grid, metrics only). Stderr carries diagnostics only; the protocol
 never writes anything but the single response line on stdout.
 
 Usage: ``echo '<request>' | python main.py``
@@ -19,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pdat.datasource import ConfigError, fetch_kline  # noqa: E402
-from pcpt.backtest import run_backtest  # noqa: E402
+from pcpt.backtest import run_backtest, run_backtest_grid  # noqa: E402
 from utils.python_logger import log_debug, log_error  # noqa: E402
 
 PROTOCOL_VERSION = 1
@@ -66,10 +67,25 @@ def _handle_backtest(params: dict) -> dict:
     )
 
 
+def _handle_backtest_grid(params: dict) -> dict:
+    """Run the same simulator over a (fast, slow) grid, metrics only."""
+    for field in ("bars", "combos", "initial_cash", "fee_rate"):
+        if field not in params:
+            raise ValueError(f"backtest_grid 缺少参数 {field}")
+    return run_backtest_grid(
+        bars=params["bars"],
+        combos=params["combos"],
+        initial_cash=params["initial_cash"],
+        fee_rate=params["fee_rate"],
+        symbol=params.get("symbol", ""),
+    )
+
+
 HANDLERS = {
     "ping": _handle_ping,
     "get_kline": _handle_get_kline,
     "backtest": _handle_backtest,
+    "backtest_grid": _handle_backtest_grid,
 }
 
 

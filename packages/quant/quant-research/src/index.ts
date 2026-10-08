@@ -1,8 +1,9 @@
 /**
- * Quant research plugin (phase 1): kernel-backed market data, deterministic
- * TypeScript indicators, and a daily SMA-cross backtester for research-only
+ * Quant research plugin: kernel-backed market data, deterministic TypeScript
+ * indicators, the daily SMA-cross backtester with its risk/stress/factor/PET
+ * suite, and jobs-runtime parameter optimization — all for research-only
  * workflows. The plugin opens the `quant_research` storage domain (the
- * compliance-denial audit trail), registers the three `quant_*` tools, and
+ * compliance-denial audit trail), registers the `quant_*` tools, and
  * installs the pre-execute compliance gate enforcing the research-only red
  * lines. No real-broker path exists anywhere in the plugin.
  * @module @deepseek-ai/dsh-quant-research
@@ -32,12 +33,12 @@ export {
 } from './domain/spec.ts'
 export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
 export {
-  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT,
-  SHOCK_LIMITS, TOOL_PREFIX, collectArgStrings, denialAuditCallback, inspectBarCap,
-  inspectBacktestCaps, inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall,
-  installQuantComplianceGate, recordComplianceDenial,
+  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
+  GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, collectArgStrings,
+  denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers, inspectConfidenceCap,
+  inspectGridCaps, inspectShockCap, inspectToolCall, installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
-export type { ComplianceDenialInput, ComplianceVerdict } from './compliance.ts'
+export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
 export {
   KERNEL_PROTOCOL_VERSION, ResponseParser, encodeRequest, kernelErrorToQuantCode, parseResponseLine,
 } from './kernel-client/protocol.ts'
@@ -61,7 +62,7 @@ export type { FactorName, FactorSeries } from './paat/factors.ts'
 export { informationRatio, rollingIC, spearman } from './paat/ic.ts'
 export type { ICPeriod } from './paat/ic.ts'
 export {
-  FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
+  runBacktest, validateBacktestParams,
 } from './pcpt/backtest.ts'
 export {
   CONFIDENCE_LIMITS as PRT_CONFIDENCE_LIMITS, DEFAULT_STRESS_SEGMENT, SHOCK_LIMITS as PRT_SHOCK_LIMITS,
@@ -89,12 +90,17 @@ export type {
 } from './pcpt/backtest.ts'
 export { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
 export {
+  DEFAULT_RANK_METRIC, RANK_METRICS, TOP_N_LIMITS, axisLength, enumerateGrid, formatOptimizationSummary,
+  rankGridResults, runBacktestGrid, validateGridSpec,
+} from './pcpt/optimize.ts'
+export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
+export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
   compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
-  registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
+  optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
 } from './tools.ts'
-export type { QuantToolDeps } from './tools.ts'
+export type { JobsStartFace, QuantToolDeps } from './tools.ts'
 export { QuantResearchService, type AccountSummaryValue } from './service.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -161,6 +167,8 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         orders: domain.table('orders'),
         notes: domain.table('research_notes'),
         approval: runtimeCtx.approval,
+        // Resolved per call: the jobs service may mount after this plugin.
+        jobs: () => runtimeCtx.get('jobs'),
       })
       const uninstallGate = installQuantComplianceGate(
         runtimeCtx,

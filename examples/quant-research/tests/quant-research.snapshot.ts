@@ -19,6 +19,7 @@ function parseJsonl(content: string): JsonObject[] {
 
 const TOOL_CALL_SEQUENCE = [
   'quant_get_kline', 'quant_run_backtest', 'quant_assess_risk', 'quant_stress_test',
+  'quant_compute_factor',
   'quant_get_kline',
 ]
 
@@ -40,12 +41,13 @@ describe('quant-research keyless snapshot', () => {
 
     expect(result.stderr).toBe('')
     const records = parseJsonl(result.stdout)
-    const final = records.at(-1)
-    expect(final?.type).toBe('result')
+    const resultIndex = records.findIndex(record => record.type === 'result')
+    const final = records[resultIndex]
+    expect(final).toBeDefined()
     expect(String((final?.output as JsonObject | undefined)?.output ?? final?.output)).toContain('QUANT_RESEARCH_SNAPSHOT_OK')
 
     const events = records
-      .slice(0, -1)
+      .slice(0, resultIndex)
       .map(record => record.event as JsonObject)
       .filter(event => event !== null && typeof event === 'object')
     const toolCalls = events
@@ -79,5 +81,19 @@ describe('quant-research keyless snapshot', () => {
     const factorText = JSON.stringify(results[4])
     expect(factorText).toContain('momentum')
     expect(factorText).toContain('仅供研究参考')
+
+    // The driver-phase optimize round: one real background job through the
+    // composed jobs registry, plus one grid-cap denial through the gate.
+    const optimizeCheck = records.find(record => record.type === 'quant-optimize-check')
+    expect(optimizeCheck).toBeDefined()
+    expect(optimizeCheck?.code).toBe(0)
+    expect(optimizeCheck?.combos).toBe(16)
+    expect(String(optimizeCheck?.jobId)).toMatch(/^quant-optimize-\d+$/)
+    expect(String(optimizeCheck?.startText)).toContain('共 16 组合')
+    expect(String(optimizeCheck?.jobText)).toContain('[status: completed')
+    expect(String(optimizeCheck?.jobText)).toContain('# 参数寻优报告：000001')
+    expect(String(optimizeCheck?.jobText)).toContain('过拟合风险')
+    expect(String(optimizeCheck?.jobText)).toContain('仅供研究参考')
+    expect(String(optimizeCheck?.deniedText)).toContain('合规硬上限')
   }, 120_000)
 })
