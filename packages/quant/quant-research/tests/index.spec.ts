@@ -46,7 +46,8 @@ describe('apply', () => {
   it('composes the runtime, registers the three tools, and unwinds on dispose', async () => {
     const { ctx, register, close, open } = preparedContext()
     const disposer = await apply(ctx, resolveConfig(undefined, { platform: 'linux', dshHome: '/tmp' }))
-    expect(open).toHaveBeenCalledTimes(1)
+    // One open from the plugin body, one from the QuantResearchService fiber.
+    expect(open).toHaveBeenCalledTimes(2)
     const names = register.mock.calls.map(call => (call[0] as { name: string }).name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
@@ -57,7 +58,7 @@ describe('apply', () => {
       'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
     ])
     await disposer()
-    expect(close).toHaveBeenCalledTimes(1)
+    expect(close).toHaveBeenCalledTimes(2)
   })
 
   it('fails loud before opening the domain on an invalid config', async () => {

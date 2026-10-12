@@ -6,6 +6,7 @@
  * ships its package-root export; phase 2 adopts it for visual parity.
  */
 import { IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PanelController } from './panel-controller.ts'
 import css from './QuantEntry.module.css'
 
@@ -14,25 +15,25 @@ export interface QuantEntryInjected {
   panel: PanelController
 }
 
-/** Full entry props: the wide/rail column state plus the injected face. */
-export type QuantEntryProps = QuantEntryInjected & { wide: boolean }
+/** Full entry props: the wide/rail column state, the injected face, and the locale seat. */
+export type QuantEntryProps = QuantEntryInjected & { wide: boolean } & PropsLocale<'quant-research'>
 
 /**
  * Render the quant-research sidebar entry.
- * @param props - the column state and the shared controller.
+ * @param props - the column state, the shared controller, and the locale seat.
  * @returns the entry button element tree.
  */
-export function QuantEntry({ wide, panel }: QuantEntryProps) {
+export function QuantEntry({ wide, panel, t }: QuantEntryProps) {
   return (
     <button
       type="button"
       className={wide ? css.entryWide : css.entryRail}
-      aria-label="打开量化研究面板"
-      title={wide ? undefined : '量化研究'}
+      aria-label={t('entry.aria')}
+      title={wide ? undefined : t('entry.label')}
       onClick={() => { panel.open() }}
     >
       <IconGlobeOutline14 size={wide ? 16 : 18} />
-      {wide && <span className={css.entryLabel}>量化研究</span>}
+      {wide && <span className={css.entryLabel}>{t('entry.label')}</span>}
     </button>
   )
 }

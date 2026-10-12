@@ -84,7 +84,7 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 ## Known Limitations and Deferred Work
 
 - **No live-trading channel, by design** — this is the plugin's permanent red line, not a missing feature; the gate denies intent markers and the kernel holds only virtual accounts.
-- **Phase 3 remaining** — strategy comparison, the research report, jobs-runtime parameter optimization, and walk-forward out-of-sample validation are live; the chart cards (echarts vs bundle size) and the real panel with the core package's Remote face land next.
+- **Phase 3 complete** — strategy comparison, the research report, jobs-runtime parameter optimization, walk-forward out-of-sample validation, and the real panel (read-only accounts + notes with inline-SVG charts, the Remote face mounted) are all live. The plugin is feature-complete for phase 3; equity-curve cards wait for a session-to-storage results channel.
 - **Optimization reports top-N only** — per-combination equity curves and fills are dropped on the kernel wire to keep the response bounded; re-run `quant_run_backtest` on a chosen pair for the full curve.
 - **Walk-forward is one split, not rolling** — `quant_walk_forward` validates one train/test split at a caller-chosen ratio; rolling-window re-optimization (anchored or expanding) is deferred.
 - **Kernel cache has no TTL policy** — `akshare` cache files are read by existence, not freshness; a refresh strategy waits for a concrete deployment requirement.

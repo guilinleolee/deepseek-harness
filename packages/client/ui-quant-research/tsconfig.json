@@ -12,6 +12,15 @@
       "path": "../../../vendor/cordis"
     },
     {
+      "path": "../../quant/quant-research"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../locale"
+    },
+    {
       "path": "../runtime"
     },
     {

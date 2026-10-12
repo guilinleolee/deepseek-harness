@@ -10,21 +10,21 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
+import { quantResearchDomainSpec } from './domain/spec.ts'
 import { AccountId } from './domain/spec.ts'
-import type { Account } from './domain/spec.ts'
+import type { Account, ResearchNote } from './domain/spec.ts'
+import type { AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue } from './types.ts'
+export type { AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue } from './types.ts'
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** The quant-research Remote-face service, mounted by this plugin. */
+    quantResearch: QuantResearchService
+  }
+}
 
 /** Domain type alias for the quant-research service. */
-type QuantDomain = Domain<typeof import('./domain/spec.ts').quantResearchDomainSpec>
-
-/** Account summary projected to the wire (no internal bookkeeping fields). */
-export interface AccountSummaryValue {
-  readonly account_id: string
-  readonly name: string
-  readonly cash: number
-  readonly initial_cash: number
-  readonly equity: number
-  readonly positions: readonly { readonly symbol: string; readonly shares: number; readonly avg_cost: number; readonly market_value: number }[]
-}
+type QuantDomain = Domain<typeof quantResearchDomainSpec>
 
 /**
  * Storage-backed quant-research Remote service. Opens the domain at init,
@@ -44,9 +44,7 @@ export class QuantResearchService extends TypertRemoteService {
 
   /** Open the domain and bind its lifetime to this fiber. */
   protected async [Service.init](): Promise<void> {
-    const domain = await this.ctx.storageDomain.open(
-      (await import('./domain/spec.ts')).quantResearchDomainSpec,
-    )
+    const domain = await this.ctx.storageDomain.open(quantResearchDomainSpec)
     this.ctx.effect(() => async () => {
       this.domain = undefined
       await domain.close()
@@ -66,7 +64,7 @@ export class QuantResearchService extends TypertRemoteService {
    * List all virtual accounts, projected to wire summaries.
    */
   @Remote('listAccounts')
-  async listAccountsRemote(): Promise<{ accounts: AccountSummaryValue[] }> {
+  async listAccountsRemote(): Promise<AccountListValue> {
     const domain = this.requireDomain()
     const accounts: AccountSummaryValue[] = []
     for (const [, account] of domain.table('accounts').entries()) {
@@ -79,7 +77,7 @@ export class QuantResearchService extends TypertRemoteService {
    * Read one account's full state.
    */
   @Remote('getAccountState')
-  async getAccountStateRemote(ref: { account_id?: string; name?: string }): Promise<AccountSummaryValue> {
+  async getAccountStateRemote(ref: AccountRef): Promise<AccountSummaryValue> {
     const domain = this.requireDomain()
     const table = domain.table('accounts')
     let account: Account | undefined
@@ -95,6 +93,31 @@ export class QuantResearchService extends TypertRemoteService {
       throw new Error(`未找到账户：${ref.account_id ?? ref.name ?? '(未指定)'}`)
     }
     return projectAccount(account)
+  }
+
+  /**
+   * List research notes, newest first, projected to wire summaries.
+   */
+  @Remote('listNotes')
+  async listNotesRemote(): Promise<NoteListValue> {
+    const domain = this.requireDomain()
+    const notes: NoteSummaryValue[] = []
+    for (const [, note] of domain.table('research_notes').entries()) {
+      notes.push(projectNote(note))
+    }
+    return { notes: notes.sort((a, b) => b.created_at - a.created_at) }
+  }
+}
+
+/** Project a domain ResearchNote record to the wire summary shape. */
+function projectNote(note: ResearchNote): NoteSummaryValue {
+  return {
+    note_id: note.id,
+    title: note.title,
+    body: note.body,
+    symbol: note.symbol ?? null,
+    tags: [...note.tags],
+    created_at: note.created_at,
   }
 }
 
