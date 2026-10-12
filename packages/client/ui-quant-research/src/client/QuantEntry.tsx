@@ -5,7 +5,7 @@
  * controller. Placeholder styling until the shared footer-entry primitive
  * ships its package-root export; phase 2 adopts it for visual parity.
  */
-import { IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconGlobeOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PanelController } from './panel-controller.ts'
 import css from './QuantEntry.module.css'
@@ -32,7 +32,7 @@ export function QuantEntry({ wide, panel, t }: QuantEntryProps) {
       title={wide ? undefined : t('entry.label')}
       onClick={() => { panel.open() }}
     >
-      <IconGlobeOutline14 size={wide ? 16 : 18} />
+      <IconGlobeOutlineMedium size={wide ? 16 : 18} />
       {wide && <span className={css.entryLabel}>{t('entry.label')}</span>}
     </button>
   )

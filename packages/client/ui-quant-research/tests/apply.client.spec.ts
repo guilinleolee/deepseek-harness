@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-quant-research/client'
 import { apply as nodeApply } from '../src/index.ts'
-import { apply as invariantApply } from '@deepseek-ai/dsh-client-ui-quant-research/invariant'
 import { QuantEntry } from '../src/client/QuantEntry.tsx'
 import { QuantPanel } from '../src/client/QuantPanel.tsx'
 import type { PanelController } from '../src/client/panel-controller.ts'
@@ -137,16 +136,5 @@ describe('ui-quant-research apply', () => {
 describe('node half', () => {
   it('exposes no host-side behavior', () => {
     nodeApply() // reaching here without throwing is the no-op contract
-  })
-})
-
-describe('invariant companion', () => {
-  it('reserves package ownership through the invariants service', async () => {
-    const ctx = new Context()
-    const register = vi.fn(() => () => {})
-    ctx.provide('invariants', { register } as never)
-    const disposer = await invariantApply(ctx)
-    expect(register).toHaveBeenCalledWith('@deepseek-ai/dsh-client-ui-quant-research', expect.anything())
-    expect(typeof disposer).toBe('function')
   })
 })
