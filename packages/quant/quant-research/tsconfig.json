@@ -34,15 +34,9 @@
     },
     {
       "path": "../../subprocess/subprocess"
-<<<<<<< HEAD
     },
     {
       "path": "../../typert/protocol"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
-=======
->>>>>>> feat/quant-research-p4
     }
   ]
 }
