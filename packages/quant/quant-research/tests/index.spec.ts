@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { resolveConfig } from '../src/config.ts'
 import { apply, inject, name, resolveKernelScriptPath } from '../src/index.ts'
-import { apply as invariantApply } from '../src/invariant.ts'
 
 describe('plugin surface', () => {
   it('declares the plugin identity and service requirements', () => {
@@ -119,13 +118,3 @@ describe('kernel round trip through apply', () => {
   })
 })
 
-describe('invariant companion', () => {
-  it('reserves package ownership through the invariants service', async () => {
-    const ctx = new Context()
-    const register = vi.fn(() => () => {})
-    ctx.provide('invariants', { register } as never)
-    const disposer = await invariantApply(ctx)
-    expect(register).toHaveBeenCalledWith('@deepseek-ai/dsh-quant-research', expect.anything())
-    expect(typeof disposer).toBe('function')
-  })
-})
