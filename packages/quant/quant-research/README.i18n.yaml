@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/quant/quant-research/README.md
 /deepseek-ai-dsh-quant-research:
-  en: 415ad742c8581a27
-  zh: 596fe376fad8b417
+  en: bf0814fb9ac774a5
+  zh: ba64b3050c8f16d9
 /deepseek-ai-dsh-quant-research/installation:
   en: 7f25955ed3b4184d
   zh: 032889f2b5029784
@@ -18,8 +18,8 @@
   en: a84f81f17cf7a0b6
   zh: b03666493d8685a8
 /deepseek-ai-dsh-quant-research/tools:
-  en: 12809c846c4134e5
-  zh: b11dcf1970414b34
+  en: 5f07ae6b763c7a7e
+  zh: 3d32eb7aa993a739
 /deepseek-ai-dsh-quant-research/session-events:
   en: 21a39d3ed6fbb2d6
   zh: cc2dc8bd13eba5e9

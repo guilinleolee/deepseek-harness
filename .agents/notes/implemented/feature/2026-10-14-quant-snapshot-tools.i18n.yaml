@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-14-quant-snapshot-tools.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-14-quant-snapshot-tools.md
+/agent-note-snapshot-lifecycle-tools-list-and-reviewed-delete:
+  en: c59599c1a2a89b44
+  zh: 8eb1b23a5e19322d
+/agent-note-snapshot-lifecycle-tools-list-and-reviewed-delete/problem:
+  en: 02966c93c3453eca
+  zh: a77e0093e1d1a707
+/agent-note-snapshot-lifecycle-tools-list-and-reviewed-delete/decision:
+  en: a227bb17c9ec499b
+  zh: 39d68a93e5d35a05
+/agent-note-snapshot-lifecycle-tools-list-and-reviewed-delete/alternatives-considered:
+  en: 7c8442eff36fdde3
+  zh: 968fa146dde47db8
+/agent-note-snapshot-lifecycle-tools-list-and-reviewed-delete/consequences:
+  en: 4a303429b654a4bf
+  zh: fa5f8c541d69d32f

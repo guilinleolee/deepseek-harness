@@ -135,3 +135,16 @@ export function requireSnapshot(table: ResultSnapshotsTable, id: string): Result
   }
   return snapshot
 }
+
+/**
+ * Delete one snapshot.
+ * @param table - the result-snapshots table.
+ * @param id - the snapshot id.
+ * @returns the deleted record.
+ * @throws when the snapshot does not exist.
+ */
+export async function deleteSnapshot(table: ResultSnapshotsTable, id: string): Promise<ResultSnapshot> {
+  const snapshot = requireSnapshot(table, id)
+  await table.delete(ResultSnapshotId(id))
+  return snapshot
+}
