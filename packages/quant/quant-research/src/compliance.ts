@@ -45,6 +45,8 @@ export const TRAIN_RATIO_LIMITS = { min: 0.5, max: 0.9, default: 0.7 } as const
 
 /** Hard bounds for the rolling walk-forward window count (`windows >= 2` enables rolling). */
 export const ROLLING_WINDOWS_LIMITS = { min: 2, max: 10 } as const
+/** Hard bounds for the anchored (fixed-length) train window in bars. */
+export const ANCHOR_LIMITS = { min: 30, max: 1000 } as const
 
 /** Hard bounds for the cross-sectional panel size and forward-return horizon. */
 export const PANEL_SIZE_LIMITS = { min: 2, max: 10 } as const
@@ -273,6 +275,26 @@ export function inspectCrossPanelCaps(args: RawArgs): ComplianceVerdict {
  * @param args - the raw tool arguments.
  * @returns allow, or deny with the friendly cap reason.
  */
+/**
+ * Enforce the anchored train-window cap. Absent `anchor` means expanding or
+ * single-split; a present value must be an integer inside
+ * {@link ANCHOR_LIMITS}.
+ * @param args - the raw tool arguments.
+ * @returns allow, or deny with the friendly cap reason.
+ */
+export function inspectAnchorCap(args: RawArgs): ComplianceVerdict {
+  const anchor = (args as Record<string, unknown>)['anchor']
+  if (anchor === undefined) return { kind: 'allow' }
+  if (typeof anchor !== 'number' || !Number.isSafeInteger(anchor)
+    || anchor < ANCHOR_LIMITS.min || anchor > ANCHOR_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `anchor 必须是 ${String(ANCHOR_LIMITS.min)}-${String(ANCHOR_LIMITS.max)} 的整数（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
 export function inspectRollingWindowsCap(args: RawArgs): ComplianceVerdict {
   const windows = (args as Record<string, unknown>)['windows']
   if (windows === undefined) return { kind: 'allow' }
@@ -299,7 +321,7 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
   quant_research_report: [inspectBrokerMarkers, inspectBarCap],
   quant_optimize_params: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps],
-  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap, inspectRollingWindowsCap],
+  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap, inspectRollingWindowsCap, inspectAnchorCap],
   quant_factor_cross_ic: [inspectBrokerMarkers, inspectBarCap, inspectCrossPanelCaps],
 })
 

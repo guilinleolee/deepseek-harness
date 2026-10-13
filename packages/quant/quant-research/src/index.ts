@@ -39,7 +39,8 @@ export {
   GRID_COMBO_HARD_LIMIT, HORIZON_LIMITS, INITIAL_CASH_HARD_LIMIT, PANEL_SIZE_LIMITS, SHOCK_LIMITS,
   SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
   collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectConfidenceCap, inspectCrossPanelCaps, inspectGridCaps, inspectRollingWindowsCap, inspectShockCap,
+  inspectAnchorCap, inspectConfidenceCap, inspectCrossPanelCaps, inspectGridCaps,
+  inspectRollingWindowsCap, inspectShockCap,
   inspectToolCall, inspectTrainRatioCap,
   installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
@@ -100,9 +101,10 @@ export {
 } from './pcpt/optimize.ts'
 export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
 export {
-  ROLLING_WINDOWS_LIMITS, TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatRollingWalkForwardSummary,
-  formatWalkForwardSummary, runRollingWalkForward, runWalkForward, splitBars, splitRollingWindows,
-  validateRollingParams, validateWalkForwardParams,
+  ANCHOR_LIMITS, ROLLING_WINDOWS_LIMITS, TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS,
+  formatRollingWalkForwardSummary, formatWalkForwardSummary, runRollingWalkForward, runWalkForward,
+  splitAnchoredWindows, splitBars, splitRollingWindows, validateAnchoredParams, validateRollingParams,
+  validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
 export {
   alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary, summarizeIC,
