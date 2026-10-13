@@ -1,0 +1,56 @@
+{
+  "skill_name": "shibazi-illustrator",
+  "version": "1.0.0",
+  "description": "十八子写作智能配图系统评估基准测试",
+  "evals": [
+    {
+      "id": 1,
+      "name": "HTML引擎基本测试",
+      "description": "测试HTML渲染引擎基本功能",
+      "prompt": "/shibazi-illustrate article.md --engine html --template minimal",
+      "expected_output": "应生成 article-poster.html 文件",
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "article-poster.html"
+        },
+        {
+          "type": "content_contains",
+          "path": "article-poster.html",
+          "text": "<!DOCTYPE html>"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "AI引擎Prompt生成测试",
+      "description": "测试AI生图引擎prompt生成",
+      "prompt": "/shibazi-illustrate article.md --prompt-only",
+      "expected_output": "应生成JSON格式的prompt配置",
+      "assertions": [
+        {
+          "type": "exit_code",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "多平台支持测试",
+      "description": "测试不同平台尺寸支持",
+      "prompt": "/shibazi-illustrate article.md --platform xiaohongshu",
+      "expected_output": "应正确处理3:4竖屏尺寸",
+      "assertions": [
+        {
+          "type": "exit_code",
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "created": "2026-02-26",
+    "author": "天龙引擎团队",
+    "quality_threshold": 0.8
+  }
+}

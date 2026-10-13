@@ -1,0 +1,11 @@
+# Core dependencies
+yfinance>=0.2.36
+pandas>=2.0.0
+sqlalchemy>=2.0.0
+requests>=2.31.0
+
+# Optional: Polygon.io (requires API key)
+# polygon-client>=4.0.0
+
+# Optional: Alpha Vantage (requires API key)
+# alpha-vantage>=2.3.0

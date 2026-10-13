@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "lang": "zh-CN",
+    "name": "简体中文",
+    "native_name": "简体中文",
+    "direction": "ltr"
+  },
+  "ui": {
+    "brand": "品牌",
+    "layout": "布局",
+    "chart": "图表",
+    "template": "模板",
+    "preview": "预览",
+    "export": "导出",
+    "import": "导入",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "loading": "加载中...",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告"
+  },
+  "templates": {
+    "brands_title": "品牌预设",
+    "layouts_title": "布局模板",
+    "charts_title": "图表模板",
+    "select_template": "选择模板",
+    "template_info": "模板信息",
+    "no_templates": "暂无可用模板"
+  },
+  "generation": {
+    "generating": "正在生成...",
+    "generated": "生成完成",
+    "generating_page": "正在生成第 {n} 页",
+    "exporting": "正在导出..."
+  },
+  "styles": {
+    "corporate": "企业蓝",
+    "minimal": "极简白",
+    "academic": "学术灰",
+    "tech": "科技蓝",
+    "dark": "暗夜黑",
+    "creative": "创意彩"
+  },
+  "layouts": {
+    "cover": "封面",
+    "title": "章节标题",
+    "content": "内容页",
+    "two_column": "双栏",
+    "code": "代码页",
+    "chart": "图表页",
+    "table": "表格页",
+    "ending": "结尾页"
+  },
+  "messages": {
+    "welcome": "欢迎使用 PPT 生成器",
+    "select_source": "请选择源文件",
+    "select_template": "请选择模板",
+    "confirm_generation": "确认生成",
+    "generation_complete": "生成完成！",
+    "export_complete": "导出完成！"
+  },
+  "errors": {
+    "file_not_found": "文件不存在",
+    "invalid_format": "无效的格式",
+    "generation_failed": "生成失败",
+    "export_failed": "导出失败",
+    "network_error": "网络错误"
+  },
+  "help": {
+    "title": "帮助",
+    "quick_start": "快速开始",
+    "documentation": "文档",
+    "examples": "示例",
+    "faq": "常见问题"
+  }
+}

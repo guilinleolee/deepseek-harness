@@ -1,0 +1,33 @@
+dsh-web-search-pro-bridge
+Copyright 2026 dragon-engine contributors
+
+This product includes software developed by anweat and the dsh-web-search-pro
+contributors (https://github.com/anweat/dsh-web-search-pro).
+
+The original work is licensed under the MIT License. A copy of the MIT License
+is included in the LICENSE file in this directory.
+
+----------------------------------------------------------------------
+
+Modified by dragon-engine / 2026-08-24
+
+This is a *reference / wrapper skill* maintained by the dragon-engine project
+(https://github.com/dragon-engine/dragon-engine). It does NOT redistribute the
+dsh-web-search-pro source code or binaries. Instead, it documents how to use
+the real upstream package, which is installed separately as a DeepSeek Harness
+(DSH) bundle plugin in the active web profile at:
+
+    ~/.dsh/profiles/<profile-name>/node_modules/dsh-web-search-pro/
+
+The reference skill therefore adds no source-level code under the upstream
+MIT License; the LICENSE file is preserved verbatim to satisfy upstream
+attribution requirements.
+
+----------------------------------------------------------------------
+
+Trademark notice
+
+"DeepSeek Harness" and "DSH" are trademarks of DeepSeek AI. "dragon-engine"
+is the local development project that integrates upstream MIT-licensed skills.
+Nothing in this skill should be construed as endorsement by DeepSeek AI or
+the upstream dsh-web-search-pro contributors.

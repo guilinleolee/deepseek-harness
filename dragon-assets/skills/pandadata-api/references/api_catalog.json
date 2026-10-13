@@ -1,0 +1,104 @@
+{
+  "name": "pandadata-api",
+  "version": "1.0.0",
+  "description": "Pandadata API 完整接口目录",
+  "last_updated": "2026-08-18",
+  "total_endpoints": 60,
+  "categories": {
+    "行情数据": {
+      "count": 15,
+      "endpoints": [
+        "get_stock_daily",
+        "get_stock_rt_daily",
+        "get_stock_detail",
+        "get_stock_list",
+        "get_index_daily",
+        "get_index_indicator",
+        "get_trade_cal",
+        "get_trade_list",
+        "get_last_trade_date",
+        "get_realtime_quotes",
+        "get_minute_data",
+        "get_history_minutes",
+        "get_tick_data",
+        "get_order_book",
+        "get_stock_status_change"
+      ]
+    },
+    "资金流向": {
+      "count": 10,
+      "endpoints": [
+        "get_money_flow",
+        "get_main_force",
+        "get_stock_pledge_ratio",
+        "get_pledge_detail",
+        "get_new_pledge",
+        "get_shareholder_count",
+        "get_top_shareholder",
+        "get_shareholder_change",
+        "get_float_shareholder",
+        "get_institution_holder"
+      ]
+    },
+    "财务数据": {
+      "count": 12,
+      "endpoints": [
+        "get_fina_indicator",
+        "get_fina_report",
+        "get_profit_predict",
+        "get_annual_report",
+        "get_quarter_report",
+        "get_balance_sheet",
+        "get_income_statement",
+        "get_cash_flow",
+        "get_dividend",
+        "get_share_bonus",
+        "get_performance_preview",
+        "get_performance_express"
+      ]
+    },
+    "龙虎榜": {
+      "count": 8,
+      "endpoints": [
+        "get_lhb_list",
+        "get_lhb_detail",
+        "get_lhb_summary",
+        "get_lhb_seats",
+        "get_lhb_history",
+        "get_lhb_statistics",
+        "get_institutional_trade",
+        "get_block_trade"
+      ]
+    },
+    "融资融券": {
+      "count": 6,
+      "endpoints": [
+        "get_margin",
+        "get_margin_detail",
+        "get_margin_history",
+        "get_short_balance",
+        "get_short_volume",
+        "get_margin_rank"
+      ]
+    },
+    "研报数据": {
+      "count": 5,
+      "endpoints": [
+        "get_research_report",
+        "get_fina_reports",
+        "get_fina_performance",
+        "get_fina_forecast",
+        "get_target_price"
+      ]
+    },
+    "公告数据": {
+      "count": 4,
+      "endpoints": [
+        "get_notice",
+        "get_latest_notice",
+        "get_notice_content",
+        "get_disclosure"
+      ]
+    }
+  }
+}

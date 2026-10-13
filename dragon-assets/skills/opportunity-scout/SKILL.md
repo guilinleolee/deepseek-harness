@@ -1,0 +1,412 @@
+---
+license: MIT
+triggers: ["opportunity scout", "选题信号", "HN trending", "Product Hunt", "机会发现", "信号监控"]
+description: 多源信号聚合与机会发现，集成 HN Trending、Product Hunt、GitHub Trending 等数据源
+version: 1.0.0
+author: 天龙引擎 · 01调研师
+integrated_from: BuilderPulse, HackerNews API, Product Hunt API
+last_updated: 2026-08-17
+---
+
+# opportunity-scout — 机会侦察器
+
+> **BuilderPulse 增强版**：多源信号聚合 + 智能机会发现
+>
+> 集成 HN Trending、Product Hunt、GitHub Trending 等数据源
+
+---
+
+## L0: 一句话描述 (≤15字)
+
+多源信号聚合，机会自动发现。
+
+---
+
+## L1: 使用场景 (50-100字)
+
+当用户需要：
+- 追踪 HN、Product Hunt、GitHub 等平台的热门趋势
+- 发现新兴技术和产品机会
+- 获取每日选题灵感
+- 监控竞品动态和行业信号
+- 生成 BuilderPulse 风格的每日机会简报
+
+---
+
+## 核心功能
+
+| 功能 | 数据源 | 更新频率 |
+|------|--------|---------|
+| **HN Trending** | Hacker News | 实时 |
+| **Product Hunt** | Product Hunt | 每日 |
+| **GitHub Trending** | GitHub | 每日 |
+| **信号聚合** | 多源交叉 | 按需 |
+| **机会分析** | BuilderPulse 逻辑 | 按需 |
+
+---
+
+## 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Opportunity Scout                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │  HN API     │  │  PH API     │  │  GitHub API │  │
+│  │  (实时)     │  │  (每日)     │  │  (每日)     │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
+│         │                    │                    │              │
+│         └────────────────────┼────────────────────┘              │
+│                              ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │              Signal Aggregator                            │ │
+│  │    多源信号聚合 → 去重 → 交叉验证 → 机会评分           │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                              │                                    │
+│                              ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │              Opportunity Analyzer                         │ │
+│  │    BuilderPulse 风格 → 信号→机会 → 时效性分析         │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                              │                                    │
+│                              ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │              Daily Brief Generator                       │ │
+│  │    每日机会简报 + 行动建议                             │ │
+│  └──────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 数据源详情
+
+### Hacker News
+
+| 端点 | 描述 | 字段 |
+|------|------|------|
+| Top Stories | 热门故事 | id, title, score, url, by, time |
+| New Stories | 最新故事 | 同上 |
+| Best Stories | 最佳故事 | 同上 |
+
+### Product Hunt
+
+| 端点 | 描述 | 字段 |
+|------|------|------|
+| Today's Products | 今日产品 | name, tagline, votes, url, topics |
+| This Week | 本周热门 | 同上 |
+
+### GitHub Trending
+
+| 端点 | 描述 | 字段 |
+|------|------|------|
+| Daily | 每日趋势 | name, description, stars, language, url |
+| Weekly | 周趋势 | 同上 |
+| Monthly | 月趋势 | 同上 |
+
+---
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+# 核心依赖
+pip install requests feedparser
+
+# (可选) 向量化嵌入
+pip install sentence-transformers
+
+# (可选) LLM 分析
+pip install anthropic  # Claude API
+```
+
+### 2. 扫描信号
+
+```bash
+# 扫描 HN Top 30
+python scripts/scout.py scan --source hn --limit 30
+
+# 扫描 Product Hunt 本周
+python scripts/scout.py scan --source ph --limit 20
+
+# 扫描 GitHub Daily
+python scripts/scout.py scan --source github --limit 20
+
+# 全源扫描
+python scripts/scout.py scan --all
+```
+
+### 3. 分析机会
+
+```bash
+# 智能机会分析
+python scripts/analyze.py --signals "signals.json"
+
+# 指定关键词过滤
+python scripts/analyze.py --keywords "AI,Agent,Memory"
+
+# 仅显示高置信度
+python scripts/analyze.py --min-confidence 0.8
+```
+
+### 4. 生成简报
+
+```bash
+# 生成今日机会简报
+python scripts/brief.py --today
+
+# 生成周报
+python scripts/brief.py --week
+
+# 推送到 Obsidian
+python scripts/brief.py --today --push
+```
+
+---
+
+## 信号评分模型
+
+### 评分维度
+
+| 维度 | 权重 | 说明 |
+|------|------|------|
+| **热度** | 30% | 点赞/评分/评论 |
+| **时效性** | 25% | 发布时间、内容新鲜度 |
+| **交叉验证** | 20% | 多平台同时出现 |
+| **趋势强度** | 15% | 增长率/上升速度 |
+| **信号强度** | 10% | 关键词命中 |
+
+### 机会分级
+
+| 等级 | 分数 | 行动 |
+|------|------|------|
+| 🔴 P0 | 0.8+ | 立即跟进 |
+| 🟡 P1 | 0.6-0.8 | 本周跟进 |
+| 🟢 P2 | 0.4-0.6 | 观察 |
+| ⚪ P3 | <0.4 | 记录 |
+
+---
+
+## 输出模板
+
+### 每日机会简报
+
+```markdown
+---
+type: opportunity-brief
+date: 2026-08-17
+sources: HN, Product Hunt, GitHub
+confidence_threshold: 0.5
+generated_by: opportunity-scout v1.0
+---
+
+# 🎯 天龙引擎 · 每日机会简报
+
+**日期**: 2026-08-17
+**扫描时间**: 08:00
+**信号总数**: 47
+**高置信度机会**: 12
+
+---
+
+## 🔴 P0 立即跟进
+
+### 1. [机会标题]
+**信号来源**: HN (#1) + GitHub (1.2k stars)
+**置信度**: 92%
+**为什么现在**: [时效性分析]
+**行动建议**: [具体建议]
+**链接**: [来源链接]
+
+---
+
+## 🟡 P1 本周跟进
+
+[同类结构...]
+
+---
+
+## 📊 信号分布
+
+| 平台 | 信号数 | 占比 |
+|------|--------|------|
+| Hacker News | 25 | 53% |
+| Product Hunt | 12 | 26% |
+| GitHub | 10 | 21% |
+
+---
+
+## 🔥 热点词云
+
+[可视化热词分布]
+
+---
+
+*Generated by Opportunity Scout · BuilderPulse 增强版 · 天龙引擎 01调研师*
+```
+
+---
+
+## 命令使用
+
+### scout.py - 信号扫描
+
+```bash
+# 基本扫描
+python scripts/scout.py scan --source hn
+
+# 指定数量
+python scripts/scout.py scan --source ph --limit 50
+
+# 输出 JSON
+python scripts/scout.py scan --all --format json --output signals.json
+
+# 静默模式
+python scripts/scout.py scan --all --quiet
+```
+
+### analyze.py - 机会分析
+
+```bash
+# 分析信号文件
+python scripts/analyze.py --input signals.json
+
+# 关键词过滤
+python scripts/analyze.py --keywords "AI,LLM,Agent"
+
+# 排除词
+python scripts/analyze.py --exclude "crypto, NFT"
+
+# 输出 Top 10
+python scripts/analyze.py --top 10
+```
+
+### brief.py - 简报生成
+
+```bash
+# 今日简报
+python scripts/brief.py --today
+
+# 周报
+python scripts/brief.py --week
+
+# 自定义日期
+python scripts/brief.py --from 2026-08-01 --to 2026-08-17
+
+# 仅显示摘要
+python scripts/brief.py --today --summary
+```
+
+---
+
+## 配置
+
+### 环境变量
+
+```bash
+# 数据目录
+export OPPORTUNITY_SCOUT_PATH="$HOME/.claude/opportunity-scout"
+
+# HN API (可选，使用官方接口)
+export HN_API_ENDPOINT="https://hacker-news.firebaseio.com/v0"
+
+# GitHub Token (可选，避免限流)
+export GITHUB_TOKEN="ghp_xxx"
+
+# Product Hunt (可选)
+export PH_API_KEY="xxx"
+```
+
+### 配置文件
+
+```yaml
+# config.yaml
+sources:
+  hn:
+    enabled: true
+    limit: 30
+    endpoints: [topstories, newstories, beststories]
+
+  product_hunt:
+    enabled: true
+    limit: 20
+    timeframe: week  # today, week, month
+
+  github:
+    enabled: true
+    limit: 20
+    timeframe: daily  # daily, weekly, monthly
+
+scoring:
+  weights:
+    heat: 0.3
+    recency: 0.25
+    cross_validation: 0.2
+    trend: 0.15
+    signal: 0.1
+
+  thresholds:
+    p0: 0.8
+    p1: 0.6
+    p2: 0.4
+
+keywords:
+  boost: [AI, Agent, LLM, Memory, Claude, MCP]
+  suppress: [crypto, NFT, blockchain]
+
+output:
+  format: markdown  # markdown, json
+  push_to_obsidian: false
+```
+
+---
+
+## 与天龙引擎协同
+
+| 天龙组件 | 协同方式 |
+|---------|---------|
+| **session-distiller** | 机会信号 → 会话蒸馏 |
+| **/shibazi-topic** | 选题分析数据源 |
+| **/beads** | 待办同步 |
+| **Obsidian V9.0** | 简报输出 |
+
+---
+
+## 预期收益
+
+| 指标 | 无信号源 | 有信号源 | 提升 |
+|------|---------|---------|------|
+| **选题质量** | 随机 | **信号驱动** | **+300%** |
+| **时效性** | 事后发现 | **实时监控** | **即时** |
+| **覆盖率** | 单一来源 | **多源交叉** | **+200%** |
+
+---
+
+## 故障排除
+
+| 问题 | 解决方案 |
+|------|---------|
+| API 限流 | 设置 GITHUB_TOKEN |
+| HN 数据为空 | 检查网络连接 |
+| PH 需认证 | 申请 Product Hunt API |
+| 信号过多 | 提高 --min-confidence |
+
+---
+
+## 版本历史
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| V1.0.0 | 2026-08-17 | 初始版本 · BuilderPulse 增强 |
+
+---
+
+**灵感来源**:
+- [BuilderPulse/BuilderPulse](https://github.com/BuilderPulse/BuilderPulse)
+- Hacker News API
+- Product Hunt API
+
+**整合者**: 天龙引擎 · 01调研师
+**整合日期**: 2026-08-17

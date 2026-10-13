@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOAP A* Planner — 目标导向动作规划可视化</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1c2128;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --action: #58a6ff;
+      --effect: #3fb950;
+      --precond: #f0883e;
+      --cost: #bc8cff;
+      --optimal: #f85149;
+      --candidate: #58a6ff;
+      --state-true: #3fb950;
+      --state-false: #f85149;
+      --state-neutral: #8b949e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    header .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Layout ── */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left Panel: Controls ── */
+    .left-panel {
+      width: 320px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .panel-section {
+      border-bottom: 1px solid var(--border);
+      padding: 16px;
+    }
+    .panel-section:last-child { border-bottom: none; }
+    .panel-section h3 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* Goal Input */
+    .goal-select {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .goal-select:focus { outline: none; border-color: var(--action); }
+    .goal-custom-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .goal-custom-row input {
+      flex: 1;
+      padding: 7px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .btn-goal {
+      padding: 7px 12px;
+      background: var(--action);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-goal:hover { opacity: 0.85; }
+
+    /* Execution Controls */
+    .exec-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .exec-btn {
+      flex: 1;
+      min-width: 60px;
+      padding: 8px 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .exec-btn svg { width: 16px; height: 16px; }
+    .exec-btn:hover { background: #2d333b; border-color: var(--muted); }
+    .exec-btn.active { background: var(--action); border-color: var(--action); color: #fff; }
+    .exec-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Plan Result */
+    .plan-result {
+      background: var(--bg);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .plan-result .plan-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-result .plan-step:last-child { border-bottom: none; }
+    .plan-step .step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--action);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .plan-step.current .step-num { background: var(--optimal); }
+    .plan-step .step-name { flex: 1; font-weight: 500; }
+    .plan-step .step-cost { font-size: 11px; color: var(--cost); }
+    .plan-step .step-effect { font-size: 11px; color: var(--muted); }
+    .plan-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 20px 0; }
+
+    /* Import/Export */
+    .import-export-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-ie {
+      flex: 1;
+      padding: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-ie:hover { background: #2d333b; }
+    .btn-ie svg { width: 14px; height: 14px; }
+    textarea.import-text {
+      width: 100%;
+      min-height: 120px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      resize: vertical;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* ── Graph Canvas ── */
+    .graph-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    #graph-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .node-action {
+      cursor: pointer;
+    }
+    .node-action rect {
+      rx: 8; ry: 8;
+      stroke-width: 2;
+    }
+    .node-label {
+      font-size: 12px;
+      font-weight: 600;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .node-cost {
+      font-size: 10px;
+      fill: rgba(255,255,255,0.7);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .node-effect {
+      font-size: 9px;
+      fill: rgba(255,255,255,0.6);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .edge-line {
+      stroke-opacity: 0.5;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .edge-optimal { stroke: var(--optimal) !important; stroke-opacity: 1 !important; stroke-width: 3 !important; }
+    .edge-candidate { stroke: var(--candidate); stroke-opacity: 0.6; }
+    .edge-label {
+      font-size: 10px;
+      fill: var(--muted);
+    }
+    .edge-cost-label {
+      font-size: 11px;
+      font-weight: 700;
+      fill: var(--cost);
+    }
+    .legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 11px;
+      line-height: 20px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .tooltip {
+      position: absolute;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      max-width: 220px;
+      pointer-events: none;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    .tooltip h4 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .tooltip-row { display: flex; gap: 6px; margin: 3px 0; }
+    .tooltip-label { color: var(--muted); min-width: 60px; }
+    .tooltip-val { font-weight: 600; }
+
+    /* ── Right Panel: State ── */
+    .right-panel {
+      width: 280px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .state-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .state-item:last-child { border-bottom: none; }
+    .state-key { color: var(--text); font-weight: 500; }
+    .state-val {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .state-val.true { background: rgba(63,185,80,0.2); color: var(--state-true); }
+    .state-val.false { background: rgba(248,81,73,0.2); color: var(--state-false); }
+    .state-val.number { background: rgba(188,140,255,0.2); color: var(--cost); }
+    .state-flash-true { animation: flash-green 0.6s; }
+    .state-flash-false { animation: flash-red 0.6s; }
+    @keyframes flash-green { 0%,100%{background:transparent} 50%{background:rgba(63,185,80,0.4)} }
+    @keyframes flash-red { 0%,100%{background:transparent} 50%{background:rgba(248,81,73,0.4)} }
+
+    .step-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .step-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .step-fill {
+      height: 100%;
+      background: var(--action);
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      padding: 6px 20px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .status-item { display: flex; align-items: center; gap: 4px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-dot.ok { background: var(--state-true); }
+    .status-dot.warn { background: var(--precond); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 GOAP A* Planner</h1>
+  <span class="subtitle">目标导向动作规划可视化 · A* 搜索最优路径</span>
+</header>
+
+<div class="main-layout">
+
+  <!-- ══ LEFT PANEL: Controls ══ -->
+  <div class="left-panel">
+
+    <!-- Goal Input -->
+    <div class="panel-section">
+      <h3>🎯 目标选择</h3>
+      <select id="goal-select" class="goal-select">
+        <option value="">— 选择预设目标 —</option>
+        <option value="完成季度报告">完成季度报告</option>
+        <option value="审核通过">审核通过</option>
+      </select>
+      <div class="goal-custom-row">
+        <input id="goal-custom" type="text" placeholder="或输入自定义目标 JSON...">
+        <button class="btn-goal" id="btn-plan">规划</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+        示例: <code style="color:var(--action)">{"报告完成":true}</code>
+      </div>
+    </div>
+
+    <!-- Execution Controls -->
+    <div class="panel-section">
+      <h3>⚡ 执行控制</h3>
+      <div class="exec-controls">
+        <button class="exec-btn" id="btn-step" title="单步执行">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+          单步
+        </button>
+        <button class="exec-btn" id="btn-auto" title="自动播放">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+          自动
+        </button>
+        <button class="exec-btn" id="btn-pause" title="暂停" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          暂停
+        </button>
+        <button class="exec-btn" id="btn-reset" title="重置状态">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+      </div>
+      <div class="plan-result" id="plan-result">
+        <div class="plan-empty" id="plan-empty">规划结果将显示在这里</div>
+      </div>
+    </div>
+
+    <!-- Import / Export -->
+    <div class="panel-section">
+      <h3>📦 导入 / 导出</h3>
+      <div class="import-export-btns">
+        <button class="btn-ie" id="btn-export">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          导出JSON
+        </button>
+        <button class="btn-ie" id="btn-import">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导入
+        </button>
+      </div>
+      <textarea id="import-text" class="import-text" placeholder="粘贴 JSON/YAML 格式的动作库..."></textarea>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ══ GRAPH CANVAS ══ -->
+  <div class="graph-canvas">
+    <svg id="graph-svg"></svg>
+
+    <div class="tooltip" id="tooltip">
+      <h4 id="tooltip-title">Action</h4>
+      <div class="tooltip-row"><span class="tooltip-label">前置条件:</span><span class="tooltip-val" id="tooltip-precond">—</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">效果:</span><span class="tooltip-val" id="tooltip-effect">—</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">代价:</span><span class="tooltip-val" id="tooltip-cost">—</span></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>动作节点</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>A* 最优路径</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;opacity:0.5"></div>候选路径</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>前置条件边</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>效果边</div>
+    </div>
+  </div><!-- /graph-canvas -->
+
+  <!-- ══ RIGHT PANEL: State ══ -->
+  <div class="right-panel">
+    <div class="panel-section">
+      <h3>🌍 世界状态</h3>
+      <div id="state-list"></div>
+    </div>
+    <div class="panel-section">
+      <h3>📊 执行统计</h3>
+      <div id="stats-list"></div>
+    </div>
+  </div><!-- /right-panel -->
+
+</div><!-- /main-layout -->
+
+<div class="status-bar">
+  <div class="status-item"><div class="status-dot ok"></div>GOAP引擎就绪</div>
+  <div class="status-item" id="status-step">步骤: 0/0</div>
+  <div class="status-item" id="status-cost">总代价: 0</div>
+  <div class="status-item" id="status-mode">模式: 就绪</div>
+</div>
+
+<script src="scripts/actions.json.js"></script>
+<script src="scripts/goap.js"></script>
+<script src="scripts/graph.js"></script>
+<script src="scripts/planner.js"></script>
+</body>
+</html>

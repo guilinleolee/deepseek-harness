@@ -1,0 +1,22 @@
+fallback_strategy: priority_order
+silent_failure: false
+max_retries: 3
+official_fallbacks: 2
+error_handlers:
+  SYMBOL_NOT_FOUND: {action: fail_fast}
+  RATE_LIMIT: {action: retry_with_backoff, backoff_factor: 2.0, max_retries: 3}
+  UNAUTHORIZED: {action: fail_fast}
+  NOT_FOUND: {action: fail_fast}
+  TIMEOUT: {action: retry_with_backoff, backoff_factor: 1.5, max_retries: 2}
+  SERVER_ERROR: {action: retry_with_backoff, backoff_factor: 2.0, max_retries: 3}
+  PROFILE_FULL_FAIL: {action: fallback_to_single_apis}
+
+endpoints:
+  quote:                []
+  stock:                []
+  profile_full:         [quote, stock, financials, capital_flow, technical, news]
+  financials:           [stock, quote]
+  news:                 [announcements]
+  announcements:        []
+  capital_flow:         [quote, stock]
+  technical:            [quote]

@@ -1,0 +1,142 @@
+{
+    "header": {
+        "title": "{{ project_name }}投标文件",
+        "date": "{{ current_date }}",
+        "project_id": "{{ project_id }}",
+        "company_name": "{{ company_name }}",
+        "contact_person": "{{ contact_person }}",
+        "contact_phone": "{{ contact_phone }}"
+    },
+    "body": {
+        "cover_letter": "尊敬的招标方：\n\n我方已仔细阅读并理解{{ project_name }}招标文件的全部内容，现决定参加该项目投标。我方承诺所提供的所有资料真实有效，并愿意承担相应的法律责任。\n\n如我方中标，将严格按照招标文件和投标文件的约定履行合同义务，确保项目质量和进度。",
+        "company_overview": {
+            "company_name": "{{ company_name }}",
+            "registered_capital": "{{ registered_capital }}",
+            "established_date": "{{ established_date }}",
+            "business_scope": "{{ business_scope }}",
+            "employee_count": "{{ employee_count }}",
+            "introduction": "{{ company_introduction }}"
+        },
+        "qualifications": [
+            "营业执照",
+            "组织机构代码证",
+            "税务登记证",
+            "行业资质证书",
+            "质量管理体系认证",
+            "其他相关资质"
+        ],
+        "project_understanding": {
+            "background": "{{ project_background }}",
+            "objectives": "{{ project_objectives }}",
+            "scope": "{{ project_scope }}",
+            "key_requirements": "{{ key_requirements }}"
+        },
+        "technical_solution": {
+            "overview": "{{ tech_overview }}",
+            "architecture": "{{ tech_architecture }}",
+            "key_technologies": "{{ key_technologies }}",
+            "implementation_approach": "{{ implementation_approach }}",
+            "quality_assurance": "{{ quality_assurance }}",
+            "risk_management": "{{ risk_management }}"
+        },
+        "project_team": {
+            "project_manager": {
+                "name": "{{ pm_name }}",
+                "title": "{{ pm_title }}",
+                "experience": "{{ pm_experience }}",
+                "responsibilities": "项目整体管理、资源协调、风险控制"
+            },
+            "technical_lead": {
+                "name": "{{ tech_lead_name }}",
+                "title": "{{ tech_lead_title }}",
+                "experience": "{{ tech_lead_experience }}",
+                "responsibilities": "技术方案设计、技术问题解决"
+            },
+            "team_members": [
+                {
+                    "name": "{{ member1_name }}",
+                    "role": "{{ member1_role }}",
+                    "responsibilities": "{{ member1_responsibilities }}"
+                }
+            ]
+        },
+        "implementation_plan": {
+            "phases": [
+                {
+                    "name": "项目启动阶段",
+                    "duration": "{{ phase1_duration }}",
+                    "deliverables": "项目计划、需求确认"
+                },
+                {
+                    "name": "设计阶段",
+                    "duration": "{{ phase2_duration }}",
+                    "deliverables": "详细设计文档、技术方案"
+                },
+                {
+                    "name": "开发阶段",
+                    "duration": "{{ phase3_duration }}",
+                    "deliverables": "系统功能模块"
+                },
+                {
+                    "name": "测试阶段",
+                    "duration": "{{ phase4_duration }}",
+                    "deliverables": "测试报告、问题修复"
+                },
+                {
+                    "name": "部署上线阶段",
+                    "duration": "{{ phase5_duration }}",
+                    "deliverables": "部署文档、用户培训"
+                }
+            ],
+            "total_duration": "{{ total_duration }}",
+            "milestones": "{{ milestones }}"
+        },
+        "quotation": {
+            "breakdown": [
+                {
+                    "item": "人力资源费用",
+                    "amount": "{{ hr_cost }}",
+                    "description": "项目团队人员工资及福利"
+                },
+                {
+                    "item": "硬件设备费用",
+                    "amount": "{{ hardware_cost }}",
+                    "description": "服务器、网络设备等"
+                },
+                {
+                    "item": "软件授权费用",
+                    "amount": "{{ software_cost }}",
+                    "description": "软件许可证、第三方服务"
+                },
+                {
+                    "item": "实施服务费用",
+                    "amount": "{{ service_cost }}",
+                    "description": "开发、测试、部署等"
+                },
+                {
+                    "item": "运维支持费用",
+                    "amount": "{{ maintenance_cost }}",
+                    "description": "系统运维、技术支持"
+                }
+            ],
+            "total_amount": "{{ total_amount }}",
+            "payment_terms": "{{ payment_terms }}"
+        },
+        "service_commitment": {
+            "warranty_period": "{{ warranty_period }}",
+            "response_time": "{{ response_time }}",
+            "support_hours": "{{ support_hours }}",
+            "training": "{{ training_commitment }}",
+            "maintenance": "{{ maintenance_commitment }}"
+        },
+        "appendices": [
+            "公司营业执照复印件",
+            "资质证书复印件",
+            "项目案例证明材料",
+            "团队成员简历",
+            "技术方案详细设计文档",
+            "项目进度计划表",
+            "报价明细表"
+        ]
+    }
+}

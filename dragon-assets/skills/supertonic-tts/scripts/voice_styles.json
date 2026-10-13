@@ -1,0 +1,223 @@
+{
+  "_comment": "Supertonic TTS 语音风格配置",
+  "_version": "1.0",
+  "_天龙引擎协同": {
+    "35-05": "短视频编导: 文案→TTS配音",
+    "07": "记录师: 文档语音播报",
+    "47-03": "IM运营师: 语音消息播放"
+  },
+  "presets": {
+    "短视频": {
+      "voice": "F2",
+      "speed": 1.1,
+      "lang": "zh",
+      "description": "活泼女声，适合短视频配音"
+    },
+    "有声书": {
+      "voice": "M2",
+      "speed": 0.95,
+      "lang": "zh",
+      "description": "磁性男声，适合有声书朗读"
+    },
+    "新闻播报": {
+      "voice": "M1",
+      "speed": 1.0,
+      "lang": "zh",
+      "description": "标准男声，适合新闻播报"
+    },
+    "知识讲解": {
+      "voice": "F1",
+      "speed": 0.95,
+      "lang": "zh",
+      "description": "清晰女声，适合知识讲解"
+    },
+    "品牌宣传": {
+      "voice": "M1",
+      "speed": 0.9,
+      "lang": "zh",
+      "description": "稳重男声，适合品牌宣传"
+    },
+    "儿童故事": {
+      "voice": "F2",
+      "speed": 1.15,
+      "lang": "zh",
+      "description": "活泼女声，适合儿童故事"
+    }
+  },
+  "voices": {
+    "M1": {
+      "gender": "male",
+      "age": "adult",
+      "tone": "standard",
+      "use_case": "通用场景",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "throat"],
+      "emotion_description": "标准男声，适用于大多数场景"
+    },
+    "M2": {
+      "gender": "male",
+      "age": "adult",
+      "tone": "magnetic",
+      "use_case": "有声书",
+      "emotion_tags": ["laugh", "breath", "sigh", "gasp", "yawn"],
+      "emotion_description": "磁性男声，深沉有感染力"
+    },
+    "F1": {
+      "gender": "female",
+      "age": "adult",
+      "tone": "standard",
+      "use_case": "通用场景",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "sniff"],
+      "emotion_description": "标准女声，清亮自然"
+    },
+    "F2": {
+      "gender": "female",
+      "age": "adult",
+      "tone": "lively",
+      "use_case": "短视频",
+      "emotion_tags": ["laugh", "breath", "sigh", "gasp", "yawn"],
+      "emotion_description": "活泼女声，欢快有感染力"
+    },
+    "N1": {
+      "gender": "neutral",
+      "age": "adult",
+      "tone": "neural",
+      "use_case": "实验性",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "hmm"],
+      "emotion_description": "神经网络中性声音"
+    },
+    "N2": {
+      "gender": "neutral",
+      "age": "adult",
+      "tone": "neural",
+      "use_case": "实验性",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "hmm"],
+      "emotion_description": "神经网络中性声音"
+    },
+    "N3": {
+      "gender": "neutral",
+      "age": "adult",
+      "tone": "neural",
+      "use_case": "实验性",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "hmm"],
+      "emotion_description": "神经网络中性声音"
+    },
+    "N4": {
+      "gender": "neutral",
+      "age": "adult",
+      "tone": "neural",
+      "use_case": "实验性",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "hmm"],
+      "emotion_description": "神经网络中性声音"
+    },
+    "N5": {
+      "gender": "neutral",
+      "age": "adult",
+      "tone": "neural",
+      "use_case": "实验性",
+      "emotion_tags": ["laugh", "breath", "sigh", "cough", "hmm"],
+      "emotion_description": "神经网络中性声音"
+    }
+  },
+  "expression_tags": {
+    "laugh": {
+      "symbol": "<laugh>",
+      "effect": "笑声",
+      "usage": "表示开心、愉快的情绪"
+    },
+    "breath": {
+      "symbol": "<breath>",
+      "effect": "呼吸声",
+      "usage": "表示紧张、期待、深思的情绪"
+    },
+    "sigh": {
+      "symbol": "<sigh>",
+      "effect": "叹息",
+      "usage": "表示无奈、失望、感慨的情绪"
+    },
+    "gasp": {
+      "symbol": "<gasp>",
+      "effect": "喘息",
+      "usage": "表示惊讶、震惊的情绪"
+    },
+    "yawn": {
+      "symbol": "<yawn>",
+      "effect": "打哈欠",
+      "usage": "表示困倦、疲惫的状态"
+    },
+    "cough": {
+      "symbol": "<cough>",
+      "effect": "咳嗽",
+      "usage": "表示不适、清嗓的动作"
+    },
+    "sniff": {
+      "symbol": "<sniff>",
+      "effect": "吸鼻子",
+      "usage": "表示难过、委屈的情绪"
+    },
+    "hmm": {
+      "symbol": "<hmm>",
+      "effect": "嗯哼",
+      "usage": "表示思考、犹豫的语气"
+    },
+    "punch": {
+      "symbol": "<punch>",
+      "effect": "捶打节奏",
+      "usage": "表示激动、有力的情绪"
+    },
+    "throat": {
+      "symbol": "<throat>",
+      "effect": "清嗓子",
+      "usage": "表示准备说话、调整状态的过渡"
+    }
+  },
+  "languages": {
+    "zh": {"name": "中文", "sample_rate": 44100},
+    "en": {"name": "英语", "sample_rate": 44100},
+    "ja": {"name": "日语", "sample_rate": 44100},
+    "ko": {"name": "韩语", "sample_rate": 44100},
+    "fr": {"name": "法语", "sample_rate": 44100},
+    "de": {"name": "德语", "sample_rate": 44100},
+    "es": {"name": "西班牙语", "sample_rate": 44100},
+    "it": {"name": "意大利语", "sample_rate": 44100},
+    "pt": {"name": "葡萄牙语", "sample_rate": 44100},
+    "ru": {"name": "俄语", "sample_rate": 44100},
+    "ar": {"name": "阿拉伯语", "sample_rate": 44100},
+    "hi": {"name": "印地语", "sample_rate": 44100},
+    "id": {"name": "印尼语", "sample_rate": 44100},
+    "th": {"name": "泰语", "sample_rate": 44100},
+    "vi": {"name": "越南语", "sample_rate": 44100},
+    "ms": {"name": "马来语", "sample_rate": 44100},
+    "tr": {"name": "土耳其语", "sample_rate": 44100},
+    "pl": {"name": "波兰语", "sample_rate": 44100},
+    "nl": {"name": "荷兰语", "sample_rate": 44100},
+    "sv": {"name": "瑞典语", "sample_rate": 44100},
+    "no": {"name": "挪威语", "sample_rate": 44100},
+    "da": {"name": "丹麦语", "sample_rate": 44100},
+    "fi": {"name": "芬兰语", "sample_rate": 44100},
+    "cs": {"name": "捷克语", "sample_rate": 44100},
+    "hu": {"name": "匈牙利语", "sample_rate": 44100},
+    "ro": {"name": "罗马尼亚语", "sample_rate": 44100},
+    "bg": {"name": "保加利亚语", "sample_rate": 44100},
+    "el": {"name": "希腊语", "sample_rate": 44100},
+    "hr": {"name": "克罗地亚语", "sample_rate": 44100},
+    "sk": {"name": "斯洛伐克语", "sample_rate": 44100},
+    "uk": {"name": "乌克兰语", "sample_rate": 44100}
+  },
+  "optimization": {
+    "high_performance": {
+      "total_steps": 8,
+      "quantization": "fp16",
+      "use_case": "高质量合成"
+    },
+    "balanced": {
+      "total_steps": 6,
+      "quantization": "fp16",
+      "use_case": "平衡质量与速度"
+    },
+    "edge_device": {
+      "total_steps": 4,
+      "quantization": "int8",
+      "use_case": "边缘设备"
+    }
+  }
+}

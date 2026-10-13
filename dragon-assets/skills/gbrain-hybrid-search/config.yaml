@@ -1,0 +1,107 @@
+# GBrain Hybrid Search Configuration
+# 混合检索引擎配置
+
+search:
+  layers:
+    - name: "keyword"
+      enabled: true
+      threshold: 0.5
+      max_results: 20
+      fields: ["title", "content", "tags"]
+
+    - name: "hybrid"
+      enabled: true
+      threshold: 0.6
+      max_results: 10
+      semantic_weight: 0.6
+      keyword_weight: 0.4
+      embedding_model: "text-embedding-3-small"
+
+    - name: "structured"
+      enabled: true
+      threshold: 0.7
+      max_results: 5
+      types:
+        - backlinks
+        - timeline
+        - graph
+
+  citation:
+    required: true
+    format: "inline"  # inline | footnote | bracket
+    confidence_threshold: 0.5
+    provenance_tracking: true
+    source_precedence:
+      priority_1: "user_direct"           # 用户直接陈述
+      priority_2: "compiled_truth"         # 编译后的真相(会议记录)
+      priority_3: "timeline_events"       # 时间线事件
+      priority_4: "external_sources"       # 外部来源
+
+  synthesis:
+    max_sources: 5
+    conflict_resolution: "newest_wins"  # newest_wins | confidence_wins | manual
+    hallucination_guard: true
+    gap_flagging: true
+    gap_template: "⚠️ **未收录**: 关于\"{query}\"的具体信息 — 而非虚构"
+
+  token_budget:
+    search_chunk: 500     # 先用小Chunk预览
+    full_page: 2000       # 确认需要时再加载完整页面
+    synthesis: 1000      # 综合输出Token预算
+    max_total: 10000
+
+# 天龙引擎集成
+tianlong_integration:
+  attached_role: "01-investigator"
+  triggers:
+    - "关于X我们知道什么"
+    - "tell me about"
+    - "who is"
+    - "搜索"
+    - "查找"
+    - "查询"
+    - "KB检索"
+    - "脑内搜索"
+  upstream:
+    - gbrain-signal-detector
+    - gbrain-multimodal-ingest
+    - gbrain-daily-briefing
+  downstream:
+    - gbrain-entity-enrich     # 发现新实体后触发充实
+    - gbrain-identity-audit      # 发现身份变更后触发审计
+
+  # 天龙引擎上下文注入
+  context_injection:
+    agent_id: true
+    conversation_id: true
+    recent_entities: true       # 最近涉及的实体
+    session_context: true
+
+  # 与九部协同
+  collaboration:
+    auto_link: true            # 自动建立双向链接
+    cross_reference: true       # 跨领域交叉引用
+    conflict_detection: true     # 矛盾检测
+    citation_required: true       # 强制引用标注
+
+# 输出格式
+output:
+  format: "markdown"
+  include_confidence: true
+  include_sources: true
+  include_timestamps: true
+  include_graph: false
+
+# 缓存配置
+cache:
+  enabled: true
+  ttl_seconds: 3600
+  max_entries: 500
+
+# 知识库路径
+knowledge_base:
+  root: "~/.claude/gbrain"
+  pages_dir: "pages"
+  entities_dir: "entities"
+  raw_dir: "raw"
+  index_file: ".brain_index.json"

@@ -1,0 +1,87 @@
+{
+  "device": "Mobile Device (Generic)",
+  "os": "Android/iOS",
+  "model": "supertonic-base",
+  "inference": {
+    "device": "cpu",
+    "threads": 4,
+    "quantization": "int8",
+    "batch_size": 1,
+    "memory_mapped": true,
+    "neon_acceleration": true
+  },
+  "audio": {
+    "sample_rate": 24000,
+    "channels": 1,
+    "bit_depth": 16,
+    "buffer_size": 2048,
+    "low_latency_mode": true
+  },
+  "voice": {
+    "default_style": "N1",
+    "available_styles": ["N1", "N2", "N3", "F1", "F2"],
+    "expression_tags_enabled": true,
+    "auto_punctuation": true,
+    "voice_conversion_enabled": false
+  },
+  "language": {
+    "default": "en",
+    "supported": [
+      "en", "zh", "ja", "ko", "fr", "de", "es", "it",
+      "pt", "ru", "ar", "hi", "th", "vi", "id", "ms"
+    ]
+  },
+  "performance": {
+    "rtf_target": 0.15,
+    "max_text_length": 300,
+    "preload_model": false,
+    "cache_enabled": true,
+    "cache_size_mb": 256,
+    "aggressive_memory_management": true,
+    "background_inference": true
+  },
+  "memory": {
+    "total_ram_mb": 4096,
+    "model_size_mb": 150,
+    "inference_buffer_mb": 128,
+    "app_reserved_mb": 512,
+    "available_for_model_mb": 3306
+  },
+  "battery": {
+    "power_saving_mode": true,
+    "gpu_fallback_to_cpu": true,
+    "batch_inference_only_when_charging": false
+  },
+  "network": {
+    "streaming_enabled": true,
+    "chunk_size_ms": 50,
+    "compression": "br",
+    "offline_fallback": true,
+    "prefetch_enabled": true
+  },
+  "storage": {
+    "model_storage": "app_specific",
+    "cache_storage": "shared",
+    "max_cache_size_mb": 500,
+    "auto_cleanup": true,
+    "cleanup_threshold_mb": 1000
+  },
+  "ui": {
+    "waveform_visualization": true,
+    "progress_indicator": true,
+    "error_feedback": true,
+    "haptic_feedback": true
+  },
+  "permissions": {
+    "microphone": false,
+    "storage": true,
+    "network": true,
+    "vibration": true
+  },
+  "logging": {
+    "level": "WARNING",
+    "performance_logging": false,
+    "crash_reporting": true,
+    "analytics_enabled": false
+  }
+}

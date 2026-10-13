@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTA Scene</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --background: #0f0f23;
+      --text: #f1f5f9;
+      --particle: rgba(99,102,241,0.8);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #scene-cta {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    .cta-bg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(ellipse at center, rgba(99,102,241,0.2) 0%, transparent 60%);
+    }
+    .cta-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 2rem;
+    }
+    .cta-logo {
+      width: 100px;
+      height: auto;
+      object-fit: contain;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 4px 20px rgba(99,102,241,0.4));
+    }
+    .cta-title {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cta-button {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 1rem 3.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.3s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      cursor: pointer;
+      border: none;
+    }
+    .cta-button:hover {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow: 0 8px 40px rgba(99,102,241,0.6);
+    }
+    .cta-button:active {
+      transform: scale(0.98);
+    }
+    .cta-thanks {
+      font-size: 1rem;
+      opacity: 0.5;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-cta" class="scene">
+    <div class="cta-bg"></div>
+    <div class="cta-content">
+      <img src="{{logo}}" class="cta-logo" alt="Logo" id="cta-logo" onerror="this.style.display='none'" />
+      <h2 class="cta-title" id="cta-title">{{title}}</h2>
+      <a href="{{link}}" class="cta-button" id="cta-button" target="_blank" rel="noopener">{{buttonText}}</a>
+      <p class="cta-thanks" id="cta-thanks">{{thanks}}</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const sceneEl = document.getElementById('scene-cta');
+      const logoEl = sceneEl.querySelector('#cta-logo');
+
+      const ctaTl = gsap.timeline({ paused: true });
+
+      // Background pulse
+      ctaTl.fromTo('.cta-bg',
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5 },
+        0
+      );
+
+      // Logo
+      if (logoEl && logoEl.style.display !== 'none') {
+        ctaTl.fromTo('#cta-logo',
+          { scale: 0, opacity: 0, rotation: -10 },
+          { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" },
+          0.3
+        );
+      }
+
+      // Title
+      ctaTl.fromTo('#cta-title',
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+        logoEl && logoEl.style.display !== 'none' ? 0.7 : 0.3
+      );
+
+      // Button with glow
+      ctaTl.fromTo('#cta-button',
+        { scale: 0.8, opacity: 0, y: 20 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.4)" },
+        logoEl && logoEl.style.display !== 'none' ? 1.2 : 0.8
+      );
+
+      // Button pulse glow
+      ctaTl.to('#cta-button',
+        { boxShadow: '0 8px 60px rgba(99,102,241,0.8)', duration: 0.8, repeat: 2, yoyo: true },
+        '>0.5'
+      );
+
+      // Thanks
+      ctaTl.fromTo('#cta-thanks',
+        { opacity: 0 },
+        { opacity: 0.5, duration: 0.5 },
+        2.0
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['scene-cta'] = ctaTl;
+
+      window.__sceneConfigs = window.__sceneConfigs || {};
+      window.__sceneConfigs['scene-cta'] = {
+        type: 'cta',
+        duration: {{duration}},
+        content: { title: '{{title}}', link: '{{link}}', buttonText: '{{buttonText}}', thanks: '{{thanks}}' }
+      };
+    })();
+  </script>
+</body>
+</html>

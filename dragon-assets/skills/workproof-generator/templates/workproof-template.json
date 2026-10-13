@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "workproof": {
+    "metadata": {
+      "issue_id": "{{issue_id}}",
+      "generated_at": "{{generated_at}}",
+      "generator": "workproof-generator",
+      "version": "1.0.0"
+    },
+    "issue": {
+      "id": "{{issue_id}}",
+      "title": "{{issue_title}}",
+      "labels": {{labels}}
+    },
+    "pull_request": {
+      "url": "{{pr_url}}",
+      "state": "{{pr_state}}",
+      "merged": {{is_merged}}
+    },
+    "ci": {
+      "status": "{{ci_status}}",
+      "build_url": "{{ci_build_url}}",
+      "duration_seconds": {{ci_duration}},
+      "checks": {{ci_checks}}
+    },
+    "code_changes": {
+      "files_changed": {{files_changed}},
+      "additions": {{additions}},
+      "deletions": {{deletions}},
+      "net_lines": {{net_lines}},
+      "changed_files": {{changed_files}}
+    },
+    "quality": {
+      "test_coverage": {{test_coverage}},
+      "complexity_score": {{complexity_score}},
+      "complexity_factors": {
+        "file_count_score": {{file_score}},
+        "lines_changed_score": {{line_score}},
+        "test_presence_score": {{test_score}},
+        "dependency_count_score": {{dep_score}}
+      },
+      "weights": {
+        "file_count": {{weights.file_count}},
+        "lines_changed": {{weights.lines_changed}},
+        "test_presence": {{weights.test_presence}},
+        "dependency_count": {{weights.dependency_count}}
+      }
+    },
+    "verification": {
+      "notes": {{verification_notes}},
+      "is_verified": {{is_verified}},
+      "verified_at": "{{verified_at}}",
+      "verified_by": "{{verified_by}}"
+    },
+    "evidence": {
+      "demo_video_url": "{{demo_video_url}}",
+      "screenshots": {{screenshots}},
+      "attachments": {{attachments}}
+    },
+    "summary": {
+      "change_summary": "{{change_summary}}",
+      "key_accomplishments": {{key_accomplishments}},
+      "challenges_addressed": {{challenges_addressed}}
+    }
+  },
+  "signatures": {
+    "author": {
+      "name": "{{author_name}}",
+      "email": "{{author_email}}"
+    },
+    "reviewer": {
+      "name": "{{reviewer_name}}",
+      "email": "{{reviewer_email}}",
+      "approved_at": "{{reviewer_approved_at}}"
+    }
+  },
+  "audit": {
+    "created_at": "{{created_at}}",
+    "updated_at": "{{updated_at}}",
+    "checksum": "{{checksum}}"
+  }
+}

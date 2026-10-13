@@ -1,0 +1,28 @@
+NOTICE for cangjie-skill
+============================================================
+
+This skill is distributed under the AGPL-3.0 license.
+License text: see LICENSE in this directory.
+
+Upstream: name: kangarooking/cangjie-skill
+version: V1.x
+url: https://github.com/kangarooking/cangjie-skill
+license: AGPL-3.0
+stars: 6209
+forks: 802
+primary_language: Python
+packs: 21+（含 buffett-letters-skill · poor-charlies-almanack · mao-selected-works · huangdi-neijing 等）
+
+Modifications by Tianlong Engine (dragon-engine) on 2026-08-05:
+  - Mirrored into dragon-engine asset index.
+  - Re-indexed under schema dragon-index/1.0.
+  - Triggers/last_used/audit fields added (informational only).
+
+Per AGPL-3.0 Section 5(d): this NOTICE accompanies the source
+when conveyed. Source modifications, if any, are listed above.
+
+Compliance:
+  - AGPL-3.0 requires source availability when network service
+    is offered. This skill is delivered as method summary /
+    PNG output, NOT as a running network service.
+  - See BIBLE.md for AGPL compliance policy.

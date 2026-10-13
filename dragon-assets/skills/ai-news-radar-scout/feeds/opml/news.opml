@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>AI News Radar - AI科技媒体信息源</title>
+        <dateCreated>2026-05-13</dateCreated>
+        <ownerName>天龙引擎</ownerName>
+        <ownerEmail>dragon@tianlong.ai</ownerEmail>
+    </head>
+    <body>
+        <!-- AI News Sites -->
+        <outline text="AI News" title="AI News Sites">
+            <outline type="rss" text="VentureBeat AI" title="VentureBeat AI"
+                xmlUrl="https://venturebeat.com/category/ai/feed/" htmlUrl="https://venturebeat.com/category/ai"/>
+            <outline type="rss" text="The Verge AI" title="The Verge AI"
+                xmlUrl="https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" htmlUrl="https://www.theverge.com/ai-artificial-intelligence"/>
+            <outline type="rss" text="TechCrunch AI" title="TechCrunch AI"
+                xmlUrl="https://techcrunch.com/category/artificial-intelligence/feed/" htmlUrl="https://techcrunch.com/category/artificial-intelligence"/>
+            <outline type="rss" text="Wired AI" title="Wired AI"
+                xmlUrl="https://www.wired.com/feed/tag/artificial-intelligence/latest/rss" htmlUrl="https://www.wired.com/tag/artificial-intelligence"/>
+            <outline type="rss" text="MIT Tech Review AI" title="MIT Tech Review"
+                xmlUrl="https://www.technologyreview.com/feed/" htmlUrl="https://www.technologyreview.com"/>
+        </outline>
+
+        <!-- AI-Specific Media -->
+        <outline text="AI Media" title="AI-Specific Media">
+            <outline type="rss" text="The Information AI" title="The Information"
+                xmlUrl="https://www.theinformation.com/rss" htmlUrl="https://www.theinformation.com"/>
+            <outline type="rss" text="The Rundown AI" title="The Rundown AI"
+                xmlUrl="https://www.therundown.ai/feed" htmlUrl="https://www.therundown.ai"/>
+            <outline type="rss" text="Last Week in AI" title="Last Week in AI"
+                xmlUrl="https://lastweekin.ai/feed" htmlUrl="https://lastweekin.ai"/>
+            <outline type="rss" text="Import AI" title="Import AI (Jack Clark)"
+                xmlUrl="https://importai.substack.com/feed" htmlUrl="https://importai.substack.com"/>
+            <outline type="rss" text="The Batch" title="The Batch (Andrew Ng)"
+                xmlUrl="https://www.deeplearning.ai/the-batch/feed/" htmlUrl="https://www.deeplearning.ai/the-batch"/>
+            <outline type="rss" text="AI Insider" title="AI Insider"
+                xmlUrl="https://aiinsider.pub/feed" htmlUrl="https://aiinsider.pub"/>
+            <outline type="rss" text="The Intelligence" title="The Intelligence"
+                xmlUrl="https://www.theintelligence.ai/feed" htmlUrl="https://www.theintelligence.ai"/>
+        </outline>
+
+        <!-- Chinese AI Media -->
+        <outline text="中文AI媒体" title="Chinese AI Media">
+            <outline type="rss" text="机器之心" title="机器之心"
+                xmlUrl="https://jiqizhixin.com/rss" htmlUrl="https://jiqizhixin.com"/>
+            <outline type="rss" text="量子位" title="量子位"
+                xmlUrl="https://www.qbitai.com/feed" htmlUrl="https://www.qbitai.com"/>
+            <outline type="rss" text="AI科技评论" title="AI科技评论"
+                xmlUrl="https://aitechreview.com/feed" htmlUrl="https://aitechreview.com"/>
+            <outline type="rss" text="新智元" title="新智元"
+                xmlUrl="https://yuanbao.tencent.com/feed" htmlUrl="https://yuanbao.tencent.com"/>
+        </outline>
+
+        <!-- Tech Podcasts (via RSS) -->
+        <outline text="AI Podcasts" title="AI Podcasts">
+            <outline type="rss" text="Lex Fridman" title="Lex Fridman Podcast"
+                xmlUrl="https://lexfridman.com/feed/" htmlUrl="https://lexfridman.com"/>
+            <outline type="rss" text="The Huberman Lab" title="Huberman Lab"
+                xmlUrl="https://www.hubermanlab.com/feed" htmlUrl="https://www.hubermanlab.com"/>
+            <outline type="rss" text="Dwarkesh Patel" title="Dwarkesh Patel Podcast"
+                xmlUrl="https://dwarkeshpatel.com/feed/" htmlUrl="https://dwarkeshpatel.com"/>
+            <outline type="rss" text="No Priors" title="No Priors AI"
+                xmlUrl="https://www.nopriors.ai/feed" htmlUrl="https://www.nopriors.ai"/>
+        </outline>
+
+        <!-- YouTube Channels (via RSS) -->
+        <outline text="YouTube AI Channels" title="AI YouTube">
+            <outline type="rss" text="Two Minute Papers" title="Two Minute Papers"
+                xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCvjgXvBlbQi-yff3yjwJo7w" htmlUrl="https://www.youtube.com/@twominutepapers"/>
+            <outline type="rss" text="Yannic Kilcher" title="Yannic Kilcher"
+                xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCZHmQkGMDMc4C1P7R80RpPw" htmlUrl="https://www.youtube.com/@yannickilcher"/>
+            <outline type="rss" text="Andrej Karpathy" title="Andrej Karpathy"
+                xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCBa659_gUh0MElZ2OHKasKQQ" htmlUrl="https://www.youtube.com/@AndrejKarpathy"/>
+        </outline>
+
+        <!-- AI Newsletters -->
+        <outline text="AI Newsletters" title="AI Newsletters">
+            <outline type="rss" text="Ben's Bites" title="Ben's Bites"
+                xmlUrl="https://bensbites.substack.com/feed" htmlUrl="https://bensbites.substack.com"/>
+            <outline type="rss" text="The Rundown" title="The Rundown AI Newsletter"
+                xmlUrl="https://www.therundown.ai/newsletter" htmlUrl="https://www.therundown.ai/newsletter"/>
+            <outline type="rss" text="TLDR AI" title="TLDR AI"
+                xmlUrl="https://tldr.tech/ai/feed" htmlUrl="https://tldr.tech/ai"/>
+            <outline type="rss" text="AI Summary" title="AI Summary"
+                xmlUrl="https://aisummary.ai/newsletter" htmlUrl="https://aisummary.ai/newsletter"/>
+            <outline type="rss" text="Superhuman AI" title="Superhuman AI"
+                xmlUrl="https://superhuman.ai/feed" htmlUrl="https://superhuman.ai"/>
+        </outline>
+    </body>
+</opml>

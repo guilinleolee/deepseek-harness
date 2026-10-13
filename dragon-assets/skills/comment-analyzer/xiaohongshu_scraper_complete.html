@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书评论爬取工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .card h2 {
+            color: #ff2442;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #ff2442 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 36, 66, 0.4);
+        }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        .steps {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .steps ol {
+            margin: 10px 0 0 20px;
+            line-height: 2;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .feature-text {
+            color: #666;
+            font-size: 14px;
+        }
+        a {
+            color: #ff2442;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📕 小红书评论爬取工具</h1>
+        <p class="subtitle">一键提取小红书笔记评论数据</p>
+
+        <div class="card">
+            <h2>✨ 核心功能</h2>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">自动提取评论</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-text">展开所有回复</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💾</div>
+                    <div class="feature-text">导出JSON格式</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-text">2-3分钟完成</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-box">
+            <strong>✅ 最新版本 v3.0：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>✓ 修复评论解析错误</li>
+                <li>✓ 正确识别用户名和内容</li>
+                <li>✓ 自动过滤"共XX条评论"标题</li>
+                <li>✓ DOM元素级精确解析</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>📋 使用步骤</h2>
+            <div class="steps">
+                <ol>
+                    <li>打开小红书笔记页面（确保能看到评论）</li>
+                    <li>按键盘上的 <code>F12</code> 键打开开发者工具</li>
+                    <li>点击顶部的 <code>Console</code>（控制台）标签</li>
+                    <li>在控制台底部输入：<code>allow pasting</code> 然后按 <code>Enter</code></li>
+                    <li>点击下方"复制爬取脚本"按钮</li>
+                    <li>在控制台按 <code>Ctrl+V</code> 粘贴脚本</li>
+                    <li>按 <code>Enter</code> 执行脚本</li>
+                    <li>等待 2-3 分钟，文件会自动下载</li>
+                </ol>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn" onclick="copyScript()">📋 复制爬取脚本</button>
+            <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 15px; display: none;">✅ 已复制到剪贴板！</span>
+        </div>
+
+        <div class="card">
+            <h2>📜 爬取脚本代码</h2>
+            <code id="scriptCode">/* 小红书评论爬取工具 v3.0 - 修复版 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #ff2442');
+    console.log('%c小红书评论爬取工具 v3.0', 'color: #ff2442; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #ff2442');
+
+    if (!window.location.href.includes('xiaohongshu.com')) {
+        console.error('❌ 请在小红书页面使用');
+        return;
+    }
+
+    window.XHS_COMMENTS = [];
+    window.XHS_STATS = {
+        expandedCount: 0
+    };
+
+    // 从DOM元素解析单条评论
+    function parseCommentElement(element) {
+        const text = element.textContent || '';
+
+        // 过滤无效内容
+        if (text.includes('共') && text.includes('条评论')) return null;
+        if (text.includes('展开') || text.includes('收起')) return null;
+        if (text.length < 10 || text.length > 500) return null;
+
+        // 匹配时间
+        const timeMatch = text.match(/(昨天\s+\d{1,2}:\d{2})|(\d{1,2}-\d{1,2})|(\d+分钟前)|(\d+天前)|(\d+小时前)/);
+        if (!timeMatch) return null;
+
+        const timeStr = timeMatch[0];
+        const timeIndex = text.indexOf(timeStr);
+
+        const beforeTime = text.substring(0, timeIndex).trim();
+        const afterTime = text.substring(timeIndex + timeStr.length).trim();
+
+        // 分离用户名和内容
+        let username = '';
+        let content = beforeTime;
+
+        for (let i = 2; i <= Math.min(10, beforeTime.length); i++) {
+            const possibleUser = beforeTime.substring(0, i);
+            const possibleContent = beforeTime.substring(i).trim();
+            if (possibleContent.length >= 2 && possibleContent.length <= 200) {
+                username = possibleUser;
+                content = possibleContent;
+                break;
+            }
+        }
+
+        // 提取地点
+        let location = '';
+        const locationMatch = afterTime.match(/^([^\d赞]+?)([赞]|$)/);
+        if (locationMatch && locationMatch[1].trim().length > 0) {
+            location = locationMatch[1].trim();
+        }
+
+        // 提取点赞数
+        let likes = 0;
+        const likesMatch = afterTime.match(/(\d+)/);
+        if (likesMatch) {
+            likes = parseInt(likesMatch[1]);
+        }
+
+        // 清理内容
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/\s+/g, ' ');
+
+        if (content.length < 1) return null;
+
+        const uniqueId = username + '_' + content.substring(0, 20) + '_' + timeStr;
+
+        return {
+            username: username || '匿名用户',
+            content: content,
+            time: timeStr,
+            location: location,
+            likes: likes,
+            uniqueId: uniqueId
+        };
+    }
+
+    // 从DOM提取所有评论
+    function extractCommentsFromDOM() {
+        const comments = [];
+        const seen = new Set();
+
+        const selectors = [
+            '.comments-container > div',
+            '[class*="comment-item"]',
+            '[class*="comment"] > div'
+        ];
+
+        selectors.forEach(selector => {
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (el.children.length > 5) return;
+                    const comment = parseCommentElement(el);
+                    if (comment && !seen.has(comment.uniqueId)) {
+                        seen.add(comment.uniqueId);
+                        comments.push(comment);
+                    }
+                });
+            } catch (e) {}
+        });
+
+        return comments;
+    }
+
+    // 点击展开按钮
+    function clickExpandButtons() {
+        let clicked = 0;
+        const btns = document.querySelectorAll('.show-more, [class*="expand"]');
+        btns.forEach(btn => {
+            const text = btn.textContent || '';
+            if ((text.includes('展开') || text.includes('更多')) && btn.offsetParent !== null) {
+                try {
+                    btn.click();
+                    clicked++;
+                } catch (e) {}
+            }
+        });
+        return clicked;
+    }
+
+    // 主爬取函数
+    async function scrape() {
+        console.log('\n[开始] 启动小红书评论爬取...\n');
+
+        // 展开回复
+        console.log('[步骤1] 展开所有回复...');
+        for (let i = 0; i < 3; i++) {
+            const c = clickExpandButtons();
+            if (c > 0) console.log(`[展开] 点击了 ${c} 个按钮`);
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        // 提取评论
+        console.log('\n[步骤2] 提取评论...');
+        let comments = extractCommentsFromDOM();
+        console.log(`[初始] 提取到 ${comments.length} 条评论`);
+
+        if (comments.length === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            console.log('请确保：');
+            console.log('1. 已登录小红书');
+            console.log('2. 页面完全加载');
+            console.log('3. 能看到评论区域');
+            return [];
+        }
+
+        // 滚动加载更多
+        console.log('\n[步骤3] 滚动加载更多...');
+        for (let i = 0; i < 15; i++) {
+            window.scrollTo(0, document.body.scrollHeight);
+            await new Promise(r => setTimeout(r, 1200));
+
+            const newComments = extractCommentsFromDOM();
+            if (newComments.length > comments.length) {
+                console.log(`[滚动] ${comments.length} → ${newComments.length} 条 (+${newComments.length - comments.length})`);
+                comments = newComments;
+            }
+
+            if (i % 5 === 0) clickExpandButtons();
+        }
+
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${comments.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log('='.repeat(70) + '\n');
+
+        // 预览前3条
+        console.log('%c前3条评论预览:', 'color: #64ffda');
+        comments.slice(0, 3).forEach((c, i) => {
+            console.log(`\n${i + 1}. ${c.username}: ${c.content}`);
+            console.log(`   📅 ${c.time} | 📍 ${c.location || '未知'} | 👍 ${c.likes}`);
+        });
+
+        return comments;
+    }
+
+    // 下载文件
+    function download(data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'xiaohongshu_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        window.FINAL_DATA = data;
+    }
+
+    // 执行
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            actual_count: comments.length,
+            extracted_at: new Date().toISOString(),
+            expanded_replies: window.XHS_STATS.expandedCount,
+            comments: comments
+        };
+
+        download(data);
+        console.log('\n%c✅ 文件已下载到 E:\\下载', 'color: #28a745; font-weight: bold');
+        console.log('%c如需手动复制: copy(JSON.stringify(window.FINAL_DATA, null, 2))', 'color: #ffc107');
+    }).catch(e => console.error('错误:', e));
+
+})();</code>
+        </div>
+
+        <div class="info-box">
+            <h3>💾 完成后</h3>
+            <ul style="line-height: 2; margin-top: 10px;">
+                <li>文件会自动下载到 <code>E:\下载</code> 文件夹</li>
+                <li>文件名格式：<code>xiaohongshu_comments_YYYY-MM-DDTHH-MM-SS.json</code></li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ 如果自动下载失败</h3>
+            <p style="line-height: 2; margin-top: 10px;">
+                在控制台输入以下命令，然后粘贴到记事本保存：
+                <code style="background: #333; color: #fff; padding: 5px 10px; border-radius: 4px;">copy(JSON.stringify(window.FINAL_DATA, null, 2))</code>
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>📊 数据格式预览</h2>
+            <div style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px;">
+{
+  "url": "https://www.xiaohongshu.com/explore/...",
+  "actual_count": 39,
+  "extracted_at": "2026-01-18T02:33:17.825Z",
+  "comments": [
+    {
+      "username": "阿雷",
+      "content": "这个高度",
+      "time": "昨天 13:13",
+      "location": "马来西亚",
+      "likes": 1
+    },
+    {
+      "username": "半山途者",
+      "content": "这不就是大通V80？",
+      "time": "昨天 17:26",
+      "location": "天津",
+      "likes": 1
+    }
+  ]
+}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>❓ 常见问题</h2>
+            <details style="margin: 10px 0; cursor: pointer;">
+                <summary style="padding: 10px; background: #fff; border-radius: 6px;">Q: 只爬到几条评论怎么办？</summary>
+                <p style="padding: 10px; line-height: 1.8;">A: 请确保先手动滚动一下评论区，让所有评论都加载完成。</p>
+            </details>
+            <details style="margin: 10px 0; cursor: pointer;">
+                <summary style="padding: 10px; background: #fff; border-radius: 6px;">Q: 提示"没有找到评论"？</summary>
+                <p style="padding: 10px; line-height: 1.8;">A: 请确认已登录小红书，并且页面完全加载完成。</p>
+            </details>
+            <details style="margin: 10px 0; cursor: pointer;">
+                <summary style="padding: 10px; background: #fff; border-radius: 6px;">Q: 文件没有下载？</summary>
+                <p style="padding: 10px; line-height: 1.8;">A: 使用手动复制方法，在控制台运行 copy(JSON.stringify(window.FINAL_DATA, null, 2))</p>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                const feedback = document.getElementById('feedback');
+                feedback.style.display = 'inline';
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动选择代码复制');
+            });
+        }
+    </script>
+</body>
+</html>

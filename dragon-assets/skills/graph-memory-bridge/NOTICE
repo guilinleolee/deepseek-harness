@@ -1,0 +1,100 @@
+graph-memory-bridge
+Copyright 2026 dragon-engine contributors
+
+This product includes software developed by adoresever in the project
+"graph-memory" (https://github.com/adoresever/graph-memory),
+licensed under the MIT License.
+
+================================================================================
+Section 1 — Product Identification
+================================================================================
+
+Product name    : graph-memory-bridge
+Version         : V1.0 (Stage 55.1)
+Mirror date     : 2026-08-26
+Upstream version: v1.6.0-beta.9 (2026)
+License (mirror): MIT (see LICENSE)
+Strategy        : 借鉴档 (Reference adaptation — pure-Python, not source mirror)
+                  Upstream is TypeScript for DSH plugin runtime.
+
+================================================================================
+Section 2 — Upstream Attribution (MIT)
+================================================================================
+
+Original copyright:
+    Copyright (c) 2026 adoresever
+
+Upstream history (per upstream README):
+    - 2026-03-15: Project owner presented at Tsinghua Science Park CLAW event
+    - 2026-04:    Released for OpenClaw + DeepSeek Harness
+    - 130 automated tests pass; DSH 0.1.0-rc.8 local acceptance
+
+Reference list (per MIT § 4 conditions):
+    - 3 node types (TASK / SKILL / EVENT) with typed edges
+      (USED_SKILL / SOLVED_BY / REQUIRES / PATCHES / CONFLICTS_WITH)
+    - Dual-path recall (Exact path via Vector/FTS5 + Generalized path via community summary)
+    - Personalized PageRank (PPR) for graph ranking
+    - Community detection (label propagation)
+    - Rolling checkpoint replacement (freshTurnCount=5 default)
+    - 75% context compression (R7 in 7-turn workflow)
+    - recallTokenBudget (4096 default) for auto-injection
+    - autoRecallMinScore gate (0.6 default, high precision)
+    - 4 gm_* tools (gm_status / gm_search / gm_record / gm_stats)
+    - Idempotent event IDs (HMR/resume safe)
+    - SQLite + FTS5 + optional vector (DashScope/OpenAI/local providers)
+    - Native DSH Cordis plugin lifecycle (no fork)
+
+================================================================================
+Section 3 — Trademark Notice (Upstream Branding)
+================================================================================
+
+"Graph Memory" / "graph-memory" are property of adoresever.
+"DSH" / "DeepSeek Harness" / "deepseek-harness" are property of DeepSeek Co., Ltd.
+"OpenClaw" / "ClawX" are property of their respective owners.
+
+This dragon-engine bridge package is NOT affiliated with, endorsed by, or
+sponsored by adoresever, Tsinghua University, Sina Finance, DeepSeek Co., Ltd.,
+or OpenClaw contributors. Names and venue information document project history only.
+
+Permitted phrasing:
+    - "借鉴 adoresever/graph-memory v1.6.0-beta.9 范式"
+    - "Reference adaptation of graph-memory (MIT)"
+    - "Based on adoresever/graph-memory v1.6.0-beta.9"
+
+Forbidden phrasing:
+    - "清华大学官方认证" / "DSH 官方认证"
+    - Any wording implying endorsement by adoresever, Tsinghua, or DeepSeek
+
+================================================================================
+Section 4 — Bridge Additions (MIT — dragon-engine copyright)
+================================================================================
+
+The following files are ORIGINAL work by dragon-engine contributors,
+licensed under MIT for symmetry with upstream:
+
+    dragon-engine/skills/graph-memory-bridge/SKILL.md
+    dragon-engine/skills/graph-memory-bridge/scripts/*.py
+    dragon-engine/skills/graph-memory-bridge/tests/test_*.py
+    dragon-engine/skills/graph-memory-bridge/LICENSE  (mirror copy)
+    dragon-engine/skills/graph-memory-bridge/NOTICE   (this file)
+    dragon-engine/memory/stage-56-candidates-evaluation.md
+    dragon-engine/memory/stage-55-1-graph-memory.md
+
+Original copyright:
+    Copyright (c) 2026 dragon-engine contributors
+
+================================================================================
+Section 5 — Modification Log
+================================================================================
+
+  2026-08-26  V1.0.0  Stage 55.1 initial 借鉴档
+                       Modified by dragon-engine / 2026-08-26
+                       - extractor.py: 3 node types + 5 edge types + regex启发式
+                       - recaller.py: dual-path (Exact + Generalized)
+                       - ppr.py: Personalized PageRank (50 iterations default)
+                       - gm_tools.py: 4 gm_* tools (status/search/record/stats)
+                       - store.py: SQLite + FTS5 mock
+                       - budget.py: recallTokenBudget (4096 default)
+                       - check.py: 8 PASS health check
+                       - 8 PASS pytest (extractor/recaller/ppr/gm/e2e)
+                       - MIT LICENSE + this NOTICE

@@ -1,3 +1,4 @@
+import { mountWorkingDirectoryFixture } from '../../subagent/tests/working-directory-fixture.ts'
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
@@ -7,6 +8,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import type { SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { MockAdapter } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as mock from './scripted-provider.ts'
 import * as tool from '../src/index.ts'
@@ -96,7 +98,7 @@ describe('dsh-tool-subagent model selection', () => {
       { onStart: () => { starts += 1 } },
     )
     const parent = modelSelectionSetupAgent(ctx)
-    ;(parent as unknown as { options: Agent['options'] }).options = {
+    ;(parent as { options: Agent['options'] }).options = {
       provider: 'deployment-provider',
       model: 'deployment-model',
     }
@@ -112,12 +114,12 @@ describe('dsh-tool-subagent model selection', () => {
     const schema = ctx.tools.schemas(agent).find(entry => entry.name === 'subagent')!
     const props = (schema.parameters as { properties?: Record<string, unknown> }).properties ?? {}
     expect(Object.keys(props).sort()).toEqual([
+      'cwd',
       'description',
       'model',
       'prompt',
       'provider',
       'reasoning_effort',
-      'run_in_background',
     ])
     expect(schema.description).toContain('list_subagent_models')
     expect(ctx.tools.get('list_subagent_models', agent)).toBeDefined()
@@ -134,7 +136,7 @@ describe('dsh-tool-subagent model selection', () => {
     const ctx = await setup({ provider: 'mock' })
     const schema = ctx.tools.schemas().find(entry => entry.name === 'subagent')!
     const props = (schema.parameters as { properties?: Record<string, unknown> }).properties ?? {}
-    expect(Object.keys(props).sort()).toEqual(['description', 'prompt', 'run_in_background'])
+    expect(Object.keys(props).sort()).toEqual(['cwd', 'description', 'prompt'])
     expect(schema.description).not.toContain('list_subagent_models')
     expect(ctx.tools.get('list_subagent_models')).toBeUndefined()
 
@@ -169,7 +171,7 @@ describe('dsh-tool-subagent model selection', () => {
     }, { onStart: (request) => { requests.push(request) } })
     ctx.llm.registerAdapter(['alpha'], new MockAdapter([], REASONING))
     const parent = modelSelectionSetupAgent(ctx)
-    ;(parent as unknown as { options: Agent['options'] }).options = parentWithRoute().options
+    ;(parent as { options: Agent['options'] }).options = parentWithRoute().options
 
     const selected = await callSubagent(ctx, {
       description: 'route work',
@@ -209,7 +211,7 @@ describe('dsh-tool-subagent model selection', () => {
     }, { onStart: (request) => { requests.push(request) } })
     ctx.llm.registerAdapter(['alpha'], new MockAdapter([], REASONING))
     const parent = modelSelectionSetupAgent(ctx)
-    ;(parent as unknown as { options: Agent['options'] }).options = parentWithRoute().options
+    ;(parent as { options: Agent['options'] }).options = parentWithRoute().options
 
     const result = await callSubagent(ctx, {
       description: 'effort work',
@@ -222,7 +224,7 @@ describe('dsh-tool-subagent model selection', () => {
     const inherited = await setup({ provider: 'mock', withModelSelection: true })
     inherited.llm.registerAdapter(['alpha'], new MockAdapter([], REASONING))
     const inheritedParent = modelSelectionSetupAgent(inherited)
-    ;(inheritedParent as unknown as { options: Agent['options'] }).options = parentWithRoute().options
+    ;(inheritedParent as { options: Agent['options'] }).options = parentWithRoute().options
     const inheritedResult = await callSubagent(inherited, {
       description: 'parent effort work',
       prompt: 'do it',
@@ -235,7 +237,7 @@ describe('dsh-tool-subagent model selection', () => {
     const ctx = await setup({ provider: 'mock', withModelSelection: true })
     ctx.llm.registerAdapter(['alpha'], new MockAdapter([], REASONING))
     const parent = modelSelectionSetupAgent(ctx)
-    ;(parent as unknown as { options: Agent['options'] }).options = parentWithRoute().options
+    ;(parent as { options: Agent['options'] }).options = parentWithRoute().options
     const result = await callSubagent(ctx, {
       description: 'same route work',
       prompt: 'do it',
@@ -254,7 +256,7 @@ describe('dsh-tool-subagent model selection', () => {
     }, { onStart: (request) => { requests.push(request) } })
     ctx.llm.registerAdapter(['current-provider'], new MockAdapter([], REASONING))
     const parent = modelSelectionSetupAgent(ctx)
-    ;(parent as unknown as { options: Agent['options'] }).options = {
+    ;(parent as { options: Agent['options'] }).options = {
       provider: 'created-provider', model: 'created-model',
     }
     parent.session.append('request/header', {
@@ -388,8 +390,10 @@ describe('dsh-tool-subagent model selection', () => {
 
   it('rejects selected routes or configured efforts when the LLM service is absent', async () => {
     const ctx = new Context()
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await mountWorkingDirectoryFixture(ctx)
     await ctx.plugin(SubagentRuntime)
     await mock.mountScriptedProvider(ctx, { name: 'mock' })
     await ctx.plugin(tool, {
@@ -401,24 +405,23 @@ describe('dsh-tool-subagent model selection', () => {
       },
     })
 
-    const configured = await callSubagent(ctx, { description: 'configured effort', prompt: 'do it' })
+    const configured = await callSubagent(ctx, { description: 'configured effort', prompt: 'do it' }, { agent: parentWithRoute() })
     expect(configured.isError).toBe(true)
     expect(text(configured)).toContain('`llm` service is unavailable')
 
   })
 
-  it('keeps pure inherited routing usable without an LLM service lookup', async () => {
-    let starts = 0
-    const ctx = new Context()
-    await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime)
-    await ctx.plugin(SubagentRuntime)
-    await mock.mountScriptedProvider(ctx, { name: 'mock', onStart: () => { starts += 1 } })
-    await ctx.plugin(tool, { provider: 'mock' })
+  it('keeps pure inherited routing usable without resolving an LLM route', async () => {
+    const started = vi.fn()
+    const ctx = await setup({ provider: 'mock' }, { onStart: started })
+    const adapter = new MockAdapter([])
+    const resolve = vi.spyOn(adapter, 'resolveModel')
+    ctx.llm.registerAdapter(['alpha'], adapter)
 
     const result = await callSubagent(ctx, { description: 'inherit route', prompt: 'do it' })
     expect(result.isError).toBe(false)
-    expect(starts).toBe(1)
+    expect(started).toHaveBeenCalledOnce()
+    expect(resolve).not.toHaveBeenCalled()
   })
 
   it('warns that changing a fork route can lose inherited-prefix reuse', async () => {

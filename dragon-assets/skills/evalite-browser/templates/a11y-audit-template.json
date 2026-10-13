@@ -1,0 +1,20 @@
+{
+  "name": "full-a11y-audit",
+  "url": "http://localhost:3000/",
+  "description": "Comprehensive accessibility audit",
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [],
+  "assertions": [],
+  "a11y": {
+    "enabled": true,
+    "standard": "WCAG2AA",
+    "rules": [],
+    "include_iframes": true,
+    "include_shadow_dom": true,
+    "report_format": "html"
+  }
+}

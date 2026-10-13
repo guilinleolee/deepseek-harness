@@ -1,0 +1,54 @@
+apocdata-bridge
+Copyright 2026 天龙引擎 dragon-engine (modified work)
+
+This product includes software developed by ApocData (天启至数™)
+(https://github.com/ApocData/ApocData-skill), licensed under the Apache
+License, Version 2.0 (the "License"). You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+─────────────────────────────────────────────
+上游归属声明（upstream attribution）
+─────────────────────────────────────────────
+
+Powered by ApocData/ApocData-skill (天启至数™) V1.x (Apache-2.0)
+Copyright 2026 ApocData (https://github.com/ApocData/ApocData-skill)
+Source: https://github.com/ApocData/ApocData-skill
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+本项目 (apocdata-bridge V1.0) 修改：
+1. 包装天启至数™ 公开 API 为天龙 SKILL.md 形式
+2. 新增 apocdata_get() 统一节流入口
+3. 新增中文 LLM Prompt 模板
+4. 新增 4 类底稿模板
+5. 新增 em_apocdata_check.py 质检
+
+Modified by 天龙引擎 dragon-engine, 2026-07-31.
+
+This product includes software developed by ApocData
+(https://github.com/ApocData/ApocData-skill).
+
+─────────────────────────────────────────────
+商标声明（Trademark notice, Apache-2.0 §6）
+─────────────────────────────────────────────
+
+"ApocData" 与 "天启至数™" 是 ApocData 的商标。本 skill ("apocdata-bridge")
+为天龙引擎基于该项目的二次包装，**非**上游官方背书 / 隶属关系。
+未经授权不得使用上游商标暗示背书。
+
+─────────────────────────────────────────────
+第三方依赖声明（Third-party, 不受 Apache-2.0 约束）
+─────────────────────────────────────────────
+
+本 skill 调用以下第三方依赖，**这些依赖的协议不受 Apache-2.0 保护**：
+
+- ApocData (天启至数™) 公开 API — Apache-2.0
+- 中文 LLM API（Qwen / DeepSeek / Kimi / OpenAI）—— 由用户配置
+- simonlin1212/a-stock-data V3.4.0 —— Apache-2.0（互补协同）
+
+合规边界：所有数据**仅作投研底稿用**，prompt 不外发，最终投资决策由人类负责人确认。

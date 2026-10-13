@@ -1,0 +1,159 @@
+# GBrain Entity Enrich Configuration
+# 实体充实引擎配置
+
+enrichment:
+  tiers:
+    tier1:
+      name: "Inner Circle"
+      criteria: "direct_mention OR recent_active OR business_critical"
+      api_calls:
+        - perplexity
+        - linkedin
+        - twitter
+      update_frequency: "on_new_info"
+      max_api_calls: 5
+
+    tier2:
+      name: "Middle Ring"
+      criteria: "occasional_mention OR indirect_relation"
+      api_calls:
+        - web_search
+        - twitter_summary
+      update_frequency: "weekly"
+      max_api_calls: 2
+
+    tier3:
+      name: "Outer Ring"
+      criteria: "single_mention OR background_info"
+      api_calls: []
+      update_frequency: "on_demand"
+
+  templates:
+    person: "prompts/person_template.md"
+    company: "prompts/company_template.md"
+    event: "prompts/event_template.md"
+    concept: "prompts/concept_template.md"
+
+  templates_dir: "prompts"
+
+  bulk_rules:
+    test_batch: 5
+    batch_size: 20
+    checkpoint_interval: 10
+    throttle_delay: 2
+    retry_attempts: 3
+    fallback_to_minimal: true
+    error_log: "logs/enrich_errors.json"
+
+  # 原始数据保存
+  raw_data:
+    enabled: true
+    path: "raw/enrich/{date}"
+    format: "json"
+    max_size_mb: 10
+
+# 天龙引擎集成
+tianlong_integration:
+  attached_role: "01-investigator"
+  triggers:
+    - "enrich"
+    - "create person page"
+    - "who is this person"
+    - "look up this company"
+    - "充实"
+    - "人物画像"
+    - "公司信息"
+    - "实体充实"
+  upstream:
+    - gbrain-hybrid-search
+    - gbrain-multimodal-ingest
+  downstream:
+    - gbrain-hybrid-search     # 充实后可供检索
+    - gbrain-daily-briefing    # 充实结果进入简报
+
+  # 链接铁律
+  iron_law:
+    enforced: true
+    violation_warning: true
+    auto_link_on_write: true
+    bidirectional_required: true
+    link_check_interval: 100  # 每100条检查一次
+
+# API配置
+apis:
+  perplexity:
+    enabled: true
+    priority: 1
+    timeout: 60
+    max_results: 10
+
+  linkedin:
+    enabled: true
+    priority: 3
+    timeout: 30
+    auth_required: true
+    rate_limit: 10
+
+  twitter:
+    enabled: false  # 默认禁用
+    priority: 4
+    timeout: 20
+    auth_required: true
+    rate_limit: 15
+
+  web_search:
+    enabled: true
+    priority: 2
+    timeout: 30
+    max_results: 5
+
+# 层级判定规则
+tier_assignment:
+  # 直接提及: 一次对话中提及3次以上
+  direct_mention_threshold: 3
+
+  # 最近活跃: 7天内有更新
+  recent_active_days: 7
+
+  # 业务相关: 属于当前项目/任务的直接相关方
+  business_critical_keywords:
+    - "co-founder"
+    - "cto"
+    - "ceo"
+    - "founder"
+    - "核心团队"
+    - "决策者"
+    - "直接负责"
+
+# 实体识别
+entity_recognition:
+  types:
+    - person
+    - company
+    - event
+    - concept
+    - technology
+    - product
+  auto_dedup: true
+  fuzzy_match: true
+  fuzzy_threshold: 0.85
+
+# 输出格式
+output:
+  format: "markdown"
+  include_toc: true
+  include_relations: true
+  include_network: true
+  include_contact: false  # 仅Tier 1且获得授权时
+  frontmatter:
+    enabled: true
+    fields: ["title", "summary", "tags", "created", "updated", "confidence", "tier"]
+
+# 知识库路径
+knowledge_base:
+  root: "~/.claude/gbrain"
+  entities_dir: "entities"
+  person_dir: "entities/person"
+  company_dir: "entities/company"
+  event_dir: "entities/event"
+  raw_dir: "raw/enrich"

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>AI News Radar - 自定义信息源</title>
+        <dateCreated>2026-05-13</dateCreated>
+        <ownerName>天龙引擎</ownerName>
+        <ownerEmail>dragon@tianlong.ai</ownerEmail>
+        <description>用户自定义AI信息源，可在此添加个人关注的信息源</description>
+    </head>
+    <body>
+        <!-- GitHub Releases -->
+        <outline text="GitHub Releases" title="GitHub Releases">
+            <outline type="atom" text="OpenAI" title="OpenAI GitHub"
+                xmlUrl="https://github.com/openai/openai-cookbook/commits/main.atom" htmlUrl="https://github.com/openai"/>
+            <outline type="atom" text="Anthropic" title="Anthropic GitHub"
+                xmlUrl="https://github.com/anthropics/anthropic-cookbook/commits/main.atom" htmlUrl="https://github.com/anthropics"/>
+            <outline type="atom" text="Hugging Face" title="Hugging Face GitHub"
+                xmlUrl="https://github.com/huggingface/transformers/releases.atom" htmlUrl="https://github.com/huggingface/transformers"/>
+            <outline type="atom" text="LangChain" title="LangChain GitHub"
+                xmlUrl="https://github.com/langchain-ai/langchain/releases.atom" htmlUrl="https://github.com/langchain-ai/langchain"/>
+            <outline type="atom" text="Llama.cpp" title="Llama.cpp Releases"
+                xmlUrl="https://github.com/ggerganov/llama.cpp/releases.atom" htmlUrl="https://github.com/ggerganov/llama.cpp"/>
+            <outline type="atom" text="Ollama" title="Ollama Releases"
+                xmlUrl="https://github.com/ollama/ollama/releases.atom" htmlUrl="https://github.com/ollama/ollama"/>
+            <outline type="atom" text="vLLM" title="vLLM Releases"
+                xmlUrl="https://github.com/vllm-project/vllm/releases.atom" htmlUrl="https://github.com/vllm-project/vllm"/>
+            <outline type="atom" text="AutoGen" title="Microsoft AutoGen"
+                xmlUrl="https://github.com/microsoft/autogen/releases.atom" htmlUrl="https://github.com/microsoft/autogen"/>
+        </outline>
+
+        <!-- Hacker News -->
+        <outline text="Hacker News" title="Hacker News">
+            <outline type="rss" text="Top Stories" title="HN Top Stories"
+                xmlUrl="https://hnrss.org/frontpage" htmlUrl="https://news.ycombinator.com"/>
+            <outline type="rss" text="Best Stories" title="HN Best Stories"
+                xmlUrl="https://hnrss.org/best" htmlUrl="https://news.ycombinator.com/best"/>
+            <outline type="rss" text="Newest Stories" title="HN Newest"
+                xmlUrl="https://hnrss.org/newest" htmlUrl="https://news.ycombinator.com/newest"/>
+        </outline>
+
+        <!-- Reddit AI Communities -->
+        <outline text="Reddit" title="Reddit AI Communities">
+            <outline type="rss" text="r/MachineLearning" title="r/MachineLearning"
+                xmlUrl="https://www.reddit.com/r/MachineLearning.rss" htmlUrl="https://www.reddit.com/r/MachineLearning"/>
+            <outline type="rss" text="r/Artificial" title="r/Artificial"
+                xmlUrl="https://www.reddit.com/r/Artificial.rss" htmlUrl="https://www.reddit.com/r/Artificial"/>
+            <outline type="rss" text="r/LocalLLaMA" title="r/LocalLLaMA"
+                xmlUrl="https://www.reddit.com/r/LocalLLaMA.rss" htmlUrl="https://www.reddit.com/r/LocalLLaMA"/>
+            <outline type="rss" text="r/ChatGPT" title="r/ChatGPT"
+                xmlUrl="https://www.reddit.com/r/ChatGPT.rss" htmlUrl="https://www.reddit.com/r/ChatGPT"/>
+            <outline type="rss" text="r/singularity" title="r/singularity"
+                xmlUrl="https://www.reddit.com/r/singularity.rss" htmlUrl="https://www.reddit.com/r/singularity"/>
+        </outline>
+
+        <!-- Twitter/X Lists (via Nitter/Twititter RSS) -->
+        <outline text="Twitter/X Lists" title="Twitter AI Accounts">
+            <outline type="atom" text="AI Researchers" title="AI Researchers Feed"
+                xmlUrl="https://nitter.net/i/lists/ai-researchers" htmlUrl="https://twitter.com"/>
+            <outline type="atom" text="AI Companies" title="AI Companies Feed"
+                xmlUrl="https://nitter.net/i/lists/ai-companies" htmlUrl="https://twitter.com"/>
+
+            <!-- Individual AI Researchers -->
+            <outline text="AI Researchers" title="AI Researchers">
+                <outline type="atom" text="Yann LeCun" title="Yann LeCun"
+                    xmlUrl="https://nitter.net/ylecun" htmlUrl="https://twitter.com/ylecun"/>
+                <outline type="atom" text="Jim Fan" title="Jim Fan (NVIDIA)"
+                    xmlUrl="https://nitter.net/DrJimFan" htmlUrl="https://twitter.com/DrJimFan"/>
+                <outline type="atom" text="Andrej Karpathy" title="Andrej Karpathy"
+                    xmlUrl="https://nitter.net/karpathy" htmlUrl="https://twitter.com/karpathy"/>
+                <outline type="atom" text="Jim Deng" title="Jim Deng (xAI)"
+                    xmlUrl="https://nitter.net/jimdeng_" htmlUrl="https://twitter.com/jimdeng_"/>
+                <outline type="atom" text="Sam Altman" title="Sam Altman"
+                    xmlUrl="https://nitter.net/sama" htmlUrl="https://twitter.com/sama"/>
+                <outline type="atom" text="Dario Amodei" title="Dario Amodei"
+                    xmlUrl="https://nitter.net/dabor_amodei" htmlUrl="https://twitter.com/dabor_amodei"/>
+                <outline type="atom" text="Demis Hassabis" title="Demis Hassabis"
+                    xmlUrl="https://nitter.net/demishassabis" htmlUrl="https://twitter.com/demishassabis"/>
+                <outline type="atom" text="Andrew Ng" title="Andrew Ng"
+                    xmlUrl="https://nitter.net/AndrewYNg" htmlUrl="https://twitter.com/AndrewYNg"/>
+                <outline type="atom" text="Fei-Fei Li" title="Fei-Fei Li"
+                    xmlUrl="https://nitter.net/drfeifei" htmlUrl="https://twitter.com/drfeifei"/>
+                <outline type="atom" text="François Chollet" title="François Chollet"
+                    xmlUrl="https://nitter.net/fchollet" htmlUrl="https://twitter.com/fchollet"/>
+                <outline type="atom" text="Jim Fan" title="Jim Fan"
+                    xmlUrl="https://nitter.net/DrJimFan" htmlUrl="https://twitter.com/DrJimFan"/>
+            </outline>
+        </outline>
+
+        <!-- Tech Company AI Blogs -->
+        <outline text="Tech Company AI" title="Tech Company AI">
+            <outline type="rss" text="Apple ML Blog" title="Apple ML"
+                xmlUrl="https://machinelearning.apple.com/feed.xml" htmlUrl="https://machinelearning.apple.com"/>
+            <outline type="rss" text="Spotify Engineering" title="Spotify Engineering"
+                xmlUrl="https://engineering.atspotify.com/feed/" htmlUrl="https://engineering.atspotify.com"/>
+            <outline type="rss" text="Netflix Tech Blog" title="Netflix"
+                xmlUrl="https://netflixtechblog.com/feed" htmlUrl="https://netflixtechblog.com"/>
+            <outline type="rss" text="Airbnb Engineering" title="Airbnb"
+                xmlUrl="https://airbnb.engineering/feed" htmlUrl="https://airbnb.engineering"/>
+            <outline type="rss" text="LinkedIn Engineering" title="LinkedIn"
+                xmlUrl="https://engineering.linkedin.com/blog/rss" htmlUrl="https://engineering.linkedin.com"/>
+            <outline type="rss" text="Stripe Engineering" title="Stripe"
+                xmlUrl="https://stripe.com/blog/feed" htmlUrl="https://stripe.com/blog"/>
+        </outline>
+
+        <!-- Custom User Feeds (模板 - 用户可在此添加自己的信息源) -->
+        <outline text="自定义信息源" title="User Custom Feeds">
+            <outline type="rss" text="添加您的自定义RSS源" title="Custom Feed Template"
+                xmlUrl="" htmlUrl="">
+                <outline text="示例: https://example.com/rss" title="替换为您的RSS源URL"/>
+            </outline>
+        </outline>
+    </body>
+</opml>

@@ -1,0 +1,261 @@
+[
+  {
+    "skill": "claude-api",
+    "dir": "C:/Users/li/.claude/skills\\claude-api",
+    "md_path": "C:/Users/li/.claude/skills\\claude-api\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "api-design",
+    "dir": "C:/Users/li/.claude/skills\\api-design",
+    "md_path": "C:/Users/li/.claude/skills\\api-design\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "message": "Updated: added github_hash=4e66b2882da9afb9747468b08a253ca2f09c85f3"
+  },
+  {
+    "skill": "canary-watch",
+    "dir": "C:/Users/li/.claude/skills\\canary-watch",
+    "md_path": "C:/Users/li/.claude/skills\\canary-watch\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code/tree/main/skills/canary-watch",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code/tree/main/skills/canary-watch",
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "message": "Updated: added github_hash=4e66b2882da9afb9747468b08a253ca2f09c85f3"
+  },
+  {
+    "skill": "bilibili-operations",
+    "dir": "C:/Users/li/.claude/skills\\bilibili-operations",
+    "md_path": "C:/Users/li/.claude/skills\\bilibili-operations\\SKILL.md",
+    "github_url": "https://github.com/jackwener/bilibili-cli",
+    "github_repo": "jackwener/bilibili-cli",
+    "all_urls": [
+      "https://github.com/jackwener/bilibili-cli",
+      "https://github.com/Nemo2011/bilibili-api"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "dbe28551930df43b633baa52e9639832aeada967",
+    "message": "Updated: added github_hash=dbe28551930df43b633baa52e9639832aeada967"
+  },
+  {
+    "skill": "benchmark",
+    "dir": "C:/Users/li/.claude/skills\\benchmark",
+    "md_path": "C:/Users/li/.claude/skills\\benchmark\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code/tree/main/skills/benchmark",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code/tree/main/skills/benchmark",
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "message": "Updated: added github_hash=4e66b2882da9afb9747468b08a253ca2f09c85f3"
+  },
+  {
+    "skill": "agent-harness-construction",
+    "dir": "C:/Users/li/.claude/skills\\agent-harness-construction",
+    "md_path": "C:/Users/li/.claude/skills\\agent-harness-construction\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code/tree/main/skills/agent-harness-construction",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code/tree/main/skills/agent-harness-construction",
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "message": "Updated: added github_hash=4e66b2882da9afb9747468b08a253ca2f09c85f3"
+  },
+  {
+    "skill": "caveman-review",
+    "dir": "C:/Users/li/.claude/skills\\caveman-review",
+    "md_path": "C:/Users/li/.claude/skills\\caveman-review\\SKILL.md",
+    "github_url": "https://github.com/JuliusBrussee/caveman",
+    "github_repo": "JuliusBrussee/caveman",
+    "all_urls": [
+      "https://github.com/JuliusBrussee/caveman"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "84cc3c14fa1e10182adaced856e003406ccd250d",
+    "message": "Updated: added github_hash=84cc3c14fa1e10182adaced856e003406ccd250d"
+  },
+  {
+    "skill": "claude-mem",
+    "dir": "C:/Users/li/.claude/skills\\claude-mem",
+    "md_path": "C:/Users/li/.claude/skills\\claude-mem\\SKILL.md",
+    "github_url": "https://github.com/thedotmack/claude-mem",
+    "github_repo": "thedotmack/claude-mem",
+    "all_urls": [
+      "https://github.com/thedotmack/claude-mem"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "8ace1d9c84e5ce455356cf852c370ea625e3b1d1",
+    "message": "Updated: added github_hash=8ace1d9c84e5ce455356cf852c370ea625e3b1d1"
+  },
+  {
+    "skill": "context-budget",
+    "dir": "C:/Users/li/.claude/skills\\context-budget",
+    "md_path": "C:/Users/li/.claude/skills\\context-budget\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code/tree/main/skills/context-budget",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code/tree/main/skills/context-budget",
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "openspace-community-bridge",
+    "dir": "C:/Users/li/.claude/skills\\openspace-community-bridge",
+    "md_path": "C:/Users/li/.claude/skills\\openspace-community-bridge\\SKILL.md",
+    "github_url": "https://github.com/your-org/dragon-engine",
+    "github_repo": "your-org/dragon-engine",
+    "all_urls": [
+      "https://github.com/your-org/dragon-engine"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "scrapy-anti-ban",
+    "dir": "C:/Users/li/.claude/skills\\scrapy-anti-ban",
+    "md_path": "C:/Users/li/.claude/skills\\scrapy-anti-ban\\SKILL.md",
+    "github_url": "https://github.com/topics/anti-crawler",
+    "github_repo": "topics/anti-crawler",
+    "all_urls": [
+      "https://github.com/topics/anti-crawler"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "enterprise-agent-ops",
+    "dir": "C:/Users/li/.claude/skills\\enterprise-agent-ops",
+    "md_path": "C:/Users/li/.claude/skills\\enterprise-agent-ops\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code/tree/main/skills/enterprise-agent-ops",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code/tree/main/skills/enterprise-agent-ops",
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "4e66b2882da9afb9747468b08a253ca2f09c85f3",
+    "message": "Updated: added github_hash=4e66b2882da9afb9747468b08a253ca2f09c85f3"
+  },
+  {
+    "skill": "shadcn-blocks-generator",
+    "dir": "C:/Users/li/.claude/skills\\shadcn-blocks-generator",
+    "md_path": "C:/Users/li/.claude/skills\\shadcn-blocks-generator\\SKILL.md",
+    "github_url": "https://github.com/shadcn-ui/ui",
+    "github_repo": "shadcn-ui/ui",
+    "all_urls": [
+      "https://github.com/shadcn-ui/ui"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "supermemory-memory",
+    "dir": "C:/Users/li/.claude/skills\\supermemory-memory",
+    "md_path": "C:/Users/li/.claude/skills\\supermemory-memory\\SKILL.md",
+    "github_url": "https://github.com/supermemoryai/supermemory",
+    "github_repo": "supermemoryai/supermemory",
+    "all_urls": [
+      "https://github.com/supermemoryai/supermemory"
+    ],
+    "has_github_repo_fm": false,
+    "status": "success",
+    "remote_hash": "210fceb74ba3243fd5931c8c3ceacfc33d8057f5",
+    "message": "Updated: added github_hash=210fceb74ba3243fd5931c8c3ceacfc33d8057f5"
+  },
+  {
+    "skill": "follow-builders",
+    "dir": "C:/Users/li/.claude/skills\\follow-builders",
+    "md_path": "C:/Users/li/.claude/skills\\follow-builders\\SKILL.md",
+    "github_url": "https://github.com/zarazhangrui/follow-builders.",
+    "github_repo": "zarazhangrui/follow-builders.",
+    "all_urls": [
+      "https://github.com/zarazhangrui/follow-builders."
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "database-migrations",
+    "dir": "C:/Users/li/.claude/skills\\database-migrations",
+    "md_path": "C:/Users/li/.claude/skills\\database-migrations\\SKILL.md",
+    "github_url": "https://github.com/affaan-m/everything-claude-code",
+    "github_repo": "affaan-m/everything-claude-code",
+    "all_urls": [
+      "https://github.com/affaan-m/everything-claude-code"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "nemo-claw-sandbox",
+    "dir": "C:/Users/li/.claude/skills\\nemo-claw-sandbox",
+    "md_path": "C:/Users/li/.claude/skills\\nemo-claw-sandbox\\SKILL.md",
+    "github_url": "https://github.com/NVIDIA/AgentToolkit",
+    "github_repo": "NVIDIA/AgentToolkit",
+    "all_urls": [
+      "https://github.com/NVIDIA/AgentToolkit"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  },
+  {
+    "skill": "review-analyzer-skill",
+    "dir": "C:/Users/li/.claude/skills\\review-analyzer-skill",
+    "md_path": "C:/Users/li/.claude/skills\\review-analyzer-skill\\SKILL.md",
+    "github_url": "https://github.com/buluslan/review-analyzer",
+    "github_repo": "buluslan/review-analyzer",
+    "all_urls": [
+      "https://github.com/buluslan/review-analyzer",
+      "https://github.com/buluslan/review-analyzer-skill"
+    ],
+    "has_github_repo_fm": false,
+    "status": "failed",
+    "remote_hash": null,
+    "message": "Could not reach remote repo"
+  }
+]

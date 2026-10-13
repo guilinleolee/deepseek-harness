@@ -1,0 +1,42 @@
+// Package api - {{tag_title}} API methods for {{api_name}}
+// Generated from OpenAPI spec: {{api_version}}
+package api
+
+import (
+	"context"
+	"encoding/json"
+)
+
+// ============================================================================
+// {{tag_title}} API Methods
+// {{tag_description}}
+// ============================================================================
+
+{{#each endpoints}}
+// {{summary}}{{#if description}}
+// {{description}}{{/if}}
+func (c *Client) {{pascal_operation_id}}(ctx context.Context{{#if path_params}}, {{#each path_params}}{{snake_name}} {{go_type}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}{{#if query_params}}, params *{{pascal_tag}}QueryParams{{/if}}{{#if has_request_body}}, body *{{pascal_tag}}Request{{/if}}) (json.RawMessage, error) {
+	path := "{{path}}"
+{{#each path_params}}
+	path = strings.ReplaceAll(path, "{{original}}", {{snake_name}})
+{{/each}}
+{{#if query_params}}
+	query := make(map[string]interface{})
+{{#each query_params}}
+	if params != nil && params.{{pascal_name}} != {{zero_value}} {
+		query["{{name}}"] = params.{{pascal_name}}
+	}
+{{/each}}
+{{/if}}
+{{#if has_request_body}}
+	data := body
+{{/if}}
+{{#if has_request_body}}
+	return c.doRequest(ctx, http.Method{{pascal_method}}, path{{#if query_params}}, query{{/if}}, data)
+{{else}}
+	return c.doRequest(ctx, http.Method{{pascal_method}}, path{{#if query_params}}, query{{/if}}, nil)
+{{/if}}
+}
+{{#unless @last}}
+
+{{/unless}}{{/each}}

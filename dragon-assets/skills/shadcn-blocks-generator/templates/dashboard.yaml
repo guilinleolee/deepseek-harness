@@ -1,0 +1,69 @@
+---
+name: dashboard
+description: 仪表板页面预设 (Header + Stats + Charts + Table)
+blocks:
+  - dashboard-header
+  - dashboard-stats
+  - dashboard-charts
+  - dashboard-table
+---
+
+# 仪表板预设
+
+快速构建数据仪表板页面。
+
+## 包含区块
+
+1. **Dashboard Header** - 导航栏+用户信息
+2. **Dashboard Stats** - KPI数据卡片
+3. **Dashboard Charts** - Recharts图表区
+4. **Dashboard Table** - TanStack数据表格
+
+## 使用方式
+
+```bash
+# CLI 方式
+npx shadcn-ui-blocks preset dashboard
+
+# 自然语言方式
+[@设计师] 创建一个数据仪表板页面
+[@构建师] 使用 dashboard 预设生成页面
+```
+
+## 页面结构
+
+```tsx
+// app/dashboard/page.tsx
+import { DashboardHeader } from "@/components/blocks/dashboard-header"
+import { DashboardStats } from "@/components/blocks/dashboard-stats"
+import { DashboardCharts } from "@/components/blocks/dashboard-charts"
+import { DashboardTable } from "@/components/blocks/dashboard-table"
+
+export default function DashboardPage() {
+  return (
+    <main className="min-h-screen bg-muted/50">
+      <DashboardHeader />
+      <div className="container mx-auto px-4 py-6">
+        <DashboardStats />
+        <DashboardCharts />
+        <DashboardTable />
+      </div>
+    </main>
+  )
+}
+```
+
+## 依赖组件
+
+```bash
+# 安装必要的 shadcn 组件
+npx shadcn@latest add card button badge table tabs select
+npx shadcn@latest add chart  # Recharts 集成
+```
+
+## 预期效果
+
+- 仪表板开发时间: **-70%**
+- 数据可视化自动集成
+- 响应式自动适配
+- 暗色模式支持

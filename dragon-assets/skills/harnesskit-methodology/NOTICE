@@ -1,0 +1,33 @@
+RealZST/HarnessKit
+Copyright 2026 RealZST Authors
+
+This product includes software developed by RealZST (https://github.com/RealZST).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=========================================================================
+Modified by dragon-engine / 2026-08-26
+Stage 47.3 边界 GO 借鉴档 (Apache-2.0 · 414⭐ · 5 个月迭代)
+=========================================================================
+
+The dragon-engine adaptation borrows 4 methodologies from HarnessKit:
+
+  ① Skill manager (unified frontmatter schema + enabled/disabled flag)
+  ② MCP registry (transport = stdio/http/sse + OAuth + status snapshot)
+  ③ Hook chain (pre/post ToolUse decision chain coherence)
+  ④ Config sync (inventory vs registry bidirectional diff)
+
+The dragon-engine integration is licensed under the Apache License, Version 2.0
+(inherited from HarnessKit upstream). Source-of-truth: dragon-engine skills/harnesskit-methodology/.
+
+No modifications to the upstream HarnessKit LICENSE file bytes (verbatim Apache-2.0 11.4 KB).

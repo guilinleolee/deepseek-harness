@@ -1,0 +1,6 @@
+{
+  "_schema": "cheat-on-content/twitter/tweet-metrics v1.0",
+  "_description": "Twitter推文指标缓存 - Cheat-on-Content评分数据源",
+  "_updated": "2026-05-25",
+  "tweets": []
+}

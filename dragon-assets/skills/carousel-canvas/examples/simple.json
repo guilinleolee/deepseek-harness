@@ -1,0 +1,33 @@
+{
+  "title": "5个高效习惯",
+  "subtitle": "职场人必看",
+  "platform": "douyin",
+  "slides": [
+    {
+      "heading": "早起规划",
+      "body": "每天提前30分钟起床，制定当日计划",
+      "template": "content_centered"
+    },
+    {
+      "heading": "番茄工作法",
+      "body": "25分钟专注工作，5分钟休息",
+      "template": "content_centered"
+    },
+    {
+      "heading": "定期复盘",
+      "body": "每周五回顾本周工作，总结改进",
+      "template": "content_centered"
+    },
+    {
+      "heading": "保持学习",
+      "body": "每天阅读30分钟，持续提升",
+      "template": "content_centered"
+    }
+  ],
+  "cta": {
+    "title": "关注我",
+    "subtitle": "获取更多职场干货",
+    "action": "点击关注"
+  },
+  "handle": "@youraccount"
+}

@@ -1,0 +1,133 @@
+{
+  "blogger_id": "outdoor_lily",
+  "blogger_name": "户外 Lily",
+  "matched_template": "旅行",
+  "language": "zh",
+  "dialect": "普通话",
+  "_meta": {
+    "schema_version": "8-dim-v2.0",
+    "created_at": "2026-07-18",
+    "source": "seed",
+    "consent": {
+      "voice_consent_file": "voice_consent.txt",
+      "ip_consent_file": "ip_consent.txt",
+      "consent_expires_at": "2027-01-14T21:46:26",
+      "watermark_enabled": true
+    }
+  },
+  "dim_1_timbre": {
+    "label": "女声 · 中音",
+    "notes": ""
+  },
+  "dim_2_speed": {
+    "label": "中等",
+    "chars_per_sec": 4.8,
+    "notes": ""
+  },
+  "dim_3_dialect": {
+    "detected": "普通话",
+    "notes": ""
+  },
+  "dim_4_emotion": {
+    "label": "活力 + 治愈",
+    "notes": ""
+  },
+  "dim_5_prosody": {
+    "f0_mean_hz": 200.0,
+    "notes": ""
+  },
+  "dim_6_vocabulary": {
+    "top_words": [
+      "徒步",
+      "星空",
+      "清晨",
+      "海拔",
+      "露营",
+      "大自然"
+    ],
+    "forbidden_words": [
+      "内卷"
+    ]
+  },
+  "dim_7_writing_style": {
+    "style_id": "lily-writer-v1.0",
+    "style_name": "Lily 风",
+    "mother_formula": "用身体丈量世界",
+    "voice_keywords": [
+      "徒步",
+      "星空",
+      "海拔",
+      "清晨",
+      "露营",
+      "大自然"
+    ],
+    "metaphor_library": [
+      "徒步/登山",
+      "露营/星空",
+      "日出/清晨",
+      "溪流/森林"
+    ],
+    "emotion_library": [
+      "治愈",
+      "活力",
+      "敬畏",
+      "安静"
+    ],
+    "rhythm_tools": [
+      "场景特写",
+      "感官描写",
+      "场景切换"
+    ],
+    "knowledge_output": "现场感 + 身体感知",
+    "closing_patterns": [
+      "留白",
+      "行动呼吁"
+    ],
+    "self_check_4_layer": {
+      "L1_hard_rules": "零踩雷词",
+      "L2_style_consistency": "场景 + 感官",
+      "L3_content_quality": "具体地点/海拔",
+      "L4_living_sense": "治愈系活力"
+    }
+  },
+  "dim_8_ip_visual": {
+    "anchor": {
+      "image_path": "./photos/photo_1.jpg",
+      "description": "户外 Lily"
+    },
+    "spec": {
+      "style_keywords": [
+        "治愈",
+        "自然",
+        "活力"
+      ],
+      "color_palette": [
+        "#1a2e1f",
+        "#f5f1e8",
+        "#ece7da",
+        "#253d2c"
+      ],
+      "color_palette_mood": "森林绿 · 治愈自然",
+      "line_thickness": "medium",
+      "composition": "户外场景"
+    },
+    "extensions": {
+      "actions": [
+        "行走",
+        "呼吸",
+        "仰望"
+      ],
+      "expressions": [
+        "宁静",
+        "活力"
+      ]
+    }
+  },
+  "ip_consent_summary": {
+    "voice_authorized": true,
+    "ip_image_authorized": true,
+    "scope": "全平台",
+    "commercial_use": true,
+    "expires_at": "2027-01-14"
+  }
+}

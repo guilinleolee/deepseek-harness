@@ -1,0 +1,11 @@
+{
+  "last_updated": "2026-01-26T12:00:00Z",
+  "preferences": [
+    "优先使用 uv 或 pip 自动处理依赖关系",
+    "生成的技能应保持目录结构简洁，只包含核心封装逻辑"
+  ],
+  "fixes": [
+    "处理非标准 README.md 文件名（如 readme.md）的兼容性"
+  ],
+  "custom_prompts": "在包装 GitHub 仓库时，始终检查 README 以确定最合适的入口点。"
+}

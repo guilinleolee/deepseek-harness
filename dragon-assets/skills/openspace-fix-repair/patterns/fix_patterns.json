@@ -1,0 +1,92 @@
+{
+  "patterns": [
+    {
+      "pattern_id": "py_module_not_found_001",
+      "error_pattern": "ModuleNotFoundError: No module named '([^']+)'",
+      "error_category": "dependency",
+      "fix_template": "pip install {module_name}",
+      "validation": "python -c 'import {module_name}'",
+      "success_rate": 0.95,
+      "times_applied": 342,
+      "author": "open-space-cloud"
+    },
+    {
+      "pattern_id": "py_import_error_001",
+      "error_pattern": "ImportError: Cannot import name '([^']+)'",
+      "error_category": "dependency",
+      "fix_template": "pip install --upgrade {package}",
+      "validation": "python -c 'from {package} import {name}'",
+      "success_rate": 0.88,
+      "times_applied": 156,
+      "author": "open-space-cloud"
+    },
+    {
+      "pattern_id": "api_rate_limit_001",
+      "error_pattern": "RateLimitExceeded|429.*Too Many Requests",
+      "error_category": "api",
+      "fix_template": "sleep {backoff} && retry",
+      "validation": null,
+      "success_rate": 0.92,
+      "times_applied": 89,
+      "author": "open-space-cloud"
+    },
+    {
+      "pattern_id": "api_timeout_001",
+      "error_pattern": "timeout|TimeoutError|TimedOut",
+      "error_category": "api",
+      "fix_template": "timeout={new_timeout}",
+      "validation": null,
+      "success_rate": 0.85,
+      "times_applied": 234,
+      "author": "open-space-cloud"
+    },
+    {
+      "pattern_id": "syntax_indent_001",
+      "error_pattern": "IndentationError",
+      "error_category": "syntax",
+      "fix_template": "python -m py_compile --tab {file}",
+      "validation": "python -m py_compile {file}",
+      "success_rate": 0.78,
+      "times_applied": 67,
+      "author": "open-space-cloud"
+    },
+    {
+      "pattern_id": "git_merge_conflict_001",
+      "error_pattern": "merge.*conflict|CONFLICT",
+      "error_category": "git",
+      "fix_template": "git mergetool && git add . && git commit -m 'Merge conflict resolved'",
+      "validation": "git status",
+      "success_rate": 0.82,
+      "times_applied": 45,
+      "author": "open-space-cloud"
+    }
+  ],
+  "community_patterns": [
+    {
+      "pattern_id": "openspace_skill_001",
+      "name": "openspace-community-bridge",
+      "source": "https://open-space.cloud/patterns/openspace_skill_001",
+      "category": "infrastructure",
+      "downloads": 1234,
+      "rating": 4.8
+    },
+    {
+      "pattern_id": "openspace_fix_001",
+      "name": "openspace-fix-repair",
+      "source": "https://open-space.cloud/patterns/openspace_fix_001",
+      "category": "debugging",
+      "downloads": 2345,
+      "rating": 4.9
+    },
+    {
+      "pattern_id": "openspace_token_001",
+      "name": "openspace-token-optimizer",
+      "source": "https://open-space.cloud/patterns/openspace_token_001",
+      "category": "performance",
+      "downloads": 3456,
+      "rating": 4.7
+    }
+  ],
+  "last_updated": "2026-04-02T00:00:00Z",
+  "total_patterns": 9
+}

@@ -1,0 +1,38 @@
+# spec-kit-workflow 配置
+# 天龙引擎 V8.62
+
+specify_path: ~/.specify
+default_ai: claude
+
+# 天龙增强的Constitution模板
+constitution_template: 天龙-constitution-template.md
+spec_template: 天龙-spec-template.md
+plan_template: 天龙-plan-template.md
+
+# 启用的spec-kit扩展
+extensions_enabled:
+  - understanding  # 31维度需求分析
+  - verify         # 质量门禁
+  - onboard        # 开发者入职引导
+  - jira           # Jira同步
+  - fleet          # 全流程编排
+
+# 天龙引擎协同配置
+dragon_integration:
+  deep_research: true
+  lightrag: true
+  cat_research: true
+  crewai: true
+  langflow: true
+
+# 9条天龙治理规则
+dragon_principles:
+  - "Library-First: 每个功能先做独立库"
+  - "CLI Interface: 所有功能必须有CLI接口"
+  - "Test-First: 任何实现必须先有测试"
+  - "Single Source of Truth: 规范是唯一的真相"
+  - "Drift Detection: 规范-实现漂移必须检测"
+  - "Incremental Compliance: 渐进式符合规范"
+  - "Human-in-the-Loop: 关键决策必须人工确认"
+  - "Agent-Agnostic: 支持多种AI Agent"
+  - "Observable: 所有操作必须可观测"

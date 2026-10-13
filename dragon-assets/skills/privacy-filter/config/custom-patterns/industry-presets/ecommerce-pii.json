@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "name": "ecommerce-pii",
+  "description": "电商行业PII扩展模式库",
+  "author": "security-team",
+  "created": "2026-05-01",
+  "patterns": [
+    {
+      "id": "express_number",
+      "type": "private_logistics",
+      "priority": "medium",
+      "match": {
+        "regex": "\\b(SF|YT|YTO|STO|ZTO|EMS|JD|JT)\\d{12,18}\\b",
+        "context_keywords": ["快递单号", "运单号", "物流号"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_EXPRESS>",
+        "untyped": "<PII>",
+        "redacted": "SF***********"
+      },
+      "test_cases": [
+        {"input": "顺丰快递SF1234567890123", "should_match": true},
+        {"input": "运单号YT202601010123456", "should_match": true}
+      ]
+    },
+    {
+      "id": "order_id",
+      "type": "private_financial",
+      "priority": "medium",
+      "match": {
+        "regex": "\\b(?:ORDER|ORDERID|订单)[_:-]?\\d{10,20}\\b",
+        "context_keywords": ["订单号", "订单编号", "order"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_ORDER>",
+        "untyped": "<PII>",
+        "redacted": "ORD**********"
+      }
+    },
+    {
+      "id": "membership_id",
+      "type": "private_identity",
+      "priority": "low",
+      "match": {
+        "regex": "\\b(?:VIP|MEMBER|会员)[_:-]?\\d{8,12}\\b",
+        "context_keywords": ["会员号", "VIP号", "member"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_MEMBERSHIP>",
+        "untyped": "<PII>",
+        "redacted": "VIP********"
+      }
+    }
+  ]
+}

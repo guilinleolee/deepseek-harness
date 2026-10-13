@@ -1,0 +1,29 @@
+2026-08-23T22:30:00 Windows host dsh plugin add 实跑日志
+===============================================================
+
+命令: dsh plugin --profile web add @anionex/dsh-computer-use
+
+实际输出:
+dsh: The term 'dsh' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+EXIT: <empty> (PowerShell Get-Command 找不到 dsh)
+
+解读:
+- Windows 主机**没有安装 DeepSeek Harness CLI**(dsh 命令不存在)
+- 这是 Windows 上的"最干净降级" — 不是 Bundle 装不上,而是 DSH CLI 根本不存在
+- 等用户迁 macOS(或在新 macOS 主机上)后再执行 dsh plugin add 即可激活
+- Windows 上 dsh computer-use 的 12 Tools 仍预期不可用 (COMPUTER_UNSUPPORTED_PLATFORM)
+
+注: 上游 README 明确写"On non-macOS hosts the plugin degrades gracefully:
+the DSH profile starts normally, Computer Use Tools and the Skill are not registered,
+and Web Settings reports COMPUTER_UNSUPPORTED_PLATFORM instead of failing startup."
+本次 Windows 上 dsh CLI 不存在的状态,与上游声明的"非 macOS 优雅降级"行为一致。
+
+跨主机策略:
+- macOS 14+: dsh plugin add → 完整 Tools 注册 → 12 Tools 可调用
+- Windows / Linux: dsh CLI 可装但 Tools 不注册 → COMPUTER_UNSUPPORTED_PLATFORM
+- 无 DSH CLI: 更进一步降级,连 Bundle 都不挂载 → 仅文档化镜像可查
+
+本日志位置: dragon-engine/skills/dsh-computer-use/docs/dsh-plugin-add.log
+关联文档: dragon-engine/skills/dsh-computer-use/docs/announce-stage-42.md §7.1

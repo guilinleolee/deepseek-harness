@@ -1,0 +1,39 @@
+{
+  "sources": {
+    "memory": {
+      "priority": 1,
+      "weight": 0.9,
+      "enabled": true,
+      "description": "知识图谱 - Memory MCP 和 AgentDB"
+    },
+    "local": {
+      "priority": 2,
+      "weight": 0.8,
+      "enabled": true,
+      "description": "本地代码 - mgrep 和 grep"
+    },
+    "github": {
+      "priority": 2,
+      "weight": 0.7,
+      "enabled": true,
+      "description": "GitHub 仓库 - gh CLI"
+    },
+    "web_brave": {
+      "priority": 4,
+      "weight": 0.6,
+      "enabled": true,
+      "description": "Web 搜索 - Brave (通用内容)"
+    },
+    "web_exa": {
+      "priority": 4,
+      "weight": 0.8,
+      "enabled": true,
+      "description": "Web 搜索 - Exa (技术内容)"
+    }
+  },
+  "cache": {
+    "enabled": true,
+    "ttl": 3600,
+    "max_size": 1000
+  }
+}

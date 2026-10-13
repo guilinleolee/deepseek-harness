@@ -1,0 +1,26 @@
+{
+  "blogger": "tech_vc_bro",
+  "style_id": "xhs-review-rank",
+  "palette": "#FDFFA7",
+  "aspect_ratio": "3:4",
+  "prompt_length": 503,
+  "ip_consent": "unknown",
+  "template_source": "C:\\Users\\li\\.claude\\skills\\gpt-image-2-prompt-library\\templates\\xhs\\styles\\05-review-rank.md",
+  "timestamp": "2026-07-20T03:14:09.741Z",
+  "selected_style": "xhs-review-rank",
+  "pre_answers": {
+    "style": "xhs-review-rank",
+    "figure_1": "local://./photos/photo_1.jpg",
+    "expression": "auto",
+    "extra_materials": "0",
+    "background": "auto",
+    "font_style": "variety-bold",
+    "font_color": "fdffa7-default",
+    "title": "科技风投老王 7 个真实踩坑",
+    "auto_recommended": true
+  },
+  "prompt_path": "C:\\Users\\li\\.claude\\projects\\c--Users-li--claude\\dragon-engine\\skills\\blogger-hologram-to-poster\\output\\tech_vc_bro-xhs-review-rank.prompt.md",
+  "prompt": "参考图 1 的人物五官特征，保持人物一致性，真人半身出镜。\n\n由模型决定，\n人物位于画面[左下/右下/中央]，占画面约 40%，\n[具体动作：手指指向数字/手掌推向产品卡片/侧身看向榜单]，\n人物边缘有 #FDFFA7 描边。\n\n画面顶部放置中文标题\"科技风投老王\"，\n字体为 #FDFFA7 超粗黑体 + 粗黑描边。\n\n画面底部放置巨大数字和结果短语\"7 个真实踩坑\"，\n例如 \"5 款产品\"、\"7 个维度\"、\"横评结果\"，\n数字字号最大，#FDFFA7 填充 + 黑色描边，占据底部约 30%。\n\n用一条粗 #FDFFA7 浅黄色箭头从人物手势指向测评结果，\n箭头旁边放置小字标签\"实测结论\"，\n白色粗体 + 黑色描边。\n\n如果有图 2/图 3，将参考图作为产品卡片或软件截图，\n围绕人物错落摆放，带轻微倾斜和投影；\n如果没有素材，则生成[主题相关产品卡片/软件 Logo/工具图标]。\n\n背景是主题相关的暖色调场景，局部暗角，\n突出 #FDFFA7 / 白色标题和数字的视觉权重。\n\n3:4 竖版小红书真人出镜封面，测评感强，数字极醒目，\n人物表情有反差，所有文字清晰可读，所有重要元素不超出安全区。",
+  "dry_run": true,
+  "note": "dry-run 模式：不调 gpt-image-2，仅验证 pipeline 端到端"
+}

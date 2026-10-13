@@ -1,0 +1,312 @@
+<!--
+  Hyperframes 产品介绍视频模板
+  尺寸: 1920x1080 (16:9)
+  风格: {STYLE}
+  使用: npx hyperframes init --template product-intro
+-->
+<div data-composition-id="product-{ID}" data-width="1920" data-height="1080">
+  <style>
+    /* 基础布局 */
+    .composition {
+      width: 1920px;
+      height: 1080px;
+      background: {BG_COLOR};
+      position: relative;
+      overflow: hidden;
+      font-family: {FONT_FAMILY};
+    }
+
+    /* 场景容器 */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 场景1: Logo + 产品名 */
+    .scene-intro {
+      flex-direction: column;
+      background: {INTRO_BG};
+    }
+
+    .logo {
+      width: 200px;
+      height: 200px;
+      background: {LOGO_BG};
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+    }
+
+    .product-name {
+      margin-top: 40px;
+      font-size: 96px;
+      font-weight: 800;
+      color: {NAME_COLOR};
+      letter-spacing: -2px;
+    }
+
+    .tagline {
+      margin-top: 20px;
+      font-size: 36px;
+      color: {TAGLINE_COLOR};
+      letter-spacing: 4px;
+    }
+
+    /* 场景2: 痛点 */
+    .scene-pain {
+      flex-direction: column;
+      padding: 100px;
+    }
+
+    .pain-title {
+      font-size: 72px;
+      font-weight: 700;
+      color: {PAIN_TITLE_COLOR};
+      max-width: 1600px;
+    }
+
+    .pain-list {
+      margin-top: 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .pain-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 42px;
+      color: {PAIN_ITEM_COLOR};
+    }
+
+    .pain-icon {
+      width: 60px;
+      height: 60px;
+      background: #FF4757;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 28px;
+    }
+
+    /* 场景3: 解决方案 */
+    .scene-solution {
+      flex-direction: column;
+      padding: 100px;
+      background: {SOLUTION_BG};
+    }
+
+    .solution-title {
+      font-size: 72px;
+      font-weight: 700;
+      color: {SOLUTION_TITLE_COLOR};
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      margin-top: 60px;
+      max-width: 1600px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 40px;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .feature-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .feature-title {
+      font-size: 36px;
+      font-weight: 600;
+      color: {FEATURE_TITLE_COLOR};
+      margin-bottom: 12px;
+    }
+
+    .feature-desc {
+      font-size: 24px;
+      color: {FEATURE_DESC_COLOR};
+      line-height: 1.4;
+    }
+
+    /* 场景4: CTA */
+    .scene-cta {
+      flex-direction: column;
+      background: {CTA_BG};
+    }
+
+    .cta-headline {
+      font-size: 84px;
+      font-weight: 800;
+      color: {CTA_HEADLINE_COLOR};
+      text-align: center;
+      max-width: 1400px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 30px;
+      margin-top: 60px;
+    }
+
+    .cta-btn {
+      padding: 24px 60px;
+      border-radius: 16px;
+      font-size: 32px;
+      font-weight: 600;
+    }
+
+    .cta-btn-primary {
+      background: {CTA_PRIMARY_BG};
+      color: {CTA_PRIMARY_COLOR};
+    }
+
+    .cta-btn-secondary {
+      background: transparent;
+      border: 3px solid {CTA_SECONDARY_BORDER};
+      color: {CTA_SECONDARY_COLOR};
+    }
+
+    .cta-price {
+      margin-top: 40px;
+      font-size: 28px;
+      color: {CTA_PRICE_COLOR};
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    // 场景1: 开场
+    (function() {
+      const tl = gsap.timeline({ paused: true, onComplete: function() {
+        document.querySelector('[data-composition-id="product-{ID}"]').dataset.activeScene = "intro";
+      }});
+
+      tl.from(".scene-intro", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".logo", { scale: 0, opacity: 0, duration: 0.8, ease: "back.out(1.7)" }, 0.3);
+      tl.from(".product-name", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.6);
+      tl.from(".tagline", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 0.9);
+      tl.to({}, { duration: 2.5 }); // 停留
+      tl.to(".scene-intro", { opacity: 0, y: -50, duration: 0.4, ease: "power2.in" }, 3.6);
+
+      window.__timelines["product-{ID}-intro"] = tl;
+    })();
+
+    // 场景2: 痛点
+    (function() {
+      const tl = gsap.timeline({ paused: true, onComplete: function() {
+        document.querySelector('[data-composition-id="product-{ID}"]').dataset.activeScene = "pain";
+      }});
+
+      tl.from(".scene-pain", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".pain-title", { y: 50, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+      tl.from(".pain-item", { x: -50, opacity: 0, duration: 0.5, stagger: 0.15, ease: "power3.out" }, 0.5);
+      tl.to({}, { duration: 3 }); // 停留
+      tl.to(".scene-pain", { opacity: 0, duration: 0.3 }, 4);
+
+      window.__timelines["product-{ID}-pain"] = tl;
+    })();
+
+    // 场景3: 解决方案
+    (function() {
+      const tl = gsap.timeline({ paused: true, onComplete: function() {
+        document.querySelector('[data-composition-id="product-{ID}"]').dataset.activeScene = "solution";
+      }});
+
+      tl.from(".scene-solution", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".solution-title", { y: 40, opacity: 0, duration: 0.5, ease: "power3.out" }, 0.2);
+      tl.from(".feature-card", { y: 60, opacity: 0, duration: 0.6, stagger: 0.12, ease: "power3.out" }, 0.5);
+      tl.to({}, { duration: 4 }); // 停留
+      tl.to(".scene-solution", { opacity: 0, duration: 0.3 }, 4.8);
+
+      window.__timelines["product-{ID}-solution"] = tl;
+    })();
+
+    // 场景4: CTA
+    (function() {
+      const tl = gsap.timeline({ paused: true, onComplete: function() {
+        document.querySelector('[data-composition-id="product-{ID}"]').dataset.activeScene = "cta";
+      }});
+
+      tl.from(".scene-cta", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".cta-headline", { y: 60, opacity: 0, duration: 0.7, ease: "power3.out" }, 0.3);
+      tl.from(".cta-buttons", { y: 30, opacity: 0, duration: 0.5, ease: "back.out(1.5)" }, 0.8);
+      tl.from(".cta-price", { opacity: 0, duration: 0.4 }, 1.2);
+      tl.to({}, { duration: 3 }); // 停留
+
+      window.__timelines["product-{ID}-cta"] = tl;
+    })();
+  </script>
+
+  <!-- 场景1: 开场 -->
+  <div class="scene scene-intro">
+    <div class="logo">{LOGO_EMOJI}</div>
+    <div class="product-name" data-start="0.6" data-duration="2.0">{PRODUCT_NAME}</div>
+    <div class="tagline" data-start="0.9" data-duration="2.0">{TAGLINE}</div>
+  </div>
+
+  <!-- 场景2: 痛点 -->
+  <div class="scene scene-pain">
+    <div class="pain-title" data-start="0.2" data-duration="2.5">{PAIN_TITLE}</div>
+    <div class="pain-list">
+      <div class="pain-item" data-start="0.5" data-duration="0.8">
+        <div class="pain-icon">!</div>
+        <span>{PAIN_1}</span>
+      </div>
+      <div class="pain-item" data-start="0.65" data-duration="0.8">
+        <div class="pain-icon">!</div>
+        <span>{PAIN_2}</span>
+      </div>
+      <div class="pain-item" data-start="0.8" data-duration="0.8">
+        <div class="pain-icon">!</div>
+        <span>{PAIN_3}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景3: 解决方案 -->
+  <div class="scene scene-solution">
+    <div class="solution-title" data-start="0.2" data-duration="2.5">{SOLUTION_TITLE}</div>
+    <div class="feature-grid">
+      <div class="feature-card" data-start="0.5" data-duration="1.5">
+        <div class="feature-icon">{FEAT_ICON_1}</div>
+        <div class="feature-title">{FEAT_TITLE_1}</div>
+        <div class="feature-desc">{FEAT_DESC_1}</div>
+      </div>
+      <div class="feature-card" data-start="0.62" data-duration="1.5">
+        <div class="feature-icon">{FEAT_ICON_2}</div>
+        <div class="feature-title">{FEAT_TITLE_2}</div>
+        <div class="feature-desc">{FEAT_DESC_2}</div>
+      </div>
+      <div class="feature-card" data-start="0.74" data-duration="1.5">
+        <div class="feature-icon">{FEAT_ICON_3}</div>
+        <div class="feature-title">{FEAT_TITLE_3}</div>
+        <div class="feature-desc">{FEAT_DESC_3}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景4: CTA -->
+  <div class="scene scene-cta">
+    <div class="cta-headline" data-start="0.3" data-duration="2.5">{CTA_HEADLINE}</div>
+    <div class="cta-buttons" data-start="0.8" data-duration="1.0">
+      <div class="cta-btn cta-btn-primary">{CTA_PRIMARY}</div>
+      <div class="cta-btn cta-btn-secondary">{CTA_SECONDARY}</div>
+    </div>
+    <div class="cta-price" data-start="1.2" data-duration="0.5">{CTA_PRICE}</div>
+  </div>
+</div>

@@ -1,0 +1,99 @@
+dsh-chat-import-bridge
+Copyright 2026 dragon-engine contributors
+
+This product includes software developed by Nwflower in the project
+"dsh-chat-import" (https://github.com/Nwflower/dsh-chat-import),
+licensed under the MIT License.
+
+================================================================================
+Section 1 — Product Identification
+================================================================================
+
+Product name    : dsh-chat-import-bridge
+Version         : V1.0 (Stage 55 of dragon-engine)
+Mirror date     : 2026-08-26
+Upstream version: v0.1.x (2026-08)
+License (mirror): MIT (see LICENSE)
+Strategy        : 借鉴档 (Reference adaptation — not source mirror)
+                  Pure-Python implementation, no upstream source code reused.
+                  Upstream itself is an npm package (TypeScript) for the
+                  DeepSeek Harness (DSH) plugin runtime.
+
+================================================================================
+Section 2 — Upstream Attribution (MIT)
+================================================================================
+
+Original copyright:
+    Copyright (c) 2026 Nwflower
+
+Upstream acknowledgements (from upstream README):
+    - Listed in awesome-dsh-plugins-2026
+    - Listed in awesome-deepseek-harness (0xsline)
+    - Listed in awesome-dsh-plugins (Dominic789654)
+
+Reference list (per MIT § 4 conditions):
+    - 17+ agent source formats (claude / codex / chatgpt / cursor / gemini /
+      reasonix / opencode / zcode / grok / openclaw / pi / hermes / kimi /
+      qoder / workbuddy / dsh / local-jsonl)
+    - Full-fidelity import (tool calls / reasoning / models / timestamps)
+    - Matrix export (claude/codex/kimi)
+    - Bundle backup with SHA-256 dual fingerprint
+    - sync_to_claude incremental write-back (guarded)
+    - Idempotency (expectedHash / restamp)
+    - Context-budget protection
+    - Sub-agent conversation filter (default)
+    - excludeDirs per-direction deny-list
+
+================================================================================
+Section 3 — Trademark Notice (Upstream Branding)
+================================================================================
+
+"DSH" / "DeepSeek Harness" / "deepseek-harness" are property of DeepSeek Co., Ltd.
+"dsh-chat-import" / "dsh-market" / "dsh-routing-suite" are property of their respective owners.
+
+This dragon-engine bridge package is NOT affiliated with, endorsed by, or
+sponsored by Nwflower or DeepSeek Co., Ltd., except that it is distributed
+under the upstream MIT License terms.
+
+Permitted phrasing:
+    - "借鉴 Nwflower/dsh-chat-import v0.1.x 范式"
+    - "Reference adaptation of dsh-chat-import (MIT)"
+    - "Based on Nwflower/dsh-chat-import v0.1.x"
+
+Forbidden phrasing:
+    - "官方 chat import 工具" / "DSH 官方认证"
+    - Any wording implying Nwflower or DeepSeek endorses dragon-engine
+
+================================================================================
+Section 4 — Bridge Additions (MIT — dragon-engine copyright)
+================================================================================
+
+The following files are ORIGINAL work by dragon-engine contributors,
+licensed under MIT for symmetry with upstream:
+
+    dragon-engine/skills/dsh-chat-import-bridge/SKILL.md
+    dragon-engine/skills/dsh-chat-import-bridge/scripts/*.py
+    dragon-engine/skills/dsh-chat-import-bridge/tests/test_*.py
+    dragon-engine/skills/dsh-chat-import-bridge/LICENSE  (mirror copy)
+    dragon-engine/skills/dsh-chat-import-bridge/NOTICE   (this file)
+    dragon-engine/memory/stage-54-candidates-evaluation.md
+    dragon-engine/memory/stage-55-dsh-chat-import.md
+
+Original copyright:
+    Copyright (c) 2026 dragon-engine contributors
+
+================================================================================
+Section 5 — Modification Log
+================================================================================
+
+  2026-08-26  V1.0.0  Stage 55 initial 借鉴档
+                       Modified by dragon-engine / 2026-08-26
+                       - scan.py: scan_discover + 18 format detection
+                       - importer.py: 18 format routing + idempotency
+                       - exporter.py: claude/codex/kimi matrix export
+                       - bundle.py: SHA-256 dual fingerprint + restore
+                       - sync.py: sync_to_claude guarded write-back
+                       - audit.py: doctor + verify_session
+                       - check.py: 8 PASS health check
+                       - 10 PASS pytest (scan/import/export/bundle/sync/audit/format-router/e2e)
+                       - MIT LICENSE + this NOTICE

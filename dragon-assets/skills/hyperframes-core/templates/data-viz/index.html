@@ -1,0 +1,444 @@
+<!--
+  Hyperframes 数据可视化视频模板
+  尺寸: 1920x1080 (16:9)
+  风格: Data Drift (霓虹深色主题)
+  使用: npx hyperframes init --template data-viz
+-->
+<div data-composition-id="dataviz-{ID}" data-width="1920" data-height="1080">
+  <style>
+    /* 深色背景 + 网格 */
+    .composition {
+      width: 1920px;
+      height: 1080px;
+      background: #0a0a1a;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Inter', 'SF Pro', sans-serif;
+    }
+
+    /* 网格背景 */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* 场景通用 */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 80px 100px;
+    }
+
+    /* 标题样式 */
+    .scene-title {
+      font-size: 56px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 60px;
+    }
+
+    .scene-title span {
+      color: #00ffff;
+    }
+
+    /* 数据卡片 */
+    .metric-card {
+      background: rgba(0,255,255,0.08);
+      border: 1px solid rgba(0,255,255,0.3);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 96px;
+      font-weight: 800;
+      color: #00ffff;
+      text-shadow: 0 0 30px rgba(0,255,255,0.5);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-label {
+      font-size: 24px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .metric-delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .metric-delta.positive {
+      background: rgba(0,255,136,0.2);
+      color: #00ff88;
+    }
+
+    .metric-delta.negative {
+      background: rgba(255,71,87,0.2);
+      color: #ff4757;
+    }
+
+    /* 柱状图 */
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 24px;
+      height: 400px;
+      padding: 40px 0;
+    }
+
+    .bar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .bar {
+      width: 100%;
+      background: linear-gradient(180deg, #00ffff 0%, #0088ff 100%);
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 0 20px rgba(0,255,255,0.3);
+    }
+
+    .bar-label {
+      font-size: 18px;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+    }
+
+    .bar-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* 折线图 */
+    .line-chart {
+      position: relative;
+      height: 350px;
+      border-bottom: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .line-path {
+      fill: none;
+      stroke: #00ffff;
+      stroke-width: 3;
+      filter: drop-shadow(0 0 8px rgba(0,255,255,0.6));
+    }
+
+    .line-area {
+      fill: url(#lineGradient);
+    }
+
+    .line-dot {
+      fill: #00ffff;
+      filter: drop-shadow(0 0 6px rgba(0,255,255,0.8));
+    }
+
+    /* 图例 */
+    .legend {
+      display: flex;
+      gap: 40px;
+      margin-top: 30px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* 仪表盘 */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    /* 环形进度 */
+    .ring-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(0,255,255,0.15);
+      stroke-width: 12;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: #00ffff;
+      stroke-width: 12;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 8px rgba(0,255,255,0.5));
+    }
+
+    .ring-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-percent {
+      font-size: 42px;
+      font-weight: 800;
+      color: #00ffff;
+    }
+
+    .ring-label {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  </style>
+
+  <!-- SVG 渐变定义 -->
+  <svg style="position:absolute;width:0;height:0">
+    <defs>
+      <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(0,255,255,0.3)"/>
+        <stop offset="100%" stop-color="rgba(0,255,255,0)"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    // 场景1: 总览数据
+    (function() {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.from(".grid-bg", { opacity: 0, duration: 0.4 }, 0);
+      tl.from(".scene-title", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 0.2);
+      tl.from(".metric-card", { y: 40, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 0.4);
+      tl.to({}, { duration: 3 }); // 停留
+
+      window.__timelines["dataviz-{ID}-overview"] = tl;
+    })();
+
+    // 场景2: 柱状图
+    (function() {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.from(".bar-chart", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".bar", { scaleY: 0, transformOrigin: "bottom bottom", duration: 0.8, stagger: 0.1, ease: "power3.out" }, 0.3);
+      tl.from(".bar-value", { opacity: 0, duration: 0.3, stagger: 0.05 }, 0.8);
+      tl.to({}, { duration: 4 }); // 停留
+
+      window.__timelines["dataviz-{ID}-barchart"] = tl;
+    })();
+
+    // 场景3: 折线图
+    (function() {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.from(".line-chart", { opacity: 0, duration: 0.3 }, 0);
+      // 折线绘制动画
+      const pathLength = 1200; // 估算路径长度
+      tl.from(".line-path", { strokeDashoffset: pathLength, strokeDasharray: pathLength, duration: 2, ease: "power2.inOut" }, 0.2);
+      tl.from(".line-dot", { scale: 0, opacity: 0, duration: 0.3, stagger: 0.15 }, 1.5);
+      tl.from(".legend-item", { opacity: 0, duration: 0.4, stagger: 0.1 }, 2);
+      tl.to({}, { duration: 4 }); // 停留
+
+      window.__timelines["dataviz-{ID}-linechart"] = tl;
+    })();
+
+    // 场景4: 仪表盘
+    (function() {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.from(".dashboard-grid", { opacity: 0, duration: 0.3 }, 0);
+      tl.from(".ring-progress", { strokeDashoffset: 565, strokeDasharray: 565, duration: 1.2, stagger: 0.15, ease: "power2.out" }, 0.3);
+      tl.from(".ring-percent", { scale: 0, opacity: 0, duration: 0.4, stagger: 0.1, ease: "back.out(2)" }, 0.5);
+      tl.to({}, { duration: 3 }); // 停留
+
+      window.__timelines["dataviz-{ID}-dashboard"] = tl;
+    })();
+  </script>
+
+  <!-- 场景1: 总览 -->
+  <div class="scene">
+    <div class="grid-bg"></div>
+    <div class="scene-title" data-start="0.2" data-duration="1.5">
+      {OVERVIEW_TITLE} <span>{OVERVIEW_METRIC}</span>
+    </div>
+    <div style="display:flex;gap:40px;margin-top:20px;">
+      <div class="metric-card" data-start="0.4" data-duration="1.0">
+        <div class="metric-value" data-counter="true" data-target="{METRIC_1_VALUE}">{METRIC_1_VALUE}</div>
+        <div class="metric-label">{METRIC_1_LABEL}</div>
+        <div class="metric-delta positive" data-start="0.6" data-duration="0.5">
+          {METRIC_1_DELTA}
+        </div>
+      </div>
+      <div class="metric-card" data-start="0.5" data-duration="1.0">
+        <div class="metric-value" data-counter="true" data-target="{METRIC_2_VALUE}">{METRIC_2_VALUE}</div>
+        <div class="metric-label">{METRIC_2_LABEL}</div>
+        <div class="metric-delta positive" data-start="0.7" data-duration="0.5">
+          {METRIC_2_DELTA}
+        </div>
+      </div>
+      <div class="metric-card" data-start="0.6" data-duration="1.0">
+        <div class="metric-value" data-counter="true" data-target="{METRIC_3_VALUE}">{METRIC_3_VALUE}</div>
+        <div class="metric-label">{METRIC_3_LABEL}</div>
+        <div class="metric-delta negative" data-start="0.8" data-duration="0.5">
+          {METRIC_3_DELTA}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景2: 柱状图 -->
+  <div class="scene">
+    <div class="grid-bg"></div>
+    <div class="scene-title" data-start="0.2" data-duration="1.5">
+      {BARCHART_TITLE}
+    </div>
+    <div class="bar-chart">
+      <div class="bar-item" data-start="0.3" data-duration="1.5">
+        <div class="bar-value">{BAR_1_VAL}</div>
+        <div class="bar" style="height:{BAR_1_H}px"></div>
+        <div class="bar-label">{BAR_1_LBL}</div>
+      </div>
+      <div class="bar-item" data-start="0.4" data-duration="1.5">
+        <div class="bar-value">{BAR_2_VAL}</div>
+        <div class="bar" style="height:{BAR_2_H}px"></div>
+        <div class="bar-label">{BAR_2_LBL}</div>
+      </div>
+      <div class="bar-item" data-start="0.5" data-duration="1.5">
+        <div class="bar-value">{BAR_3_VAL}</div>
+        <div class="bar" style="height:{BAR_3_H}px"></div>
+        <div class="bar-label">{BAR_3_LBL}</div>
+      </div>
+      <div class="bar-item" data-start="0.6" data-duration="1.5">
+        <div class="bar-value">{BAR_4_VAL}</div>
+        <div class="bar" style="height:{BAR_4_H}px"></div>
+        <div class="bar-label">{BAR_4_LBL}</div>
+      </div>
+      <div class="bar-item" data-start="0.7" data-duration="1.5">
+        <div class="bar-value">{BAR_5_VAL}</div>
+        <div class="bar" style="height:{BAR_5_H}px"></div>
+        <div class="bar-label">{BAR_5_LBL}</div>
+      </div>
+      <div class="bar-item" data-start="0.8" data-duration="1.5">
+        <div class="bar-value">{BAR_6_VAL}</div>
+        <div class="bar" style="height:{BAR_6_H}px"></div>
+        <div class="bar-label">{BAR_6_LBL}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景3: 折线图 -->
+  <div class="scene">
+    <div class="grid-bg"></div>
+    <div class="scene-title" data-start="0.2" data-duration="1.5">
+      {LINECHART_TITLE}
+    </div>
+    <div class="line-chart">
+      <!-- 折线路径 SVG -->
+      <svg width="1720" height="350" viewBox="0 0 1720 350" preserveAspectRatio="none">
+        <path class="line-area" d="M0,280 L286,220 L572,260 L858,180 L1144,140 L1430,100 L1720,60 L1720,350 L0,350 Z"/>
+        <path class="line-path" d="M0,280 L286,220 L572,260 L858,180 L1144,140 L1430,100 L1720,60"/>
+        <circle class="line-dot" cx="0" cy="280" r="6"/>
+        <circle class="line-dot" cx="286" cy="220" r="6"/>
+        <circle class="line-dot" cx="572" cy="260" r="6"/>
+        <circle class="line-dot" cx="858" cy="180" r="6"/>
+        <circle class="line-dot" cx="1144" cy="140" r="6"/>
+        <circle class="line-dot" cx="1430" cy="100" r="6"/>
+        <circle class="line-dot" cx="1720" cy="60" r="8"/>
+      </svg>
+    </div>
+    <div class="legend">
+      <div class="legend-item" data-start="2.0" data-duration="0.5">
+        <div class="legend-dot" style="background:#00ffff"></div>
+        <span>{LEGEND_LINE_1}</span>
+      </div>
+      <div class="legend-item" data-start="2.1" data-duration="0.5">
+        <div class="legend-dot" style="background:#ff6b6b"></div>
+        <span>{LEGEND_LINE_2}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景4: 仪表盘 -->
+  <div class="scene">
+    <div class="grid-bg"></div>
+    <div class="scene-title" data-start="0.2" data-duration="1.5">
+      {DASHBOARD_TITLE}
+    </div>
+    <div class="dashboard-grid">
+      <div class="ring-container" data-start="0.3" data-duration="1.5">
+        <svg viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+          <circle class="ring-bg" cx="90" cy="90" r="90"/>
+          <circle class="ring-progress" cx="90" cy="90" r="90" style="stroke-dashoffset:{RING_1_OFFSET}"/>
+        </svg>
+        <div class="ring-value">
+          <div class="ring-percent">{RING_1_PCT}</div>
+          <div class="ring-label">{RING_1_LBL}</div>
+        </div>
+      </div>
+      <div class="ring-container" data-start="0.45" data-duration="1.5">
+        <svg viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+          <circle class="ring-bg" cx="90" cy="90" r="90"/>
+          <circle class="ring-progress" cx="90" cy="90" r="90" style="stroke-dashoffset:{RING_2_OFFSET}"/>
+        </svg>
+        <div class="ring-value">
+          <div class="ring-percent">{RING_2_PCT}</div>
+          <div class="ring-label">{RING_2_LBL}</div>
+        </div>
+      </div>
+      <div class="ring-container" data-start="0.6" data-duration="1.5">
+        <svg viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+          <circle class="ring-bg" cx="90" cy="90" r="90"/>
+          <circle class="ring-progress" cx="90" cy="90" r="90" style="stroke-dashoffset:{RING_3_OFFSET}"/>
+        </svg>
+        <div class="ring-value">
+          <div class="ring-percent">{RING_3_PCT}</div>
+          <div class="ring-label">{RING_3_LBL}</div>
+        </div>
+      </div>
+      <div class="ring-container" data-start="0.75" data-duration="1.5">
+        <svg viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+          <circle class="ring-bg" cx="90" cy="90" r="90"/>
+          <circle class="ring-progress" cx="90" cy="90" r="90" style="stroke-dashoffset:{RING_4_OFFSET}"/>
+        </svg>
+        <div class="ring-value">
+          <div class="ring-percent">{RING_4_PCT}</div>
+          <div class="ring-label">{RING_4_LBL}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

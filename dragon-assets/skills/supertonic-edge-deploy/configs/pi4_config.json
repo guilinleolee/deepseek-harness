@@ -1,0 +1,62 @@
+{
+  "device": "Raspberry Pi 4",
+  "os": "Raspberry Pi OS (64-bit)",
+  "model": "supertonic-base",
+  "inference": {
+    "device": "cpu",
+    "threads": 4,
+    "quantization": "int8",
+    "batch_size": 1,
+    "memory_mapped": false
+  },
+  "audio": {
+    "sample_rate": 24000,
+    "channels": 1,
+    "bit_depth": 16,
+    "buffer_size": 4096
+  },
+  "voice": {
+    "default_style": "N1",
+    "available_styles": ["N1", "N2", "N3", "M1", "M2", "F1", "F2"],
+    "expression_tags_enabled": true,
+    "auto_punctuation": true
+  },
+  "language": {
+    "default": "en",
+    "supported": [
+      "en", "zh", "ja", "ko", "fr", "de", "es", "it",
+      "pt", "ru", "ar", "hi", "th", "vi", "id", "ms",
+      "tl", "bn", "ta", "te", "mr", "ne", "si", "km",
+      "lo", "my", "ka", "he", "tr", "uk", "cs", "pl"
+    ]
+  },
+  "performance": {
+    "rtf_target": 0.1,
+    "max_text_length": 500,
+    "preload_model": true,
+    "cache_enabled": true,
+    "cache_size_mb": 512
+  },
+  "memory": {
+    "total_ram_mb": 2048,
+    "model_size_mb": 150,
+    "inference_buffer_mb": 256,
+    "reserved_mb": 512,
+    "available_for_model_mb": 1280
+  },
+  "thermal": {
+    "throttle_temp_c": 80,
+    "fan_enabled": true,
+    "cpu_governor": "performance"
+  },
+  "network": {
+    "streaming_enabled": true,
+    "chunk_size_ms": 100,
+    "compression": "none"
+  },
+  "logging": {
+    "level": "INFO",
+    "performance_logging": true,
+    "memory_logging": true
+  }
+}

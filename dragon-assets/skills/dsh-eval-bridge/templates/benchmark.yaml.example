@@ -1,0 +1,34 @@
+# Stage 45 · dsh-eval-bridge benchmark.yaml 样例
+# 借鉴 dsh-eval schema（11 字段）+ 自研简化版
+
+name: skill-regression            # 必填，唯一
+model: deepseek-v4                # 必填，primary LLM provider
+profile: headless                 # 必填，DSH profile
+command: [dsh]                    # 可选，执行命令（default: [dsh]）
+trials: 3                         # 可选，每个 case 重复 N 次
+timeoutMs: 600000                 # 可选，单 trial 超时 (10min)
+seed: 42                          # 可选，reproduce 用
+
+cases:                            # 必填，case 列表
+  - id: fix-tests-001              # 必填
+    prompt: Fix the failing tests in this workspace.   # 必填
+    workspace: ./fixtures/fix-tests   # 可选
+    expected:                        # 可选，验收规则
+      tool: bash                   # 期望使用的工具
+      check: ./check.sh            # 期望执行命令（exit 0 = PASS）
+
+  - id: write-doc-002
+    prompt: Write a README doc.
+    expected:
+      tool: file_write
+
+pricing:                           # 可选，与 paperclip V2.0 价格表兼容
+  deepseek-v4:
+    inputUsdPerMTokens: 0.27
+    cacheReadUsdPerMTokens: 0.07
+    cacheWriteUsdPerMTokens: 0.27
+    outputUsdPerMTokens: 1.10
+
+judge:                            # 可选，LLM judge 配置
+  model: deepseek-v4              # judge model (与 case model 独立)
+  parse_strict: true               # 严格 JSON 解析

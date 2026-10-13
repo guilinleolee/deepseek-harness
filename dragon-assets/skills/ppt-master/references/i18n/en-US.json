@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "lang": "en-US",
+    "name": "English",
+    "native_name": "English",
+    "direction": "ltr"
+  },
+  "ui": {
+    "brand": "Brand",
+    "layout": "Layout",
+    "chart": "Chart",
+    "template": "Template",
+    "preview": "Preview",
+    "export": "Export",
+    "import": "Import",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning"
+  },
+  "templates": {
+    "brands_title": "Brand Presets",
+    "layouts_title": "Layout Templates",
+    "charts_title": "Chart Templates",
+    "select_template": "Select Template",
+    "template_info": "Template Info",
+    "no_templates": "No templates available"
+  },
+  "generation": {
+    "generating": "Generating...",
+    "generated": "Generated",
+    "generating_page": "Generating page {n}",
+    "exporting": "Exporting..."
+  },
+  "styles": {
+    "corporate": "Corporate Blue",
+    "minimal": "Minimal White",
+    "academic": "Academic Gray",
+    "tech": "Tech Blue",
+    "dark": "Dark Night",
+    "creative": "Creative Color"
+  },
+  "layouts": {
+    "cover": "Cover",
+    "title": "Section Title",
+    "content": "Content",
+    "two_column": "Two Column",
+    "code": "Code",
+    "chart": "Chart",
+    "table": "Table",
+    "ending": "Ending"
+  },
+  "messages": {
+    "welcome": "Welcome to PPT Generator",
+    "select_source": "Please select source file",
+    "select_template": "Please select template",
+    "confirm_generation": "Confirm Generation",
+    "generation_complete": "Generation complete!",
+    "export_complete": "Export complete!"
+  },
+  "errors": {
+    "file_not_found": "File not found",
+    "invalid_format": "Invalid format",
+    "generation_failed": "Generation failed",
+    "export_failed": "Export failed",
+    "network_error": "Network error"
+  },
+  "help": {
+    "title": "Help",
+    "quick_start": "Quick Start",
+    "documentation": "Documentation",
+    "examples": "Examples",
+    "faq": "FAQ"
+  }
+}

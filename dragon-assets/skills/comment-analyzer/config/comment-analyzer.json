@@ -1,0 +1,109 @@
+{
+  "scraper": {
+    "mode": "mcp",
+    "login_wait_time": 45,
+    "max_scroll_count": 100,
+    "scroll_delay": 1500,
+    "no_new_comment_limit": 10,
+    "smart_stop": true,
+    "expand_replies": true
+  },
+  "analysis": {
+    "min_comments": 10,
+    "max_comments": 500,
+    "sentiment_categories": 4,
+    "top_keywords": 50,
+    "min_confidence": 0.6
+  },
+  "output": {
+    "format": "html",
+    "include_raw_data": true,
+    "auto_open": true,
+    "output_dir": "~/comment-analysis-reports"
+  },
+  "platforms": {
+    "weibo": {
+      "name": "微博",
+      "domains": ["weibo.com", "weibo.cn", "m.weibo.cn"],
+      "shorteners": ["t.cn"],
+      "login_required": true,
+      "api_endpoints": ["/comments/buildComments", "/ajax/comments"],
+      "use_api_intercept": true,
+      "dom_selectors": {
+        "comment_item": ".comment-item, .comment-item-wrap, .WB_text",
+        "comment_text": ".comment-text, .text, .WB_text",
+        "comment_user": ".comment-user, .user-name, .screen_name",
+        "comment_time": ".comment-time, .time, .func-time",
+        "comment_likes": ".comment-like, .like-btn, .WF_count"
+      }
+    },
+    "xiaohongshu": {
+      "name": "小红书",
+      "domains": ["xiaohongshu.com", "xhslink.com"],
+      "mobile_domain": "m.xiaohongshu.com",
+      "login_required": true,
+      "use_api_intercept": false,
+      "dom_selectors": {
+        "comment_item": ".comment-item, .note-comment-item",
+        "comment_text": ".comment-text, .content",
+        "comment_user": ".comment-user, .user-name, .nickname",
+        "comment_time": ".comment-time, .time",
+        "comment_likes": ".comment-like, .like-count"
+      }
+    },
+    "douyin": {
+      "name": "抖音",
+      "domains": ["douyin.com"],
+      "login_required": true,
+      "use_api_intercept": false,
+      "dom_selectors": {
+        "comment_item": ".comment-item, .list-item",
+        "comment_text": ".comment-text, .content",
+        "comment_user": ".comment-user, .user-name",
+        "comment_time": ".comment-time, .time",
+        "comment_likes": ".comment-like, .like-count"
+      }
+    },
+    "bilibili": {
+      "name": "哔哩哔哩",
+      "domains": ["bilibili.com", "b23.tv"],
+      "shorteners": ["b23.tv"],
+      "login_required": false,
+      "api_endpoints": ["/api/v1/reply", "/api/v1/reply/reply"],
+      "use_api_intercept": true,
+      "dom_selectors": {
+        "comment_item": ".reply-item, .list-item",
+        "comment_text": ".text-con, .reply-content, .con",
+        "comment_user": ".user-name, .sub-user-name, .name",
+        "comment_time": ".reply-time, .time, .pubdate",
+        "comment_likes": ".reply-btn .like-num, .like-num"
+      }
+    },
+    "zhihu": {
+      "name": "知乎",
+      "domains": ["zhihu.com", "zhuanlan.zhihu.com"],
+      "login_required": true,
+      "use_api_intercept": false,
+      "dom_selectors": {
+        "comment_item": ".List-item, .CommentItemV2, .comment-item",
+        "comment_text": ".RichContent-inner, .comment-content, .content",
+        "comment_user": ".UserLink-link, .author-name, .user-name",
+        "comment_time": ".ContentItem-time, .comment-time, .time",
+        "comment_likes": ".VoteButton--up, .like-count"
+      }
+    },
+    "wechat_mp": {
+      "name": "微信公众号",
+      "domains": ["mp.weixin.qq.com"],
+      "login_required": false,
+      "use_api_intercept": false,
+      "dom_selectors": {
+        "comment_item": ".comment_item, .comment-item",
+        "comment_text": ".comment_content, .content",
+        "comment_user": ".comment_nickname, .user-name",
+        "comment_time": ".comment_time, .time",
+        "comment_likes": ".comment_like_count, .like-count"
+      }
+    }
+  }
+}

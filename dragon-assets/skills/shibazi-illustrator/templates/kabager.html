@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{BRAND_NAME}}: {{TITLE_MAIN}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=JetBrains+Mono&display=swap');
+        body {
+            background-color: #F5F5F0;
+            font-family: 'Noto Sans SC', sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .poster-card {
+            width: 600px;
+            background-color: #F5F5F0;
+            border: 4px solid #1E3A5F;
+            position: relative;
+            padding: 60px 45px;
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            overflow: hidden;
+        }
+
+        .dot-grid {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(#1E3A5F 1px, transparent 1px);
+            background-size: 25px 25px;
+            opacity: 0.04;
+            z-index: 1;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+            font-size: 64px;
+            font-weight: 900;
+            color: #1E3A5F;
+            opacity: 0.1;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 2;
+            letter-spacing: 0.05em;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 45px;
+        }
+
+        .main-title {
+            font-weight: 900;
+            font-size: 52px;
+            line-height: 1.1;
+            letter-spacing: -0.05em;
+        }
+
+        .sub-title-box {
+            border-left: 4px solid #1E3A5F;
+            padding-left: 24px;
+        }
+        .sub-title-text {
+            color: #6B7C93;
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* 规范核心模片：标题 24px，正文 15px */
+        .section-title {
+            border-left: 4px solid #C8102E;
+            padding-left: 12px;
+            font-weight: 900;
+            color: #1E3A5F;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .section-body {
+            font-size: 15px;
+            color: #64748B;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        /* 规范总结金句：25px */
+        .footer-summary {
+            font-size: 25px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster-card">
+        <div class="dot-grid"></div>
+        <div class="watermark">{{BRAND_NAME}}</div>
+
+        <div class="content-layer">
+
+            <header class="flex justify-between items-center">
+                <span class="bg-[#1E3A5F] text-white px-4 py-1.5 text-xl font-black tracking-tight">{{BRAND_NAME}}</span>
+                <span class="text-[#C8102E] font-black italic mono text-xl">{{BRAND_VERSION}}</span>
+            </header>
+
+            <div class="main-title">
+                <span class="text-[#1E3A5F]">{{TITLE_MAIN}}</span><br/>
+                <span class="text-[#C8102E]">{{TITLE_HIGHLIGHT}}</span>
+            </div>
+
+            <div class="sub-title-box">
+                <p class="sub-title-text">
+                    {{SUBTITLE}}
+                </p>
+            </div>
+
+            <main class="grid grid-cols-2 gap-x-10 gap-y-10 py-4">
+                {{SECTIONS}}
+            </main>
+
+            <footer class="bg-[#1E3A5F] p-10 -mx-[45px] -mb-[60px] mt-4 text-white">
+                <div class="space-y-6">
+                    <h2 class="footer-summary italic">
+                        {{FOOTER_SUMMARY}}
+                    </h2>
+                    <div class="flex justify-between items-center border-top border-white/20 pt-6" style="border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p class="text-white/40 text-xs mono tracking-[0.3em] uppercase">{{BRAND_TAGLINE}}</p>
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 bg-[#C8102E]"></div>
+                            <div class="w-3 h-3 bg-white opacity-20"></div>
+                            <div class="w-3 h-3 bg-white opacity-10"></div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+
+        </div>
+    </div>
+
+</body>
+</html>

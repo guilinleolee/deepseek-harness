@@ -1,0 +1,222 @@
+{
+  "blogger_id": "laoli_bro_2026",
+  "blogger_name": "老李兄弟",
+  "owner_id": "laoli_bro_2026",
+  "matched_template": "知识区",
+  "language": "zh",
+  "dialect": "普通话",
+  "_meta": {
+    "schema_version": "9-dim-v3.0",
+    "created_at": "2026-07-03",
+    "source": "user-provided (3 photos + 老李风 style brief)",
+    "consent": {
+      "voice_consent_file": "voice_consent.txt",
+      "ip_consent_file": "ip_consent.txt",
+      "consent_expires_at": "2027-07-03",
+      "watermark_enabled": true
+    },
+    "previous_schema": "8-dim-v2.0",
+    "bumped_at": "2026-07-31"
+  },
+  "dim_1_timbre": {
+    "label": "中年男性 · 中低音",
+    "notes": "略带沙哑，生活化，不刻意修饰"
+  },
+  "dim_2_speed": {
+    "label": "中等偏慢",
+    "chars_per_sec": 4.2,
+    "notes": "讲到兴奋处会加速到 5.5，吐槽时会拖到 3.0"
+  },
+  "dim_3_dialect": {
+    "detected": "普通话",
+    "notes": "偶尔带北方口音（儿化音）"
+  },
+  "dim_4_emotion": {
+    "label": "兴奋+耐心",
+    "notes": "发现好工具时眼睛一亮；讲到行业乱象时语气变重但克制"
+  },
+  "dim_5_prosody": {
+    "f0_mean_hz": 142.0,
+    "notes": "基频稳定，关键句尾会下沉制造重量感"
+  },
+  "dim_6_vocabulary": {
+    "top_words": [
+      "兄弟",
+      "说白了",
+      "举个例子",
+      "你看",
+      "这事",
+      "我寻思",
+      "真的",
+      "真的就是一声叹息",
+      "我当时就愣住了",
+      "这尼玛",
+      "魔幻",
+      "就这么点事",
+      "愚钝如我",
+      "慢慢来"
+    ],
+    "forbidden_words": [
+      "说白了",
+      "本质上",
+      "意味着",
+      "换句话说",
+      "不可否认",
+      "值得注意的是"
+    ]
+  },
+  "dim_7_writing_style": {
+    "style_id": "laoli-writer-v1.0",
+    "style_name": "老李风",
+    "mother_formula": "有阅历的普通人在认真聊一件让他兴奋的事",
+    "voice_keywords": [
+      "兄弟",
+      "你看",
+      "说白了",
+      "举个例子",
+      "我寻思",
+      "愚钝如我",
+      "我当时就愣住了",
+      "这尼玛",
+      "真的就是一声叹息",
+      "就这么点事"
+    ],
+    "metaphor_library": [
+      "装修/买房",
+      "做饭/买菜",
+      "带娃/教育",
+      "通勤/打车",
+      "修车/4S店",
+      "打麻将/棋牌",
+      "菜市场/砍价",
+      "快递柜/外卖",
+      "银行排队",
+      "修手机/电脑"
+    ],
+    "emotion_library": [
+      "自嘲",
+      "无奈",
+      "兴奋",
+      "吐槽",
+      "温情",
+      "较真"
+    ],
+    "rhythm_tools": [
+      "扣主线句（偏出去后拉回来）",
+      "句式断裂（关键节点制造重量）",
+      "重复强调（表达强度）",
+      "扣场景切换（板块过渡）",
+      "故意打断（模拟真人思考）"
+    ],
+    "knowledge_output": "聊着聊着顺手掏出来（生活场景类比，不是学术）",
+    "closing_patterns": [
+      "谦逊铺垫",
+      "行动呼吁",
+      "回环呼应",
+      "开放留白",
+      "信念宣言"
+    ],
+    "self_check_4_layer": {
+      "L1_hard_rules": "6 类踩雷词零命中 / 冒号破折号双引号零命中 / 套话开场零命中",
+      "L2_style_consistency": "具体当下事件切入 / 长短句交替 + 至少 3 处句式断裂",
+      "L3_content_quality": "观点有具体人/场景/花费/数据 / 数字具体到元",
+      "L4_living_sense": "这是老李会写的话吗（兄弟/装修/兴奋/谦逊）"
+    }
+  },
+  "dim_8_ip_visual": {
+    "anchor": {
+      "image_path": "./photos/photo_1.jpg",
+      "image_path_alt": "./photos/photo_2.jpg",
+      "image_path_alt2": "./photos/photo_3.jpg",
+      "description": "45岁中年男性，短黑发，圆脸偏瘦，穿黑色基础款 Polo 衫（RONHIN SPIRIT 1985），深色长裤，户外自然光，眼神平实坚定，嘴角微带笑意。3 张照片分别取自公园/超市/自然场景，姿态放松自然不摆拍。"
+    },
+    "spec": {
+      "style_keywords": [
+        "老李风",
+        "接地气",
+        "生活化",
+        "实用主义",
+        "真诚不做作",
+        "有阅历",
+        "不端着"
+      ],
+      "color_palette": [
+        "#2C3E50",
+        "#34495E",
+        "#E67E22",
+        "#ECF0F1",
+        "#1A1A1A",
+        "#7F8C8D"
+      ],
+      "color_palette_mood": "深灰 + 暖橙 + 米白，整体沉稳不张扬，Polo 黑作为主体色",
+      "line_thickness": "medium",
+      "line_style": "干净利落，不要卡通描边",
+      "shading": "自然光影 + 柔光，避免过曝和死黑",
+      "composition": "中近景（腰部以上），三分构图，留 30% 头部上方空间用于放标题"
+    },
+    "extensions": {
+      "actions": [
+        "讲解时双手自然摊开（手心朝上，表示'你听我说'）",
+        "强调重点时单手往前一推（表示'这事就这么定'）",
+        "吐槽时双手一摊 + 苦笑（表示'我也无奈'）",
+        "兴奋时身体前倾 + 单手比划（表示'这一下给我干懵了'）",
+        "自嘲时微微摇头 + 摆手（表示'愚钝如我'）",
+        "温情时双手比心或拍拍肩膀（表示'兄弟别急，哥给你捋'）"
+      ],
+      "expressions": [
+        "认真脸（眉头微皱，眼神聚焦）",
+        "兴奋（眼睛一亮，嘴角上扬）",
+        "自嘲（苦笑 + 摇头）",
+        "无奈（一声叹息 + 双肩一耸）",
+        "较真（眼神锐利，语气加重）",
+        "温情（柔和眼神 + 微微点头）"
+      ]
+    }
+  },
+  "ip_consent_summary": {
+    "voice_authorized": true,
+    "ip_image_authorized": true,
+    "scope": "全平台（微信公众号 / 抖音 / 小红书 / B 站 / YouTube / 视频号 / 知乎 / 微博 / 推特）",
+    "commercial_use": true,
+    "expires_at": "2027-07-03"
+  },
+  "dim_9_design_style": {
+    "style_id": "kraft-paper",
+    "style_name": "牛皮纸 / Kraft Paper",
+    "source": "huashu-design design-styles.md (40 风格库)",
+    "rationale": "老李风『有阅历的普通人在认真聊』的视觉对应——牛皮纸/旧报纸/南方周末质感：温暖、朴素、有年代感、非过度设计",
+    "spec": {
+      "base_color": "#D4B896",
+      "accent_color": "#8B4513",
+      "text_color": "#3E2723",
+      "background": "#F5E6D3",
+      "texture": "subtle paper grain / 0.04 noise overlay",
+      "border": "1px solid #C8A878, 4px corner brackets (老式书脊风)",
+      "typeface": "思源宋体 / Source Han Serif (serif) + 思源黑体 (UI sans)",
+      "font_size_title": "42px",
+      "font_size_body": "16px",
+      "line_height": 1.7,
+      "letter_spacing": "0.05em",
+      "layout": "centered column 720px max, 边距 60px"
+    },
+    "forbidden": [
+      "霓虹色 / 渐变",
+      "emoji 大图标",
+      "圆角大于 4px",
+      "高饱和度 (>70%)",
+      "拟物毛玻璃 / 模糊",
+      "无衬线 工业风（看起来像 SaaS 落地页）"
+    ],
+    "best_for": [
+      "公众号长文（生活类比 / 知识讲解 / 行业吐槽）",
+      "封面图（带 logo + 一行金句 + 老李头像）",
+      "小红书图文（3-6 张轮播，每张一段老李话）"
+    ],
+    "voice_visual_alignment": "牛皮纸 = 老李话 = 真实、不装、可信",
+    "_meta": {
+      "schema_version": "9-dim-v3.0",
+      "added_at": "2026-07-31",
+      "source_skill": "huashu-design V2.6"
+    }
+  }
+}

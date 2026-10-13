@@ -1,0 +1,18 @@
+# i18n parity record for dsh-customer-service
+# Format: zh key -> en value, both sides must stay in sync.
+# zh is the source of truth per docs/AGENTS.md.
+
+zh-to-en:
+  cs.nav.overview: 概述
+  cs.nav.conversations: 会话工作台
+  cs.nav.tickets: 工单中心
+  cs.nav.knowledge: 知识库管理
+  cs.nav.bot-config: 智能客服配置
+  cs.nav.channels: 渠道接入
+  cs.nav.agents: 坐席管理
+  cs.empty.deploy: cs-backend 未启动
+
+# Source-of-truth: Chinese README.zh.md (left) <-> English README.md (right).
+# Run `pnpm docs:check` to verify pair consistency.
+readme-pairs:
+  - { zh: README.zh.md, en: README.md, source: zh }

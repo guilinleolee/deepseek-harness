@@ -1,0 +1,115 @@
+dsh-univer-office-bridge
+Copyright 2026 dragon-engine contributors
+
+This product includes software developed by
+DreamNum Co., Ltd. (https://github.com/dream-num)
+in the project "dsh-univer-office"
+(https://github.com/dream-num/dsh-univer-office).
+
+================================================================================
+Section 1 — Product Identification
+================================================================================
+
+Product name    : dsh-univer-office-bridge
+Version         : V1.0.0 (Stage 26 of dragon-engine)
+Mirror date     : 2026-08-26
+Upstream version: v0.2.9 (2026-08-25)
+License (mirror): Apache License 2.0 (see LICENSE)
+
+================================================================================
+Section 2 — Derived Work Notice (Apache-2.0 § 4(d))
+================================================================================
+
+This bridge package is a DERIVATIVE WORK of dream-num/dsh-univer-office.
+The following upstream files are mirrored verbatim or with minor reductions
+in dragon-engine/skills/ (no semantic changes):
+
+  dragon-engine/skills/univer/SKILL.md
+  dragon-engine/skills/univer-sheet/SKILL.md
+  dragon-engine/skills/univer-doc/SKILL.md
+  dragon-engine/skills/univer-slide/SKILL.md
+  dragon-engine/skills/univer-base/SKILL.md
+  dragon-engine/skills/univer-board/SKILL.md
+  dragon-engine/skills/univer-embed/SKILL.md
+  dragon-engine/skills/univer-cross-unit-formula/SKILL.md
+
+The seven upstream files (above) are unmodified or only compressed for brevity;
+each retains an upstream-pointer at the bottom that links to the canonical
+source on raw.githubusercontent.com.
+
+Original copyright:
+
+    Copyright (c) 2026 DreamNum Co., Ltd. <developer@univer.ai>
+
+Modified by dragon-engine / 2026-08-26.
+
+================================================================================
+Section 3 — Upstream Trademark Notice (Apache-2.0 § 6)
+================================================================================
+
+The following marks are the property of DreamNum Co., Ltd.:
+  - "Univer" (TM)
+  - "Univer Office" (TM)
+  - "DreamNum" (TM)
+
+This dragon-engine bridge package is NOT affiliated with, endorsed by, or
+sponsored by DreamNum Co., Ltd., except that it redistributes upstream
+open-source code under Apache-2.0 terms. dragon-engine contributors use
+the upstream marks only as required for reasonable and customary
+attribution, and never to suggest endorsement.
+
+Permitted phrasing in derivative documentation:
+  - "Powered by DreamNum/Univer"
+  - "Based on dream-num/dsh-univer-office (Apache-2.0)"
+  - "Univer Office Plugin by DreamNum (Apache-2.0)"
+
+Forbidden phrasing:
+  - "Official Univer plugin" / "Univer 官方授权" / "Univer 推荐"
+  - Any wording implying DreamNum endorses dragon-engine as a product
+  - Use of the Univer logo as the primary brand mark of any dragon-engine output
+
+================================================================================
+Section 4 — Runtime Dependency Boundary (NOT in upstream LICENSE)
+================================================================================
+
+The upstream dsh-univer-office package depends on @univerjs-pro/* "insiders"
+artifacts (e.g. 1.0.0-insiders.20260822-0c0c0dd). These are Univer Pro
+commercial / pre-release packages and are NOT covered by Apache-2.0. They
+are pulled at install time by npm from the standard npm registry and are
+NOT redistributed by this dragon-engine bridge.
+
+Dragon-engine only mirrors the Apache-2.0 licensed files listed in §2.
+Users who install the upstream plugin agree to the upstream EULA / Pro
+license separately for the @univerjs-pro/* runtime dependencies.
+
+================================================================================
+Section 5 — Local Bridge Additions (Apache-2.0 — dragon-engine copyright)
+================================================================================
+
+The following files are ORIGINAL work by dragon-engine contributors,
+licensed under Apache-2.0 for symmetry with upstream:
+
+  dragon-engine/skills/dsh-univer-office-bridge/SKILL.md
+  dragon-engine/skills/dsh-univer-office-bridge/references/*
+  dragon-engine/skills/dsh-univer-office-bridge/scripts/*
+  dragon-engine/skills/dsh-univer-office-bridge/tests/*
+  dragon-engine/skills/dsh-univer-office-bridge/LICENSE  (mirror copy)
+  dragon-engine/skills/dsh-univer-office-bridge/NOTICE   (this file)
+
+  dragon-engine/agents/28-11-univer-workbench-operator.md
+  dragon-engine/memory/dsh-univer-office-integration.md
+
+Original copyright:
+
+    Copyright (c) 2026 dragon-engine contributors
+
+================================================================================
+Section 6 — Modification Log
+================================================================================
+
+  2026-08-26  V1.0.0  Stage 26 initial mirror
+                       - Mirrored 7 upstream SKILL.md files
+                       - Created bridge wrapper SKILL.md
+                       - Added 5-PASS check.py (see tests/)
+                       - Added 28-11 agent (Univer workbench operator)
+                       - Apache-2.0 LICENSE + this NOTICE

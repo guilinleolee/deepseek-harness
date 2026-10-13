@@ -1,0 +1,489 @@
+---
+license: MIT
+triggers: ["session distill", "会话蒸馏", "distill session", "记忆摘要", "distill from trajectory", "trajectory-distill"]
+description: 将长对话蒸馏为结构化可搜索笔记，支持语义检索和每日简报生成。V1.1 新增 distill_from_trajectory() 直接消费 DSH trajectory-debug JSON。
+version: 1.1.0
+author: 天龙引擎 · 07记录师
+integrated_from:
+  - BuilderPulse 灵感
+  - devmom/dsh-trajectory-debug v0.2.0 (MIT · Stage 40)
+last_updated: 2026-08-24
+upstream:
+  - dsh-trajectory-debug v0.2.0 (MIT)
+---
+
+# session-distiller — 会话蒸馏器
+
+> **BuilderPulse 灵感**：将"信号→机会"的转化逻辑应用于会话记忆
+>
+> 将 AI 会话自动蒸馏为结构化笔记，支持语义检索和每日简报生成
+
+---
+
+## L0: 一句话描述 (≤15字)
+
+会话自动蒸馏，记忆可搜索。
+
+---
+
+## L1: 使用场景 (50-100字)
+
+当用户需要：
+- 将长对话自动提炼为结构化笔记
+- 跨会话检索历史决策和关键信息
+- 生成每日工作简报和机会洞察
+- 构建个人知识图谱和记忆网络
+
+---
+
+## 核心功能
+
+| 功能 | 描述 | BuilderPulse 映射 |
+|------|------|------------------|
+| **会话蒸馏** | LLM 自动提取关键点、决策、待办 | 信号提取 |
+| **语义检索** | SQLite FTS5 + 嵌入向量相似度 | 机会搜索 |
+| **每日简报** | 自动生成结构化日报 | 每日 Brief |
+| **知识图谱** | 实体关系自动抽取 | 信号关联 |
+
+---
+
+## 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Session Distiller                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐  │
+│  │  Raw Session │ ──▶ │   Distill    │ ──▶ │  Structured  │  │
+│  │  (原始对话)   │     │   (蒸馏)     │     │    Notes     │  │
+│  └──────────────┘     └──────────────┘     └──────────────┘  │
+│         │                   │                    │               │
+│         ▼                   ▼                    ▼               │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐  │
+│  │   L0 原始    │     │  L1 关键点   │     │  L2 结构化   │  │
+│  │  (完整保留)   │     │ (提取压缩)   │     │  (知识卡片)  │  │
+│  └──────────────┘     └──────────────┘     └──────────────┘  │
+│                                                                  │
+│         ┌────────────────────────────────────────────┐          │
+│         │              Semantic Index                 │          │
+│         │   SQLite FTS5 + Embedding Similarity      │          │
+│         └────────────────────────────────────────────┘          │
+│                           │                                     │
+│                           ▼                                     │
+│  ┌──────────────────────────────────────────────────────┐     │
+│  │                    Daily Brief Generator               │     │
+│  │         BuilderPulse 风格的每日机会简报               │     │
+│  └──────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 四层记忆架构
+
+| 层级 | 内容 | 压缩率 | 保留方式 |
+|------|------|--------|---------|
+| **L0** | 完整原始对话 | 0% | 永远保留 |
+| **L1** | 关键句子提取 | 70% | 实时更新 |
+| **L2** | 结构化知识卡片 | 90% | 按需检索 |
+| **L3** | 每日简报洞察 | 95% | 永远保留 |
+
+---
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+# 核心依赖
+pip install sqlalchemy sqlite-utils tiktoken
+
+# 向量嵌入 (可选，用于语义检索)
+pip install sentence-transformers numpy
+
+# 安装后初始化
+python scripts/distill.py --init
+```
+
+### 2. 蒸馏单个会话
+
+```bash
+# 蒸馏指定对话文件
+python scripts/distill.py --input "conversation.txt" --output "notes/"
+
+# 交互式输入
+python scripts/distill.py --interactive
+
+# 从剪贴板蒸馏
+python scripts/distill.py --clipboard
+```
+
+### 3. 语义检索
+
+```bash
+# 搜索记忆
+python scripts/semantic_search.py search "天龙引擎架构设计"
+
+# 搜索并显示上下文
+python scripts/semantic_search.py search "上次修复的bug" --context 3
+
+# 搜索决策相关
+python scripts/semantic_search.py search "关于认证的决策" --filter decision
+```
+
+### 4. 生成每日简报
+
+```bash
+# 生成今日简报
+python scripts/daily_brief.py --today
+
+# 生成指定日期范围
+python scripts/daily_brief.py --from 2026-08-01 --to 2026-08-17
+
+# 生成并推送到 Obsidian
+python scripts/daily_brief.py --today --push-obsidian
+```
+
+---
+
+## 蒸馏模板
+
+### L1: 关键点提取
+
+```markdown
+## 会话关键点
+
+### 决策
+- [决策1] - 原因: xxx | 日期: 2026-08-17
+- [决策2] - 原因: xxx | 日期: 2026-08-17
+
+### 待办
+- [ ] 待办1 - 关联: [决策1]
+- [ ] 待办2 - 关联: [决策2]
+
+### 关键信息
+- **用户偏好**: xxx
+- **项目背景**: xxx
+- **技术选型**: xxx
+```
+
+### L2: 结构化知识卡片
+
+```markdown
+---
+type: knowledge-card
+created: 2026-08-17
+source_session: session_20260817_143022
+tags: [架构, 天龙引擎, MCP]
+---
+
+# 知识卡片: [主题]
+
+## 核心内容
+[一句话概括]
+
+## 详细说明
+[2-3 段详细说明]
+
+## 关联实体
+- [[实体1]]
+- [[实体2]]
+
+## 机会洞察 (BuilderPulse 风格)
+**为什么现在重要**: [时效性分析]
+**信号来源**: [原始对话中的关键信号]
+**下一步行动**: [建议的后续步骤]
+```
+
+### L3: 每日简报
+
+```markdown
+---
+type: daily-brief
+date: 2026-08-17
+generated_by: session-distiller v1.0
+---
+
+# 📊 天龙引擎 · 每日记忆简报
+
+**日期**: 2026-08-17
+**会话数**: 3
+**蒸馏笔记**: 12
+**关键决策**: 5
+
+---
+
+## 💡 今日洞察
+
+### 机会发现
+1. **[机会1]** - 信号: [触发信号] | 置信度: 85%
+2. **[机会2]** - 信号: [触发信号] | 置信度: 72%
+
+### 决策回顾
+- [决策1] → [影响/后果]
+- [决策2] → [影响/后果]
+
+### 待办追踪
+- [ ] [待办1] - 截止: [日期]
+- [ ] [待办2] - 状态: 进行中
+
+---
+
+## 🔗 知识网络更新
+
+### 新增实体
+- [[实体1]]: [关系描述]
+- [[实体2]]: [关系描述]
+
+### 更新关系
+- [[实体A]] ──[更新关系]── [[实体B]]
+
+---
+
+## 📈 趋势分析
+
+| 指标 | 今日 | 昨日 | 变化 |
+|------|------|------|------|
+| 会话数 | 3 | 5 | -40% |
+| 蒸馏效率 | 92% | 88% | +4% |
+| 知识密度 | 7.2 | 6.8 | +6% |
+
+---
+
+*Generated by Session Distiller · 灵感来源: BuilderPulse*
+```
+
+---
+
+## 命令使用
+
+### 蒸馏命令
+
+```bash
+# 基本蒸馏
+python scripts/distill.py --input conversation.md
+
+# 批量蒸馏
+python scripts/distill.py --batch "./chats/*.txt"
+
+# 仅提取决策
+python scripts/distill.py --input conversation.md --filter decision
+
+# 自定义模板
+python scripts/distill.py --input conversation.md --template custom.md
+```
+
+### 检索命令
+
+```bash
+# 语义搜索
+python scripts/semantic_search.py search "架构设计"
+
+# 精确搜索
+python scripts/semantic_search.py search "MCP" --mode exact
+
+# 按类型筛选
+python scripts/semantic_search.py search "决策" --type decision
+
+# 查看统计
+python scripts/semantic_search.py stats
+```
+
+### 简报命令
+
+```bash
+# 今日简报
+python scripts/daily_brief.py --today
+
+# 周报
+python scripts/daily_brief.py --week
+
+# 推送到 Obsidian
+python scripts/daily_brief.py --today --push
+
+# 自定义输出路径
+python scripts/daily_brief.py --today --output "./reports/"
+```
+
+---
+
+## 与现有天龙能力协同
+
+| 天龙组件 | 协同方式 | 效果 |
+|---------|---------|------|
+| **advanced-memory-sync** | 底层存储 | L0-L3 增强 |
+| **mempalace-memory** | 互补 | verbatim vs 蒸馏 |
+| **Obsidian V9.0** | 输出目标 | 统一展示 |
+| **/beads 任务跟踪** | 待办同步 | 闭环追踪 |
+| **claude-mem** | 原始记忆 | 完整上下文 |
+
+---
+
+## 配置
+
+### 环境变量
+
+```bash
+# 数据目录
+export SESSION_DISTILLER_PATH="$HOME/.claude/session-distiller"
+
+# 数据库路径
+export SESSION_DISTILLER_DB="$SESSION_DISTILLER_PATH/memory.db"
+
+# 嵌入模型 (可选)
+export EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
+
+# LLM 提供商
+export LLM_PROVIDER="claude"  # claude | openai | deepseek
+```
+
+### 配置文件
+
+```yaml
+# config.yaml
+distill:
+  # LLM 蒸馏提示词
+  prompt_template: "templates/distill_prompt.md"
+  
+  # 压缩率控制
+  compression:
+    l1_ratio: 0.3   # 30% 保留
+    l2_ratio: 0.1   # 10% 结构化
+
+search:
+  # 检索模式
+  mode: "semantic"  # semantic | exact | hybrid
+  max_results: 10
+  context_lines: 3
+
+brief:
+  # 简报设置
+  include_stats: true
+  include_network: true
+  push_to_obsidian: false
+
+obsidian:
+  # Obsidian 同步
+  vault_path: "$HOME/Obsidian/Vault"
+  notes_folder: "30-Projects/Session-Distiller"
+```
+
+---
+
+## 预期收益
+
+| 指标 | 无蒸馏 | 有蒸馏 | 提升 |
+|------|--------|--------|------|
+| **上下文利用** | 15% | **75%** | **+400%** |
+| **检索效率** | 全文搜索 | **语义检索** | **+200%** |
+| **知识沉淀** | 散乱 | **结构化** | **可量化** |
+| **决策追溯** | 困难 | **自动关联** | **+100%** |
+
+---
+
+## 故障排除
+
+| 问题 | 解决方案 |
+|------|---------|
+| 蒸馏失败 | 检查 LLM API 配置 |
+| 检索无结果 | 尝试降低相似度阈值 |
+| Obsidian 同步失败 | 检查 Vault 路径权限 |
+| 向量模型加载慢 | 使用轻量模型或禁用 |
+
+---
+
+## 版本历史
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| **V1.1.0** | 2026-08-24 | **Stage 40 协同（dsh-trajectory-debug）** · `distill_from_trajectory(session_id)` 直接消费 DSH trajectory JSON（瀑布视图 / step state / tool I/O / 错误码 一次性吃下）/ 5 层记忆补 L'前层（07-scribe V12.4 联动） |
+| V1.0.0 | 2026-08-17 | 初始版本 · BuilderPulse 灵感 |
+
+---
+
+## 🔗 Stage 40 协同（⭐ V1.1 增量 · distill_from_trajectory）
+
+> **触发源**：[devmom/dsh-trajectory-debug](https://github.com/devmom/dsh-trajectory-debug) v0.2.0 · MIT ✅ · 镜像在 `skills/dsh-trajectory-debug-integration/`
+>
+> **协同目标**：让 session-distiller **直接从 DSH trajectory-debug 拉 JSON 蒸馏**，而非仅依赖 transcript 文件。
+
+### V1.1 §1. 新增 API
+
+```python
+# scripts/distill.py 新增方法
+from distill import distill_from_trajectory, TrajectorySource
+
+# 从 DSH trajectory-debug RPC 拉（需 dsh_trajectory_bridge 在 path）
+source = TrajectorySource(
+    dsh_url="http://127.0.0.1:3080",
+    session_id="<id>",
+    include_steps=True,      # 含瀑布视图 step state
+    include_tool_io=True,    # 含 tool I/O 详情
+    include_errors=True,     # 含错误码、失败归因
+)
+
+result = distill_from_trajectory(
+    source=source,
+    output="L1.md",          # 关键点
+    compression={"l1_ratio": 0.3, "l2_ratio": 0.1},
+)
+```
+
+### V1.1 §2. trajectory JSON 5 段映射到 L0-L2
+
+| DSH trajectory 字段 | L0/L1/L2 |
+|---|---|
+| `turns[].steps[].toolCalls` | **L0 raw** —— tool call 完整内容 |
+| `turns[].steps[].error.code + message` | **L0 raw** —— 失败证据 |
+| `turns[].steps[].modelView.text` | **L1 关键点** —— 模型视图 |
+| `turns[].steps[].durationMs + tokens` | **L1 关键点** —— 性能摘要 |
+| `turns[].steps[].summary` | **L2 卡片** —— 直接采用为知识卡标题 |
+
+### V1.1 §3. L'前层 → L0 raw → L1 关键点 → L2 卡片 → L3 简报 → L4 mneme
+
+```
+DSH trajectory-debug (运行态 waterfall)
+        ↓ session-distiller.distill_from_trajectory()
+L'前层 snapshot (07-scribe V12.4)
+        ↓ distill.py 压缩 30%
+L0 raw + L1 关键点
+        ↓ semantic_search.py 浓缩 10%
+L2 知识卡片
+        ↓ daily_brief.py
+L3 每日简报
+        ↓ mneme-heat-engine (07-scribe V12.3)
+L4 mneme（30 天未用 → archive）
+```
+
+### V1.1 §4. 与现有 4 段架构协同
+
+| 现有 4 段（V1.0）| V1.1 新增 |
+|---|---|
+| L0 原始对话（完整保留）| **+ L'前层（trajectory 运行态快照）** |
+| L1 关键点提取（70% 压缩）| ✓ 兼容 |
+| L2 结构化知识卡（90% 压缩）| ✓ 兼容 |
+| L3 简报（95% 压缩）| ✓ 兼容 |
+
+### V1.1 §5. DON'T 护栏（trajectory-debug 增量）
+
+- ❌ **不要**直接 DSH session JSON 当 L0 raw 用（projection 才是稳定形态，trajectory 含 raw event 序列）
+- ❌ **不要**默认开启 `enableModelTools`（distill 调用每 step 多一次 LLM → token 翻倍；opt-in）
+- ❌ **不要**把 trajectory 蒸馏结果覆盖原 distill 结果（diff & merge，不覆盖）
+- ❌ **不要**让 L'前层独立成数据库（必须 merge 到 session-distiller L0 的 sub-table，热度仍交 mneme）
+
+### V1.1 §6. 验证矩阵
+
+| # | 必检项 | 期望 | 状态 |
+|---|---|---|---|
+| 1 | `distill_from_trajectory(session_id)` 入参校验 | session_id 必填 | ⏳ |
+| 2 | trajectory JSON 5 段正确解析 | toolCalls + error + modelView + perf + summary | ⏳ |
+| 3 | 与 L1/L2 压缩率兼容 | l1_ratio=0.3 / l2_ratio=0.1 | ⏳ |
+| 4 | 3 个 pytest 用例 | dsh_trajectory_bridge RPC mock | ⏳ |
+
+---
+
+**灵感来源**: [BuilderPulse/BuilderPulse](https://github.com/BuilderPulse/BuilderPulse)
+**Stage 40 协同源**: [devmom/dsh-trajectory-debug](https://github.com/devmom/dsh-trajectory-debug) v0.2.0 · MIT
+**整合者**: 天龙引擎 · 07记录师
+**整合日期**: 2026-08-17（V1.0）· **2026-08-24（V1.1 Stage 40 升级）**

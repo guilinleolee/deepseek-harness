@@ -1,0 +1,91 @@
+{
+  "weibo": {
+    "name": "微博",
+    "domains": ["weibo.com", "weibo.cn", "m.weibo.cn"],
+    "shorteners": ["t.cn"],
+    "login_required": true,
+    "api_endpoints": ["/comments/buildComments"],
+    "use_api_intercept": true,
+    "dom_selectors": {
+      "comment_item": ".comment-item",
+      "comment_text": ".comment-text",
+      "comment_user": ".comment-user",
+      "comment_time": ".comment-time",
+      "like_btn": ".like-btn"
+    },
+    "scroll_config": {
+      "max_scroll": 100,
+      "scroll_delay": 1500,
+      "no_new_limit": 10
+    }
+  },
+  "xiaohongshu": {
+    "name": "小红书",
+    "domains": ["xiaohongshu.com", "xhslink.com"],
+    "mobile_domain": "m.xiaohongshu.com",
+    "login_required": true,
+    "use_api_intercept": false,
+    "dom_selectors": {
+      "comment_item": ".comment-item",
+      "comment_text": ".comment-text",
+      "comment_user": ".user-name",
+      "comment_time": ".publish-time"
+    }
+  },
+  "douyin": {
+    "name": "抖音",
+    "domains": ["douyin.com"],
+    "login_required": true,
+    "use_api_intercept": false,
+    "dom_selectors": {
+      "comment_item": ".comment-item",
+      "comment_text": ".comment-content",
+      "comment_user": ".user-name",
+      "comment_time": ".time"
+    }
+  },
+  "bilibili": {
+    "name": "哔哩哔哩",
+    "domains": ["bilibili.com", "b23.tv"],
+    "shorteners": ["b23.tv"],
+    "login_required": false,
+    "api_endpoints": ["/api/v1/reply", "/api/v1/reply/reply", "/x/v2/reply"],
+    "use_api_intercept": true,
+    "dom_selectors": {
+      "comment_item": ".reply-item, .list-item",
+      "comment_text": ".text-con, .reply-content, .con",
+      "comment_user": ".user-name, .sub-user-name, .name",
+      "comment_time": ".reply-time, .time, .pubdate",
+      "comment_likes": ".reply-btn .like-num, .like-num"
+    },
+    "scroll_config": {
+      "max_scroll": 100,
+      "scroll_delay": 1500,
+      "no_new_limit": 10
+    }
+  },
+  "zhihu": {
+    "name": "知乎",
+    "domains": ["zhihu.com", "zhuanlan.zhihu.com"],
+    "login_required": true,
+    "use_api_intercept": false,
+    "dom_selectors": {
+      "comment_item": ".List-item-text",
+      "comment_text": ".RichContent",
+      "comment_user": ".User-name",
+      "comment_time": ".time"
+    }
+  },
+  "wechat_mp": {
+    "name": "公众号",
+    "domains": ["mp.weixin.qq.com"],
+    "login_required": false,
+    "use_api_intercept": false,
+    "dom_selectors": {
+      "comment_item": ".comment_item",
+      "comment_text": ".comment_content",
+      "comment_user": ".comment_nickname",
+      "comment_time": ".comment_time"
+    }
+  }
+}

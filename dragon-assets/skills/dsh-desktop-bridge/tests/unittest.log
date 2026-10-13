@@ -1,0 +1,18 @@
+test_captain_round_robin (test_dsh_desktop_bridge.TestAgentDispatch.test_captain_round_robin) ... ok
+test_named_assignee (test_dsh_desktop_bridge.TestAgentDispatch.test_named_assignee) ... ok
+test_no_members (test_dsh_desktop_bridge.TestAgentDispatch.test_no_members) ... ok
+test_list_all (test_dsh_desktop_bridge.TestComposerCommands.test_list_all) ... ok
+test_parse_no_slash (test_dsh_desktop_bridge.TestComposerCommands.test_parse_no_slash) ... ok
+test_parse_unknown (test_dsh_desktop_bridge.TestComposerCommands.test_parse_unknown) ... ok
+test_parse_valid (test_dsh_desktop_bridge.TestComposerCommands.test_parse_valid) ... ok
+test_default_state (test_dsh_desktop_bridge.TestDSHDesktopState.test_default_state) ... ok
+test_basic_parse (test_dsh_desktop_bridge.TestManifestParser.test_basic_parse) ... ok
+test_missing_required_key (test_dsh_desktop_bridge.TestManifestParser.test_missing_required_key) ... ok
+test_route_by_id (test_dsh_desktop_bridge.TestWorkspaceRoute.test_route_by_id) ... ok
+test_route_by_name (test_dsh_desktop_bridge.TestWorkspaceRoute.test_route_by_name) ... ok
+test_route_not_found (test_dsh_desktop_bridge.TestWorkspaceRoute.test_route_not_found) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.002s
+
+OK

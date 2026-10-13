@@ -1,0 +1,22 @@
+{
+  "out_dir": "C:\\Users\\li\\.claude\\projects\\c--Users-li--claude\\dragon-engine\\skills\\book-distiller\\local-tests\\output",
+  "checks": {
+    "L1_completeness": {
+      "pass": true,
+      "msg": "L1 PASS (章节 5 · 唯一摘要 5 · 重复 0)"
+    },
+    "L2_consistency": {
+      "pass": true,
+      "msg": "L2 PASS (关键词平均重叠 1.00)"
+    },
+    "L3_density": {
+      "pass": true,
+      "msg": "L3 PASS (概念 10 · 案例 1 · 三元组 4)"
+    },
+    "L4_reuse": {
+      "pass": true,
+      "msg": "L4 PASS (非零产出 ['chapter_summaries', 'concepts', 'cases', 'kg_triples'] · book_title='cangjie-book')"
+    }
+  },
+  "all_pass": true
+}

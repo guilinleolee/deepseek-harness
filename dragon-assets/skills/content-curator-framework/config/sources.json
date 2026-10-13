@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/schema/config-v1.json",
+  "_comment": "Copy this file to ~/.content-curator/config.json and fill in your feed URLs",
+  "_instructions": "Replace null values with your JSON feed URLs. Any feed set to null is skipped.",
+  "language": "en",
+  "frequency": "daily",
+  "delivery": {
+    "method": "stdout"
+  },
+  "sources": {
+    "x": null,
+    "podcasts": null,
+    "blogs": null
+  },
+  "_examples": {
+    "x": [
+      "https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json",
+      "https://your-server.com/feeds/tweets.json"
+    ],
+    "podcasts": [
+      "https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json",
+      "https://your-server.com/feeds/podcasts.json"
+    ],
+    "blogs": [
+      "https://your-server.com/feeds/blogs.json",
+      "https://your-site.com/api/digest/blogs"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "platform": "xiaohongshu",
+  "name": "小红书图文",
+  "aspect_ratio": "3:4",
+  "size": {
+    "width": 1080,
+    "height": 1440
+  },
+  "template_defaults": {
+    "padding": 80,
+    "corner_radius": 8
+  },
+  "slides": {
+    "cover": {
+      "title": {
+        "y": 600,
+        "size": 64,
+        "weight": "bold",
+        "shadow": true
+      },
+      "subtitle": {
+        "y": 800,
+        "size": 32
+      },
+      "emoji_promotion": {
+        "position": "top-right",
+        "size": 60
+      }
+    },
+    "content": {
+      "grid": {
+        "columns": 2,
+        "gap": 16
+      },
+      "text": {
+        "heading": {
+          "size": 36,
+          "weight": "bold"
+        },
+        "body": {
+          "size": 28,
+          "line_height": 1.5
+        }
+      }
+    },
+    "ending": {
+      "hashtags": {
+        "max_count": 10,
+        "size": 24,
+        "color": "#007AFF"
+      }
+    }
+  },
+  "fonts": {
+    "preferred": ["PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC"]
+  }
+}

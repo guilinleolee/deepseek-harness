@@ -1,0 +1,101 @@
+{
+  "name": "表单触发模板",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "表单Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 250],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contact-form",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_2",
+      "name": "数据验证",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 250],
+      "parameters": {
+        "jsCode": "// 表单数据验证与清洗\nconst items = $input.all();\nconst data = items[0]?.json;\n\nconst errors = [];\n\n// 必填字段验证\nif (!data?.name || data.name.trim().length === 0) {\n  errors.push('姓名不能为空');\n}\n\nif (!data?.email || !data.email.includes('@')) {\n  errors.push('邮箱格式不正确');\n}\n\nif (!data?.message || data.message.trim().length < 10) {\n  errors.push('留言内容至少10个字符');\n}\n\nif (errors.length > 0) {\n  throw new Error('验证失败: ' + errors.join(', '));\n}\n\nreturn [{\n  json: {\n    name: data.name.trim(),\n    email: data.email.toLowerCase().trim(),\n    phone: data.phone?.trim() || null,\n    message: data.message.trim(),\n    source: data.source || 'website',\n    submittedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_3",
+      "name": "Telegram通知",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [600, 150],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "chatId": "={{ $json.chatId || '-100123456789' }}",
+        "text": "=📩 新客户留言\n\n👤 姓名: {{ $json.name }}\n📧 邮箱: {{ $json.email }}\n📱 电话: {{ $json.phone || '未填写' }}\n💬 留言:\n{{ $json.message }}\n\n⏰ 时间: {{ $now.format('YYYY-MM-DD HH:mm') }}",
+        "options": {}
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_4",
+      "name": "发送确认邮件",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [600, 350],
+      "parameters": {
+        "action": "send",
+        "to": "={{ $json.email }}",
+        "subject": "=感谢您的留言，我们已收到！",
+        "body": "=您好 {{ $json.name }}，\n\n感谢您的留言！我们已收到您的请求，团队成员将尽快处理。\n\n您提交的内容:\n{{ $json.message }}\n\n我们会通过邮件与您联系。\n\n祝好！",
+        "options": {}
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_5",
+      "name": "错误处理",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [600, 550],
+      "parameters": {},
+      "continueOnFail": false
+    }
+  ],
+  "connections": {
+    "node_1": {
+      "main": [[
+        {"node": "node_2", "type": "main", "index": 0}
+      ]]
+    },
+    "node_2": {
+      "main": [[
+        {"node": "node_3", "type": "main", "index": 0},
+        {"node": "node_4", "type": "main", "index": 0}
+      ]]
+    },
+    "node_3": {
+      "main": [[]]
+    },
+    "node_4": {
+      "main": [[]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "天龙适配": {
+    "trigger_type": "Webhook",
+    "category": "communication",
+    "complexity": "中等",
+    "integrations": ["webhook", "code", "telegram", "gmail"],
+    "nodes_count": 5,
+    "use_cases": ["表单提交", "联系表单", "预约系统", "客户反馈", "RPA自动化"],
+    "validation": true,
+    "error_handling": true,
+    "notification_channels": ["telegram", "email"]
+  }
+}

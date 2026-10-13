@@ -1,0 +1,1684 @@
+{
+  "apify/agent-skills": {
+    "owner": "apify",
+    "repo": "agent-skills",
+    "remote_hash": "28e08de7b3e6da475eeeb985d57e7f51bc76c6c2",
+    "skills": [
+      "competitor-intelligence",
+      "ecommerce-monitor",
+      "lead-generation",
+      "market-research"
+    ],
+    "skill_count": 4,
+    "last_commit_date": "2026-04-23",
+    "last_commit_hash": "28e08de",
+    "recent_commits": [
+      [
+        "2026-04-23",
+        "28e08de",
+        "Merge pull request #39 from apify/nmanerikar-patch-1"
+      ],
+      [
+        "2026-04-23",
+        "dfb095b",
+        "Remove Apify-specific point about standby Actor address"
+      ],
+      [
+        "2026-04-23",
+        "27c9092",
+        "Merge pull request #35 from apify/chore/skills-standby"
+      ],
+      [
+        "2026-04-21",
+        "2227b17",
+        "Merge pull request #33 from lukas-bekr/feat/ultimate-scraper-cli-migration-and-workflow-upgrade"
+      ],
+      [
+        "2026-04-14",
+        "8915abb",
+        "fix: restore cost estimates with rough-estimate disclaimer"
+      ],
+      [
+        "2026-04-14",
+        "2182f8f",
+        "fix: address PR review feedback (Dusan)"
+      ],
+      [
+        "2026-04-09",
+        "6478abc",
+        "Refinements according to PR feedback"
+      ],
+      [
+        "2026-04-01",
+        "106c498",
+        "Update actor development skill with more information about standby mode"
+      ],
+      [
+        "2026-04-01",
+        "8e101a0",
+        "Merge pull request #34 from apify/feat/actor-readme-guidelines"
+      ],
+      [
+        "2026-04-01",
+        "a401678",
+        "fix: remove Related Actors section and add reference Actors for README best practices"
+      ],
+      [
+        "2026-03-31",
+        "b52dc4e",
+        "feat: add Actor README guidelines to development and actorization skills"
+      ],
+      [
+        "2026-03-31",
+        "0bba7c4",
+        "feat: enrich gotchas with error recovery, anti-bot guidance, platform rate limits"
+      ],
+      [
+        "2026-03-31",
+        "9385bb3",
+        "feat: add 4 new workflow guides (e-commerce, contacts, RAG, company research)"
+      ],
+      [
+        "2026-03-31",
+        "d5c2841",
+        "feat: enrich social-analytics, trend-research, jobs, real-estate workflow guides"
+      ],
+      [
+        "2026-03-31",
+        "bb8923a",
+        "feat: enrich lead-gen, competitive-intel, influencer workflow guides with research patterns"
+      ],
+      [
+        "2026-03-31",
+        "74156fa",
+        "feat: enrich brand-monitoring, review-analysis, content-and-seo workflow guides"
+      ],
+      [
+        "2026-03-31",
+        "8bb8977",
+        "refactor: trim SKILL.md, add 4 new workflow routes"
+      ],
+      [
+        "2026-03-30",
+        "23d51be",
+        "feat: migrate skills to CLI + add design docs"
+      ],
+      [
+        "2026-03-30",
+        "36c25ce",
+        "refactor: rewrite SKILL.md with three-layer progressive disclosure routing"
+      ],
+      [
+        "2026-03-30",
+        "f325c05",
+        "feat: add workflow guides for content/SEO, social analytics, trends, jobs, real estate"
+      ],
+      [
+        "2026-03-30",
+        "6d6dbf8",
+        "feat: add workflow guides for lead-gen, competitive-intel, influencer, brand, reviews"
+      ],
+      [
+        "2026-03-30",
+        "9f0f3a0",
+        "refactor: replace monolithic actor index with lean lookup + add gotchas"
+      ],
+      [
+        "2026-03-30",
+        "d146f94",
+        "Merge pull request #31 from apify/fix/security-actorization"
+      ],
+      [
+        "2026-03-26",
+        "f37dc33",
+        "fix: migrate security fixes to actorization skill"
+      ],
+      [
+        "2026-03-23",
+        "6d52221",
+        "Merge pull request #29 from apify/feat/simplify-skills-repo"
+      ],
+      [
+        "2026-03-23",
+        "2a56e11",
+        "Merge remote-tracking branch 'origin/main' into feat/simplify-skills-repo"
+      ],
+      [
+        "2026-03-23",
+        "7552acc",
+        "feat: add apify-generate-output-schema skill, group skills in README"
+      ],
+      [
+        "2026-03-23",
+        "c24bcc0",
+        "chore: remove CLAUDE.md from tracking (gitignored)"
+      ],
+      [
+        "2026-03-23",
+        "71f4b29",
+        "fix: restore marketplace.json validation and revert .gitignore changes"
+      ],
+      [
+        "2026-03-23",
+        "c67b529",
+        "feat: restore .claude-plugin, commands, workflow, and gemini-extension"
+      ]
+    ],
+    "status": "ok"
+  },
+  "kyegomez/OpenMythos": {
+    "owner": "kyegomez",
+    "repo": "OpenMythos",
+    "remote_hash": "227dbb153266cd154f3d335f18c6b80947879f14",
+    "skills": [
+      "hidden-state-reasoning",
+      "openmythos-reasoning",
+      "rdt-architecture-research",
+      "rdt-aware-prompt-design"
+    ],
+    "skill_count": 4,
+    "last_commit_date": "2026-04-22",
+    "last_commit_hash": "227dbb1",
+    "recent_commits": [
+      [
+        "2026-04-22",
+        "227dbb1",
+        "new examples folder"
+      ],
+      [
+        "2026-04-22",
+        "963e112",
+        "tiny tests"
+      ],
+      [
+        "2026-04-22",
+        "7d78ebe",
+        "flash attn"
+      ],
+      [
+        "2026-04-20",
+        "eae0f04",
+        "fix training"
+      ],
+      [
+        "2026-04-20",
+        "289981b",
+        "[bugf][act-halting][gate halted positions from weight accumulation][bugf][moe-router-bias][stop   load balance bias gradient leak][bugf][act-cache-consistency][keep all loops with kv   cache][bugf][lora-depth-extrapolation][clamp scale index beyond max   loops][improvement][pyproject-version][bump version to 0 4 0]"
+      ],
+      [
+        "2026-04-20",
+        "7ba6907",
+        "[improvement][loguru-logging][replace print with loguru in training script][feat][ckpt-logging][add checkpoint start and success log events][docs][readme-optimizer][remove muon optimizer   reference][feat][train-requirements][add requirements txt to training folder]"
+      ],
+      [
+        "2026-04-20",
+        "18cca89",
+        "[fix][rope  Every decode token was stuck at position 0, so <q_decoded, k_cached> lost the (n - m) term entirely]"
+      ],
+      [
+        "2026-04-19",
+        "537b116",
+        "just use adam for now in training maybe add muon later"
+      ],
+      [
+        "2026-04-19",
+        "137cd88",
+        "readme"
+      ],
+      [
+        "2026-04-19",
+        "f37d405",
+        "readme"
+      ],
+      [
+        "2026-04-19",
+        "ef2cac6",
+        "readme"
+      ],
+      [
+        "2026-04-19",
+        "12f6c5b",
+        " [docs][readme-badges][add pypi twitter github badges to   readme][improvement][init-sort][sort imports alphabetically in   init][improvement][version-bump][bump version to   0.3.0][feat][tokenizer-class][add MythosTokenizer to init   exports][feat][test-tokenizer][add tokenizer test suite with printed output]"
+      ],
+      [
+        "2026-04-19",
+        "5ffb897",
+        "[feat][training-script][add 3b fineweb-edu training   script][feat][tokenizer][add MythosTokenizer class with encode   decode][improvement][deps][add transformers and datasets   dependencies][docs][readme-training][add training section with run   commands][improvement][pyproject][pin torch and add new deps]"
+      ],
+      [
+        "2026-04-19",
+        "97bc414",
+        "use gpt-oss tokenizer because it's a great tokenizer"
+      ],
+      [
+        "2026-04-19",
+        "5cfef74",
+        "[feat][dropout][add dropout to config attn and   residuals][docs][datasets][add recommended training datasets   doc][docs][readme-datasets][link datasets doc in readme]"
+      ],
+      [
+        "2026-04-19",
+        "0623ceb",
+        "Update README.md"
+      ],
+      [
+        "2026-04-19",
+        "a825ba2",
+        "[Update variants with parameter count equation]"
+      ],
+      [
+        "2026-04-19",
+        "f00d10b",
+        "more references fix"
+      ],
+      [
+        "2026-04-19",
+        "e522ecf",
+        "clean up"
+      ],
+      [
+        "2026-04-19",
+        "1c54259",
+        "format"
+      ],
+      [
+        "2026-04-19",
+        "9cce1c1",
+        "variants"
+      ],
+      [
+        "2026-04-19",
+        "299a0cd",
+        "pip and readme"
+      ],
+      [
+        "2026-04-18",
+        "806a8da",
+        " [bugf][lora-b-init][fix zero-init B making adapter always output zero][bugf][lti-get-a][fix 0 times   inf NaN in log space computation][improvement][rope-theta-test][exclude degenerate dim0 from theta   angle comparison]"
+      ],
+      [
+        "2026-04-18",
+        "53f786a",
+        "disclaimer and rope tests"
+      ],
+      [
+        "2026-04-18",
+        "14a806c",
+        "installation"
+      ],
+      [
+        "2026-04-18",
+        "7abd3e5",
+        "cleanup"
+      ],
+      [
+        "2026-04-18",
+        "0818bf8",
+        "readme"
+      ],
+      [
+        "2026-04-18",
+        "fb2939b",
+        "[DOCS] [LICENSE]"
+      ],
+      [
+        "2026-04-18",
+        "0699c00",
+        "tests"
+      ],
+      [
+        "2026-04-18",
+        "c258cdc",
+        "example .py"
+      ]
+    ],
+    "status": "ok"
+  },
+  "mmlong818/Cat-Research": {
+    "owner": "mmlong818",
+    "repo": "Cat-Research",
+    "remote_hash": "3ae393e2d5bc36a0cd9361185f7fb7eb53d0a64b",
+    "skills": [
+      "conclusion-validator",
+      "fact-checker-v2",
+      "quality-ratchet",
+      "source-verifier"
+    ],
+    "skill_count": 4,
+    "last_commit_date": "2026-03-25",
+    "last_commit_hash": "3ae393e",
+    "recent_commits": [
+      [
+        "2026-03-25",
+        "3ae393e",
+        "Merge pull request #1 from feitianbubu/fix/glm-search-url"
+      ],
+      [
+        "2026-03-25",
+        "91109b5",
+        "Merge pull request #2 from feitianbubu/feat/support-openai-web-search"
+      ],
+      [
+        "2026-03-25",
+        "30fd0a7",
+        "feat: add web search function when not glm"
+      ],
+      [
+        "2026-03-24",
+        "2247736",
+        "fix: glm web search correct url"
+      ],
+      [
+        "2026-03-22",
+        "7043bf1",
+        "Update README.md"
+      ],
+      [
+        "2026-03-22",
+        "4309dd9",
+        "Fix README accuracy after full code review"
+      ],
+      [
+        "2026-03-22",
+        "d524e93",
+        "Fix README: Researcher uses Zhipu Search API (not DuckDuckGo)"
+      ],
+      [
+        "2026-03-22",
+        "a8679f1",
+        "Rename project to cat-research and rewrite README"
+      ],
+      [
+        "2026-03-22",
+        "48184fc",
+        "Rename project to Cat-Agent"
+      ],
+      [
+        "2026-03-22",
+        "5ce3174",
+        "Add bilingual README and clean sensitive configs for open source release"
+      ],
+      [
+        "2026-03-22",
+        "761f174",
+        "Initial open source release of c-agent multi-agent research system"
+      ]
+    ],
+    "status": "ok"
+  },
+  "vercel-labs/agent-browser": {
+    "owner": "vercel-labs",
+    "repo": "agent-browser",
+    "remote_hash": "57405f93614fae46e5c955ce662b4785283e1301",
+    "skills": [
+      "agent-browser",
+      "agent-browser-skill",
+      "browserbase-skill"
+    ],
+    "skill_count": 3,
+    "last_commit_date": "2026-04-20",
+    "last_commit_hash": "57405f9",
+    "recent_commits": [
+      [
+        "2026-04-20",
+        "57405f9",
+        "feat(react): React introspection, Web Vitals, and SPA primitives (#1257)"
+      ],
+      [
+        "2026-04-20",
+        "cff1259",
+        "adds trusted publishing (#1273)"
+      ],
+      [
+        "2026-04-16",
+        "717d1b0",
+        "v0.26.0 (#1255)"
+      ],
+      [
+        "2026-04-16",
+        "14ece9b",
+        "feat: add `doctor` command for diagnosing installs and cleaning stale daemon state (#1254)"
+      ],
+      [
+        "2026-04-16",
+        "4cc6ca4",
+        "feat(skills): rename \"agent-browser\" skill to \"core\"; make CLI-served main skill actually useful (#1253)"
+      ],
+      [
+        "2026-04-16",
+        "1afcaa0",
+        "docs(help): promote skills to the top of --help so agents discover them first (#1251)"
+      ],
+      [
+        "2026-04-16",
+        "585d93a",
+        "feat(tabs): t<N> prefix for tab ids; --label for named tabs; drop --tab peek flag (#1250)"
+      ],
+      [
+        "2026-04-16",
+        "c201623",
+        "fix(tabs): correct --tab scoped commands and un-break provider direct-page path (#1249)"
+      ],
+      [
+        "2026-04-16",
+        "67dc631",
+        "Consistent Tab IDs & Global Tag Targeting (#892)"
+      ],
+      [
+        "2026-04-16",
+        "c691b26",
+        "fix: improve config schema and serve from docs site (#1248)"
+      ],
+      [
+        "2026-04-16",
+        "4f9edf9",
+        "feat: add JSON Schema for agent-browser config files (#1242)"
+      ],
+      [
+        "2026-04-16",
+        "19808d0",
+        "fix: load storage state at launch when --state / AGENT_BROWSER_STATE is set (#1241)"
+      ],
+      [
+        "2026-04-16",
+        "a884960",
+        "Prepare v0.25.5 (#1246)"
+      ],
+      [
+        "2026-04-16",
+        "dba3823",
+        "fix(test): tolerate stale screencast frames in viewport e2e test (#1245)"
+      ],
+      [
+        "2026-04-16",
+        "2e99293",
+        "fix(ci): install ffmpeg for e2e recording test (#1244)"
+      ],
+      [
+        "2026-04-15",
+        "b02e485",
+        "fix: prefer DevToolsActivePort websocket path over HTTP discovery in --auto-connect (#1218)"
+      ],
+      [
+        "2026-04-13",
+        "db29d5f",
+        "fix: inherit viewport dimensions in recording context (#1208)"
+      ],
+      [
+        "2026-04-13",
+        "ddf6d6a",
+        "fix: print data for `get box` and `get styles` in text mode (#1231) (#1233)"
+      ],
+      [
+        "2026-04-13",
+        "5032349",
+        "fix: preserve the active page when removing earlier tabs (#1220)"
+      ],
+      [
+        "2026-04-12",
+        "2114bdf",
+        "Prepare v0.25.4 release (#1228)"
+      ],
+      [
+        "2026-04-12",
+        "7c2ff0a",
+        "Move specialized skills to skill-data/ so npx skills add only finds one (#1227)"
+      ],
+      [
+        "2026-04-12",
+        "7134306",
+        "Add `agent-browser skills` command with evals (#1225)"
+      ],
+      [
+        "2026-04-09",
+        "fa043a4",
+        "fetch GitHub star count dynamically in docs header (#1202)"
+      ],
+      [
+        "2026-04-07",
+        "e4e2fe8",
+        "fix(skill): correct duplicate Option numbering in auth section (#1161)"
+      ],
+      [
+        "2026-04-07",
+        "2164e71",
+        "fix: use custom viewport dimensions in streaming frame metadata and image resolution (#1033)"
+      ],
+      [
+        "2026-04-07",
+        "6520e41",
+        "fix: re-apply ignore_https_errors to recording context (#1178)"
+      ],
+      [
+        "2026-04-06",
+        "6d05a94",
+        "v0.25.3 (#1176)"
+      ],
+      [
+        "2026-04-06",
+        "1a6ea17",
+        "fix: promote hidden radio/checkbox inputs in snapshot refs (#1085)"
+      ],
+      [
+        "2026-04-06",
+        "c4e0f9d",
+        "anchors (#1175)"
+      ],
+      [
+        "2026-04-06",
+        "b75fba1",
+        "v0.25.2 (#1174)"
+      ]
+    ],
+    "status": "ok"
+  },
+  "wade56754/openclaw-strategist": {
+    "owner": "wade56754",
+    "repo": "openclaw-strategist",
+    "remote_hash": "a94f97a0d4b7bfc8285792976ac5fe758e3f142f",
+    "skills": [
+      "business-decision-sop",
+      "mental-models-checker",
+      "warroom-decision"
+    ],
+    "skill_count": 3,
+    "last_commit_date": "2026-03-15",
+    "last_commit_hash": "a94f97a",
+    "recent_commits": [
+      [
+        "2026-03-15",
+        "a94f97a",
+        "docs: default README to Chinese, English moved to README_EN.md"
+      ],
+      [
+        "2026-03-15",
+        "569b569",
+        "docs: add language switcher links between EN/CN READMEs"
+      ],
+      [
+        "2026-03-15",
+        "3b7d733",
+        "docs: split README into English + Chinese versions"
+      ],
+      [
+        "2026-03-13",
+        "9bb4dca",
+        "🧠 Initial release: Strategist (军师) Agent workspace template"
+      ]
+    ],
+    "status": "ok"
+  },
+  "vercel-labs/skills": {
+    "owner": "vercel-labs",
+    "repo": "skills",
+    "remote_hash": "5516b8ad07393f35af4b50238b9d3f7cceca5f1e",
+    "skills": [
+      "find-skills",
+      "skills-cli"
+    ],
+    "skill_count": 2,
+    "last_commit_date": "2026-04-21",
+    "last_commit_hash": "5516b8a",
+    "recent_commits": [
+      [
+        "2026-04-21",
+        "5516b8a",
+        "feat: add heygen-com to blob download allowlist and sanitize untrusted metadata"
+      ],
+      [
+        "2026-04-17",
+        "bc21a37",
+        "v1.5.1"
+      ],
+      [
+        "2026-04-17",
+        "327162e",
+        "fix(git): skip LFS smudge during clone to avoid bandwidth bloat (#952)"
+      ],
+      [
+        "2026-04-12",
+        "004c738",
+        "v1.5.0"
+      ],
+      [
+        "2026-04-11",
+        "3d0f855",
+        "Better updating, project level updating, global level updating copy, single skill update (#913)"
+      ],
+      [
+        "2026-04-06",
+        "df0579f",
+        "v1.4.9"
+      ],
+      [
+        "2026-04-05",
+        "6995e1b",
+        "Warn on openclaw due to number of duplicate and malicious skills (#865)"
+      ],
+      [
+        "2026-04-03",
+        "9fd386d",
+        "v1.4.8"
+      ],
+      [
+        "2026-04-03",
+        "eb33656",
+        "Direct download from snapshot rather than require full git clone (#853)"
+      ],
+      [
+        "2026-04-01",
+        "10438af",
+        "Remove gray-matter as a dependency in favor of simpler front-matter parsing (#839)"
+      ],
+      [
+        "2026-03-31",
+        "690fa75",
+        "v1.4.7"
+      ],
+      [
+        "2026-03-31",
+        "5887c7b",
+        "chore: update README and package.json with latest agents"
+      ],
+      [
+        "2026-03-31",
+        "05106ed",
+        "Add IBM Bob agent support (#335)"
+      ],
+      [
+        "2026-03-31",
+        "69844c3",
+        "feat: support branch refs in skill install/update sources (#814)"
+      ],
+      [
+        "2026-03-26",
+        "d95d0ca",
+        "chore: update README and package.json with latest agents"
+      ],
+      [
+        "2026-03-26",
+        "6256aac",
+        "feat: add Firebender as a supported agent (#372)"
+      ],
+      [
+        "2026-03-23",
+        "5c19f0f",
+        "v1.4.6"
+      ],
+      [
+        "2026-03-23",
+        "2b195c6",
+        "support-agent-skills-path"
+      ],
+      [
+        "2026-03-17",
+        "fc3b8b8",
+        "chore: update README and package.json with latest agents"
+      ],
+      [
+        "2026-03-17",
+        "2e73e60",
+        "Update installation path for Antigravity (#667)"
+      ],
+      [
+        "2026-03-17",
+        "7f3f5cd",
+        "chore: update README and package.json with latest agents"
+      ],
+      [
+        "2026-03-17",
+        "a50e427",
+        "feat(agents): add Deep Agents support (#478)"
+      ],
+      [
+        "2026-03-17",
+        "cfb8e4b",
+        "feat: indicate which skills failed to update, fix #362, code cleanup (#387)"
+      ],
+      [
+        "2026-03-16",
+        "a7da676",
+        "fix: list skills installed for undetected agents (#656)"
+      ],
+      [
+        "2026-03-13",
+        "c9fb03e",
+        "v1.4.5"
+      ],
+      [
+        "2026-03-13",
+        "a143ac8",
+        "fix: skip symlink/copy prompt when all agents share one directory (#582)"
+      ],
+      [
+        "2026-03-13",
+        "dacfb8e",
+        "fix: stop excluding underscore-prefixed files during skill installation (#548)"
+      ],
+      [
+        "2026-03-13",
+        "0b8fb22",
+        "docs(find-skills): add quality verification and leaderboard check (#547)"
+      ],
+      [
+        "2026-03-13",
+        "9e064a6",
+        "fix: sort search results by install count (#546)"
+      ],
+      [
+        "2026-03-13",
+        "35298a9",
+        "fix: avoid hardcoded ~/.agents for skill lock file (#517)"
+      ]
+    ],
+    "status": "ok"
+  },
+  "cheahjs/free-llm-api-resources": {
+    "owner": "cheahjs",
+    "repo": "free-llm-api-resources",
+    "remote_hash": "b67cfc61f7663b822d0f860f554f5afd4a2bec4a",
+    "skills": [
+      "free-llm-provider-aggregator",
+      "smart-provider-router"
+    ],
+    "skill_count": 2,
+    "last_commit_date": "2026-04-18",
+    "last_commit_hash": "b67cfc6",
+    "recent_commits": [
+      [
+        "2026-04-18",
+        "b67cfc6",
+        "Update README with latest models (#305)"
+      ],
+      [
+        "2026-04-16",
+        "fb47629",
+        "add Gemini TTS and Robotics-ER free tier models"
+      ],
+      [
+        "2026-04-16",
+        "659ee72",
+        "remove unused mistral client and pin dependencies"
+      ],
+      [
+        "2026-03-08",
+        "c3ac911",
+        "regenerate"
+      ],
+      [
+        "2026-03-08",
+        "2a83c9f",
+        "add opencode zen"
+      ],
+      [
+        "2026-03-08",
+        "25ce953",
+        "cleanup existing providers"
+      ],
+      [
+        "2026-03-08",
+        "3c85249",
+        "Update README with latest models (#293)"
+      ],
+      [
+        "2026-03-03",
+        "ebadca5",
+        "add new model"
+      ],
+      [
+        "2026-03-03",
+        "c92ba12",
+        "Update README with latest models (#288)"
+      ],
+      [
+        "2026-02-27",
+        "39b5f74",
+        "Update README with latest models (#284)"
+      ],
+      [
+        "2026-02-18",
+        "147f57f",
+        "Upgrade GitHub Actions to latest versions (#280)"
+      ],
+      [
+        "2026-02-18",
+        "e391cd9",
+        "Upgrade GitHub Actions for Node 24 compatibility (#279)"
+      ],
+      [
+        "2026-02-18",
+        "ea52837",
+        "Update README with latest models (#276)"
+      ],
+      [
+        "2026-01-28",
+        "70f620a",
+        "Update README with latest models (#273)"
+      ],
+      [
+        "2026-01-21",
+        "682da24",
+        "Update README with latest models (#272)"
+      ],
+      [
+        "2026-01-16",
+        "6d5e201",
+        "Update README with latest models (#268)"
+      ],
+      [
+        "2026-01-10",
+        "521854e",
+        "Update README with latest models (#267)"
+      ],
+      [
+        "2026-01-06",
+        "3a80e3d",
+        "Update README with latest models (#261)"
+      ],
+      [
+        "2025-12-24",
+        "73c662d",
+        "Update README with latest models (#259)"
+      ],
+      [
+        "2025-12-17",
+        "6a61357",
+        "update outdated model list"
+      ],
+      [
+        "2025-12-17",
+        "0467315",
+        "update with gemini 3 flash"
+      ],
+      [
+        "2025-12-17",
+        "bb34543",
+        "Update README with latest models (#257)"
+      ],
+      [
+        "2025-12-15",
+        "082ca82",
+        "Update README with latest models (#256)"
+      ],
+      [
+        "2025-12-06",
+        "3f9ef5d",
+        "remove gemini models that no longer have free tier"
+      ],
+      [
+        "2025-12-06",
+        "bb56048",
+        "Update README with latest models (#255)"
+      ],
+      [
+        "2025-12-04",
+        "518c6cc",
+        "Update README with latest models (#254)"
+      ],
+      [
+        "2025-11-29",
+        "b5d5d96",
+        "Update README with latest models (#253)"
+      ],
+      [
+        "2025-11-25",
+        "6c529b2",
+        "Update README with latest models (#252)"
+      ],
+      [
+        "2025-11-19",
+        "7f951a8",
+        "Update README with latest models (#251)"
+      ],
+      [
+        "2025-11-15",
+        "585f075",
+        "Update README with latest models (#250)"
+      ]
+    ],
+    "status": "ok"
+  },
+  "zarazhangrui/follow-builders": {
+    "owner": "zarazhangrui",
+    "repo": "follow-builders",
+    "remote_hash": "72469e3ab8bd1a4dff23cdf391cc5aea9e81ee0c",
+    "skills": [
+      "follow-builders"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-04-24",
+    "last_commit_hash": "72469e3",
+    "recent_commits": [
+      [
+        "2026-04-24",
+        "72469e3",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-23",
+        "2573f54",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-22",
+        "f2ede88",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-21",
+        "9e239ea",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-20",
+        "0a2edc5",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-19",
+        "82ce1c0",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-18",
+        "6f83383",
+        "feat: link podcast feed to specific YouTube episode, not channel"
+      ],
+      [
+        "2026-04-18",
+        "ea59e3d",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-17",
+        "866d3d8",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-16",
+        "d982d9e",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-15",
+        "5891f31",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-14",
+        "ed231e0",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-13",
+        "f19f006",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-12",
+        "bc5d548",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-11",
+        "4b915db",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-10",
+        "0d02283",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-09",
+        "27b26bd",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-08",
+        "5b13944",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-07",
+        "83bdb81",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-06",
+        "3cecd8c",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-05",
+        "7263504",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-04",
+        "42c7a7a",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-03",
+        "89dc4fc",
+        "fix: always use YouTube URL in podcast feed output"
+      ],
+      [
+        "2026-04-03",
+        "6376e71",
+        "fix: use pod2txt proxy for Latent Space RSS feed"
+      ],
+      [
+        "2026-04-03",
+        "48ef774",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-02",
+        "9753d99",
+        "fix: restore today's feed content from morning scheduled run"
+      ],
+      [
+        "2026-04-02",
+        "3a8fec1",
+        "fix: strip CDATA wrapper from RSS GUIDs before sending to pod2txt"
+      ],
+      [
+        "2026-04-02",
+        "718573e",
+        "chore: update feeds [skip ci]"
+      ],
+      [
+        "2026-04-02",
+        "4569f43",
+        "fix: add full browser-like headers to RSS fetches"
+      ],
+      [
+        "2026-04-02",
+        "0534768",
+        "chore: update feeds [skip ci]"
+      ]
+    ],
+    "status": "ok"
+  },
+  "affaan-m/agentshield": {
+    "owner": "affaan-m",
+    "repo": "agentshield",
+    "remote_hash": "162e8e197155a71d360103d99a5efcb722b8a936",
+    "skills": [
+      "security-scan"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-04-09",
+    "last_commit_hash": "162e8e1",
+    "recent_commits": [
+      [
+        "2026-04-09",
+        "162e8e1",
+        "fix: harden runtime install recovery"
+      ],
+      [
+        "2026-04-08",
+        "169db1c",
+        "feat: add runtime status command"
+      ],
+      [
+        "2026-04-08",
+        "da550d9",
+        "chore: rebuild miniclaw fallback dist artifacts"
+      ],
+      [
+        "2026-04-08",
+        "c8787f4",
+        "feat: make miniclaw fallback responder honest"
+      ],
+      [
+        "2026-04-08",
+        "e85550d",
+        "fix: finish agentshield lint migration and vite patch"
+      ],
+      [
+        "2026-04-05",
+        "0440830",
+        "feat: add prompt defense posture audit rules"
+      ],
+      [
+        "2026-04-05",
+        "c8b2334",
+        "docs: refresh working context after branch cleanup"
+      ],
+      [
+        "2026-04-05",
+        "7442f37",
+        "docs: refresh working context after branch audit"
+      ],
+      [
+        "2026-03-31",
+        "6f1b5cc",
+        "docs: add working context file"
+      ],
+      [
+        "2026-03-31",
+        "04e8f05",
+        "chore: ignore local orchestration artifacts"
+      ],
+      [
+        "2026-03-31",
+        "ec8a6e1",
+        "fix(security): npm audit fix — 0 vulnerabilities"
+      ],
+      [
+        "2026-03-25",
+        "fe6ff5d",
+        "Merge pull request #43 from affaan-m/fix/version-sync"
+      ],
+      [
+        "2026-03-25",
+        "d447fa8",
+        "fix: sync CLI version with package release"
+      ],
+      [
+        "2026-03-24",
+        "2d83db2",
+        "Merge pull request #42 from affaan-m/feat/reporter-severity-refresh"
+      ],
+      [
+        "2026-03-24",
+        "c43657f",
+        "feat: tighten severity scoring and reporter outputs"
+      ],
+      [
+        "2026-03-22",
+        "6481553",
+        "docs: remove MiniClaw section, add ECC Tools Pro link, update test count"
+      ],
+      [
+        "2026-03-22",
+        "f06bb7e",
+        "docs: add AgentShield logo to README header"
+      ],
+      [
+        "2026-03-22",
+        "9bbc007",
+        "chore: add standalone workflow template, logos, and build artifacts"
+      ],
+      [
+        "2026-03-20",
+        "bff08f0",
+        "chore: reset package version to 1.4.0"
+      ],
+      [
+        "2026-03-20",
+        "5d57be8",
+        "feat: organization-wide security policy enforcement (#17) (#40)"
+      ],
+      [
+        "2026-03-20",
+        "83c4c9d",
+        "feat: supply chain verification for MCP packages (#15) (#37)"
+      ],
+      [
+        "2026-03-20",
+        "e88e5d0",
+        "fix: fall back when recursive watch is unavailable"
+      ],
+      [
+        "2026-03-20",
+        "ae226a2",
+        "ci: harden workflows and add review bot config"
+      ],
+      [
+        "2026-03-20",
+        "1eae057",
+        "feat: add PR security gate with baseline comparison (issue #16) (#38)"
+      ],
+      [
+        "2026-03-20",
+        "4ad83d1",
+        "fix: remove stray closing bracket from merge conflict resolution"
+      ],
+      [
+        "2026-03-20",
+        "eccd347",
+        "feat: add runtime monitoring with PreToolUse hook (issue #14) (#36)"
+      ],
+      [
+        "2026-03-20",
+        "75d92d0",
+        "chore(deps-dev): bump flatted (#25)"
+      ],
+      [
+        "2026-03-20",
+        "f5b8b8b",
+        "feat: add watch mode with config drift detection (issue #13) (#34)"
+      ],
+      [
+        "2026-03-20",
+        "1f9c1fc",
+        "feat: CVE database + MCP tool poisoning detection (v1.7.0) (#32)"
+      ],
+      [
+        "2026-03-20",
+        "9a90f92",
+        "feat: AgentShield v1.6.0 — fix false positives, add CLAUDE.md permission check (#19)"
+      ]
+    ],
+    "status": "ok"
+  },
+  "daxiangnaoyang/openclaw-advanced-memory": {
+    "owner": "daxiangnaoyang",
+    "repo": "openclaw-advanced-memory",
+    "remote_hash": "9f346bade231755f2bf0b3d958215c01172519c1",
+    "skills": [
+      "advanced-memory-sync"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-03-22",
+    "last_commit_hash": "9f346ba",
+    "recent_commits": [
+      [
+        "2026-03-22",
+        "9f346ba",
+        "Initial commit: OpenClaw Advanced Memory System"
+      ]
+    ],
+    "status": "ok"
+  },
+  "KimYx0207/findskill": {
+    "owner": "KimYx0207",
+    "repo": "findskill",
+    "remote_hash": "cf7635e3755c47b472bfb6dfd854680b5662ee26",
+    "skills": [
+      "find-skills"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-02-27",
+    "last_commit_hash": "cf7635e",
+    "recent_commits": [
+      [
+        "2026-02-27",
+        "cf7635e",
+        "docs: add language toggle to README_CN"
+      ],
+      [
+        "2026-02-27",
+        "48b0ea0",
+        "docs: add language toggle to README"
+      ],
+      [
+        "2026-02-27",
+        "0c0c816",
+        "Add badges header and contact section"
+      ],
+      [
+        "2026-01-30",
+        "363e7a1",
+        "docs: restructure to English README + Chinese README_CN"
+      ],
+      [
+        "2026-01-30",
+        "838d76c",
+        "docs: fix trigger description - AI uses semantic understanding"
+      ],
+      [
+        "2026-01-30",
+        "d374ef6",
+        "docs: restore good content, add Windows solution section"
+      ],
+      [
+        "2026-01-30",
+        "fc31729",
+        "docs: simplify article, highlight Windows fix"
+      ],
+      [
+        "2026-01-30",
+        "4f6c16d",
+        "docs: add Chinese tutorial article"
+      ],
+      [
+        "2026-01-30",
+        "f53ad9e",
+        "Merge branch 'main' of https://github.com/KimYx0207/findskill"
+      ],
+      [
+        "2026-01-30",
+        "2c384f4",
+        "feat: add Windows-compatible find-skills"
+      ],
+      [
+        "2026-01-30",
+        "07f5b00",
+        "Initial commit"
+      ]
+    ],
+    "status": "ok"
+  },
+  "op7418/Claude-to-IM-skill": {
+    "owner": "op7418",
+    "repo": "Claude-to-IM-skill",
+    "remote_hash": "536908f5e9bd65a151ca4cb4b08d3fedc1a43b4d",
+    "skills": [
+      "qq-operations"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-03-24",
+    "last_commit_hash": "536908f",
+    "recent_commits": [
+      [
+        "2026-03-24",
+        "536908f",
+        "Add Weixin bridge support and docs"
+      ],
+      [
+        "2026-03-15",
+        "7393db3",
+        "fix: Feishu setup two-phase publish flow and upgrade guide"
+      ],
+      [
+        "2026-03-10",
+        "4875d13",
+        "fix: auto-rebuild dist when upstream claude-to-im dependency changes"
+      ],
+      [
+        "2026-03-10",
+        "956dd66",
+        "fix: update claude-to-im to 18c3673 (fix permission shortcut deadlock)"
+      ],
+      [
+        "2026-03-10",
+        "5c75ad2",
+        "fix: update claude-to-im to a035613 (NFKC normalization for permission shortcuts)"
+      ],
+      [
+        "2026-03-10",
+        "8f03fee",
+        "feat: add listPendingPermissionLinksByChat for numeric permission shortcuts"
+      ],
+      [
+        "2026-03-10",
+        "7b13d6a",
+        "fix: harden CLI resolution, error handling, and daemon env passthrough"
+      ],
+      [
+        "2026-03-09",
+        "17a2cea",
+        "fix: skip passing model to CLI unless CTI_DEFAULT_MODEL is set"
+      ],
+      [
+        "2026-03-09",
+        "7344210",
+        "debug: enable SDK debug mode to capture full CLI spawn output"
+      ],
+      [
+        "2026-03-09",
+        "881a6ab",
+        "debug: add query params and stderr buffer logging for exit code 1 diagnosis"
+      ],
+      [
+        "2026-03-09",
+        "e20031c",
+        "fix: change default env isolation to inherit mode"
+      ],
+      [
+        "2026-03-09",
+        "498dbe0",
+        "fix: detect auth errors and cross-runtime stale model in CLI subprocess"
+      ],
+      [
+        "2026-03-08",
+        "376a574",
+        "improve: optimize skill description, disambiguation, and eval coverage"
+      ],
+      [
+        "2026-03-08",
+        "c37017a",
+        "feat: add QQ platform support (C2C private chat)"
+      ],
+      [
+        "2026-03-07",
+        "13e4759",
+        "fix: config.env load order, AUTH_TOKEN passthrough, and CLI path discovery"
+      ],
+      [
+        "2026-03-06",
+        "5b5651f",
+        "fix: daemon startup polling and Discord default-deny auth requirement"
+      ],
+      [
+        "2026-03-06",
+        "beb275f",
+        "fix: add next-step prompt after setup completion"
+      ],
+      [
+        "2026-03-06",
+        "047a266",
+        "fix: add Telegram Chat ID to setup wizard and guides"
+      ],
+      [
+        "2026-03-06",
+        "7a9664b",
+        "fix: remove hardcoded model names from SKILL.md setup wizard"
+      ],
+      [
+        "2026-03-06",
+        "6f4e9f2",
+        "fix: SKILL.md must check config before start and detect runtime environment"
+      ],
+      [
+        "2026-03-06",
+        "ab587ae",
+        "feat: add CTI_AUTO_APPROVE for channels without interactive permission UI (#3)"
+      ],
+      [
+        "2026-03-06",
+        "b5bdd82",
+        "fix: include updatedInput in permission allow result (#2)"
+      ],
+      [
+        "2026-03-06",
+        "3fc8ae6",
+        "fix: resolveClaudeCliPath for Windows (#1)"
+      ],
+      [
+        "2026-03-06",
+        "3dd7423",
+        "fix: Windows service credential prompt, macOS launchd auto-restart, status accuracy"
+      ],
+      [
+        "2026-03-06",
+        "8dda270",
+        "refactor: remove hardcoded default model, split daemon into supervisor abstraction"
+      ],
+      [
+        "2026-03-06",
+        "33c46fe",
+        "feat: add CTI_AUTO_APPROVE config for unattended operation"
+      ],
+      [
+        "2026-03-06",
+        "f72ee40",
+        "fix: include updatedInput in permission allow result"
+      ],
+      [
+        "2026-03-06",
+        "59b7d46",
+        "fix: resolveClaudeCliPath for Windows (use where instead of command -v)"
+      ],
+      [
+        "2026-03-06",
+        "a5a657b",
+        "fix: stabilize codex runtime and skill daemon behavior"
+      ],
+      [
+        "2026-03-06",
+        "96f24bf",
+        "docs: update intro to reflect Claude Code + Codex dual-backend support"
+      ]
+    ],
+    "status": "ok"
+  },
+  "jackwener/xiaohongshu-cli": {
+    "owner": "jackwener",
+    "repo": "xiaohongshu-cli",
+    "remote_hash": "4d63f3c0c85ccd9054fa8e96d7f761aaf2507449",
+    "skills": [
+      "xiaohongshu-cli"
+    ],
+    "skill_count": 1,
+    "last_commit_date": "2026-03-21",
+    "last_commit_hash": "4d63f3c",
+    "recent_commits": [
+      [
+        "2026-03-21",
+        "4d63f3c",
+        "feat: parse hashtags from body and support multiple --topic flags (#28)"
+      ],
+      [
+        "2026-03-16",
+        "526ee62",
+        "fix: force UTF-8 stdout/stderr on Windows to prevent garbled output (#30)"
+      ],
+      [
+        "2026-03-16",
+        "7a1ad57",
+        "refactor: extract _paged_notes_command helper to deduplicate favorites/likes"
+      ],
+      [
+        "2026-03-16",
+        "752a008",
+        "feat: add user likes command (#27)"
+      ],
+      [
+        "2026-03-14",
+        "76aae03",
+        "ci: remove deprecated ClawHub publish workflow"
+      ],
+      [
+        "2026-03-14",
+        "1a5f86a",
+        "chore: update xiaohongshu-cli package version to 0.6.4 in uv.lock"
+      ],
+      [
+        "2026-03-14",
+        "e8197a2",
+        "docs: deprecate ClawHub install method, recommend Skills CLI instead"
+      ],
+      [
+        "2026-03-14",
+        "10e146b",
+        "docs: add npx skills install method for AI agent skill setup"
+      ],
+      [
+        "2026-03-14",
+        "368b1cf",
+        "fix: resolve ruff E501 lint errors from ensure_ascii parameter"
+      ],
+      [
+        "2026-03-13",
+        "f86e327",
+        "fix: add ensure_ascii=False to creator signing to match body serialization"
+      ],
+      [
+        "2026-03-13",
+        "b1fe434",
+        "Merge pull request #19 from usernametooshort/fix/post-body-ensure-ascii"
+      ],
+      [
+        "2026-03-13",
+        "ba9b779",
+        "fix: add ensure_ascii=False to POST body serialization"
+      ],
+      [
+        "2026-03-13",
+        "3d5901f",
+        "docs: align SKILL.md version to 0.6.3"
+      ],
+      [
+        "2026-03-13",
+        "8399304",
+        "chore: release 0.6.3"
+      ],
+      [
+        "2026-03-13",
+        "1ecf0c3",
+        "merge: extend short-index note actions"
+      ],
+      [
+        "2026-03-13",
+        "a7a255e",
+        "feat: extend short-index support to note actions"
+      ],
+      [
+        "2026-03-13",
+        "a8ca526",
+        "feat: add short-index note navigation (#17)"
+      ],
+      [
+        "2026-03-13",
+        "e9f1dfa",
+        "chore: release 0.6.2"
+      ],
+      [
+        "2026-03-13",
+        "416b4a8",
+        "merge: release 0.6.1"
+      ],
+      [
+        "2026-03-13",
+        "9540e38",
+        "fix: harden xhs read and search flows"
+      ],
+      [
+        "2026-03-12",
+        "9b21490",
+        "refactor: project quality improvements from deep review"
+      ],
+      [
+        "2026-03-12",
+        "c505dbd",
+        "refactor: replace signing.py with xhshow library adapter"
+      ],
+      [
+        "2026-03-12",
+        "9555721",
+        "feat: dual-channel note reading with HTML fallback + xsec_token propagation"
+      ],
+      [
+        "2026-03-12",
+        "ebf2ad9",
+        "Revert \"fix: retry on captcha with fresh signatures instead of failing immediately\""
+      ],
+      [
+        "2026-03-12",
+        "b8c557d",
+        "Revert \"chore: bump version to 0.5.2\""
+      ],
+      [
+        "2026-03-12",
+        "7349155",
+        "chore: bump version to 0.5.2"
+      ],
+      [
+        "2026-03-12",
+        "8a2e3d0",
+        "fix: retry on captcha with fresh signatures instead of failing immediately"
+      ],
+      [
+        "2026-03-12",
+        "284772d",
+        "chore: bump version to 0.5.1"
+      ],
+      [
+        "2026-03-12",
+        "08173a8",
+        "fix: validate login session and retry on incomplete profile"
+      ],
+      [
+        "2026-03-11",
+        "95b21d2",
+        "release: bump version to 0.5.0"
+      ]
+    ],
+    "status": "ok"
+  }
+}

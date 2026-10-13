@@ -1,5 +1,8 @@
 CLAUDE.local.md
 .env
+apps/desktop/.env.windows
+apps/desktop/.env.macos
+apps/desktop/*.p12
 node_modules/
 lib/
 *.tsbuildinfo
@@ -11,6 +14,7 @@ examples/*/*.jsonl
 .sessions/
 examples/*/.sessions/
 coverage/
+.coverage-times.json
 .doc-typecheck-*/
 .node-next-types-*/
 .oxlint-contract-*/
@@ -26,16 +30,57 @@ tmp/
 .idea
 mise.toml
 dist-exe/
-python/sdk-runtime/src/deepseek_harness_runtime/runtime/deepseek-harness-sdk-runtime-*
-python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/
+/dist/
+apps/desktop/.desktop-build/
+python/sdk-runtime/src/deepseek_harness_runtime/runtime/
 python/**/__pycache__/
 python/**/.pytest_cache/
+packages/**/__pycache__/
 apps/web/dist/
 .artifacts/
 .dsh-build/
+.dsh-report/
 .playwright-mcp/
 .orig
 .worktrees/
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# 天龙引擎资产镜像（21,225 文件 · 289 MB · 数据层不进入 DSH release）
+# 详见 dragon-assets/README.md
+dragon-assets/skills/**/__pycache__/
+dragon-assets/**/.git/
+dragon-assets/**/node_modules/
+dragon-assets/**/.pytest_cache/
+dragon-assets/**/.cache/
+dragon-assets/**/.streamlit/
+dragon-assets/**/.vscode/
+dragon-assets/**/*.pyc
+dragon-assets/**/*.wasm
+dragon-assets/**/*.map
+dragon-assets/**/*.node
+dragon-assets/**/*.gif
+dragon-assets/**/*.png
+dragon-assets/**/*.jpg
+dragon-assets/**/*.jpeg
+dragon-assets/**/*.webp
+dragon-assets/**/*.pdf
+dragon-assets/**/*.mp4
+dragon-assets/**/*.wav
+dragon-assets/**/*.mp3
+dragon-assets/skill-updater/reports/
+# 镜像内嵌的 GitHub Actions workflow / actions —— GitHub OAuth token 没有 `workflow`
+# scope 不能 push 修改 workflow 文件，所以从镜像排除
+dragon-assets/**/.github/workflows/
+dragon-assets/**/.github/actions/
+
+# 商业策略 / 内部规划文档 —— 不进入 DSH release
+商业化路线图.md
+
+# 获客插件的规划与演练产物（非源码） —— 等真正写代码时再纳入版本控制
+packages/extensions/dsh-lead-gen/PRD-corrections.md
+packages/extensions/dsh-lead-gen/commercialization.md
+packages/extensions/dsh-lead-gen/IMPLEMENTATION_PLAN.md
+packages/extensions/dsh-lead-gen/rehearsal/
+native/system/test/bin/

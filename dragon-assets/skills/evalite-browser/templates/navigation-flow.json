@@ -1,0 +1,95 @@
+{
+  "name": "navigation-flow-test",
+  "url": "http://localhost:3000/",
+  "description": "Test multi-page navigation flow",
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [
+    {
+      "action": "wait_for_selector",
+      "selector": "nav"
+    },
+    {
+      "action": "screenshot",
+      "options": {
+        "name": "home-page"
+      }
+    },
+    {
+      "action": "click",
+      "selector": "nav a[href='/about']"
+    },
+    {
+      "action": "wait_for_navigation"
+    },
+    {
+      "action": "screenshot",
+      "options": {
+        "name": "about-page"
+      }
+    },
+    {
+      "action": "assertion",
+      "type": "title_matches",
+      "expected": "About"
+    },
+    {
+      "action": "click",
+      "selector": "nav a[href='/contact']"
+    },
+    {
+      "action": "wait_for_navigation"
+    },
+    {
+      "action": "screenshot",
+      "options": {
+        "name": "contact-page"
+      }
+    },
+    {
+      "action": "hover",
+      "selector": "footer a:first-child"
+    },
+    {
+      "action": "scroll",
+      "value": 300
+    }
+  ],
+  "assertions": [
+    {
+      "type": "visible",
+      "selector": "nav a[href='/about']",
+      "description": "About link is visible"
+    },
+    {
+      "type": "visible",
+      "selector": "nav a[href='/contact']",
+      "description": "Contact link is visible"
+    },
+    {
+      "type": "url_matches",
+      "expected": ".*contact.*",
+      "description": "On contact page"
+    }
+  ],
+  "visual": {
+    "enabled": true,
+    "screenshots": [
+      {
+        "name": "navigation-flow",
+        "step": 0
+      }
+    ]
+  },
+  "a11y": {
+    "enabled": true,
+    "rules": [
+      "color-contrast",
+      "label",
+      "link-name"
+    ]
+  }
+}

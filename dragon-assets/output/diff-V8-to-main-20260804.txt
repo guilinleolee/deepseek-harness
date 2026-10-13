@@ -1,0 +1,89 @@
+============================================================
+主仓: C:\Users\li\.claude\projects\c--Users-li--claude\dragon-engine
+备份: D:\知识库\天龙引擎\dragon-engine-backup-20260722
+对比顶层目录: ['agents', 'skills', 'memory', 'scripts', 'prompts']
+============================================================
+
+[仅主仓有] 584 个文件
+  + skills/00-INDEX.md                                              13,258 B
+  + skills/_archive/map-component-V1.0-DEPRECATED.md                 4,277 B
+  + skills/_archive/map-component-V1.0-homegrown-design-doc/SKILL-2nd-instance.md     9,632 B
+  + skills/_archive/map-component-V1.0-homegrown-design-doc/SKILL.md.original     9,632 B
+  + skills/a-stock-data-bridge/em_base.py                           13,725 B
+  + skills/a-stock-data-bridge/em_check.py                           6,074 B
+  + skills/a-stock-data-bridge/live_fetch.py                        13,250 B
+  + skills/a-stock-data-bridge/tests/test_apache_notice.py           1,744 B
+  + skills/a-stock-data-bridge/tests/test_em_check.py                6,518 B
+  + skills/a-stock-data-bridge/tests/test_error_handler.py           1,649 B
+  + skills/a-stock-data-bridge/tests/test_fallback.py                1,724 B
+  + skills/anysearch/.env.example                                      233 B
+  + skills/anysearch/.gitignore                                         68 B
+  + skills/apocdata-bridge/LICENSE                                  10,760 B
+  + skills/apocdata-bridge/NOTICE                                    2,943 B
+  + skills/apocdata-bridge/README.md                                   363 B
+  + skills/apocdata-bridge/SKILL.md                                  2,986 B
+  + skills/apocdata-bridge/em_apocdata.py                            6,762 B
+  + skills/apocdata-bridge/em_apocdata_check.py                      2,233 B
+  + skills/apocdata-bridge/fallback.yaml                               836 B
+  + skills/apocdata-bridge/tests/conftest.py                           163 B
+  + skills/apocdata-bridge/tests/pytest.ini                             38 B
+  + skills/apocdata-bridge/tests/test_apache_notice.py               1,926 B
+  + skills/apocdata-bridge/tests/test_endpoints_schema.py            1,189 B
+  + skills/async-task-pattern/SKILL.md                               6,288 B
+  + skills/async-task-pattern/adapters/baoyu.sh                      2,252 B
+  + skills/async-task-pattern/adapters/gpt-image-2.sh                2,117 B
+  + skills/async-task-pattern/adapters/minimax.sh                    2,142 B
+  + skills/async-task-pattern/adapters/muapi.sh                      2,994 B
+  + skills/async-task-pattern/adapters/voxcpm.sh                     1,670 B
+  ... (554 more)
+
+[仅备份有] 6883 个文件
+  - agents/.claude/skills/gitnexus/gitnexus-cli/SKILL.md             3,655 B
+  - agents/.claude/skills/gitnexus/gitnexus-debugging/SKILL.md       3,253 B
+  - agents/.claude/skills/gitnexus/gitnexus-exploring/SKILL.md       3,115 B
+  - agents/.claude/skills/gitnexus/gitnexus-guide/SKILL.md           3,544 B
+  - agents/.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md     3,016 B
+  - agents/.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md     4,228 B
+  - agents/.gitnexus/lbug                                        26,738,688 B
+  - agents/.gitnexus/meta.json                                         590 B
+  - agents/00-analyst-v1101.md                                      51,140 B
+  - agents/00-analyst.md                                            35,220 B
+  - agents/00-v10-l0l1l2.md                                          9,528 B
+  - agents/01-investigator-v881.md                                   8,547 B
+  - agents/01-investigator.md                                      138,577 B
+  - agents/02-architect-v1101.md                                    52,148 B
+  - agents/02-architect.md                                          22,920 B
+  - agents/03-builder-v10-l0l1l2.md                                 11,512 B
+  - agents/03-builder-v111-gpt-image2.md                             7,949 B
+  - agents/03-builder.md                                            71,662 B
+  - agents/04-validator-v10-l0l1l2.md                               18,654 B
+  - agents/04-validator.md                                          47,931 B
+  - agents/05-security-reviewer-v10-l0l1l2.md                        5,783 B
+  - agents/05-security-reviewer.md                                  35,357 B
+  - agents/06-code-reviewer-v10-l0l1l2.md                           12,868 B
+  - agents/06code-reviewer-v8.md                                    40,199 B
+  - agents/06code-reviewer.md                                       24,791 B
+  - agents/07-scribe-v903-OLD.md                                   175,102 B
+  - agents/07-scribe.md                                             38,634 B
+  - agents/07-v10-l0l1l2.md                                          8,122 B
+  - agents/08-publisher-extended.md                                  6,823 B
+  - agents/08-publisher-v10-l0l1l2.md                               14,980 B
+  ... (6853 more)
+
+[内容不同] 9 个文件
+  ≠ skills/a-stock-data-bridge/SKILL.md                             13,889 B →    10,519 B (591dd8 vs 274c3b)
+  ≠ skills/a-stock-data-bridge/fallback.yaml                         4,378 B →     4,315 B (3e98f0 vs 3cdcc9)
+  ≠ skills/a-stock-data-bridge/requirements.txt                         56 B →        31 B (d7066e vs 83a2f8)
+  ≠ skills/a-stock-data/SKILL.md                                     7,744 B →     4,170 B (5a6590 vs 6b0f47)
+  ≠ skills/anysearch/scripts/anysearch_cli.sh                        8,916 B →     9,225 B (459776 vs 3bf351)
+  ≠ skills/anysearch/scripts/investigate.sh                         16,784 B →    17,268 B (2a078c vs 79d426)
+  ≠ skills/anysearch/scripts/market-research.sh                      6,223 B →     6,447 B (d5ea7f vs e77ff8)
+  ≠ memory/MEMORY.md                                                13,837 B →    13,430 B (7a0289 vs 251eb5)
+  ≠ prompts/README.md                                                4,218 B →     5,290 B (f438ab vs f25c81)
+
+============================================================
+汇总: 仅主仓 584 + 仅备份 6883 + 内容不同 9
+============================================================
+
+⚠️ 备份有 6883 个文件主仓缺 → 评估是否需要补 sync
+ℹ️ 内容不同 9 个 → 主仓修改后未反向 sync

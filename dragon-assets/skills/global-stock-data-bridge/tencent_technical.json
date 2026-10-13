@@ -1,0 +1,119 @@
+[
+  {
+    "source": "quote_realtime",
+    "endpoint": "quote_realtime",
+    "data": {
+      "endpoint": "quote_realtime",
+      "source": "yahoo_finance",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:21:59+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "historical_ohlcv",
+    "endpoint": "historical_ohlcv",
+    "data": {
+      "endpoint": "historical_ohlcv",
+      "source": "yahoo_finance",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:21:59+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "intraday_ohlcv",
+    "endpoint": "intraday_ohlcv",
+    "data": {
+      "endpoint": "intraday_ohlcv",
+      "source": "alpha_vantage",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:00+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "adjusted_close",
+    "endpoint": "adjusted_close",
+    "data": {
+      "endpoint": "adjusted_close",
+      "source": "yahoo_finance",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:01+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "ma_indicator",
+    "endpoint": "ma_indicator",
+    "data": {
+      "endpoint": "ma_indicator",
+      "source": "compute_layer",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:03+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "macd_indicator",
+    "endpoint": "macd_indicator",
+    "data": {
+      "endpoint": "macd_indicator",
+      "source": "compute_layer",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:04+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "rsi_indicator",
+    "endpoint": "rsi_indicator",
+    "data": {
+      "endpoint": "rsi_indicator",
+      "source": "compute_layer",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:05+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "kdj_indicator",
+    "endpoint": "kdj_indicator",
+    "data": {
+      "endpoint": "kdj_indicator",
+      "source": "compute_layer",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:07+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  },
+  {
+    "source": "bollinger_bands",
+    "endpoint": "bollinger_bands",
+    "data": {
+      "endpoint": "bollinger_bands",
+      "source": "compute_layer",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:22:08+08:00",
+    "fallback_used": false,
+    "market": "HK"
+  }
+]

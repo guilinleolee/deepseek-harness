@@ -1,0 +1,195 @@
+{
+  "schema_version": "1.0",
+  "rules": [
+    {
+      "id": "AI-BOM-001",
+      "severity": "critical",
+      "title": "凭证明文存储",
+      "description": "在workflow JSON中检测到明文存储的凭证、API密钥或密码",
+      "patterns": [
+        {"field": "*.parameters", "regex": "(api[_-]?key|secret|password|token|auth)[\\s]*[=:][\\s]*[\"'][^\"']{8,}[\"']", "match_type": "credential"},
+        {"field": "nodes[].parameters", "regex": "(bearer|basic|apikey)[\\s]+[A-Za-z0-9_\\-]{20,}", "match_type": "auth_header"}
+      ],
+      "recommendation": "使用n8n凭据管理系统(Credentials Manager)替代硬编码凭证，使用环境变量引用"
+    },
+    {
+      "id": "AI-BOM-002",
+      "severity": "critical",
+      "title": "SSRF漏洞",
+      "description": "HTTP请求节点中检测到潜在的服务器端请求伪造(SSRF)风险",
+      "patterns": [
+        {"field": "nodes[].parameters", "regex": "httpRequest|httpRequest", "nested": {"url": {"regex": "(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|metadata\\.googleapis\\.com|169\\.254\\.169\\.254|aws\\.internal)"}}},
+        {"field": "nodes[].parameters.url", "regex": "\\$((input|parameters)\\.[a-zA-Z_][a-zA-Z0-9_]*)(?!.*internal|.*metadata|.*169\\.254)", "match_type": "dynamic_url"}
+      ],
+      "recommendation": "严格校验URL白名单，禁用内网地址，禁止用户可控URL拼接"
+    },
+    {
+      "id": "AI-BOM-003",
+      "severity": "high",
+      "title": "命令注入风险",
+      "description": "Code节点或Execute Command节点中检测到潜在命令注入",
+      "patterns": [
+        {"field": "nodes[].parameters.jsCode", "regex": "(exec|spawn|execSync|eval|new\\s+Function|import\\s*\\()\\s*\\(|require\\s*\\()\\s*\\(.*(?:child_process|fs|net|http))", "match_type": "dangerous_node"},
+        {"field": "nodes[].parameters.jsCode", "regex": "(process\\.env|process\\.argv|child_process)", "match_type": "env_access"},
+        {"field": "nodes[].parameters.jsCode", "regex": "\\$\\{.*(?:input|parameters)\\.[a-zA-Z_]", "match_type": "template_injection"}
+      ],
+      "recommendation": "避免使用eval/Function，禁止在命令执行中使用用户输入，进行输入白名单验证"
+    },
+    {
+      "id": "AI-BOM-004",
+      "severity": "high",
+      "title": "敏感数据泄露",
+      "description": "workflow可能将敏感数据传输到未经授权的第三方",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "httpRequest", "nested": {"parameters.url": {"regex": "(webhook\\..site|requestbin|ngrok|requestcatcher|pipedream|integromat|zapier)[\\/\\.]"}},
+        {"field": "nodes[].parameters", "regex": "(console\\.log|writeFile)\\(.*(?:password|token|secret|key|credential)", "match_type": "data_leak"},
+        {"field": "nodes[].type", "regex": "telegram|slack|discord|email", "nested": {"parameters.text": {"regex": "\\$((input|parameters)\\.[a-zA-Z_][a-zA-Z0-9_]*)(?!.*test|.*example)"}}}
+      ],
+      "recommendation": "审查所有外部集成，确认数据流向，使用数据脱敏后再输出"
+    },
+    {
+      "id": "AI-BOM-005",
+      "severity": "high",
+      "title": "SQL注入风险",
+      "description": "数据库节点中检测到潜在的SQL注入风险",
+      "patterns": [
+        {"field": "nodes[].parameters", "regex": "(postgres|mysql|mongodb|sqlite)", "nested": {"parameters.operation": {"regex": "execute|query"}}},
+        {"field": "nodes[].parameters.query", "regex": "\\$\\{.*(?:input|parameters)\\.[a-zA-Z_]", "match_type": "sql_injection"},
+        {"field": "nodes[].parameters.query", "regex": "\\+\\s*['\"].*\\$(input|parameters)", "match_type": "sql_concat"}
+      ],
+      "recommendation": "使用参数化查询，禁止字符串拼接SQL，对所有输入进行严格类型校验"
+    },
+    {
+      "id": "AI-BOM-006",
+      "severity": "medium",
+      "title": "Webhook未授权访问",
+      "description": "Webhook触发器缺少认证或速率限制",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "webhook", "nested": {"parameters.httpMethod": "POST", "parameters.options": {"regex": "(authentication|auth)[\\s]*[:=]\\s*(false|null|\"\")"}}},
+        {"field": "nodes[].type", "regex": "webhook", "nested": {"parameters.path": {"regex": "(test|debug|temp|dev|staging)"}}}
+      ],
+      "recommendation": "为生产Webhook添加认证机制，设置合理的速率限制，使用随机化路径"
+    },
+    {
+      "id": "AI-BOM-007",
+      "severity": "medium",
+      "title": "错误信息泄露",
+      "description": "Error Trigger或Code节点可能泄露敏感堆栈信息",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "errorTrigger", "nested": {"parameters.options": {"regex": "(returnFullError|fullResponse|verbose)"}}},
+        {"field": "nodes[].parameters", "regex": "(console\\.(error|trace)|throw\\s+new\\s+Error)\\([^$]", "match_type": "error_leak"}
+      ],
+      "recommendation": "在生产环境禁用详细错误输出，统一错误处理，隐藏内部路径信息"
+    },
+    {
+      "id": "AI-BOM-008",
+      "severity": "medium",
+      "title": "无限循环/死循环",
+      "description": "workflow存在可能导致无限循环的逻辑",
+      "patterns": [
+        {"field": "connections", "regex": ".*", "match_type": "circular_reference", "special": "detect_cycles"},
+        {"field": "nodes[].type", "regex": "scheduleTrigger", "nested": {"parameters.rule.interval[0].field": "interval", "parameters.rule.interval[0].interval": {"regex": "^0$|^1$"}}},
+        {"field": "nodes[].type", "regex": "code|set", "nested": {"parameters.jsCode": {"regex": "while\\s*\\(|for\\s*\\([^)]*true|for\\s*\\([^)]*1\\s*<\\s*2"}}}
+      ],
+      "recommendation": "添加循环执行上限保护，审查触发间隔设置，使用Wait节点控制执行频率"
+    },
+    {
+      "id": "AI-BOM-009",
+      "severity": "medium",
+      "title": "文件操作安全",
+      "description": "Code节点中的文件读写操作可能存在路径遍历风险",
+      "patterns": [
+        {"field": "nodes[].parameters.jsCode", "regex": "(readFile|writeFile|readFileSync|writeFileSync|createReadStream)\\s*\\([^)]*\\$(input|parameters)", "match_type": "path_traversal"},
+        {"field": "nodes[].parameters.jsCode", "regex": "\\.resolve\\s*\\([^)]*\\.\\.\\/|\"\\.\\.\/|\"\\.\\.\\\\", "match_type": "directory_traversal"},
+        {"field": "nodes[].parameters.jsCode", "regex": "(readFile|writeFile)\\s*\\([^,)]*\\.(env|config|keys|pem|crt)", "match_type": "sensitive_file_access"}
+      ],
+      "recommendation": "禁止用户输入拼接文件路径，使用绝对路径白名单，敏感文件禁止读写"
+    },
+    {
+      "id": "AI-BOM-010",
+      "severity": "low",
+      "title": "日志记录过度",
+      "description": "Code节点中可能存在过度日志记录，泄露业务逻辑",
+      "patterns": [
+        {"field": "nodes[].parameters.jsCode", "regex": "(console\\.log|console\\.debug)\\s*\\([^)]{200,})", "match_type": "verbose_log"},
+        {"field": "nodes[].parameters", "regex": "(set|code)", "nested": {"parameters.jsCode": {"regex": "console\\.log\\([^)]*\\.(input|parameters|body|payload|data)"}}}
+      ],
+      "recommendation": "日志记录脱敏处理，仅记录必要调试信息，生产环境禁用verbose日志"
+    },
+    {
+      "id": "AI-BOM-011",
+      "severity": "critical",
+      "title": "AI Prompt注入",
+      "description": "LLM/OpenAI节点中存在Prompt注入风险",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "openAi|anthropic|ollama|aiNode", "nested": {"parameters.messages": {"regex": "\\$((input|parameters)\\.[a-zA-Z_][a-zA-Z0-9_]*)"}}},
+        {"field": "nodes[].type", "regex": "openAi|anthropic", "nested": {"parameters.prompt": {"regex": "ignore\\s+(previous|above|prior)|system:|#system|#instructions|#you\\s+are", "case_insensitive": true}}},
+        {"field": "nodes[].type", "regex": "openAi|anthropic", "nested": {"parameters.userMessage": {"regex": "--|sudo|rm\\s+-rf|\\$\\(|\\$\\{|\\|<script|javascript:"}}}}
+      ],
+      "recommendation": "对用户输入进行prompt注入检测和清洗，使用结构化输入而非字符串拼接prompt"
+    },
+    {
+      "id": "AI-BOM-012",
+      "severity": "high",
+      "title": "OAuth/认证配置错误",
+      "description": "OAuth2或第三方认证配置存在安全隐患",
+      "patterns": [
+        {"field": "nodes[].parameters", "regex": "(gmail|httpRequest|slack|telegram)", "nested": {"parameters.authentication": {"regex": "userOAuth2Api|genericCredentialType"}}},
+        {"field": "nodes[].parameters", "regex": "httpRequest", "nested": {"parameters.authorization": {"regex": "(bearer|basic)[\\s]+[A-Za-z0-9_\\-]{20,}"}}},
+        {"field": "nodes[].credentials", "regex": ".*", "match_type": "hardcoded_credential_ref"}
+      ],
+      "recommendation": "使用n8n凭据系统存储OAuth token，配置token自动刷新，设置合理的scope权限"
+    },
+    {
+      "id": "AI-BOM-013",
+      "severity": "high",
+      "title": "XSS风险",
+      "description": "数据处理节点中存在跨站脚本(XSS)风险",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "set|code", "nested": {"parameters.jsCode": {"regex": "innerHTML|outerHTML|insertAdjacentHTML|document\\.write"}}},
+        {"field": "nodes[].type", "regex": "set|code", "nested": {"parameters.jsCode": {"regex": "\\$((input|parameters)\\.[a-zA-Z_][a-zA-Z0-9_]*)\\.replace\\s*\\("}}},
+        {"field": "nodes[].parameters", "regex": "(email|gmail|slack|discord)", "nested": {"parameters.text": {"regex": "\\$((input|parameters)\\.[a-zA-Z_][a-zA-Z0-9_]*)", "untrusted": true}}}
+      ],
+      "recommendation": "对所有输出进行HTML转义，使用textContent替代innerHTML，对用户输入进行严格校验"
+    },
+    {
+      "id": "AI-BOM-014",
+      "severity": "medium",
+      "title": "依赖外部不可控服务",
+      "description": "workflow依赖的外部服务存在可用性风险",
+      "patterns": [
+        {"field": "nodes[].type", "regex": "httpRequest", "nested": {"parameters.url": {"regex": "(reqres|jsonplaceholder|randomuser|swapi|gorest|fake-rest|binary|mock)", "match_type": "external_dep"}}},
+        {"field": "nodes[].type", "regex": "httpRequest", "nested": {"parameters.url": {"regex": "api\\.not\\.exist|placeholder\\.com|test\\.example\\.(com|org|net)"}}},
+        {"field": "nodes[].type", "regex": "(postgres|mysql|mongodb|redis)", "nested": {"parameters.host": {"regex": "localhost|127\\.0\\.0\\.1"}}}
+      ],
+      "recommendation": "记录所有外部依赖，配置fallback逻辑，定期检查依赖服务可用性"
+    },
+    {
+      "id": "AI-BOM-015",
+      "severity": "medium",
+      "title": "节点版本不兼容",
+      "description": "workflow使用的节点版本与当前环境不兼容",
+      "patterns": [
+        {"field": "nodes[].typeVersion", "regex": "^(0|1)$", "match_type": "legacy_version"},
+        {"field": "nodes[].type", "regex": "n8n-nodes-base\\.(code|set|if|switch|merge|split)", "nested": {"parameters": {"regex": ""}, "special": "check_deprecated_params"}}
+      ],
+      "recommendation": "升级到最新稳定版节点，查阅官方breaking changes，使用LTS版本工作流"
+    }
+  ],
+  "categories": {
+    "credential": {"color": "red", "icon": "🚨"},
+    "injection": {"color": "red", "icon": "💉"},
+    "data_leak": {"color": "orange", "icon": "📤"},
+    "auth": {"color": "orange", "icon": "🔐"},
+    "config": {"color": "yellow", "icon": "⚙️"},
+    "performance": {"color": "blue", "icon": "⚡"},
+    "dependency": {"color": "purple", "icon": "🔗"},
+    "compatibility": {"color": "gray", "icon": "🔧"}
+  },
+  "severity_levels": {
+    "critical": {"score": 10, "action": "BLOCK_AND_FIX", "label": "严重", "color": "#dc2626"},
+    "high": {"score": 7, "action": "FIX_BEFORE_DEPLOY", "label": "高危", "color": "#ea580c"},
+    "medium": {"score": 4, "action": "FIX_WITHIN_SPRINT", "label": "中危", "color": "#ca8a04"},
+    "low": {"score": 1, "action": "CONSIDER_FIX", "label": "低危", "color": "#65a30d"}
+  }
+}

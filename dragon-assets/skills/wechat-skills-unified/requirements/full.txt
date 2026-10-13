@@ -1,0 +1,23 @@
+# 微信公众号SKILL - 完整依赖
+# 包含所有可选功能增强依赖
+
+-r minimal.txt
+
+# HTML解析（可选，推荐）
+beautifulsoup4>=4.11.0
+lxml>=4.9.0
+
+# Markdown转换（可选，推荐）
+html2text>=2020.1.16
+
+# 开发和测试
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+
+# 代码质量
+mypy>=1.0.0
+pylint>=2.17.0
+
+# 类型检查
+types-requests>=2.28.0

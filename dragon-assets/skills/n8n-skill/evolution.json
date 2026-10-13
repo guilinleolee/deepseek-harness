@@ -1,0 +1,34 @@
+{
+  "skill": "n8n-skill",
+  "version": "3.0.0",
+  "last_audit": "2026-01-27",
+  "status": "Production-Ready",
+  "architecture_verdict": "Highly Rational / Defensive",
+  "evolution_roadmap": [
+    {
+      "id": "R1",
+      "priority": "High",
+      "task": "Implement JSON Schema Validation",
+      "description": "引入 node_schema.json 校验层，对生成的 n8n JSON 导出文件进行自动语法与参数合法性检测。"
+    },
+    {
+      "id": "R2",
+      "priority": "Medium",
+      "task": "Breaking Changes Tracker",
+      "description": "建立 CHANGELOG.md 或逻辑钩子，专门追踪 n8n 核心版本（如 V1.x -> V2.x）的破坏性变更。"
+    },
+    {
+      "id": "R3",
+      "priority": "Low",
+      "task": "Multi-tier Indexing",
+      "description": "当节点数量突破 1000 时，将 INDEX.md 拆分为二级索引（按首字母或功能子类），防止单文件过载。"
+    },
+    {
+      "id": "R4",
+      "priority": "Medium",
+      "task": "Auto-sync for Community Packages",
+      "description": "针对 30+ 社区包建立版本监测，确保文档内容与最新 npm 包保持同步。"
+    }
+  ],
+  "strategic_impact": "通过‘内固外扩’架构，实现从静态文档到实时进化引擎的跨越，确保自动化交付的 100% 确定性。"
+}

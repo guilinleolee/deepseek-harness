@@ -1,0 +1,258 @@
+# 元接口定义模板 - 接口契约标准化
+
+> **版本**: V1.0
+> **来源**: 天龙引擎V9.02 × 老金元组织方法论
+> **用途**: 定义元与元之间的标准接口契约
+
+---
+
+## 基本信息
+
+```yaml
+interface_id: "iface-xxx"             # 接口唯一标识符
+meta_id: "meta-xxx"                    # 提供接口的元ID
+meta_name: "元名称"                     # 元名称
+version: "1.0.0"                        # 接口版本
+created_date: "YYYY-MM-DD"             # 创建日期
+```
+
+---
+
+## 接口设计原则
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 接口设计原则                                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ 1. 最小化接口：只暴露必要的能力                             │
+│ 2. 稳定性优先：接口变更需向后兼容                           │
+│ 3. 明确契约：输入、输出、错误处理都明确定义                  │
+│ 4. 松耦合：元之间通过接口通信，不依赖实现细节                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 接口定义结构
+
+### 1. 输入接口（Input Interface）
+
+```yaml
+input_interface:
+  name: "接口名称"                      # 接口名称
+  description: "接口描述"                # 接口功能描述
+
+  parameters:
+    - name: "参数名"
+      type: "string/number/object/array"
+      required: true/false
+      default: "默认值"
+      description: "参数说明"
+      validation: "验证规则"
+
+    - name: "参数名2"
+      type: "object"
+      required: true
+      properties:
+        field1:
+          type: "string"
+          description: "字段说明"
+        field2:
+          type: "number"
+          description: "字段说明"
+
+  constraints:
+    max_parameters: 10               # 最大参数数量
+    max_payload_size: "1MB"         # 最大负载
+    timeout: "30s"                  # 超时时间
+```
+
+### 2. 输出接口（Output Interface）
+
+```yaml
+output_interface:
+  name: "输出名称"                    # 输出名称
+  description: "输出描述"              # 输出功能描述
+
+  result:
+    type: "object"
+    properties:
+      status:
+        type: "string"
+        enum: ["success", "partial", "failed"]
+        description: "执行状态"
+
+      data:
+        type: "object"
+        description: "返回数据"
+
+      metadata:
+        type: "object"
+        properties:
+          timestamp:
+            type: "string"
+            format: "ISO8601"
+          request_id:
+            type: "string"
+          processing_time:
+            type: "number"
+            unit: "ms"
+
+  error:
+    type: "object"
+    properties:
+      code:
+        type: "string"
+        enum: ["ERR_VALIDATION", "ERR_TIMEOUT", "ERR_NOT_FOUND", "ERR_INTERNAL"]
+      message:
+        type: "string"
+        description: "错误信息"
+      details:
+        type: "object"
+        description: "错误详情"
+```
+
+### 3. 事件接口（Event Interface）
+
+```yaml
+event_interface:
+  name: "事件名称"                    # 事件名称
+  description: "事件描述"              # 事件功能描述
+
+  event_type:
+    category: "lifecycle/performance/security/data"
+    name: "具体事件名"
+
+  payload:
+    type: "object"
+    properties:
+      source:
+        type: "string"
+        description: "事件来源元ID"
+
+      timestamp:
+        type: "string"
+        format: "ISO8601"
+
+      data:
+        type: "object"
+        description: "事件数据"
+
+  delivery:
+    mode: "sync/async/fire-and-forget"
+    retry_policy:
+      max_retries: 3
+      backoff: "exponential"
+      timeout: "10s"
+```
+
+---
+
+## 接口兼容性管理
+
+### 版本控制策略
+
+```yaml
+versioning:
+  strategy: "semantic"              # 语义化版本
+  format: "MAJOR.MINOR.PATCH"
+  rules:
+    major:                          # 不兼容的变更
+      - "删除参数"
+      - "修改参数类型"
+      - "改变返回值结构"
+
+    minor:                          # 向后兼容的添加
+      - "新增可选参数"
+      - "新增返回值字段"
+      - "新增事件类型"
+
+    patch:                          # 向后兼容的修复
+      - "修复错误行为"
+      - "优化性能"
+      - "改进文档"
+```
+
+### 变更管理
+
+```yaml
+change_management:
+  deprecation:
+    policy: "grace_period"
+    notice_period: "90days"
+
+  migration:
+    strategy: "parallel_runs"
+    compatibility_mode: true
+
+  rollback:
+    supported: true
+    procedure: "回滚到上一版本"
+```
+
+---
+
+## 接口质量检查
+
+```yaml
+quality_checks:
+  - check: "参数验证完整性"
+    criteria: "所有参数都有类型和验证规则"
+
+  - check: "错误处理完备性"
+    criteria: "所有错误场景都有处理方案"
+
+  - check: "超时设置合理性"
+    criteria: "超时时间在可接受范围内"
+
+  - check: "文档完整性"
+    criteria: "接口有完整的使用文档和示例"
+
+  - check: "测试覆盖率"
+    criteria: "核心路径有单元测试"
+```
+
+---
+
+## 接口注册表
+
+```yaml
+interface_registry:
+  meta_id: "meta-xxx"
+  meta_name: "元名称"
+
+  provided_interfaces:
+    - interface_id: "iface-001"
+      name: "接口名称"
+      version: "1.0.0"
+      status: "stable"
+      consumers:
+        - "meta-xxx"
+        - "meta-yyy"
+
+  consumed_interfaces:
+    - interface_id: "iface-002"
+      name: "依赖接口名称"
+      version: ">=1.0.0"
+      provider: "meta-zzz"
+
+  dependencies:
+    - meta_id: "meta-xxx"
+      type: "required/optional"
+      reason: "依赖原因"
+```
+
+---
+
+## 版本历史
+
+```yaml
+versions:
+  - version: "1.0.0"
+    date: "YYYY-MM-DD"
+    author: "作者"
+    changes:
+      - "初始版本"
+```

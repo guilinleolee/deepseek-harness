@@ -1,0 +1,41 @@
+[
+  {
+    "source": "financial_3statements",
+    "endpoint": "financial_3statements",
+    "data": {
+      "endpoint": "financial_3statements",
+      "source": "sec_edgar",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:21:55+08:00",
+    "fallback_used": false,
+    "market": "US"
+  },
+  {
+    "source": "quarterly_37fields",
+    "endpoint": "quarterly_37fields",
+    "data": {
+      "endpoint": "quarterly_37fields",
+      "source": "sec_edgar",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:21:55+08:00",
+    "fallback_used": false,
+    "market": "US"
+  },
+  {
+    "source": "ttm_summary",
+    "endpoint": "ttm_summary",
+    "data": {
+      "endpoint": "ttm_summary",
+      "source": "sec_edgar",
+      "rows": 0,
+      "note": "stub"
+    },
+    "fetched_at": "2026-07-30T06:21:57+08:00",
+    "fallback_used": false,
+    "market": "US"
+  }
+]

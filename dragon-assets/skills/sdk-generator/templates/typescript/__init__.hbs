@@ -1,0 +1,24 @@
+/**
+ * {{api_name}} TypeScript SDK
+ * Version: {{api_version}}
+ * Generated from OpenAPI spec
+ */
+export { ApiClient, ClientConfig } from "./client";
+export * from "./types";
+{{#each tags}}
+export { {{pascal_tag}}Api } from "./{{snake_tag}}_api";
+{{/each}}
+
+export class {{pascal_name}}SDK {
+  private client: ApiClient;
+{{#each tags}}
+  public {{camel_tag}}: {{pascal_tag}}Api;
+{{/each}}
+
+  constructor(config: ClientConfig) {
+    this.client = new ApiClient(config);
+{{#each tags}}
+    this.{{camel_tag}} = new {{pascal_tag}}Api(this.client);
+{{/each}}
+  }
+}

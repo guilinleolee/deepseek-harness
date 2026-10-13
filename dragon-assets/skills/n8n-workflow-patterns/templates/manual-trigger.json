@@ -1,0 +1,102 @@
+{
+  "name": "手动触发模板",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "手动触发器",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 250],
+      "parameters": {},
+      "continueOnFail": false
+    },
+    {
+      "id": "node_2",
+      "name": "数据处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 250],
+      "parameters": {
+        "jsCode": "// 数据转换处理\nconst items = $input.all();\nreturn items.map(item => ({\n  original: item.json,\n  processed: true,\n  timestamp: new Date().toISOString()\n}));"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_3",
+      "name": "条件判断",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 250],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.processed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_4",
+      "name": "记录日志",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100],
+      "parameters": {
+        "jsCode": "// 成功处理日志\nconst items = $input.all();\nconsole.log('处理成功:', items.length, '条记录');\nreturn items;"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_5",
+      "name": "错误处理",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [900, 400],
+      "parameters": {},
+      "continueOnFail": false
+    }
+  ],
+  "connections": {
+    "node_1": {
+      "main": [[
+        {"node": "node_2", "type": "main", "index": 0}
+      ]]
+    },
+    "node_2": {
+      "main": [[
+        {"node": "node_3", "type": "main", "index": 0}
+      ]]
+    },
+    "node_3": {
+      "main": [[
+        {"node": "node_4", "type": "main", "index": 0}
+      ]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "天龙适配": {
+    "trigger_type": "Manual",
+    "category": "automation",
+    "complexity": "简单",
+    "integrations": ["manual-trigger", "code", "if"],
+    "nodes_count": 5,
+    "use_cases": ["手动批处理", "数据导入", "临时调试", "一键执行"]
+  }
+}

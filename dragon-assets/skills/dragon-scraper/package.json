@@ -1,0 +1,35 @@
+{
+  "name": "dragon-scraper",
+  "version": "1.0.0",
+  "description": "天龙自建抓取系统 - 基于Crawlee+Playwright的多平台数据采集",
+  "main": "dragon-scraper.ts",
+  "scripts": {
+    "start": "npx ts-node dragon-scraper.ts",
+    "instagram": "npx ts-node dragon-scraper.ts instagram",
+    "tiktok": "npx ts-node dragon-scraper.ts tiktok",
+    "youtube": "npx ts-node dragon-scraper.ts youtube",
+    "amazon": "npx ts-node dragon-scraper.ts amazon"
+  },
+  "dependencies": {
+    "crawlee": "^3.0.0",
+    "playwright": "^1.40.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "scraper",
+    "crawlee",
+    "playwright",
+    "instagram",
+    "tiktok",
+    "youtube",
+    "amazon"
+  ],
+  "author": "Dragon Engine",
+  "license": "MIT"
+}

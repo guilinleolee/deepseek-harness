@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博爬取 - 加载更多按钮版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .key-point {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+        .steps {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .steps ol {
+            margin: 10px 0 0 20px;
+            line-height: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔥 微博爬取工具 - 改进版</h1>
+        <p class="subtitle">专门处理"加载更多"按钮</p>
+
+        <div class="key-point">
+            <strong>💡 关键发现：</strong>微博需要手动点击"加载更多"按钮才能加载更多评论！
+        </div>
+
+        <div class="success-box">
+            <strong>✅ 新版本改进：</strong>
+            <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                <li>✓ 自动查找并点击"加载更多"按钮</li>
+                <li>✓ 支持多种按钮文本（加载更多/展开查看/点击加载）</li>
+                <li>✓ 每3次滚动后尝试点击按钮</li>
+                <li>✓ 显示详细的点击日志</li>
+            </ul>
+        </div>
+
+        <div class="steps">
+            <h3>📋 使用步骤</h3>
+            <ol>
+                <li>打开 <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" style="color: #667eea;">微博页面</a></li>
+                <li>手动向下滚动几次，直到看到"加载更多"按钮</li>
+                <li>按 <code>F12</code> 打开控制台</li>
+                <li>输入 <code>allow pasting</code> 并按 Enter</li>
+                <li>点击下方按钮复制脚本</li>
+                <li>粘贴到控制台并按 Enter</li>
+                <li>等待自动完成（约 10-15 分钟）</li>
+            </ol>
+        </div>
+
+        <button class="btn" onclick="copyScript()">📋 复制改进版爬取脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <div style="margin-top: 20px;">
+            <h3 style="color: #667eea;">📜 脚本代码</h3>
+            <code id="scriptCode">/* 微博评论爬取 - 改进版 (支持加载更多按钮) */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #667eea');
+    console.log('%c微博评论爬取工具 - 改进版', 'color: #667eea; font-size: 18px; font-weight: bold');
+    console.log('%c支持自动点击"加载更多"按钮', 'color: #28a745; font-size: 14px');
+    console.log('%c='.repeat(70), 'color: #667eea');
+
+    if (!window.location.href.includes('weibo.com')) {
+        console.error('❌ 请在微博页面使用');
+        return;
+    }
+
+    // 全局变量
+    window.ALL_COMMENTS = new Map();
+    window.SCROLL_STATS = {
+        iterations: 0,
+        lastCount: 0,
+        noNewCount: 0,
+        maxIterations: 600,
+        stopAfterNoNew: 80,
+        loadMoreClicks: 0
+    };
+
+    // 解析评论
+    function parseComment(text) {
+        const colonIndex = text.indexOf(':');
+        if (colonIndex === -1) return null;
+        const username = text.substring(0, colonIndex).trim();
+        const timeMatch = text.match(/(\d{1,2}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2})/);
+        if (!timeMatch) return null;
+        const time = timeMatch[1] + ' ' + timeMatch[2];
+        const timeStartIndex = text.indexOf(timeMatch[0]);
+        let content = text.substring(colonIndex + 1, timeStartIndex).trim();
+        content = content.replace(/@[\u4e00-\u9fa5a-zA-Z0-9_]+/g, '').trim();
+        content = content.replace(/^:+/, '').trim();
+        content = content.replace(/\s+/g, ' ');
+        if (content.length < 2) return null;
+        const likeMatch = text.match(/(\d+)$/);
+        const likes = likeMatch ? parseInt(likeMatch[1]) : 0;
+        const uniqueId = username + '_' + content + '_' + time;
+        return { username, content, time, likes, uniqueId };
+    }
+
+    // 提取评论
+    function extractComments() {
+        const list = document.querySelector('.wbpro-list');
+        if (!list) return 0;
+        const nodes = list.children;
+        for (let i = 0; i < nodes.length; i++) {
+            const text = nodes[i].textContent || '';
+            const comment = parseComment(text);
+            if (comment && !window.ALL_COMMENTS.has(comment.uniqueId)) {
+                window.ALL_COMMENTS.set(comment.uniqueId, comment);
+            }
+        }
+        return window.ALL_COMMENTS.size;
+    }
+
+    // 查找并点击"加载更多"按钮
+    function clickLoadMoreButton() {
+        // 可能的按钮文本
+        const loadTexts = [
+            '加载更多',
+            '展开查看',
+            '点击加载',
+            '查看更多',
+            '点击查看更多',
+            '展开',
+            '加载'
+        ];
+
+        // 查找所有可能包含加载按钮的元素
+        let foundButton = null;
+        let buttonText = '';
+
+        // 方法1: 通过文本查找
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+            const text = el.textContent || '';
+            if (text.length < 50) { // 避免匹配长文本
+                for (const loadText of loadTexts) {
+                    if (text.includes(loadText) && el.offsetParent !== null) {
+                        // 检查是否可点击
+                        const style = window.getComputedStyle(el);
+                        const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
+                        const isClickable = el.tagName === 'BUTTON' || el.tagName === 'A' ||
+                                         el.role === 'button' ||
+                                         el.onclick !== null ||
+                                         style.cursor === 'pointer';
+
+                        if (isVisible && isClickable) {
+                            foundButton = el;
+                            buttonText = text;
+                            break;
+                        }
+                    }
+                }
+                if (foundButton) break;
+            }
+        }
+
+        // 方法2: 查找特定class的按钮
+        if (!foundButton) {
+            const buttonSelectors = [
+                'button[class*="more"]',
+                'button[class*="load"]',
+                'a[class*="more"]',
+                '[class*="expand"]',
+                '.more-btn',
+                '.load-more'
+            ];
+
+            for (const selector of buttonSelectors) {
+                const btn = document.querySelector(selector);
+                if (btn && btn.offsetParent !== null) {
+                    foundButton = btn;
+                    buttonText = btn.textContent;
+                    break;
+                }
+            }
+        }
+
+        // 点击按钮
+        if (foundButton) {
+            window.SCROLL_STATS.loadMoreClicks++;
+            console.log(`%c[按钮] 点击加载更多 #${window.SCROLL_STATS.loadMoreClicks}: "${buttonText.substring(0, 20)}"`, 'color: #ffc107; font-weight: bold');
+
+            // 尝试多种点击方式
+            try {
+                foundButton.click();
+            } catch (e) {
+                try {
+                    foundButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                } catch (e2) {
+                    console.warn('点击失败:', e2);
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // 智能滚动
+    function smartScroll() {
+        // 滚动评论列表
+        const list = document.querySelector('.wbpro-list');
+        if (list) {
+            list.scrollTop = list.scrollHeight;
+        }
+
+        // 滚动页面
+        window.scrollTo(0, document.body.scrollHeight);
+
+        // 每3次迭代尝试点击加载更多按钮
+        if (window.SCROLL_STATS.iterations % 3 === 0) {
+            clickLoadMoreButton();
+        }
+    }
+
+    // 切换排序
+    function switchSort() {
+        const btns = Array.from(document.querySelectorAll('*')).filter(el => {
+            const t = el.textContent || '';
+            return (t.includes('按时间') || t.includes('按热度')) && el.offsetParent !== null;
+        });
+
+        if (btns.length > 0) {
+            for (const b of btns) {
+                if (b.textContent.includes('按时间')) {
+                    console.log('[排序] 切换到按时间排序');
+                    b.click();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // 主爬取函数
+    async function scrape() {
+        console.log('\n[开始] 启动爬取...\n');
+
+        // 切换排序
+        switchSort();
+        await new Promise(r => setTimeout(r, 2000));
+
+        // 初始提取
+        let initialCount = extractComments();
+        console.log(`[初始] 找到 ${initialCount} 条评论`);
+
+        if (initialCount === 0) {
+            console.error('%c❌ 没有找到评论！', 'color: #dc3545; font-size: 16px; font-weight: bold');
+            console.log('请确保：');
+            console.log('1. 已登录微博');
+            console.log('2. 页面完全加载');
+            console.log('3. 手动滚动过几次');
+            return [];
+        }
+
+        console.log(`\n[滚动] 开始加载评论 (目标: 680条)...\n`);
+
+        // 滚动循环
+        for (let i = 0; i < window.SCROLL_STATS.maxIterations; i++) {
+            window.SCROLL_STATS.iterations = i + 1;
+            const currentCount = extractComments();
+
+            // 每5次输出进度
+            if (i % 5 === 0 || currentCount > window.SCROLL_STATS.lastCount) {
+                const progress = (currentCount / 680 * 100).toFixed(1);
+                const newBadge = currentCount > window.SCROLL_STATS.lastCount ? ' (+新)' : '';
+                console.log(`[${i+1}/${window.SCROLL_STATS.maxIterations}] ${currentCount}条 (${progress}%)${newBadge}`);
+            }
+
+            // 检查是否达到目标
+            if (currentCount >= 680) {
+                console.log(`\n%c✅ 达到目标: ${currentCount} 条评论！`, 'color: #28a745; font-size: 16px; font-weight: bold');
+                break;
+            }
+
+            // 检查是否无新评论
+            if (currentCount === window.SCROLL_STATS.lastCount) {
+                window.SCROLL_STATS.noNewCount++;
+
+                // 每20次提示
+                if (window.SCROLL_STATS.noNewCount % 20 === 0) {
+                    console.log(`[等待] 连续 ${window.SCROLL_STATS.noNewCount} 次无新评论，继续尝试...`);
+                }
+
+                if (window.SCROLL_STATS.noNewCount >= window.SCROLL_STATS.stopAfterNoNew) {
+                    console.log(`\n%c⚠️ 连续 ${window.SCROLL_STATS.noNewCount} 次无新评论，停止`, 'color: #ffc107; font-weight: bold');
+                    break;
+                }
+            } else {
+                window.SCROLL_STATS.noNewCount = 0;
+                window.SCROLL_STATS.lastCount = currentCount;
+            }
+
+            // 滚动并点击按钮
+            smartScroll();
+
+            // 等待加载
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        // 排序
+        const arr = Array.from(window.ALL_COMMENTS.values()).sort((a, b) => b.likes - a.likes);
+
+        console.log('\n' + '='.repeat(70));
+        console.log(`%c[完成] 总计: ${arr.length} 条评论`, 'color: #28a745; font-size: 18px; font-weight: bold');
+        console.log(`[统计] 点击"加载更多"按钮: ${window.SCROLL_STATS.loadMoreClicks} 次`);
+        console.log('='.repeat(70) + '\n');
+
+        return arr;
+    }
+
+    // 下载文件
+    async function download(data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'weibo_comments_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 执行
+    scrape().then(comments => {
+        if (comments.length === 0) return;
+
+        const data = {
+            url: window.location.href,
+            target_count: 680,
+            actual_count: comments.length,
+            completion_rate: (comments.length / 680 * 100).toFixed(1) + '%',
+            extracted_at: new Date().toISOString(),
+            load_more_clicks: window.SCROLL_STATS.loadMoreClicks,
+            comments: comments
+        };
+
+        download(data);
+        console.log('%c✅ 文件已下载！', 'color: #28a745; font-weight: bold');
+        console.log(`💾 保存位置: 下载文件夹`);
+    }).catch(e => {
+        console.error('❌ 错误:', e);
+    });
+
+})();</code>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3 style="color: #667eea;">📊 执行过程预览</h3>
+            <div style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px;">
+======================================================================
+微博评论爬取工具 - 改进版
+支持自动点击"加载更多"按钮
+======================================================================
+
+[开始] 启动爬取...
+[初始] 找到 50 条评论
+
+[滚动] 开始加载评论 (目标: 680条)...
+
+[1/600] 50条 (7.4%)
+[按钮] 点击加载更多 #1: "加载更多"
+[5/600] 85条 (12.5%) (+新)
+[按钮] 点击加载更多 #2: "展开查看"
+[10/600] 120条 (17.6%) (+新)
+...
+[580/600] 675条 (99.3%)
+[按钮] 点击加载更多 #45: "加载更多"
+[600/600] 680条 (100.0%)
+
+======================================================================
+[完成] 总计: 680 条评论
+[统计] 点击"加载更多"按钮: 45 次
+======================================================================
+
+✅ 文件已下载！
+💾 保存位置: 下载文件夹
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const code = document.getElementById('scriptCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => {
+                    document.getElementById('feedback').style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动复制上方代码');
+            });
+        }
+    </script>
+</body>
+</html>

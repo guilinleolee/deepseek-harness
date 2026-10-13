@@ -1,0 +1,48 @@
+{
+  "token_budget": {
+    "daily_limit": 100000,
+    "alert_threshold": 0.8,
+    "priority_tiers": {
+      "critical": 1,
+      "high": 2,
+      "normal": 3,
+      "low": 4
+    }
+  },
+  "compression": {
+    "enabled": true,
+    "aggressive": false,
+    "preserve_structure": true,
+    "skip_comments": true,
+    "skip_empty_lines": false
+  },
+  "cache": {
+    "enabled": true,
+    "strategy": "semantic",
+    "ttl_seconds": 3600,
+    "max_entries": 1000,
+    "eviction_policy": "lru"
+  },
+  "progressive_disclosure": {
+    "index_tokens": 100,
+    "summary_tokens": 500,
+    "detail_trigger": "explicit",
+    "layers": ["index", "summary", "detail"]
+  },
+  "optimization": {
+    "auto_select_method": true,
+    "target_savings_percent": 46,
+    "performance_improvement_target": 4.2,
+    "benchmark_source": "open-space-cloud"
+  },
+  "open_space": {
+    "api_base": "https://api.open-space.cloud/v1",
+    "sync_interval_hours": 24,
+    "sync_enabled": true
+  },
+  "reporting": {
+    "daily_report": true,
+    "weekly_summary": true,
+    "alert_on_budget_exhaustion": true
+  }
+}

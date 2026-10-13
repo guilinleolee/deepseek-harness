@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>微博评论结构诊断</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn:hover { background: #5568d3; }
+        code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            display: block;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+        .example {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 微博评论结构诊断工具</h1>
+
+        <div class="warning">
+            <strong>⚠️ 当前问题：</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>只爬取到 1 条评论</li>
+                <li>评论格式异常：<code>//:与正常人区分...</code></li>
+                <li>点击了 18 次加载按钮但评论没有增加</li>
+            </ul>
+        </div>
+
+        <p style="margin: 20px 0;"><strong>原因分析：</strong>微博的 HTML 结构可能已经变化，需要重新找到正确的评论容器和选择器。</p>
+
+        <h2>📋 诊断步骤</h2>
+        <ol style="line-height: 2;">
+            <li>打开 <a href="https://weibo.com/7985254173/QmWvGrm7G#comment" target="_blank" style="color: #667eea;">微博页面</a></li>
+            <li>手动滚动几次，确保能看到评论</li>
+            <li>按 <code>F12</code> 打开控制台</li>
+            <li>输入 <code>allow pasting</code> 并按 Enter</li>
+            <li>点击下方"复制诊断脚本"</li>
+            <li>粘贴到控制台并按 Enter</li>
+            <li><strong>把控制台的所有输出截图发给我</strong></li>
+        </ol>
+
+        <button class="btn" onclick="copyDiagnostic()">📋 复制诊断脚本</button>
+        <span id="feedback" style="color: #28a745; font-weight: bold; margin-left: 10px; display: none;">✅ 已复制！</span>
+
+        <h2 style="margin-top: 30px;">📜 诊断脚本</h2>
+        <code id="diagnosticCode">/* 微博评论结构深度诊断 - 请把完整输出截图 */
+(function(){
+    console.clear();
+    console.log('%c='.repeat(70), 'color: #667eea');
+    console.log('%c微博评论结构诊断', 'color: #667eea; font-size: 18px; font-weight: bold');
+    console.log('%c='.repeat(70), 'color: #667eea');
+
+    // ============ 第1步：查找所有可能的评论列表容器 ============
+    console.log('\n%c[步骤1] 查找评论列表容器', 'color: #64ffda; font-weight: bold');
+    console.log('-'.repeat(70));
+
+    const possibleSelectors = [
+        '.wbpro-list',
+        '.comment-list',
+        '.comments',
+        '[class*="comment"]',
+        '[class*="Comment"]',
+        '[class*="list"]',
+        '[class*="List"]',
+        '.vue-recycle-scroller',
+        '.infinite-list',
+        '[class*="scroll"]'
+    ];
+
+    const foundContainers = [];
+
+    possibleSelectors.forEach(selector => {
+        try {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+                elements.forEach((el, index) => {
+                    const childCount = el.children.length;
+                    const textPreview = el.textContent.substring(0, 100);
+                    foundContainers.push({
+                        selector: selector,
+                        index: index,
+                        childCount: childCount,
+                        textPreview: textPreview
+                    });
+                    console.log(`%c✓ 找到: ${selector}[${index}]`, 'color: #28a745');
+                    console.log(`  子元素数: ${childCount}`);
+                    console.log(`  文本预览: ${textPreview}...`);
+                });
+            }
+        } catch (e) {
+            // 忽略无效选择器
+        }
+    });
+
+    if (foundContainers.length === 0) {
+        console.warn('%c⚠️ 未找到任何评论容器！', 'color: #ffc107');
+        console.log('尝试查找所有包含大量子元素的容器...');
+
+        const allDivs = document.querySelectorAll('div');
+        allDivs.forEach(div => {
+            if (div.children.length > 5 && div.children.length < 100) {
+                const text = div.textContent;
+                if (text.includes(':') && text.match(/\d{1,2}-\d{1,2}/)) {
+                    console.log(`\n%c可能的容器:`, 'color: #64ffda');
+                    console.log(`  class="${div.className}"`);
+                    console.log(`  子元素: ${div.children.length}`);
+                    console.log(`  文本: ${text.substring(0, 150)}...`);
+                }
+            }
+        });
+    }
+
+    // ============ 第2步：分析评论项结构 ============
+    console.log('\n%c[步骤2] 分析评论项结构', 'color: #64ffda; font-weight: bold');
+    console.log('-'.repeat(70));
+
+    // 使用找到的第一个容器
+    let commentContainer = document.querySelector('.wbpro-list');
+    if (!commentContainer && foundContainers.length > 0) {
+        commentContainer = document.querySelector(foundContainers[0].selector);
+    }
+
+    if (commentContainer && commentContainer.children.length > 0) {
+        console.log(`%c✓ 使用容器: ${commentContainer.className}`, 'color: #28a745');
+
+        // 分析前3条评论
+        for (let i = 0; i < Math.min(3, commentContainer.children.length); i++) {
+            const item = commentContainer.children[i];
+            const fullText = item.textContent;
+            const html = item.innerHTML;
+
+            console.log(`\n--- 评论 ${i+1} ---`);
+            console.log(`完整文本:`, fullText.substring(0, 200));
+            console.log(`HTML长度:`, html.length);
+            console.log(`是否包含冒号:`, fullText.includes(':') ? '是' : '否');
+            console.log(`是否包含时间:`, fullText.match(/\d{1,2}-\d{1,2}/) ? '是' : '否');
+
+            // 查找可能的选择器路径
+            console.log(`元素路径:`, getElementPath(item));
+
+            // 分析内部结构
+            const subElements = item.querySelectorAll('*');
+            console.log(`子元素数: ${subElements.length}`);
+
+            // 查找用户名
+            const nameElements = item.querySelectorAll('[class*="name"], [class*="user"], [class*="author"]');
+            if (nameElements.length > 0) {
+                console.log(`可能的用户名元素:`, nameElements[0].textContent);
+            }
+
+            // 查找内容
+            const contentElements = item.querySelectorAll('[class*="content"], [class*="text"], [class*="comment"]');
+            if (contentElements.length > 0) {
+                console.log(`可能的内容元素:`, contentElements[0].textContent.substring(0, 100));
+            }
+        }
+    } else {
+        console.error('%c❌ 没有找到评论容器！', 'color: #dc3545');
+    }
+
+    // ============ 第3步：查找评论中的关键模式 ============
+    console.log('\n%c[步骤3] 查找评论模式', 'color: #64ffda; font-weight: bold');
+    console.log('-'.repeat(70));
+
+    const allText = document.body.innerText;
+
+    // 查找"用户名:内容"模式
+    const patterns = [
+        /([^：\n]{2,10})：(.+?)(\d{1,2}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2})/g,
+        /([^:\n]{2,10}):(.+?)(\d{1,2}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2})/g
+    ];
+
+    let matchCount = 0;
+    patterns.forEach((pattern, index) => {
+        const matches = allText.match(pattern);
+        if (matches) {
+            console.log(`%c模式 ${index + 1}: 找到 ${matches.length} 条匹配`, 'color: #28a745');
+            if (matches.length > 0) {
+                console.log(`示例:`, matches[0]);
+                matchCount += matches.length;
+            }
+        }
+    });
+
+    if (matchCount > 0) {
+        console.log(`\n%c✓ 页面包含约 ${matchCount} 条评论格式的内容`, 'color: #28a745; font-weight: bold');
+    } else {
+        console.warn('%c⚠️ 没有找到标准的评论格式', 'color: #ffc107');
+    }
+
+    // ============ 第4步：查找实际的评论元素 ============
+    console.log('\n%c[步骤4] 查找实际评论元素', 'color: #64ffda; font-weight: bold');
+    console.log('-'.repeat(70));
+
+    // 尝试不同的选择器
+    const itemSelectors = [
+        '[class*="comment-item"]',
+        '[class*="CommentItem"]',
+        '[class*="item"]',
+        'article',
+        '[data-comment-id]',
+        '[class*="card"]'
+    ];
+
+    itemSelectors.forEach(selector => {
+        try {
+            const items = document.querySelectorAll(selector);
+            if (items.length > 5 && items.length < 1000) {
+                console.log(`%c${selector}: ${items.length} 个`, 'color: #64ffda');
+                console.log(`第一个元素文本:`, items[0].textContent.substring(0, 100));
+            }
+        } catch (e) {}
+    });
+
+    // ============ 总结 ============
+    console.log('\n' + '='.repeat(70));
+    console.log('%c诊断完成', 'color: #28a745; font-weight: bold');
+    console.log('='.repeat(70));
+    console.log('\n%c📸 请把上方所有输出截图发给 Claude！', 'color: #ffc107; font-size: 14px; font-weight: bold');
+
+    // 辅助函数：获取元素路径
+    function getElementPath(element) {
+        const path = [];
+        let current = element;
+        while (current && current !== document.body) {
+            let selector = current.tagName.toLowerCase();
+            if (current.className) {
+                const classes = current.className.split(' ').filter(c => c);
+                if (classes.length > 0) {
+                    selector += '.' + classes[0];
+                }
+            }
+            path.unshift(selector);
+            current = current.parentElement;
+            if (path.length > 5) break; // 限制深度
+        }
+        return path.join(' > ');
+    }
+
+    return {
+        containers: foundContainers,
+        totalMatches: matchCount
+    };
+})();</code>
+
+        <div class="card" style="margin-top: 30px;">
+            <h2>💡 下一步</h2>
+            <p>运行诊断脚本后，把控制台的**完整输出**截图给我，我会根据结果：</p>
+            <ol style="line-height: 2; margin: 10px 0 0 20px;">
+                <li>找到正确的评论容器选择器</li>
+                <li>更新评论解析逻辑</li>
+                <li>生成新的爬取脚本</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function copyDiagnostic() {
+            const code = document.getElementById('diagnosticCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('feedback').style.display = 'inline';
+                setTimeout(() => {
+                    document.getElementById('feedback').style.display = 'none';
+                }, 3000);
+            }).catch(() => {
+                alert('复制失败，请手动复制');
+            });
+        }
+    </script>
+</body>
+</html>

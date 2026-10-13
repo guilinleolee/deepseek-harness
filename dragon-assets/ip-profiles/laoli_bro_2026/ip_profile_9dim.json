@@ -1,0 +1,49 @@
+{
+  "_intro": "本文件为指针文件（2026-08-07）。原 ip_profile_9dim.json 已归档为 ip_profile_9dim.json.bak.20260807，主档已升级为 ip_profile_v3_synced.json（含 V3 档案全部新增资产）。",
+  "schema_version": "9-dim-v3.0",
+  "deprecated_at": "2026-08-07",
+  "deprecated_reason": "V3 档案同步后，9-dim 已无法承载 5 皮肤 19 句廉颇原声 / 13 个商业禁用词 / 11 项简历案例 / 双锚点模型。",
+  "primary_profile": "ip_profile_v3_synced.json",
+  "archive": "ip_profile_9dim.json.bak.20260807",
+  "blogger_id": "laoli_bro_2026",
+  "blogger_name": "老李兄弟",
+  "owner_id": "laoli_bro_2026",
+  "matched_template": "知识区",
+  "language": "zh",
+  "dialect": "普通话（偶带北方儿化音）",
+  "_meta": {
+    "schema_version": "9-dim-v3.0",
+    "created_at": "2026-07-03",
+    "bumped_at": "2026-08-07",
+    "status": "deprecated-pointer",
+    "primary_file": "ip_profile_v3_synced.json",
+    "archive_file": "ip_profile_9dim.json.bak.20260807",
+    "source": [
+      "老李人设与写作风格_V3.md (2026-06-12)",
+      "李总档案 V9.4 (2026-08-07)",
+      "李凌完整简历 (2026-06-12 上传)"
+    ],
+    "consent": {
+      "voice_consent_file": "voice_consent.txt",
+      "ip_consent_file": "ip_consent.txt",
+      "consent_expires_at": "2027-07-03",
+      "watermark_enabled": true
+    },
+    "migration_notes": [
+      "2026-08-07: V3 同步完成，原 ip_profile_9dim.json 归档为 .bak.20260807",
+      "  - 主用 ip_profile_v3_synced.json (24KB, 20 keys)",
+      "  - 增加：5 皮肤 19 句廉颇原声",
+      "  - 增加：13 个商业禁用词严管清单",
+      "  - 增加：30 年真实简历时间线 + 11 项案例库",
+      "  - 增加：修炼七境 V9.3 普世定义",
+      "  - 修正：'心不老，身不XX' = '不灭'（不是'不火'）"
+    ]
+  },
+  "_redirect_to": {
+    "file": "ip_profile_v3_synced.json",
+    "load_priority": [
+      "ip_profile_v3_synced.json",
+      "ip_profile_9dim.json.bak.20260807 (fallback)"
+    ]
+  }
+}

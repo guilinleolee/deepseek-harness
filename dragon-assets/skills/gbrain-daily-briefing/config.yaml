@@ -1,0 +1,100 @@
+# GBrain Daily Briefing 配置
+# gbrain-daily-briefing/config.yaml
+
+briefing:
+  name: "GBrain 每日简报"
+  version: "V1.0"
+
+  # 简报生成策略
+  generation:
+    mode: "daily"              # daily | event-driven | weekly
+    schedule: "0 8 * * *"     # 每天早上8点生成
+    timezone: "Asia/Shanghai"
+    lookback_hours: 24        # 回溯时间窗口
+
+  # 阈值配置
+  thresholds:
+    event_driven_min_signals: 5    # 触发即时简报的最小信号数
+    high_priority_threshold: 0.7     # 高优先级信号阈值
+    knowledge_recency_hours: 6       # 知识新鲜度阈值
+
+  # 优先级排序权重
+  priority_weights:
+    signal_severity: 0.4      # 信号严重度
+    agent_impact: 0.3         # Agent影响范围
+    knowledge_relevance: 0.3  # 知识相关性
+
+  # 输出格式
+  output:
+    format: "markdown"
+    storage_path: ".claude/gbrain/briefings/"
+    archive_after_days: 90
+    include_attachments: true
+
+  # 知识图谱关联
+  knowledge_graph:
+    enabled: true
+    auto_link: true
+    confidence_threshold: 0.6
+
+# 天龙引擎集成配置
+tianlong_integration:
+  attached_role: "07-scribe"
+  upstream:
+    - gbrain-signal-detector
+    - gbrain-multimodal-ingest
+    - gbrain-identity-audit
+  downstream:
+    - tianlong-09-02-orchestrator  # 行动项进入编排队列
+    - mempalace                    # MemPalace 归档
+    - llm-wiki-compiler           # Wiki 归档
+
+  # 存储层
+  storage_layers:
+    - MemPalace (V8.85)
+    - llm-wiki-compiler (V8.85)
+    - advanced-memory-sync (V8.61)
+    - claude-mem (V8.6)
+
+  # 接收通知的 Agent
+  notify_agents:
+    - "00-analyst"
+    - "01-investigator"
+    - "09-02-orchestrator"
+
+  # 行动项分类
+  action_categories:
+    - name: "调研"
+      keywords: ["调研", "研究", "分析"]
+      owner: "01-investigator"
+    - name: "决策"
+      keywords: ["决策", "选择", "判断"]
+      owner: "00-analyst"
+    - name: "构建"
+      keywords: ["开发", "实现", "构建"]
+      owner: "03-builder"
+    - name: "审计"
+      keywords: ["审计", "审查", "检查"]
+      owner: "06-reviewer"
+    - name: "发布"
+      keywords: ["发布", "部署", "上线"]
+      owner: "08-publisher"
+
+# 趋势分析配置
+trend_analysis:
+  enabled: true
+  window_days: 7              # 趋势窗口
+  min_signals_for_trend: 10   # 最小信号数
+  anomaly_detection: true
+  seasonality_analysis: false
+
+# 通知配置
+notifications:
+  enabled: true
+  channels:
+    - type: "file"
+      path: ".claude/gbrain/briefings/daily/"
+    - type: "mempalace"
+      room: "gbrain-briefings"
+    - type: "claude-mem"
+      tag: "daily-briefing"

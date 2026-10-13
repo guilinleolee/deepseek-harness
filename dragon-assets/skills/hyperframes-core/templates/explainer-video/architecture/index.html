@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Scene</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --background: #0f0f23;
+      --text: #f1f5f9;
+      --particle: rgba(99,102,241,0.8);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #scene-architecture {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    .arch-diagram {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 2rem;
+    }
+    .arch-node {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      padding: 1.5rem 2.5rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      min-width: 140px;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.3);
+    }
+    .node-icon {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .node-label {
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+    .arch-connector {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--primary));
+      border-radius: 2px;
+      position: relative;
+    }
+    .arch-connector::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: -4px;
+      border: 5px solid transparent;
+      border-left-color: var(--primary);
+    }
+    .arch-text {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 700px;
+      font-size: 1.1rem;
+      opacity: 0.75;
+      margin-top: 1.5rem;
+      line-height: 1.6;
+      padding: 0 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-architecture" class="scene">
+    <div class="arch-diagram">
+      <div class="arch-node" id="node-a">
+        <div class="node-icon">A</div>
+        <div class="node-label">{{nodeA}}</div>
+      </div>
+      <div class="arch-connector" id="connector-ab"></div>
+      <div class="arch-node" id="node-b">
+        <div class="node-icon">B</div>
+        <div class="node-label">{{nodeB}}</div>
+      </div>
+      <div class="arch-connector" id="connector-bc"></div>
+      <div class="arch-node" id="node-c">
+        <div class="node-icon">C</div>
+        <div class="node-label">{{nodeC}}</div>
+      </div>
+    </div>
+    <p class="arch-text" id="arch-desc">{{description}}</p>
+  </div>
+
+  <script>
+    (function() {
+      const sceneEl = document.getElementById('scene-architecture');
+      const nodes = ['#node-a', '#node-b', '#node-c'];
+      const connectors = ['#connector-ab', '#connector-bc'];
+
+      const archTl = gsap.timeline({ paused: true });
+
+      // Node A entrance
+      archTl.fromTo('#node-a',
+        { scale: 0, opacity: 0, y: -30 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.7)" },
+        0.5
+      );
+
+      // Connector 1
+      archTl.fromTo('#connector-ab',
+        { scaleX: 0, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.4, ease: "power2.out" },
+        1.2
+      );
+
+      // Node B entrance
+      archTl.fromTo('#node-b',
+        { scale: 0, opacity: 0, y: -30 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.7)" },
+        1.5
+      );
+
+      // Connector 2
+      archTl.fromTo('#connector-bc',
+        { scaleX: 0, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.4, ease: "power2.out" },
+        2.2
+      );
+
+      // Node C entrance
+      archTl.fromTo('#node-c',
+        { scale: 0, opacity: 0, y: -30 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.7)" },
+        2.5
+      );
+
+      // Description
+      archTl.fromTo('#arch-desc',
+        { opacity: 0, y: 20 },
+        { opacity: 0.75, y: 0, duration: 0.5, ease: "power2.out" },
+        3.2
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['scene-architecture'] = archTl;
+
+      window.__sceneConfigs = window.__sceneConfigs || {};
+      window.__sceneConfigs['scene-architecture'] = {
+        type: 'architecture',
+        duration: {{duration}},
+        content: { nodeA: '{{nodeA}}', nodeB: '{{nodeB}}', nodeC: '{{nodeC}}', description: '{{description}}' }
+      };
+    })();
+  </script>
+</body>
+</html>

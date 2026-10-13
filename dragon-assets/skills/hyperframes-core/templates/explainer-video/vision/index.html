@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision Scene</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --background: #0f0f23;
+      --text: #f1f5f9;
+      --particle: rgba(99,102,241,0.8);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #scene-vision {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    #scene-vision canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      width: 100%; height: 100%;
+    }
+    .vision-bg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(ellipse at 30% 40%, rgba(99,102,241,0.15) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 60%, rgba(6,182,212,0.1) 0%, transparent 50%);
+    }
+    .vision-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 2rem;
+      max-width: 800px;
+    }
+    .vision-title {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+    }
+    .vision-text {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      opacity: 0.8;
+      line-height: 1.8;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-vision" class="scene">
+    <div class="vision-bg"></div>
+    <canvas id="particle-vision" data-component="particle-orbit"></canvas>
+    <div class="vision-content">
+      <h2 class="vision-title" id="vision-title">{{title}}</h2>
+      <p class="vision-text" id="vision-text">{{text}}</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const sceneEl = document.getElementById('scene-vision');
+
+      const visionTl = gsap.timeline({ paused: true });
+
+      // Mount particle
+      visionTl.call(() => {
+        if (window.__registry && window.__registry['particle-orbit']) {
+          window.__registry['particle-orbit'].mount(sceneEl.querySelector('canvas'));
+        }
+      }, null, 0);
+
+      // Title entrance with scale
+      visionTl.fromTo('#vision-title',
+        { scale: 0.8, opacity: 0, y: 30 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.8, ease: "power4.out" },
+        0.5
+      );
+
+      // Text lines staggered
+      const textParagraphs = document.querySelectorAll('#vision-text');
+      visionTl.fromTo('#vision-text',
+        { opacity: 0, y: 20 },
+        { opacity: 0.8, y: 0, duration: 0.6, ease: "power3.out" },
+        1.5
+      );
+
+      // Slow particle drift
+      visionTl.to({}, { duration: 2 }, 2.0);
+
+      // Unmount particle
+      visionTl.call(() => {
+        if (window.__registry && window.__registry['particle-orbit']) {
+          window.__registry['particle-orbit'].unmount();
+        }
+      }, null, 5);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['scene-vision'] = visionTl;
+
+      window.__sceneConfigs = window.__sceneConfigs || {};
+      window.__sceneConfigs['scene-vision'] = {
+        type: 'vision',
+        duration: {{duration}},
+        content: { title: '{{title}}', text: '{{text}}' }
+      };
+    })();
+  </script>
+</body>
+</html>

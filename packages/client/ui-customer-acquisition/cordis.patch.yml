@@ -1,0 +1,8 @@
+# dsh bundle patch: installing the panel pulls the whole customer-acquisition
+# feature — the Node plugin (domain, permission seam, compliance gate, tools,
+# Remote gateway) plus this browser surface.
+- insert:
+    - id: customer-acquisition
+      name: '@deepseek-ai/dsh-customer-acquisition'
+    - id: ui-customer-acquisition
+      name: '@deepseek-ai/dsh-client-ui-customer-acquisition'

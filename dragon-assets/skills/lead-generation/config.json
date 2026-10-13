@@ -1,0 +1,66 @@
+{
+  "platforms": {
+    "googleMaps": {
+      "enabled": true,
+      "region": "cn",
+      "language": "zh-CN"
+    },
+    "linkedin": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/linkedin.json"
+    },
+    "bossZhipin": {
+      "enabled": true
+    },
+    "xiaohongshu": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/xiaohongshu.json"
+    },
+    "douyin": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/douyin.json"
+    },
+    "dianping": {
+      "enabled": true,
+      "useCookie": true,
+      "cookiePath": "~/.claude/data/cookies/dianping.json"
+    }
+  },
+  "filters": {
+    "minFollowers": 1000,
+    "maxFollowers": 100000,
+    "minRating": 4.0,
+    "minReviews": 10
+  },
+  "enrichment": {
+    "enabled": false,
+    "services": {
+      "hunter": {
+        "enabled": false,
+        "apiKey": ""
+      },
+      "clearbit": {
+        "enabled": false,
+        "apiKey": ""
+      }
+    }
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "~/.claude/data/leads.db",
+    "deduplication": {
+      "enabled": true,
+      "fields": ["name", "phone", "email"]
+    }
+  },
+  "export": {
+    "defaultFormat": "csv",
+    "includeFields": [
+      "name", "address", "phone", "rating", "reviews",
+      "category", "website", "followers", "engagement"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+# fallback.yaml · a-stock-data-bridge V1.0
+# 上游 V3.4.0 新增 3 官方备胎端点（韧性层），本文件给出每个端点的主/备 1/备 2/备 3 兜底链
+# 行为：主源失败自动切备胎（非静默），必记录 fallback_used=True 到 FetchResult
+
+official_fallbacks: 3  # V3.4.0 韧性层 3 官方备胎端点
+fallback_strategy: priority_order
+silent_failure: false  # 必报错，禁止静默
+max_retries: 3
+
+# 错误码决策树（按 [5] 错误码识别）
+error_handlers:
+  BESTIP_EMPTY:           # mootdx 0.11.x 兼容（上游 V3.2.4 修复）
+    action: switch_source
+    target: tencent
+    log: "mootdx BESTIP 空串，切腾讯"
+  PARAM_MISSING:
+    action: fill_defaults
+    log: "参数缺失，自动补默认"
+  RATE_LIMIT_HIT:
+    action: retry_with_backoff
+    backoff_factor: 2.0
+    max_retries: 3
+  PROTOCOL_404:
+    action: mark_deprecated
+    log: "协议 404，标记 deprecated"
+  TIMEOUT:
+    action: retry_with_backoff
+    backoff_factor: 1.5
+    max_retries: 2
+  CONNECTION_REFUSED:
+    action: switch_source
+    log: "连接被拒，切备胎"
+
+# 43 端点兜底链（key=端点名，values=数据源顺序，从主到末）
+endpoints:
+  # ============ L1 行情层 5 端点 ============
+  kline_with_ma:           [mootdx, tencent, baidu, eastmoney_push2]
+  five_level_quote:        [tencent, baidu, eastmoney_push2, xinlang]
+  pe_pb_market_cap:        [eastmoney_push2, xinlang, tencent, baidu]
+  index_etf_quote:         [eastmoney_push2, tencent, baidu, tonghuashun]
+  minute_kline:            [mootdx, tencent, baidu]
+
+  # ============ L2 研报层 5 端点 ============
+  research_report_list:    [eastmoney_datacenter, tonghuashun, tonghuashun_iwencai]
+  research_report_pdf:     [eastmoney_datacenter, tonghuashun, tonghuashun_iwencai]
+  consensus_eps:           [eastmoney_datacenter, tonghuashun]
+  iwencai_nl_search:       [tonghuashun_iwencai]
+  industry_report:         [eastmoney_datacenter, tonghuashun]
+
+  # ============ L3 信号层 9 端点 ============
+  strong_stock_signal:     [tonghuashun, baidu]
+  theme_attribution:       [tonghuashun, eastmoney_datacenter]
+  north_bound_flow:        [eastmoney_push2, tonghuashun]
+  concept_sector_flow:     [eastmoney_datacenter, tonghuashun]
+  money_flow_rank:         [eastmoney_datacenter, tonghuashun]
+  dragon_tiger_list:       [eastmoney_datacenter, tonghuashun]
+  restricted_unlock:       [eastmoney_datacenter, tonghuashun]
+  north_top10:             [eastmoney_push2]
+  south_bound_flow:        [eastmoney_push2]
+
+  # ============ L4 资金面 5 端点 ============
+  margin_balance:          [eastmoney_push2, tonghuashun]
+  block_trade:             [eastmoney_datacenter, tonghuashun]
+  shareholder_count:       [eastmoney_datacenter, tonghuashun]
+  dividend_history:        [eastmoney_datacenter, tonghuashun]
+  minute_money_flow:       [eastmoney_push2]
+
+  # ============ L5 新闻层 2 端点 ============
+  stock_news:              [eastmoney_datacenter]
+  global_news:             [global_news, eastmoney_datacenter]
+
+  # ============ L6 基础数据 3 端点 ============
+  quarterly_report_37fields: [mootdx, eastmoney_datacenter, xinlang]
+  f10_nine_categories:     [eastmoney_datacenter, xinlang]
+  financial_3statements:   [eastmoney_datacenter, xinlang, mootdx]
+
+  # ============ L7 公告层 2 端点 ============
+  cninfo_announcement:     [cninfo, mootdx]
+  cninfo_pdf:              [cninfo]
+
+  # ============ L8 打板层 4 端点 ============
+  limit_up_board:          [tonghuashun, eastmoney_datacenter]
+  limit_up_leader:         [tonghuashun, eastmoney_datacenter]
+  sector_linkage:          [eastmoney_datacenter, tonghuashun]
+  tickflow_auction:        [tonghuashun, eastmoney_datacenter]
+
+  # ============ L9 ETF期权 4 端点 ============
+  etf_nav:                 [eastmoney_datacenter]
+  etf_holdings:            [eastmoney_datacenter]
+  option_chain:            [sse_option, eastmoney_datacenter]
+  option_greeks:           [sse_option, eastmoney_datacenter]
+
+  # ============ L10 舆情互动 3 端点 ============
+  xueqiu_hot_rank:         [xueqiu]               # cookie 态 · 走 agent-reach
+  iwencai_qa:              [tonghuashun_iwencai]
+  interactive_qa:          [sse_interactive, cninfo]
+
+  # ============ 补充 L1/L6 2 端点（达到 43）============
+  valuation_full:          [eastmoney_datacenter, xinlang]

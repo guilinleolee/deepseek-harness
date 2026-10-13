@@ -1,0 +1,21 @@
+NOTICE for guizang-social-card-skill
+============================================================
+
+This skill is distributed under the AGPL-3.0 license.
+License text: see LICENSE in this directory.
+
+Upstream: unknown
+
+Modifications by Tianlong Engine (dragon-engine) on 2026-08-05:
+  - Mirrored into dragon-engine asset index.
+  - Re-indexed under schema dragon-index/1.0.
+  - Triggers/last_used/audit fields added (informational only).
+
+Per AGPL-3.0 Section 5(d): this NOTICE accompanies the source
+when conveyed. Source modifications, if any, are listed above.
+
+Compliance:
+  - AGPL-3.0 requires source availability when network service
+    is offered. This skill is delivered as method summary /
+    PNG output, NOT as a running network service.
+  - See BIBLE.md for AGPL compliance policy.

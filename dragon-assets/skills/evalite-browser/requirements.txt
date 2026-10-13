@@ -1,0 +1,29 @@
+# evalite-browser dependencies
+# Install with: pip install -r requirements.txt
+
+# Browser automation
+playwright>=1.40.0
+
+# Image processing
+pillow>=10.0.0
+
+# CLI framework
+click>=8.1.0
+
+# Rich terminal output
+rich>=13.0.0
+
+# HTTP requests
+requests>=2.31.0
+
+# HTML parsing
+beautifulsoup4>=4.12.0
+
+# XML parsing
+lxml>=4.9.0
+
+# YAML configuration
+pyyaml>=6.0
+
+# Type hints
+typing-extensions>=4.8.0

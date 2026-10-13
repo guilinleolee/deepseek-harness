@@ -1,0 +1,99 @@
+{
+  "name": "邮件触发模板",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "IMAP邮件轮询",
+      "type": "n8n-nodes-base.emailTrigger",
+      "typeVersion": 1,
+      "position": [0, 250],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "interval",
+              "minutes": 15
+            }
+          ]
+        },
+        "criteria": {
+          "subject": {
+            "contains": ""
+          },
+          "from": {
+            "contains": ""
+          }
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_2",
+      "name": "邮件内容提取",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 250],
+      "parameters": {
+        "jsCode": "// 提取邮件关键信息\nconst items = $input.all();\nreturn items.map(item => ({\n  from: item.json.from,\n  subject: item.json.subject,\n  date: item.json.date,\n  bodyPreview: (item.json.text || item.json.html || '').substring(0, 200)\n}));"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_3",
+      "name": "Slack通知",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [600, 250],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "channel": {
+          "mode": "name",
+          "value": "#notifications"
+        },
+        "text": "=新邮件来自: {{ $json.from }}  主题: {{ $json.subject }}",
+        "options": {}
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_4",
+      "name": "标记已读",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 250],
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.messageId }}"
+      },
+      "continueOnFail": false
+    }
+  ],
+  "connections": {
+    "node_1": {
+      "main": [[
+        {"node": "node_2", "type": "main", "index": 0}
+      ]]
+    },
+    "node_2": {
+      "main": [[
+        {"node": "node_3", "type": "main", "index": 0}
+      ]]
+    },
+    "node_3": {
+      "main": [[
+        {"node": "node_4", "type": "main", "index": 0}
+      ]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "天龙适配": {
+    "trigger_type": "Schedule",
+    "category": "communication",
+    "complexity": "中等",
+    "integrations": ["email-trigger", "code", "slack", "gmail"],
+    "nodes_count": 4,
+    "use_cases": ["邮件监控", "自动通知", "邮件分类", "RPA自动化"]
+  }
+}

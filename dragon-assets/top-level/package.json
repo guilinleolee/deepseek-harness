@@ -1,0 +1,13 @@
+{
+  "name": "dragon-engine-scripts",
+  "version": "1.0.0",
+  "description": "天龙引擎核心脚本",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "config": "node scripts/dragon-config.js",
+    "resource": "node scripts/resource-manager.js",
+    "account": "node scripts/account-manager.js",
+    "dragon": "node scripts/dragon.js"
+  }
+}

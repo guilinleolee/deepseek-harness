@@ -1,0 +1,174 @@
+# Editorial Brief Template
+# GEO内容策划简报模板
+
+```yaml
+version: "1.0"
+created_at: "{created_at}"
+updated_at: "{updated_at}"
+content_id: "{content_id}"
+
+# 1. 工作标题
+working_title: "{working_title}"
+topic: "{topic}"
+
+# 2. 读者画像
+reader_persona:
+  role: "{reader_role}"           # CTO/技术VP/高级工程师
+  level: "{seniority_level}"      # Senior/Lead/Staff
+  challenges:
+    - "{challenge_1}"
+    - "{challenge_2}"
+    - "{challenge_3}"
+  biases:
+    - "{bias_1}"                 # 倾向于相信知名品牌
+    - "{bias_2}"                 # 重视ROI
+    - "{bias_3}"                 # 担心技术风险
+  expectations:
+    - "{expectation_1}"
+    - "{expectation_2}"
+
+# 3. 文章角度
+article_angle:
+  hook: "{hook}"                 # 反直觉观点
+  differentiation: "{differentiation}"  # 基于数据和专家访谈
+  promise: "{promise}"             # 读完后的收获
+
+# 4. 决策框架
+decision_frame:
+  type: "comparison_and_recommendation"
+  structure:
+    - step: "现状分析"
+      description: "为什么{主题}很重要"
+      target_length: "{n}词"
+    - step: "方案对比"
+      description: "各方案优缺点"
+      target_length: "{n}词"
+    - step: "决策树"
+      description: "If X -> Choose Y"
+      target_length: "{n}词"
+    - step: "默认推荐"
+      description: "适合大多数情况的选择"
+      target_length: "{n}词"
+    - step: "例外情况"
+      description: "何时不选择默认推荐"
+      target_length: "{n}词"
+
+# 5. 差异化目标
+differentiation_targets:
+  vs_marketing_articles:
+    problem: "只罗列方案不做推荐"
+    solution: "提供明确的决策建议"
+  vs_vendor_content:
+    problem: "只说好处不说风险"
+    solution: "诚实分析每个方案的缺点"
+  vs_technical_docs:
+    problem: "过于深入不够实用"
+    solution: "聚焦决策而非实现细节"
+  vs_social_posts:
+    problem: "过于简短缺乏深度"
+    solution: "提供可操作的详细建议"
+
+# 6. 必须证明 (3个核心观点)
+must_prove:
+  - assertion: "{主题}能为企业带来可量化的价值"
+    evidence_required:
+      - "{evidence_1}"
+      - "{evidence_2}"
+  - assertion: "不同方案之间存在真实的权衡取舍"
+    evidence_required:
+      - "{tradeoff_1}"
+      - "{tradeoff_2}"
+  - assertion: "存在一个适合大多数情况的默认选择"
+    evidence_required:
+      - "{default_rationale}"
+
+# 7. 必须包含 (5个关键要素)
+must_include:
+  - "清晰的决策框架（If X -> Choose Y）"
+  - "每个方案的真实优缺点"
+  - "成本和风险的具体数字"
+  - "实际案例和数据支撑"
+  - "收敛性总结（If You Only Remember One Thing）"
+
+# 8. 必须避免 (3个陷阱)
+must_avoid:
+  - trap: "只推荐单一方案而不说例外"
+    mitigation: "明确说明什么情况下不选择默认推荐"
+  - trap: "使用模糊的描述性语言"
+    mitigation: "使用具体数字和百分比"
+  - trap: "忽略潜在的负面影响"
+    mitigation: "诚实分析每个方案的风险"
+
+# 9. 推荐大纲
+recommended_outline:
+  depth: "{brief|full|decision}"
+  chapters:
+    - h2: "{chapter_title_1}"
+      length: "{n}词"
+      key_points:
+        - "{point_1}"
+        - "{point_2}"
+    - h2: "{chapter_title_2}"
+      length: "{n}词"
+      key_points:
+        - "{point_1}"
+        - "{point_2}"
+    - h2: "{chapter_title_3}"
+      length: "{n}词"
+      key_points:
+        - "{point_1}"
+        - "{point_2}"
+
+# 10. 引用要求
+citation_requirements:
+  min_count: 5
+  min_authority_ratio: 0.3
+  source_types:
+    editorial:
+      min: 2
+      examples: ["{domain_1}", "{domain_2}"]
+    official:
+      min: 1
+      examples: ["{domain_3}"]
+    research:
+      min: 2
+      examples: ["{domain_4}", "{domain_5}"]
+
+# 11. 质量标准
+quality_standards:
+  min_word_count: 1200
+  paragraph_length:
+    min: 134
+    max: 167
+  ai_indicator_threshold: 0.3
+  entity_clarity_threshold: 0.8
+
+# 12. 元数据
+metadata:
+  priority: "{P0|P1|P2|P3}"
+  status: "{drafting|reviewing|published}"
+  assigned_to: "{agent_name}"
+  deadline: "{deadline}"
+  tags:
+    - "GEO"
+    - "AI-SEO"
+    - "{topic}"
+    - "{industry}"
+```
+
+## 使用说明
+
+1. **创建新Brief**: 复制此模板并填入具体内容
+2. **深度级别**:
+   - `brief`: 简短概览（适合快速决策）
+   - `full`: 完整分析（适合深度理解）
+   - `decision`: 决策导向（适合选择场景）
+3. **必须字段**: `working_title`, `reader_persona`, `article_angle`, `decision_frame`
+4. **可选字段**: `metadata`, `citation_requirements`
+
+## 导出格式
+
+支持导出为:
+- `YAML`: 机器可读格式（默认）
+- `Markdown`: 人类可读格式
+- `JSON`: API交互格式

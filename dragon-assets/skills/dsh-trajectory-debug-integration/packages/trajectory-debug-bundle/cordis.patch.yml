@@ -1,0 +1,24 @@
+# Trajectory Debug Workbench — bundle patch layer.
+# Applied on top of dsh-base (and dsh-web-app when present). A patch replaces
+# a targeted row's whole config by id; these rows are all `insert` rows with
+# plugin-prefixed ids, so they never collide with official rows.
+
+- insert:
+    # Host: engines, breakpoints, slash commands, projections, model tools.
+    - id: trajectory-debug-host
+      name: 'dsh-trajectory-debug-host'
+      config:
+        breakpointTimeoutMs: 600000
+        rerunToolPolicy: record
+        rerunTimeoutMs: 120000
+        resumeTimeoutMs: 60000
+        sidecar: memory
+        enableModelTools: false   # opt-in: expose trajectory_search/step/perf to the model
+
+    # Dual-face RPC bridge (Host endpoints + Client mount).
+    - id: trajectory-debug-remotes
+      name: 'dsh-trajectory-debug-remotes'
+
+    # Browser view (dsh.client roster entry).
+    - id: ui-trajectory-debug
+      name: 'dsh-client-ui-trajectory-debug'

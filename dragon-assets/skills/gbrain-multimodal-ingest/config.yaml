@@ -1,0 +1,138 @@
+# gbrain-multimodal-ingest 配置
+# 多模态摄入系统配置
+
+multimodal_ingest:
+  # 转录设置
+  transcription:
+    # 语音模型
+    model: "whisper-1"  # OpenAI Whisper
+    # model: "whisper-large-v3"  # 本地Whisper
+    # model: "base"  # 本地Whisper base模型
+
+    # 语言设置
+    language: "auto"  # 自动检测
+    # language: "zh"   # 中文
+    # language: "en"   # 英文
+    # language: "ja"   # 日文
+
+    # 说话人识别
+    enable_speaker_diarization: true
+
+    # 音频设置
+    audio:
+      # 最大音频大小(MB)
+      max_size_mb: 500
+
+      # 采样率
+      sample_rate: 16000
+
+  # 处理设置
+  processing:
+    # 自动摘要
+    auto_summary: true
+
+    # 关键词提取
+    extract_keywords: true
+
+    # 问答生成
+    generate_qa: false
+
+    # 关键决策提取
+    extract_decisions: true
+
+    # 行动项提取
+    extract_action_items: true
+
+  # 会议平台设置
+  meeting:
+    # Zoom
+    zoom:
+      enabled: false
+      api_key: ""  # Zoom API Key
+      api_secret: ""  # Zoom API Secret
+
+    # Microsoft Teams
+    teams:
+      enabled: false
+      client_id: ""  # Azure App Client ID
+      client_secret: ""  # Azure App Client Secret
+
+    # 飞书
+    feishu:
+      enabled: false
+      app_id: ""  # 飞书App ID
+      app_secret: ""  # 飞书App Secret
+
+    # 腾讯会议
+    tencent:
+      enabled: false
+      secret_id: ""  # 腾讯云SecretId
+      secret_key: ""  # 腾讯云SecretKey
+      sdk_app_id: ""  # 腾讯会议SDKAppId
+
+    # Google Meet
+    google_meet:
+      enabled: false
+      credentials_file: ""  # Google OAuth credentials.json路径
+
+  # 存储设置
+  storage:
+    # L0原文存储位置
+    raw_storage: "advanced-memory-sync/L0"
+
+    # 结构化存储位置
+    structured_storage: "MemPalace"
+
+    # Wiki编译
+    wiki_compile: true
+
+    # 输出格式
+    output_formats:
+      - json  # 结构化JSON
+      - txt   # 纯文本
+      - srt   # 字幕格式（仅视频）
+      - vtt   # WebVTT字幕
+
+  # 支持的文件格式
+  supported_formats:
+    video:
+      extensions:
+        - .mp4
+        - .avi
+        - .mov
+        - .mkv
+        - .webm
+        - .flv
+        - .wmv
+      max_size_mb: 2048  # 2GB
+      codecs:
+        - h264
+        - h265
+        - vp9
+
+    audio:
+      extensions:
+        - .mp3
+        - .wav
+        - .m4a
+        - .flac
+        - .ogg
+        - .aac
+        - .wma
+      max_size_mb: 500
+
+  # 与天龙引擎协同
+  tianlong_integration:
+    # 挂载到07记录师
+    attached_role: "07-scribe"
+
+    # 下游处理
+    downstream:
+      - gbrain-signal-detector  # 信号检测
+      - gbrain-daily-briefing   # 每日简报
+
+    # 底层存储
+    storage_layers:
+      - MemPalace (V8.85)        # 结构化存储
+      - llm-wiki-compiler (V8.85)  # 知识归档
+      - advanced-memory-sync (V8.61)  # L0原文存储

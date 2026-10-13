@@ -1,0 +1,67 @@
+{
+  "name": "chat-interaction-test",
+  "url": "http://localhost:3000/chat",
+  "description": "Test LLM chat application interactions",
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [
+    {
+      "action": "wait_for_selector",
+      "selector": "[data-testid='chat-input']",
+      "timeout": 10000
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid='chat-input']"
+    },
+    {
+      "action": "fill",
+      "selector": "[data-testid='chat-input']",
+      "value": "Hello, what can you do?"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid='send-button']"
+    },
+    {
+      "action": "wait_for_selector",
+      "selector": "[data-testid='response']",
+      "timeout": 30000
+    }
+  ],
+  "assertions": [
+    {
+      "type": "visible",
+      "selector": "[data-testid='chat-input']",
+      "description": "Input field is visible"
+    },
+    {
+      "type": "visible",
+      "selector": "[data-testid='send-button']",
+      "description": "Send button is visible"
+    },
+    {
+      "type": "contains_text",
+      "selector": "[data-testid='response']",
+      "expected": "",
+      "description": "Response contains text"
+    }
+  ],
+  "visual": {
+    "enabled": true,
+    "name": "chat-response-loaded",
+    "before": "chat-input-filled",
+    "after": "chat-response-received"
+  },
+  "a11y": {
+    "enabled": true,
+    "rules": [
+      "color-contrast",
+      "label",
+      "aria-required-attr"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "name": "定时任务模板",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "定时触发器",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 250],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cron",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_2",
+      "name": "数据库查询",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1.2,
+      "position": [300, 250],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM orders WHERE status = 'pending'"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_3",
+      "name": "数据处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 250],
+      "parameters": {
+        "jsCode": "// Process order data\nconst items = $input.all();\nreturn items.map(item => ({\n  id: item.json.id,\n  customer: item.json.customer_name,\n  amount: item.json.total\n}));"
+      },
+      "continueOnFail": false
+    },
+    {
+      "id": "node_4",
+      "name": "发送报告邮件",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 250],
+      "parameters": {
+        "action": "send",
+        "to": "manager@example.com",
+        "subject": "=每日订单报告 - {{ $now.format('YYYY-MM-DD') }}",
+        "body": "=处理完成，共 {{ $json.length }} 条订单"
+      },
+      "continueOnFail": false
+    }
+  ],
+  "connections": {
+    "node_1": {
+      "main": [[
+        {"node": "node_2", "type": "main", "index": 0}
+      ]]
+    },
+    "node_2": {
+      "main": [[
+        {"node": "node_3", "type": "main", "index": 0}
+      ]]
+    },
+    "node_3": {
+      "main": [[
+        {"node": "node_4", "type": "main", "index": 0}
+      ]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "天龙适配": {
+    "trigger_type": "Cron",
+    "category": "database",
+    "complexity": "中等",
+    "integrations": ["schedule", "postgres", "code", "gmail"],
+    "nodes_count": 4,
+    "use_cases": ["定时报告", "数据同步", "批量处理", "定时通知"]
+  }
+}

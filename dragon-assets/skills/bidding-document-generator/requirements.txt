@@ -1,0 +1,8 @@
+openai
+langchain
+neo4j-driver
+pandas
+jinja2
+scikit-learn
+python-docx
+reportlab

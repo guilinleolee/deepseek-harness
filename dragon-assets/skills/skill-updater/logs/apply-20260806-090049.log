@@ -1,0 +1,32 @@
+[2026-08-06T09:00:49Z] [INFO] ═══ skill-updater apply 模式 ═══
+[2026-08-06T09:00:49Z] [INFO]   模式: DRY-RUN
+[2026-08-06T09:00:49Z] [INFO]   G3 阈值: 100 commits
+[2026-08-06T09:00:49Z] [INFO]   G4 smoke: RUN
+[2026-08-06T09:00:49Z] [INFO]   天龙根: C:\Users\li\.claude\projects\dragon-engine
+[2026-08-06T09:00:49Z] [INFO]   报告: report-20260806-165420.tsv
+[2026-08-06T09:00:49Z] [INFO]   报告 skill 数: 2483
+[2026-08-06T09:00:49Z] [INFO]   🟡 候选数: 9
+[2026-08-06T09:00:49Z] [INFO]   → 处理 context-engineering（path=C:\Users\li\.claude\projects\dragon-engine\skills\context-engineering）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 gsd-tdd-workflow（path=C:\Users\li\.claude\projects\dragon-engine\skills\gsd-tdd-workflow）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 html-slides（path=C:\Users\li\.claude\projects\dragon-engine\skills\html-slides）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 product-marketing-context（path=C:\Users\li\.claude\projects\dragon-engine\skills\product-marketing-context）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 token-optimizer（path=C:\Users\li\.claude\projects\dragon-engine\skills\token-optimizer）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 voxcpm-tts-integration（path=C:\Users\li\.claude\projects\dragon-engine\skills\voxcpm-tts-integration）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 dontbesilent-skills（path=C:\Users\li\.claude\projects\dragon-engine\skills\dontbesilent-skills）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 impeccable（path=C:\Users\li\.claude\projects\dragon-engine\skills\impeccable）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO]   → 处理 last30days-skill（path=C:\Users\li\.claude\projects\dragon-engine\skills\last30days-skill）
+[2026-08-06T09:00:49Z] [INFO]     [DRY-RUN] 跳过实际 apply
+[2026-08-06T09:00:49Z] [INFO] 
+[2026-08-06T09:00:49Z] [INFO] ═══ 汇总 ═══
+[2026-08-06T09:00:49Z] [INFO]   APPLIED: 0
+[2026-08-06T09:00:49Z] [INFO]   SKIPPED: 0
+[2026-08-06T09:00:49Z] [INFO]   FAILED:  0
+[2026-08-06T09:00:49Z] [INFO]   日志: C:\Users\li\.claude\projects\dragon-engine\skills\skill-updater\logs\apply-20260806-090049.log

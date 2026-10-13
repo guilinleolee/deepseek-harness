@@ -1,0 +1,53 @@
+{
+  "template_id": "tech-startup",
+  "description": "适合科技创业公司/产品的内容风格",
+  "brand": {
+    "niche": "科技创新",
+    "audience": "25-40岁科技爱好者、创业者，投资人",
+    "personality": "前沿，专业、活力",
+    "tone": "科技感，专业但亲切",
+    "values": ["创新", "效率", "未来"]
+  },
+  "style": {
+    "colors": {
+      "primary": "#0066FF",
+      "secondary": "#00D4AA",
+      "accent": "#FF6B35",
+      "background": "#F8FAFC",
+      "text": "#1E293B"
+    },
+    "fonts": {
+      "heading": "Inter",
+      "body": "Noto Sans SC",
+      "accent": "JetBrains Mono"
+    },
+    "templates": ["tech-modern", "glassmorphism"],
+    "image_style": "modern-tech, gradient-blur, glassmorphism",
+    "layout_preference": "clean-minimal, generous-whitespace"
+  },
+  "platforms": {
+    "xiaohongshu": {
+      "enabled": true,
+      "aspect_ratio": "3:4",
+      "hashtags": ["#科技创新", "#创业干货", "#科技生活", "#AI", "#创业"]
+    },
+    "douyin": {
+      "enabled": true,
+      "aspect_ratio": "9:16",
+      "hashtags": ["#科技", "#创业", "#干货", "#AI教程"]
+    },
+    "wechat": {
+      "enabled": true,
+      "account_type": "subscription"
+    },
+    "youtube": {
+      "enabled": false,
+      "thumbnail_style": "16:9"
+    }
+  },
+  "compliance": {
+    "license": "MIT",
+    "attribution_required": false,
+    "custom_rules": []
+  }
+}

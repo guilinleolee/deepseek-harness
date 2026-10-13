@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "name": "government-pii",
+  "description": "政府机构PII扩展模式库",
+  "author": "security-team",
+  "created": "2026-05-01",
+  "patterns": [
+    {
+      "id": "id_card_cn",
+      "type": "private_identity",
+      "priority": "critical",
+      "match": {
+        "regex": "\\b[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]\\b",
+        "context_keywords": ["身份证", "证件号", "ID号"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_ID_CARD>",
+        "untyped": "<PII>",
+        "redacted": "******************"
+      },
+      "test_cases": [
+        {"input": "身份证号110101199001011234", "should_match": true},
+        {"input": "证件号110105194912310023", "should_match": true}
+      ]
+    },
+    {
+      "id": "passport_cn",
+      "type": "private_identity",
+      "priority": "high",
+      "match": {
+        "regex": "\\b[EGFG]\\d{8,9}\\b",
+        "context_keywords": ["护照", "passport"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_PASSPORT>",
+        "untyped": "<PII>",
+        "redacted": "G*********"
+      }
+    },
+    {
+      "id": "driver_license_cn",
+      "type": "private_identity",
+      "priority": "high",
+      "match": {
+        "regex": "\\b[1-9]\\d{5}\\d{10,12}[A-Z0-9]\\b",
+        "context_keywords": ["驾驶证", "驾照号", "行驶证"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_DRIVER_LICENSE>",
+        "untyped": "<PII>",
+        "redacted": "******************"
+      }
+    },
+    {
+      "id": "ssn_us",
+      "type": "private_identity",
+      "priority": "critical",
+      "match": {
+        "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+        "context_keywords": ["SSN", "social security", "社保号"]
+      },
+      "sanitize": {
+        "typed": "<PRIVATE_SSN>",
+        "untyped": "<PII>",
+        "redacted": "***-**-****"
+      }
+    }
+  ]
+}

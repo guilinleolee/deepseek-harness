@@ -1,0 +1,8 @@
+# dsh bundle patch: installing the panel pulls the whole quant-research
+# feature — the Node plugin (kernel client, compliance gate, research tools)
+# plus this browser surface.
+- insert:
+    - id: quant-research
+      name: '@deepseek-ai/dsh-quant-research'
+    - id: ui-quant-research
+      name: '@deepseek-ai/dsh-client-ui-quant-research'
