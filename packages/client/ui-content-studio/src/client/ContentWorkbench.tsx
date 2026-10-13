@@ -201,14 +201,12 @@ export function ContentWorkbench({
   // The review digest needs the theme list first, so it rides the outputs load.
   useEffect(() => {
     if (outputs.state !== 'ok') return
-    let cancelled = false
     void (async () => {
       setReview({ state: 'loading' })
       try {
         const themes = outputs.value.projects.map(project => project.topic)
         const digests = await Promise.all(themes.map(async theme =>
           readReviewManifest(theme).then(read => foldReviewDigest(read, { ...EMPTY_DIGEST }))))
-        if (cancelled) return
         const folded = digests.reduce<ReviewDigest>((acc, cur) => ({
           works: acc.works + cur.works,
           reads: addMetric(acc.reads, cur.reads),
@@ -218,12 +216,10 @@ export function ContentWorkbench({
         }), { ...EMPTY_DIGEST })
         setReview({ state: 'ok', value: folded })
       } catch (error) {
-        if (cancelled) return
         console.error('[content-studio] review digest failed:', error)
         setReview({ state: 'failed', detail: error instanceof Error ? error.message : String(error) })
       }
     })()
-    return () => { cancelled = true }
   }, [outputs, readReviewManifest])
 
   useEffect(() => {

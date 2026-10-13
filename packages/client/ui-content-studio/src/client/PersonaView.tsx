@@ -1,21 +1,27 @@
 /**
  * The persona view: the account-persona card list over the `_personas.json`
- * manifest, the four-step wizard (basics, social links, intent, style and
- * red lines), the explicit AI helpers (blank-field fill, résumé extraction
- * with its consent gate), and the report panel (generate, edit with the
+ * manifest, the four-step wizard (basics with the résumé and the own-site
+ * evidence block, social links, intent, style and red lines), the explicit
+ * AI helpers (blank-field fill, résumé extraction with its consent gate,
+ * website extraction), and the report panel (generate, edit with the
  * staleness banner, confirmed regeneration). All state and actions live on
  * the injected controller; this file only wires them to the DOM.
  */
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { DisclosureRow, IconSparkle16, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { PersonaEntry, PersonaFieldKey, PersonaId, PersonaLink, PersonaPlatform } from '@deepseek-ai/dsh-content-outputs/types'
-import { parseWordList, type PersonaForm } from './persona/model.ts'
+import type { PersonaEntry, PersonaFieldKey, PersonaId } from '@deepseek-ai/dsh-content-outputs/types'
+import { parseWordList } from './persona/model.ts'
+import type { SocialPlatform } from './persona/model.ts'
+import {
+  joinIntents, parseIntents, PERSONA_CONTENT_VALUE_TEMPLATES, PERSONA_INTENT_FIELDS,
+  PERSONA_INTENT_OPTIONS, PERSONA_RED_LINE_PRESETS, PERSONA_STYLE_SAMPLES, SOCIAL_PLATFORMS,
+} from './persona/model.ts'
 import {
   PERSONA_FIELD_KEYS, PERSONA_FIELD_LABELS, PERSONA_PLATFORMS, PERSONA_PLATFORM_LABELS,
   PERSONA_STYLE_PRESETS, PERSONA_STYLE_PRESET_LABELS,
 } from './persona/model.ts'
-import type { PersonaController, PersonaState } from './persona/persona-store.ts'
+import type { PersonaController, PersonaNotice, PersonaState } from './persona/persona-store.ts'
 import { renderPersonaPrompt } from './persona/prompt.ts'
 import type { StudioKey } from './locales.ts'
 import css from './PersonaView.module.css'
@@ -28,6 +34,9 @@ export type PersonaViewProps = {
 /** Client-side cap for pasted / uploaded text; the wire rejects beyond this. */
 const TEXT_CAP = 100_000
 
+/** The platforms whose step-2 rows carry the browser-session login/capture buttons. */
+const SOCIAL_PLATFORM_SET: ReadonlySet<string> = new Set<string>(SOCIAL_PLATFORMS)
+
 /**
  * Render the persona page.
  * @param props - the injected controller and the locale seat.
@@ -38,6 +47,9 @@ export function PersonaView({ personas, t }: PersonaViewProps) {
   const [previewId, setPreviewId] = useState<PersonaId | null>(null)
 
   useEffect(() => { void personas.ensureLoaded() }, [personas])
+  useEffect(() => {
+    if (state.wizard !== null) void personas.refreshSocialStatuses()
+  }, [state.wizard, personas])
 
   const previewEntry = previewId === null ? null : state.personas.find(entry => entry.id === previewId) ?? null
   const reportEntry = state.reportId === null ? null : state.personas.find(entry => entry.id === state.reportId) ?? null
@@ -73,6 +85,7 @@ export function PersonaView({ personas, t }: PersonaViewProps) {
       {state.notice !== null && (
         <button type="button" className={css.personaNotice} role="status" onClick={() => { personas.dismissNotice() }}>
           {t(`persona.notice.${state.notice}`)}
+          {state.noticeDetail !== null && <span>{` — ${state.noticeDetail}`}</span>}
         </button>
       )}
 
@@ -194,13 +207,35 @@ function PersonaPreviewPanel(props: {
   )
 }
 
-/** Shared label+control row for the wizard's fields. */
-function FieldRow(props: { label: string; children: ReactNode }) {
+/** Shared label+control row for the wizard's fields; the optional hint line tells the user how to fill it. */
+function FieldRow(props: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className={css.personaField}>
       <span className={css.personaFieldLabel}>{props.label}</span>
+      {props.hint !== undefined && <span className={css.personaFieldHint}>{props.hint}</span>}
       {props.children}
     </label>
+  )
+}
+
+/**
+ * The one-step outcome notice. The page-level bar sits behind the wizard and
+ * report overlays (`position: fixed`), so each modal renders its own copy —
+ * without it, every action's feedback ("no blank fields", "AI call failed")
+ * would be invisible while a modal is open.
+ */
+function NoticeBar(props: {
+  notice: PersonaNotice | null
+  noticeDetail: string | null
+  controller: PersonaController
+  t: PropsLocale<'content-studio'>['t']
+}) {
+  if (props.notice === null) return null
+  return (
+    <button type="button" className={css.personaNotice} role="status" onClick={() => { props.controller.dismissNotice() }}>
+      {props.t(`persona.notice.${props.notice}`)}
+      {props.noticeDetail !== null && <span>{` — ${props.noticeDetail}`}</span>}
+    </button>
   )
 }
 
@@ -212,10 +247,47 @@ function PersonaWizard(props: {
 }) {
   const { state, controller, t } = props
   const wizard = state.wizard
+  // The advanced disclosure resets to collapsed on every wizard open: the
+  // first screen stays one decision (pick a style).
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  // The phrases field lives in the advanced block; when the scoped inference
+  // targets it (candidates arrived) or reports it already filled, open the
+  // block so the value and the message are never hidden behind the fold.
+  const advancedRelevant = state.notice === 'scope-filled'
+    || (state.fillPreview !== null && 'phrases' in state.fillPreview.fields)
+  useEffect(() => {
+    if (advancedRelevant) setAdvancedOpen(true)
+  }, [advancedRelevant])
   if (wizard === null) return null
   const { step, form } = wizard
+  const redLineSelection = parseIntents(form.redLinesText, PERSONA_RED_LINE_PRESETS)
+  const toggleRedLine = (option: string): void => {
+    const { selected, custom } = redLineSelection
+    const next = selected.includes(option) ? selected.filter(candidate => candidate !== option) : [...selected, option]
+    // Canonical preset order keeps the stored value stable regardless of click order.
+    const ordered = PERSONA_RED_LINE_PRESETS.filter(candidate => next.includes(candidate))
+    controller.updateForm({ redLinesText: joinIntents(ordered, custom) })
+  }
+  const changeRedLineCustom = (text: string): void => {
+    controller.updateForm({ redLinesText: joinIntents(redLineSelection.selected, text) })
+  }
   const setField = (key: PersonaFieldKey) => (value: string) => { controller.setField(key, value) }
-  const updateLink = (index: number, patch: Partial<PersonaLink>) => { controller.updateLink(index, patch) }
+  const intentSelection = (key: 'goal' | 'monetize' | 'cadence') => parseIntents(form.fields[key].value, PERSONA_INTENT_OPTIONS[key])
+  const intentChipClass = (key: 'goal' | 'monetize' | 'cadence', option: string): string | undefined =>
+    intentSelection(key).selected.includes(option) ? css.personaChipOn : css.personaChip
+  /** Toggle one intent chip: multi-select composes, single-select replaces; the custom remainder survives either way. */
+  const toggleIntentOption = (key: 'goal' | 'monetize' | 'cadence', option: string, multi: boolean) => {
+    const { selected, custom } = intentSelection(key)
+    const next = multi
+      ? (selected.includes(option) ? selected.filter(candidate => candidate !== option) : [...selected, option])
+      : (selected[0] === option ? [] : [option])
+    controller.setField(key, joinIntents(next, custom))
+  }
+  /** Rewrite only the custom remainder of one intent value, keeping the chip selections. */
+  const changeIntentCustom = (key: 'goal' | 'monetize' | 'cadence', text: string) => {
+    const { selected } = intentSelection(key)
+    controller.setField(key, joinIntents(selected, text))
+  }
   const revision = form.editingId === null
     ? 1
     : (state.personas.find(entry => entry.id === form.editingId)?.revision ?? 0) + 1
@@ -241,6 +313,8 @@ function PersonaWizard(props: {
             {t('persona.wizard.close')}
           </button>
         </div>
+
+        <NoticeBar notice={state.notice} noticeDetail={state.noticeDetail} controller={controller} t={t} />
 
         {step === 1 && (
           <div className={css.personaStepBody}>
@@ -280,9 +354,6 @@ function PersonaWizard(props: {
             <FieldRow label={PERSONA_FIELD_LABELS.niche}>
               <input value={form.fields.niche.value} onChange={(event) => { setField('niche')(event.currentTarget.value) }} />
             </FieldRow>
-            <FieldRow label={PERSONA_FIELD_LABELS.whoAmI}>
-              <textarea rows={4} value={form.fields.whoAmI.value} onChange={(event) => { setField('whoAmI')(event.currentTarget.value) }} />
-            </FieldRow>
             <div className={css.personaResume}>
               <FieldRow label={t('persona.resume.title')}>
                 <textarea
@@ -318,42 +389,6 @@ function PersonaWizard(props: {
                 </button>
               </div>
             </div>
-            <FieldRow label={PERSONA_FIELD_LABELS.audience}>
-              <textarea rows={3} value={form.fields.audience.value} onChange={(event) => { setField('audience')(event.currentTarget.value) }} />
-            </FieldRow>
-            <FieldRow label={PERSONA_FIELD_LABELS.oneLiner}>
-              <input value={form.fields.oneLiner.value} onChange={(event) => { setField('oneLiner')(event.currentTarget.value) }} />
-            </FieldRow>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className={css.personaStepBody}>
-            {form.links.map((link, index) => (
-              <div key={index} className={css.personaLinkRow}>
-                <select
-                  value={link.platform}
-                  onChange={(event) => { updateLink(index, { platform: event.currentTarget.value as PersonaPlatform }) }}>
-                  {PERSONA_PLATFORMS.map(platform => <option key={platform} value={platform}>{PERSONA_PLATFORM_LABELS[platform]}</option>)}
-                </select>
-                <input
-                  placeholder={t('persona.links.url')}
-                  value={link.url}
-                  onChange={(event) => { updateLink(index, { url: event.currentTarget.value }) }}
-                />
-                <input
-                  placeholder={t('persona.links.bio')}
-                  value={link.bio ?? ''}
-                  onChange={(event) => { updateLink(index, { bio: event.currentTarget.value.slice(0, TEXT_CAP) }) }}
-                />
-                <button type="button" className={css.personaMini} onClick={() => { controller.removeLink(index) }}>
-                  {t('persona.links.remove')}
-                </button>
-              </div>
-            ))}
-            <button type="button" className={css.personaMini} onClick={() => { controller.addLink() }}>
-              {t('persona.links.add')}
-            </button>
             <FieldRow label={t('persona.site.url.label')}>
               <input placeholder={t('persona.site.url.placeholder')} value={form.siteUrl} onChange={(event) => { controller.updateForm({ siteUrl: event.currentTarget.value }) }} />
             </FieldRow>
@@ -364,80 +399,246 @@ function PersonaWizard(props: {
                 onChange={(event) => { controller.updateForm({ sitePastedText: event.currentTarget.value.slice(0, TEXT_CAP) }) }}
               />
             </FieldRow>
-            <button type="button" className={css.personaMini} disabled title={t('persona.site.parse.hint')}>
-              {t('persona.site.parse')}
+            <button type="button" className={css.personaMini} disabled={state.aiBusy !== false} onClick={() => { void controller.runSite() }}>
+              {state.aiBusy === 'site' ? t('persona.busy') : t('persona.site.parse')}
             </button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className={css.personaStepBody}>
+            <p className={css.personaFieldLabel}>{t('persona.links.hint')}</p>
+            {PERSONA_PLATFORMS.map((platform) => {
+              const socialPlatform: SocialPlatform | null = SOCIAL_PLATFORM_SET.has(platform) ? (platform as SocialPlatform) : null
+              const status = socialPlatform === null ? undefined : state.socialStatuses[socialPlatform]
+              const sessionReady = status?.hasSession === true
+              return (
+                <div key={platform} className={css.personaField}>
+                  <span className={css.personaFieldLabel}>
+                    {PERSONA_PLATFORM_LABELS[platform]}
+                    {socialPlatform !== null && sessionReady && (
+                      <span className={css.personaFieldHint}>{`（${t('persona.social.sessionOk')}）`}</span>
+                    )}
+                  </span>
+                  <div className={css.personaSocialRow}>
+                    <input
+                      aria-label={PERSONA_PLATFORM_LABELS[platform]}
+                      placeholder={t('persona.links.url')}
+                      value={form.links.find(link => link.platform === platform)?.url ?? ''}
+                      onChange={(event) => { controller.setLinkUrl(platform, event.currentTarget.value) }}
+                    />
+                    {socialPlatform !== null && (
+                      <button
+                        type="button"
+                        className={css.personaMini}
+                        disabled={state.aiBusy !== false || state.socialLoginPending !== null}
+                        title={sessionReady ? t('persona.social.read') : t('persona.social.login')}
+                        onClick={() => {
+                          if (sessionReady) void controller.captureSocial(socialPlatform)
+                          else void controller.startSocialLogin(socialPlatform)
+                        }}
+                      >
+                        {state.socialLoginPending === socialPlatform || state.aiBusy === 'social'
+                          ? t('persona.busy')
+                          : sessionReady ? t('persona.social.read') : t('persona.social.login')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            <div className={css.personaIntentHead}>
+              <span className={css.personaFieldHint}>{t('persona.social.hint')}</span>
+              <button type="button" className={css.personaMini} disabled={state.aiBusy !== false} onClick={() => { void controller.runSocial() }}>
+                {state.aiBusy === 'social' ? t('persona.busy') : t('persona.social.analyze')}
+              </button>
+            </div>
           </div>
         )}
 
         {step === 3 && (
           <div className={css.personaStepBody}>
-            <FieldRow label={PERSONA_FIELD_LABELS.goal}>
-              <input value={form.fields.goal.value} onChange={(event) => { setField('goal')(event.currentTarget.value) }} />
+            <div className={css.personaIntentHead}>
+              <span className={css.personaFieldHint}>{t('persona.intent.hint')}</span>
+              <button
+                type="button"
+                className={css.personaMini}
+                disabled={state.aiBusy !== false}
+                title={t('persona.fill.hint')}
+                onClick={() => { void controller.runFill(PERSONA_INTENT_FIELDS) }}
+              >
+                {state.aiBusy === 'fill' ? t('persona.busy') : t('persona.intent.infer')}
+              </button>
+            </div>
+            <FieldRow label={`${PERSONA_FIELD_LABELS.goal}（可多选）`} hint={t('persona.field.goal.hint')}>
+              <div className={css.personaChips}>
+                {PERSONA_INTENT_OPTIONS.goal.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={intentChipClass('goal', option)}
+                    onClick={() => { toggleIntentOption('goal', option, true) }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={parseIntents(form.fields.goal.value, PERSONA_INTENT_OPTIONS.goal).custom}
+                placeholder={t('persona.intent.custom')}
+                onChange={(event) => { changeIntentCustom('goal', event.currentTarget.value) }}
+              />
             </FieldRow>
-            <FieldRow label={PERSONA_FIELD_LABELS.monetize}>
-              <input value={form.fields.monetize.value} onChange={(event) => { setField('monetize')(event.currentTarget.value) }} />
+            <FieldRow label={`${PERSONA_FIELD_LABELS.monetize}（可多选）`} hint={t('persona.field.monetize.hint')}>
+              <div className={css.personaChips}>
+                {PERSONA_INTENT_OPTIONS.monetize.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={intentChipClass('monetize', option)}
+                    onClick={() => { toggleIntentOption('monetize', option, true) }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={parseIntents(form.fields.monetize.value, PERSONA_INTENT_OPTIONS.monetize).custom}
+                placeholder={t('persona.intent.custom')}
+                onChange={(event) => { changeIntentCustom('monetize', event.currentTarget.value) }}
+              />
             </FieldRow>
-            <FieldRow label={PERSONA_FIELD_LABELS.contentValue}>
-              <input value={form.fields.contentValue.value} onChange={(event) => { setField('contentValue')(event.currentTarget.value) }} />
+            <FieldRow label={PERSONA_FIELD_LABELS.contentValue} hint={t('persona.field.contentValue.hint')}>
+              <div className={css.personaChips}>
+                {PERSONA_CONTENT_VALUE_TEMPLATES.map(template => (
+                  <button key={template} type="button" className={css.personaChip} onClick={() => { setField('contentValue')(template) }}>
+                    {template}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={form.fields.contentValue.value}
+                placeholder={t('persona.field.contentValue.placeholder')}
+                onChange={(event) => { setField('contentValue')(event.currentTarget.value) }}
+              />
             </FieldRow>
-            <FieldRow label={PERSONA_FIELD_LABELS.cadence}>
-              <input value={form.fields.cadence.value} onChange={(event) => { setField('cadence')(event.currentTarget.value) }} />
+            <FieldRow label={PERSONA_FIELD_LABELS.cadence} hint={t('persona.field.cadence.hint')}>
+              <div className={css.personaChips}>
+                {PERSONA_INTENT_OPTIONS.cadence.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={intentChipClass('cadence', option)}
+                    onClick={() => { toggleIntentOption('cadence', option, false) }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={parseIntents(form.fields.cadence.value, PERSONA_INTENT_OPTIONS.cadence).custom}
+                placeholder={t('persona.field.cadence.placeholder')}
+                onChange={(event) => { changeIntentCustom('cadence', event.currentTarget.value) }}
+              />
             </FieldRow>
           </div>
         )}
 
         {step === 4 && (
           <div className={css.personaStepBody}>
-            <FieldRow label={t('persona.style.preset.label')}>
-              <select
-                value={form.preset ?? ''}
-                onChange={(event) => { controller.updateForm({ preset: event.currentTarget.value === '' ? null : event.currentTarget.value as PersonaForm['preset'] }) }}
+            <div className={css.personaIntentHead}>
+              <span className={css.personaFieldHint}>{t('persona.style.hint')}</span>
+              <button
+                type="button"
+                className={css.personaMini}
+                disabled={state.aiBusy !== false}
+                title={t('persona.fill.hint')}
+                onClick={() => { void controller.runFill(['phrases']) }}
               >
-                <option value="">{t('persona.style.preset.none')}</option>
-                {PERSONA_STYLE_PRESETS.map(preset => <option key={preset} value={preset}>{PERSONA_STYLE_PRESET_LABELS[preset]}</option>)}
-              </select>
-            </FieldRow>
-            <FieldRow label={t('persona.style.custom.label')}>
-              <textarea
-                rows={2}
-                placeholder={t('persona.style.custom.placeholder')}
-                value={form.customText}
-                onChange={(event) => { controller.updateForm({ customText: event.currentTarget.value }) }}
-              />
-            </FieldRow>
+                {state.aiBusy === 'fill' ? t('persona.busy') : t('persona.intent.infer')}
+              </button>
+            </div>
             <div className={css.personaField}>
-              <span className={css.personaFieldLabel}>{t('persona.style.strength.label')}</span>
+              <span className={css.personaFieldLabel}>{t('persona.style.preset.label')}</span>
               <div className={css.personaChips}>
-                {(['light', 'strict'] as const).map(strength => (
+                {PERSONA_STYLE_PRESETS.map(preset => (
                   <button
-                    key={strength}
+                    key={preset}
                     type="button"
-                    className={form.strength === strength ? css.personaChipOn : css.personaChip}
-                    onClick={() => { controller.updateForm({ strength }) }}
+                    className={form.preset === preset ? css.personaChipOn : css.personaChip}
+                    onClick={() => { controller.updateForm({ preset: form.preset === preset ? null : preset }) }}
                   >
-                    {t(strength === 'strict' ? 'persona.style.strict' : 'persona.style.light')}
+                    {PERSONA_STYLE_PRESET_LABELS[preset]}
                   </button>
                 ))}
               </div>
+              {form.preset !== null && <p className={css.personaStyleSample}>{`${t('persona.style.samplePrefix')}${PERSONA_STYLE_SAMPLES[form.preset]}`}</p>}
             </div>
-            <FieldRow label={PERSONA_FIELD_LABELS.phrases}>
-              <input value={form.fields.phrases.value} onChange={(event) => { setField('phrases')(event.currentTarget.value) }} />
+            <FieldRow label={t('persona.style.red.label')} hint={t('persona.style.red.hint')}>
+              <div className={css.personaChips}>
+                {PERSONA_RED_LINE_PRESETS.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={redLineSelection.selected.includes(option) ? css.personaChipOn : css.personaChip}
+                    onClick={() => { toggleRedLine(option) }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                rows={2}
+                value={redLineSelection.custom}
+                placeholder={t('persona.intent.custom')}
+                onChange={(event) => { changeRedLineCustom(event.currentTarget.value) }}
+              />
             </FieldRow>
             <FieldRow label={t('persona.style.banned.label')}>
               <textarea
                 rows={2}
+                placeholder={t('persona.style.banned.placeholder')}
                 value={form.bannedWordsText}
                 onChange={(event) => { controller.updateForm({ bannedWordsText: event.currentTarget.value }) }}
               />
             </FieldRow>
-            <FieldRow label={t('persona.style.red.label')}>
-              <textarea
-                rows={2}
-                value={form.redLinesText}
-                onChange={(event) => { controller.updateForm({ redLinesText: event.currentTarget.value }) }}
-              />
-            </FieldRow>
+            <DisclosureRow
+              icon={<IconSparkle16 size={14} />}
+              title={t('persona.style.advanced')}
+              open={advancedOpen}
+              expandable
+              expandOnRowClick
+              onToggle={() => { setAdvancedOpen(!advancedOpen) }}
+            >
+              <div className={css.personaAdvancedBody}>
+                <FieldRow label={t('persona.style.custom.label')}>
+                  <textarea
+                    rows={2}
+                    placeholder={t('persona.style.custom.placeholder')}
+                    value={form.customText}
+                    onChange={(event) => { controller.updateForm({ customText: event.currentTarget.value }) }}
+                  />
+                </FieldRow>
+                <div className={css.personaField}>
+                  <span className={css.personaFieldLabel}>{t('persona.style.strength.label')}</span>
+                  <div className={css.personaChips}>
+                    {(['light', 'strict'] as const).map(strength => (
+                      <button
+                        key={strength}
+                        type="button"
+                        className={form.strength === strength ? css.personaChipOn : css.personaChip}
+                        onClick={() => { controller.updateForm({ strength }) }}
+                      >
+                        {t(strength === 'strict' ? 'persona.style.strict' : 'persona.style.light')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <FieldRow label={PERSONA_FIELD_LABELS.phrases} hint={t('persona.field.phrases.hint')}>
+                  <input value={form.fields.phrases.value} placeholder={t('persona.field.phrases.placeholder')} onChange={(event) => { setField('phrases')(event.currentTarget.value) }} />
+                </FieldRow>
+              </div>
+            </DisclosureRow>
             <div className={css.personaPromptBox}>
               <div className={css.personaPromptHead}>
                 <strong>{t('persona.prompt.preview')}</strong>
@@ -492,9 +693,18 @@ function FillPreviewPanel(props: {
 }) {
   const { state, controller, t } = props
   const preview = state.fillPreview
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  // The panel lands below the step body; scrolling it into view makes the
+  // "results live here" moment unmissable.
+  useEffect(() => {
+    // jsdom (tests) lacks scrollIntoView; guard instead of crashing the mount.
+    if (typeof panelRef.current?.scrollIntoView === 'function') {
+      panelRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [])
   if (preview === null) return null
   return (
-    <div className={css.personaFill} role="status">
+    <div ref={panelRef} className={css.personaFill} role="status">
       <div className={css.personaFillHead}>
         <strong>{t('persona.fill.title')}</strong>
         <button type="button" className={css.personaMini} onClick={() => { controller.adoptAllFill() }}>
@@ -504,6 +714,7 @@ function FillPreviewPanel(props: {
           {t('persona.fill.discard')}
         </button>
       </div>
+      <p className={css.personaFieldHint}>{t('persona.fill.explain')}</p>
       {(Object.keys(preview.fields) as PersonaFieldKey[]).map(key => (
         <FillRow key={key} fieldKey={key} value={preview.fields[key] ?? ''} controller={controller} t={t} />
       ))}
@@ -555,6 +766,9 @@ function PersonaReportPanel(props: {
             {t('persona.report.close')}
           </button>
         </div>
+
+        <NoticeBar notice={controller.getState().notice} noticeDetail={controller.getState().noticeDetail} controller={controller} t={t} />
+
         {report === null ? (
           <p className={css.personaEmpty}>{t('persona.report.empty')}</p>
         ) : (

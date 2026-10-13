@@ -122,7 +122,8 @@ function loadFilters(now: Date): ReviewFilterSession {
     if (raw === null) return defaultFilters(now)
     const parsed = JSON.parse(raw) as ReviewFilterSession
     // The version gate runs on parsed-unknown JSON; the literal check
-    // carries the type. oxlint-disable-next-line typescript/no-unnecessary-condition
+    // carries the type.
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (parsed.version !== 1 || typeof parsed.period.from !== 'string') return defaultFilters(now)
     return parsed
   } catch {

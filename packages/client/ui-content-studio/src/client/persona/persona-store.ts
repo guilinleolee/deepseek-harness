@@ -2,16 +2,16 @@
  * The persona view controller: one observable state object over the
  * `_personas.json` manifest (via the content-outputs persona faces) plus the
  * wizard's browser-local draft buffer. The save path is purely local — AI
- * actions (blank-field fill, résumé extraction, report generation) are
- * explicit, separate, and never block saving; adopted AI values land in the
- * draft first and reach disk only through a save. The old free-text persona
- * (`dsh-content-studio.persona`) is imported once through the view's banner
- * and cleared from browser storage.
+ * actions (blank-field fill, résumé extraction, website extraction, report
+ * generation) are explicit, separate, and never block saving; adopted AI
+ * values land in the draft first and reach disk only through a save. The old
+ * free-text persona (`dsh-content-studio.persona`) is imported once through
+ * the view's banner and cleared from browser storage.
  */
 
 import type {
   PersonaAccountStage, PersonaAiRequest, PersonaAiResult, PersonaEntry, PersonaFieldKey,
-  PersonaId, PersonaInput, PersonaLink, PersonaPlatform, PersonaReport,
+  PersonaId, PersonaInput, PersonaPlatform, PersonaReport, SocialPlatform, SocialStatusRow,
 } from '@deepseek-ai/dsh-content-outputs/types'
 import { PERSONA_FIELD_KEYS, PERSONA_FILL_PROHIBITED } from './model.ts'
 import { renderEntryPrompt } from './prompt.ts'
@@ -26,6 +26,12 @@ const LEGACY_DISMISS_KEY = 'dsh-content-studio.persona.legacyDismissed'
 /** Draft-buffer format version; unrecognized buffers drop back to a fresh form. */
 const WIZARD_VERSION = 1
 
+/** Client-side cap for the fetched site text; the wire rejects beyond this. */
+const SITE_TEXT_CAP = 100_000
+
+/** Client-side cap of the raw evidence (site text + résumé) sent as fill context. */
+const FILL_CONTEXT_CAP = 8_000
+
 /** The injected server face: the persona half of the content-outputs Remote. Each AI operation correlates to its own result face. */
 export interface PersonaGateway {
   listPersonas: () => Promise<{ personas: readonly PersonaEntry[]; problems: readonly string[] }>
@@ -34,6 +40,11 @@ export interface PersonaGateway {
   putPersonaReport: (id: PersonaId, report: PersonaReport) => Promise<PersonaEntry>
   deletePersona: (id: PersonaId) => Promise<void>
   processPersonaAi: <T extends PersonaAiRequest>(request: T) => Promise<Extract<PersonaAiResult, { operation: T['operation'] }>>
+  socialStatuses: () => Promise<{ rows: ReadonlyArray<{ platform: SocialPlatform } & SocialStatusRow>; dailyCap: number }>
+  socialStartLogin: (platform: SocialPlatform) => Promise<void>
+  socialCapture: (platform: SocialPlatform, url: string) => Promise<{ platform: SocialPlatform; url: string; text: string }>
+  socialForget: (platform: SocialPlatform) => Promise<void>
+  socialVerify: (platform: SocialPlatform) => Promise<{ platform: SocialPlatform; valid: boolean; nickname: string | null }>
 }
 
 /** One-step user-facing outcome codes; the copy lives in the locale dictionaries. */
@@ -43,9 +54,15 @@ export type PersonaNotice =
   | 'delete-failed'
   | 'name-required'
   | 'fill-none'
+  | 'scope-filled'
   | 'ai-failed'
+  | 'ai-empty'
   | 'resume-empty'
   | 'resume-consent'
+  | 'site-empty'
+  | 'site-failed'
+  | 'social-empty'
+  | 'social-failed'
   | 'report-saved'
   | 'report-failed'
   | 'legacy-done'
@@ -57,9 +74,9 @@ export interface PersonaWizardState {
   readonly form: PersonaForm
 }
 
-/** Candidates from one AI fill or résumé extraction, awaiting per-field adoption. */
+/** Candidates from one AI fill, résumé, website, or social-profile extraction, awaiting per-field adoption. */
 export interface PersonaFillPreview {
-  readonly origin: 'fill' | 'resume'
+  readonly origin: 'fill' | 'resume' | 'site' | 'social'
   readonly promptVersion: string
   readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>>
 }
@@ -78,9 +95,17 @@ export interface PersonaState {
   readonly wizard: PersonaWizardState | null
   /** The persona whose report panel is open, or null. */
   readonly reportId: PersonaId | null
-  readonly aiBusy: false | 'fill' | 'resume' | 'report'
+  readonly aiBusy: false | 'fill' | 'resume' | 'site' | 'social' | 'report'
   readonly fillPreview: PersonaFillPreview | null
   readonly notice: PersonaNotice | null
+  /** The underlying error message when the notice reports a failure; null otherwise. */
+  readonly noticeDetail: string | null
+  /** Per-platform social-capture availability, loaded with the wizard. */
+  readonly socialStatuses: Partial<Record<SocialPlatform, SocialStatusRow>>
+  /** The platform with a headed login flow currently running, or null. */
+  readonly socialLoginPending: SocialPlatform | null
+  /** The configured daily per-platform capture cap, echoed by the gateway. */
+  readonly socialDailyCap: number | null
 }
 
 /** Injected server face. */
@@ -186,11 +211,17 @@ export function createPersonaController(deps: PersonaControllerDeps): {
   setField(key: PersonaFieldKey, value: string): void
   togglePlatform(platform: PersonaPlatform): void
   setAccountStage(stage: PersonaAccountStage): void
-  addLink(): void
-  updateLink(index: number, patch: Partial<PersonaLink>): void
-  removeLink(index: number): void
-  runFill(): Promise<void>
+  setLinkUrl(platform: PersonaPlatform, url: string): void
+  /** Fill blank fields; the optional scope limits which fields this call may fill (the step-3 intent button scopes to its four). */
+  runFill(scope?: readonly PersonaFieldKey[]): Promise<void>
   runResume(): Promise<void>
+  runSite(): Promise<void>
+  runSocial(): Promise<void>
+  refreshSocialStatuses(): Promise<void>
+  startSocialLogin(platform: SocialPlatform): Promise<void>
+  captureSocial(platform: SocialPlatform): Promise<void>
+  verifySocial(platform: SocialPlatform): Promise<void>
+  forgetSocial(platform: SocialPlatform): Promise<void>
   adoptFillField(key: PersonaFieldKey, value?: string): void
   adoptAllFill(): void
   discardFill(): void
@@ -217,6 +248,16 @@ export function createPersonaController(deps: PersonaControllerDeps): {
   let aiBusy: PersonaState['aiBusy'] = false
   let fillPreview: PersonaFillPreview | null = null
   let notice: PersonaNotice | null = null
+  let noticeDetail: string | null = null
+  let socialStatuses: Partial<Record<SocialPlatform, SocialStatusRow>> = {}
+  let socialLoginPending: SocialPlatform | null = null
+  let socialDailyCap: number | null = null
+
+  /** Normalize one statuses snapshot into the state map. */
+  function toStatusMap(rows: ReadonlyArray<{ platform: SocialPlatform } & SocialStatusRow>):
+  Partial<Record<SocialPlatform, SocialStatusRow>> {
+    return Object.fromEntries(rows.map(row => [row.platform, { hasSession: row.hasSession, captureCountToday: row.captureCountToday }]))
+  }
 
   const buildState = (): PersonaState => ({
     personas,
@@ -230,6 +271,10 @@ export function createPersonaController(deps: PersonaControllerDeps): {
     aiBusy,
     fillPreview,
     notice,
+    noticeDetail,
+    socialStatuses,
+    socialLoginPending,
+    socialDailyCap,
   })
   let snapshot: PersonaState = buildState()
   const emit = (): void => {
@@ -238,8 +283,9 @@ export function createPersonaController(deps: PersonaControllerDeps): {
   }
   const state = (): PersonaState => snapshot
 
-  const setNotice = (value: PersonaNotice | null): void => {
+  const setNotice = (value: PersonaNotice | null, detail: string | null = null): void => {
     notice = value
+    noticeDetail = detail
     emit()
   }
 
@@ -264,13 +310,13 @@ export function createPersonaController(deps: PersonaControllerDeps): {
    * Run one AI call with the busy flag and the shared failure notice; the
    * caller supplies the success handling.
    */
-  const runAi = async (kind: 'fill' | 'resume' | 'report', call: () => Promise<void>, failure: PersonaNotice): Promise<void> => {
+  const runAi = async (kind: 'fill' | 'resume' | 'site' | 'social' | 'report', call: () => Promise<void>, failure: PersonaNotice): Promise<void> => {
     aiBusy = kind
     emit()
     try {
       await call()
-    } catch {
-      setNotice(failure)
+    } catch (error) {
+      setNotice(failure, error instanceof Error ? error.message.slice(0, 200) : null)
     } finally {
       aiBusy = false
       emit()
@@ -382,35 +428,49 @@ export function createPersonaController(deps: PersonaControllerDeps): {
       patchWizard({ ...wizard, form: { ...wizard.form, accountStage: stage } })
     },
 
-    addLink() {
+    /**
+     * Set one platform's social homepage URL in the step-2 list: the row
+     * exists only while its URL is non-empty, so the form never carries
+     * blank links and one platform holds at most one row.
+     */
+    setLinkUrl(platform, url) {
       if (wizard === null) return
-      const link: PersonaLink = { platform: 'xhs', url: '', bio: null, sampleText: null }
-      patchWizard({ ...wizard, form: { ...wizard.form, links: [...wizard.form.links, link] } })
-    },
-
-    updateLink(index, patch) {
-      if (wizard === null) return
-      const links = wizard.form.links.map((link, at) => at === index ? { ...link, ...patch } : link)
+      const rest = wizard.form.links.filter(link => link.platform !== platform)
+      const links = url.trim().length === 0
+        ? rest
+        : [...rest, { platform, url, bio: null, sampleText: null }]
       patchWizard({ ...wizard, form: { ...wizard.form, links } })
     },
 
-    removeLink(index) {
-      if (wizard === null) return
-      patchWizard({ ...wizard, form: { ...wizard.form, links: wizard.form.links.filter((_, at) => at !== index) } })
-    },
-
-    async runFill() {
+    async runFill(scope?: readonly PersonaFieldKey[]) {
       if (wizard === null) return
       const known = nonEmptyFields(wizard.form)
-      const blanks = PERSONA_FIELD_KEYS.filter(key => !PERSONA_FILL_PROHIBITED.includes(key) && (known[key] === undefined))
+      const scopeKeys = scope ?? PERSONA_FIELD_KEYS
+      const fillable = (key: PersonaFieldKey): boolean =>
+        !PERSONA_FILL_PROHIBITED.includes(key) && scopeKeys.includes(key) && known[key] === undefined
+      const blanks = PERSONA_FIELD_KEYS.filter(fillable)
       if (blanks.length === 0) {
-        setNotice('fill-none')
+        // A scoped run addresses one visible step; "already filled" needs its
+        // own message there (the generic fill-none reads as a system error).
+        setNotice(scope === undefined ? 'fill-none' : 'scope-filled')
         return
       }
+      // Raw evidence from the earlier steps grounds the inference when the
+      // structured fields are sparse (a fresh form is otherwise empty input).
+      const context = [wizard.form.sitePastedText, wizard.form.resumeText]
+        .map(text => text.trim())
+        .filter(text => text.length > 0)
+        .join('\n')
+        .slice(0, FILL_CONTEXT_CAP)
       await runAi('fill', async () => {
-        const result = await deps.gateway.processPersonaAi({ operation: 'fill', known, blanks })
+        const result = await deps.gateway.processPersonaAi({
+          operation: 'fill',
+          known,
+          blanks,
+          ...(context.length > 0 ? { context } : {}),
+        })
         if (Object.keys(result.fields).length === 0) {
-          setNotice('fill-none')
+          setNotice('ai-empty')
           return
         }
         fillPreview = { origin: 'fill', promptVersion: result.promptVersion, fields: result.fields }
@@ -431,11 +491,176 @@ export function createPersonaController(deps: PersonaControllerDeps): {
       await runAi('resume', async () => {
         const result = await deps.gateway.processPersonaAi({ operation: 'resume', resumeText })
         if (Object.keys(result.fields).length === 0) {
-          setNotice('ai-failed')
+          setNotice('ai-empty')
           return
         }
         fillPreview = { origin: 'resume', promptVersion: result.promptVersion, fields: result.fields }
       }, 'ai-failed')
+    },
+
+    /** Refresh the per-platform social-capture statuses (best effort). */
+    async refreshSocialStatuses() {
+      try {
+        const snapshot = await deps.gateway.socialStatuses()
+        socialStatuses = toStatusMap(snapshot.rows)
+        socialDailyCap = snapshot.dailyCap
+        emit()
+      } catch (error) {
+        console.error('[persona] socialStatuses failed', error)
+      }
+    },
+
+    /** Start the headed login flow and poll until the session lands (or ~3 minutes pass). */
+    async startSocialLogin(platform: SocialPlatform) {
+      if (socialLoginPending !== null) return
+      socialLoginPending = platform
+      emit()
+      try {
+        await deps.gateway.socialStartLogin(platform)
+      } catch (error) {
+        socialLoginPending = null
+        emit()
+        setNotice('social-failed', error instanceof Error ? error.message.slice(0, 200) : null)
+        return
+      }
+      const deadline = Date.now() + 190_000
+      while (Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        try {
+          const snapshot = await deps.gateway.socialStatuses()
+          socialStatuses = toStatusMap(snapshot.rows)
+          socialDailyCap = snapshot.dailyCap
+          emit()
+          if (socialStatuses[platform]?.hasSession === true) break
+        } catch {
+          // Status polls are best effort; the deadline ends the wait.
+        }
+      }
+      if (socialStatuses[platform]?.hasSession !== true) {
+        setNotice('social-failed', '登录等待超时，请重试')
+      }
+      socialLoginPending = null
+      emit()
+    },
+
+    /**
+     * Capture one platform's profile with the stored session (one explicit
+     * click: read the logged-in page, then run the social AI analysis on the
+     * captured section).
+     */
+    async captureSocial(platform: SocialPlatform) {
+      if (wizard === null) return
+      const url = wizard.form.links.find(link => link.platform === platform)?.url.trim() ?? ''
+      if (url.length === 0) {
+        setNotice('social-empty')
+        return
+      }
+      await runAi('social', async () => {
+        const result = await deps.gateway.socialCapture(platform, url)
+        if (wizard === null) return
+        const socialProfiles = [
+          ...wizard.form.socialProfiles.filter(profile => profile.platform !== platform),
+          { platform, text: result.text },
+        ]
+        wizard = { ...wizard, form: { ...wizard.form, socialProfiles } }
+        writeDraft(wizard)
+        emit()
+        await this.runSocial()
+      }, 'social-failed')
+    },
+
+    /** Verify a stored session; an invalid one is dropped and reported. */
+    async verifySocial(platform: SocialPlatform) {
+      try {
+        const result = await deps.gateway.socialVerify(platform)
+        if (!result.valid) {
+          await deps.gateway.socialForget(platform)
+          await this.refreshSocialStatuses()
+          setNotice('social-failed', '账号登录已失效，请重新登录')
+        } else {
+          setNotice(null)
+        }
+      } catch (error) {
+        setNotice('social-failed', error instanceof Error ? error.message.slice(0, 200) : null)
+      }
+    },
+
+    /** Drop one stored session (a logout) and refresh the statuses. */
+    async forgetSocial(platform: SocialPlatform) {
+      try {
+        await deps.gateway.socialForget(platform)
+        await this.refreshSocialStatuses()
+      } catch (error) {
+        setNotice('social-failed', error instanceof Error ? error.message.slice(0, 200) : null)
+      }
+    },
+
+    /**
+     * Analyze the persona's own website: with a URL the gateway fetches the
+     * page and the fetched text replaces the paste textarea (so the saved
+     * form, the report facts, and this analysis read the same content);
+     * without one the pasted text is analyzed as-is. Candidates land in the
+     * shared adoption preview and never touch the form until adopted.
+     */
+    async runSite() {
+      if (wizard === null) return
+      const { siteUrl, sitePastedText } = wizard.form
+      const hasUrl = siteUrl.trim().length > 0
+      const hasPasted = sitePastedText.trim().length > 0
+      if (!hasUrl && !hasPasted) {
+        setNotice('site-empty')
+        return
+      }
+      await runAi('site', async () => {
+        const result = await deps.gateway.processPersonaAi({
+          operation: 'site',
+          ...(hasUrl ? { url: siteUrl.trim() } : {}),
+          ...(hasPasted ? { pastedText: sitePastedText } : {}),
+        })
+        if (wizard === null) return
+        if (result.text !== undefined && result.text !== wizard.form.sitePastedText) {
+          wizard = { ...wizard, form: { ...wizard.form, sitePastedText: result.text.slice(0, SITE_TEXT_CAP) } }
+          writeDraft(wizard)
+          emit()
+        }
+        if (Object.keys(result.fields).length === 0) {
+          setNotice('ai-empty')
+          return
+        }
+        fillPreview = { origin: 'site', promptVersion: result.promptVersion, fields: result.fields }
+        emit()
+      }, 'site-failed')
+    },
+
+    /**
+     * Analyze the social profile homepages filled in step 2: the gateway
+     * fetches each link and extracts field candidates in one call. Candidates
+     * land in the shared adoption preview; nothing touches the form until
+     * adopted. The fetched pages are ephemeral — only adopted values persist.
+     */
+    async runSocial() {
+      if (wizard === null) return
+      const profiles = wizard.form.socialProfiles
+      const links = wizard.form.links
+        .filter(link => link.url.trim().length > 0 && !profiles.some(profile => profile.platform === link.platform))
+        .map(link => ({ platform: link.platform, url: link.url.trim() }))
+      if (profiles.length === 0 && links.length === 0) {
+        setNotice('social-empty')
+        return
+      }
+      await runAi('social', async () => {
+        const result = await deps.gateway.processPersonaAi({
+          operation: 'social',
+          ...(links.length > 0 ? { links } : {}),
+          ...(profiles.length > 0 ? { profiles } : {}),
+        })
+        if (Object.keys(result.fields).length === 0) {
+          setNotice('ai-empty')
+          return
+        }
+        fillPreview = { origin: 'social', promptVersion: result.promptVersion, fields: result.fields }
+        emit()
+      }, 'social-failed')
     },
 
     adoptFillField(key, value) {

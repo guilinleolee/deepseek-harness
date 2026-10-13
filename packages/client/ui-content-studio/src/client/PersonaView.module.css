@@ -167,13 +167,22 @@
   cursor: pointer;
 }
 
-.personaChipOn {
-  border: 1px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-bg-layer-3);
+/* Only the wizard's toggle buttons react to hover; card display chips share
+   the base class and must not pretend to be clickable. */
+button.personaChip:hover {
+  border-color: var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-primary);
+}
+
+.personaChipOn,
+.personaChipOn:hover {
+  border: 1px solid var(--dsw-alias-button-primary-fill);
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -291,25 +300,54 @@
 .personaStepBody {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
 }
 
 .personaField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .personaFieldLabel {
   font-size: 16px;
-  color: var(--dsw-alias-label-secondary);
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.personaFieldHint {
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+  line-height: 1.5;
+}
+
+.personaIntentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.personaIntentHead .personaFieldHint {
+  flex: 1;
+}
+
+.personaStyleSample {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.personaAdvancedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 0 2px;
 }
 
 .personaField input,
 .personaField select,
 .personaField textarea,
-.personaLinkRow input,
-.personaLinkRow select,
 .personaFillRow textarea,
 .personaReportText {
   padding: 6px 8px;
@@ -342,13 +380,6 @@
   gap: 6px;
   font-size: 16px;
   color: var(--dsw-alias-label-secondary);
-}
-
-.personaLinkRow {
-  display: grid;
-  grid-template-columns: 110px 1fr 1fr auto;
-  gap: 6px;
-  align-items: center;
 }
 
 .personaPromptBox {
@@ -426,4 +457,20 @@
 .personaReportText {
   font-family: monospace;
   line-height: 1.6;
+}
+
+.personaSocialRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.personaSocialRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.personaSocialRow .personaMini {
+  flex: none;
+  white-space: nowrap;
 }
