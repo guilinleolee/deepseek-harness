@@ -321,7 +321,7 @@ export async function runRollingWalkForward(
  * aggregate stability read (mean/median out-of-sample return, mean gap,
  * share of positive windows).
  * @param symbol - the analyzed symbol.
- * @param spec - the search grid re-run on every train leg.
+ * @param spec - the search grid re-run on every train leg (rendered into the split section).
  * @param results - the per-window outcomes, chronological.
  * @param windows - the requested window count.
  * @param rankBy - the ranking metric used on every train leg.
@@ -363,7 +363,7 @@ export function formatRollingWalkForwardSummary(
     '',
     '## 滚动切分（扩展窗）',
     `- 窗口数：${String(windows)}（每窗重新寻优 ${String(comboCount)} 个组合）`,
-    `- 切分：K线均分为 ${String(windows + 1)} 段，第 1 段为初始训练段，其后每段依次作样本外测试`,
+    `- 切分：K线均分为 ${String(windows + 1)} 段，第 1 段为初始训练段（网格 ${String(spec.fast.min)}-${String(spec.fast.max)}/${String(spec.slow.min)}-${String(spec.slow.max)}），其后每段依次作样本外测试`,
     '- 训练窗扩展：第 i 个窗口用其之前全部历史（含更早的测试段）重新寻优，无前瞻',
     '',
     '## 逐窗样本外表现',

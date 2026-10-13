@@ -36,9 +36,11 @@ export {
 export type { Account, ComplianceDenial, ComplianceDenialId, Order, ResultSnapshot } from './domain/spec.ts'
 export {
   BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
-  GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
+  GRID_COMBO_HARD_LIMIT, HORIZON_LIMITS, INITIAL_CASH_HARD_LIMIT, PANEL_SIZE_LIMITS, SHOCK_LIMITS,
+  SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
   collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectConfidenceCap, inspectGridCaps, inspectRollingWindowsCap, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
+  inspectConfidenceCap, inspectCrossPanelCaps, inspectGridCaps, inspectRollingWindowsCap, inspectShockCap,
+  inspectToolCall, inspectTrainRatioCap,
   installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
 export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
@@ -102,11 +104,15 @@ export {
   formatWalkForwardSummary, runRollingWalkForward, runWalkForward, splitBars, splitRollingWindows,
   validateRollingParams, validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
+export {
+  alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary, summarizeIC,
+} from './paat/cross-ic.ts'
+export type { CrossICPoint, CrossICSummary } from './paat/cross-ic.ts'
 export type { RollingWindow, RollingWindowResult, WalkForwardSplit } from './pcpt/walk-forward.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  compareBacktestsTool, crossFactorICTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
   optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
   walkForwardTool,
 } from './tools.ts'

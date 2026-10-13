@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-13-quant-cross-sectional-ic.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-quant-cross-sectional-ic.md
+/agent-note-cross-sectional-ic-evaluates-factors-across-a-panel:
+  en: 9df6214672648e2b
+  zh: 07e2dda34af1f105
+/agent-note-cross-sectional-ic-evaluates-factors-across-a-panel/problem:
+  en: 24e9f3e9ff1b95c2
+  zh: 71c0799f78f5b84f
+/agent-note-cross-sectional-ic-evaluates-factors-across-a-panel/decision:
+  en: c64f06683da60e01
+  zh: b3acdd48f10e1d87
+/agent-note-cross-sectional-ic-evaluates-factors-across-a-panel/alternatives-considered:
+  en: 0bff241f669920ac
+  zh: b1d327bddfa8c757
+/agent-note-cross-sectional-ic-evaluates-factors-across-a-panel/consequences:
+  en: daf38fb27ca19749
+  zh: 661d1b0e5e95fe37

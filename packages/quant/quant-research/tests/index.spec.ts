@@ -55,6 +55,7 @@ describe('apply', () => {
       'quant_compute_factor', 'quant_factor_ic',
       'quant_save_note', 'quant_list_notes', 'quant_export_report',
       'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+      'quant_factor_cross_ic',
     ])
     await disposer()
     expect(close).toHaveBeenCalledTimes(2)

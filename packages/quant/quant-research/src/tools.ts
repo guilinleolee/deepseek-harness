@@ -18,7 +18,7 @@ import type { ResolvedConfig } from './config.ts'
 import { BARS_HARD_LIMIT, CONFIDENCE_LIMITS, SHOCK_LIMITS } from './compliance.ts'
 import { QuantError, errorEnvelope, isQuantError, okEnvelope } from './errors.ts'
 import type { QuantEnvelope } from './errors.ts'
-import { DataSourceBreaker, BARS_MIN, fetchKline } from './pdat/datasource.ts'
+import { DataSourceBreaker, BARS_MIN, fetchKline, validateSymbol } from './pdat/datasource.ts'
 import type { KlineBar } from './pdat/datasource.ts'
 import * as indicators from './paat/indicators.ts'
 import type { Series } from './paat/indicators.ts'
@@ -29,7 +29,7 @@ import {
   validateStressParams,
 } from './prt/risk.ts'
 import {
-  computeFactor,
+  computeFactor, DEFAULT_FACTOR_WINDOWS, FACTOR_NAMES,
 } from './paat/factors.ts'
 import type { FactorName } from './paat/factors.ts'
 import { informationRatio, rollingIC } from './paat/ic.ts'
@@ -60,11 +60,16 @@ import {
   runRollingWalkForward, runWalkForward, splitBars, splitRollingWindows, validateRollingParams,
   validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
+import {
+  HORIZON_LIMITS, PANEL_SIZE_LIMITS, alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary,
+  summarizeIC,
+} from './paat/cross-ic.ts'
 
 declare module '@deepseek-ai/dsh-jobs' {
   interface JobKindMap {
     'quant-optimize': 'quant-optimize'
     'quant-walk-forward': 'quant-walk-forward'
+    'quant-cross-ic': 'quant-cross-ic'
   }
 }
 
@@ -1583,6 +1588,147 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
 }
 
 /**
+ * Build the cross-sectional factor-IC tool: starts one background job that
+ * fetches every panel symbol's bars, aligns the shared dates, computes each
+ * date's cross-sectional rank correlation between factor values and forward
+ * returns, and reports the aggregate IC/ICIR evaluation.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_factor_cross_ic',
+    description: '多标的横截面因子 IC/ICIR 评估（研究用，后台任务）：拉取面板内全部标的K线，按共享交易日逐日计算因子值与前视收益的横截面 Spearman 秩相关，输出平均 IC、ICIR、正占比与 t 统计。',
+    parameters: {
+      symbols: { type: 'array', items: { type: 'string' }, required: true, description: `标的代码数组（${String(PANEL_SIZE_LIMITS.min)}-${String(PANEL_SIZE_LIMITS.max)} 只，去重）` },
+      factor: { type: 'string', enum: [...FACTOR_NAMES], description: '横截面因子，默认 momentum' },
+      window: { type: 'integer', description: `因子回看窗口，默认按因子各自默认值（momentum 为 ${String(DEFAULT_FACTOR_WINDOWS.momentum)}）` },
+      horizon: { type: 'integer', description: `前视收益天数（${String(HORIZON_LIMITS.min)}-${String(HORIZON_LIMITS.max)}），默认 ${String(HORIZON_LIMITS.default)}` },
+      bars: { type: 'integer', description: `每标的K线根数（上限 ${String(BARS_HARD_LIMIT)}），默认 ${String(DEFAULT_KLINE_BARS)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderCrossIC(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `横截面 IC：${(args.symbols as string[] | undefined)?.join('/') ?? ''} ${String(args.factor ?? 'momentum')}` }),
+    async execute(args, exec) {
+      return envelopeFrom('get_kline', exec, async () => {
+        const jobs = deps.jobs?.()
+        if (jobs === undefined) {
+          throw new QuantError(
+            'CONFIG',
+            '横截面 IC 需要后台任务运行时：请在组合中加入 @deepseek-ai/dsh-jobs-local 与 @deepseek-ai/dsh-tool-jobs',
+          )
+        }
+        const symbols = args.symbols as string[]
+        if (!Array.isArray(symbols) || symbols.length < PANEL_SIZE_LIMITS.min || symbols.length > PANEL_SIZE_LIMITS.max) {
+          throw new QuantError('DATA', `symbols 必须是 ${String(PANEL_SIZE_LIMITS.min)}-${String(PANEL_SIZE_LIMITS.max)} 只标的的数组`)
+        }
+        if (new Set(symbols).size !== symbols.length) {
+          throw new QuantError('DATA', 'symbols 数组包含重复标的')
+        }
+        for (const symbol of symbols) validateSymbol(symbol)
+        const factor = (args.factor ?? 'momentum') as FactorName
+        const horizon = args.horizon ?? HORIZON_LIMITS.default
+        const bars = args.bars ?? DEFAULT_KLINE_BARS
+        if (!Number.isSafeInteger(horizon) || horizon < HORIZON_LIMITS.min || horizon > HORIZON_LIMITS.max) {
+          throw new QuantError('DATA', `horizon 必须是 ${String(HORIZON_LIMITS.min)}-${String(HORIZON_LIMITS.max)} 的整数`)
+        }
+        if (!Number.isSafeInteger(bars) || bars < 2 || bars > BARS_HARD_LIMIT) {
+          throw new QuantError('DATA', `bars 必须是 2-${String(BARS_HARD_LIMIT)} 的整数`)
+        }
+        const window = args.window ?? DEFAULT_FACTOR_WINDOWS[factor]
+        if (!Number.isSafeInteger(window) || window < 2 || window > 250) {
+          throw new QuantError('DATA', 'window 必须是 2-250 的整数')
+        }
+        const label = `${symbols.join('/')} 横截面 IC ${factor}`
+        const controller = new AbortController()
+        const id = jobs.start({
+          kind: 'quant-cross-ic',
+          label,
+          ...(exec.agent === undefined ? {} : { owner: exec.agent.id }),
+          run: () => {
+            const done = (async (): Promise<JobOutcome> => {
+              try {
+                const seriesBySymbol: Record<string, Awaited<ReturnType<typeof fetchKline>>> = {}
+                for (const symbol of symbols) {
+                  seriesBySymbol[symbol] = await fetchKline(deps.kernel, deps.breaker, {
+                    source: deps.config.dataSource,
+                    symbol,
+                    bars,
+                    retries: deps.config.sourceMaxRetries,
+                    cacheDir: deps.config.cacheDir,
+                    signal: controller.signal,
+                  })
+                }
+                const panel = alignPanel(seriesBySymbol)
+                const factorBySymbol: Record<string, (number | null)[]> = {}
+                for (const symbol of symbols) {
+                  factorBySymbol[symbol] = factorOnDates(factor, seriesBySymbol[symbol] as never, panel.dates, window)
+                }
+                const points = crossSectionIC(panel, factorBySymbol, horizon)
+                const summary = summarizeIC(points)
+                const markdown = formatCrossICSummary(symbols, factor, window, horizon, bars, points, summary)
+                return {
+                  status: 'completed' as const,
+                  result: markdown,
+                  ...(summary === null ? { detail: '有效截面不足，无法聚合' } : { detail: `ICIR ${summary.icir.toFixed(3)}` }),
+                }
+              } catch (error: unknown) {
+                recordKernelFault(exec, 'get_kline', error)
+                if (controller.signal.aborted) {
+                  return { status: 'killed' as const, detail: '横截面 IC 任务已取消' }
+                }
+                const detail = isQuantError(error) ? error.message : '横截面 IC 任务失败'
+                return { status: 'failed' as const, detail }
+              }
+            })()
+            return {
+              cancel: () => { controller.abort() },
+              done,
+            }
+          },
+        })
+        return {
+          job_id: id,
+          kind: 'background',
+          symbols,
+          factor,
+          window,
+          horizon,
+          bars,
+          panel_cap: PANEL_SIZE_LIMITS.max,
+          horizon_cap: HORIZON_LIMITS.max,
+          hint: '后台横截面 IC 已启动：用 job_output(job_id, wait: true) 收取评估报告；不再需要时用 job_kill(job_id) 取消',
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the cross-sectional IC start envelope.
+ * @param value - the tool result value.
+ * @returns the rendered text blocks.
+ */
+function renderCrossIC(value: unknown): { type: 'text'; text: string }[] {
+  const data = successData(value) as {
+    job_id?: string; symbols?: string[]; factor?: string; horizon?: number; hint?: string
+  } | undefined
+  if (data?.job_id === undefined) {
+    const failure = failureLine(value) ?? '横截面 IC 启动失败'
+    return [{ type: 'text', text: `${failure}\n\n${DISCLAIMER}` }]
+  }
+  const lines = [
+    `横截面 IC 评估已启动（job_id: ${data.job_id}）`,
+    `- 面板：${(data.symbols ?? []).join('、')}（${String((data.symbols ?? []).length)} 只）`,
+    `- 因子：${String(data.factor ?? 'momentum')}；前视：${String(data.horizon ?? HORIZON_LIMITS.default)} 日`,
+    String(data.hint ?? ''),
+    '',
+    DISCLAIMER,
+  ]
+  return [{ type: 'text', text: lines.filter(line => line !== '').join('\n') }]
+}
+
+/**
  * Render the walk-forward start envelope: the job id, the split, and the
  * collection instruction.
  * @param value - the tool result value.
@@ -1638,6 +1784,7 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     researchReportTool(deps),
     optimizeParamsTool(deps),
     walkForwardTool(deps),
+    crossFactorICTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

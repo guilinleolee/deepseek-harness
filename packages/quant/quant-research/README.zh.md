@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十七个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report` 与 `quant_optimize_params` 与 `quant_walk_forward`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
+面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十八个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report`、`quant_optimize_params`、`quant_walk_forward` 与 `quant_factor_cross_ic`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
 
 ## 安装
 
@@ -58,6 +58,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_research_report` | 运行一次回测并输出结构化 Markdown 研究报告（参数/指标/净值/成交）。 |
 | `quant_optimize_params` | 在 jobs 运行时上以可取消后台任务做双均线网格寻优；用 `job_output` 收取排名报告。 |
 | `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。`windows`（2-10）切换为扩展窗滚动：每窗重新寻优 + 样本外回测，输出逐窗表格与聚合稳定性结论。 |
+| `quant_factor_cross_ic` | 评估一个因子在 2-10 只标的面板上的横截面预测力：对齐共享交易日，逐日计算因子排名与前视收益的横截面秩相关，以后台任务输出平均 IC、ICIR、正占比与 t 统计。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 

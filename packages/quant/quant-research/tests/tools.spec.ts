@@ -699,7 +699,7 @@ describe('render fallbacks', () => {
 })
 
 describe('registerQuantTools', () => {
-  it('registers the seventeen tools and disposes them together', () => {
+  it('registers the eighteen tools and disposes them together', () => {
     const disposers: Array<() => void> = []
     const register = vi.fn((tool: { name: string }) => {
       void tool
@@ -709,7 +709,7 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(17)
+    expect(register).toHaveBeenCalledTimes(18)
     const names = register.mock.calls.map(call => call[0].name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
@@ -718,8 +718,9 @@ describe('registerQuantTools', () => {
       'quant_compute_factor', 'quant_factor_ic',
       'quant_save_note', 'quant_list_notes', 'quant_export_report',
       'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+      'quant_factor_cross_ic',
     ])
     dispose()
-    expect(disposers).toHaveLength(17)
+    expect(disposers).toHaveLength(18)
   })
 })
