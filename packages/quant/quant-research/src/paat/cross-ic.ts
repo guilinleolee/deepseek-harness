@@ -9,6 +9,7 @@
 
 import { QuantError } from '../errors.ts'
 import type { KlineBar } from '../pdat/datasource.ts'
+import type { QuantKernelClient } from '../kernel-client/client.ts'
 import { computeFactor } from './factors.ts'
 import type { FactorName, FactorSeries } from './factors.ts'
 import { spearman } from './ic.ts'
@@ -142,6 +143,53 @@ export function crossSectionIC(
   return points
 }
 
+/** Hard bounds for the windowed (regime) split of a cross-IC series. */
+export const IC_WINDOWS_LIMITS = { min: 2, max: 6 } as const
+
+/** One contiguous slice of a cross-IC series with its own aggregate. */
+export interface ICWindowSummary {
+  /** Zero-based window order, chronological. */
+  readonly index: number
+  /** The window's date span (first and last observation dates). */
+  readonly span: readonly [string, string]
+  /** The window's aggregate, or null when fewer than two valid readings fall inside. */
+  readonly summary: CrossICSummary | null
+}
+
+/**
+ * Split one cross-IC series into `windows` contiguous equal-count windows
+ * (remainder readings drop from the tail) and aggregate each. Regime
+ * stability is the read: a factor whose window ICIRs flip sign across
+ * windows is regime-bound, not robust.
+ * @param points - the full IC series, oldest first.
+ * @param windows - the window count, in `IC_WINDOWS_LIMITS`.
+ * @returns one summary per window, chronological.
+ * @throws {@link QuantError} code `DATA` on an out-of-bounds window count.
+ */
+export function windowedIC(
+  points: readonly CrossICPoint[],
+  windows: number,
+): ICWindowSummary[] {
+  if (!Number.isSafeInteger(windows) || windows < IC_WINDOWS_LIMITS.min || windows > IC_WINDOWS_LIMITS.max) {
+    throw new QuantError('DATA', `ic_windows 必须是 ${String(IC_WINDOWS_LIMITS.min)}-${String(IC_WINDOWS_LIMITS.max)} 的整数`)
+  }
+  const perWindow = Math.floor(points.length / windows)
+  const out: ICWindowSummary[] = []
+  for (let index = 0; index < windows; index += 1) {
+    const slice = points.slice(index * perWindow, (index + 1) * perWindow)
+    if (slice.length === 0) {
+      out.push({ index, span: ['-', '-'], summary: null })
+      continue
+    }
+    out.push({
+      index,
+      span: [slice[0]?.date ?? '-', slice.at(-1)?.date ?? '-'],
+      summary: summarizeIC(slice),
+    })
+  }
+  return out
+}
+
 /**
  * Aggregate one IC series into the factor-evaluation summary.
  * @param points - the IC series, oldest first.
@@ -154,13 +202,17 @@ export function summarizeIC(points: readonly CrossICPoint[]): CrossICSummary | n
   const variance = valid.reduce((sum, ic) => sum + (ic - mean) ** 2, 0) / (valid.length - 1)
   const std = Math.sqrt(variance)
   const positive = valid.filter(ic => ic > 0).length
+  // A degenerate (near-zero-dispersion) IC series is noise, not infinite
+  // conviction: clamp tiny std below one basis point to zero so the ratios
+  // report 0 rather than 1e16.
+  const safeStd = std < 1e-4 ? 0 : std
   return {
     observations: valid.length,
     meanIC: mean,
     stdIC: std,
-    icir: std === 0 ? 0 : mean / std,
+    icir: safeStd === 0 ? 0 : mean / safeStd,
     positiveShare: positive / valid.length,
-    tStat: std === 0 ? 0 : (mean / std) * Math.sqrt(valid.length),
+    tStat: safeStd === 0 ? 0 : (mean / safeStd) * Math.sqrt(valid.length),
   }
 }
 
@@ -185,6 +237,7 @@ export function formatCrossICSummary(
   bars: number,
   points: readonly CrossICPoint[],
   summary: CrossICSummary | null,
+  windows?: readonly ICWindowSummary[],
 ): string {
   const pct = (v: number): string => `${(v * 100).toFixed(1)}%`
   const tail = points.slice(-6)
@@ -211,6 +264,26 @@ export function formatCrossICSummary(
       `- IC 为正的截面占比：${pct(summary.positiveShare)}`,
       `- t 统计：${summary.tStat.toFixed(3)}`,
     ]),
+    ...(windows === undefined ? [] : [
+      '## 分窗稳定性（每窗独立聚合）',
+      '',
+      '窗口 | 区间 | 有效截面 | 平均 IC | ICIR',
+      '--- | --- | --- | --- | ---',
+      ...windows.map(win => [
+        `W${String(win.index + 1)}`,
+        `${win.span[0]} ~ ${win.span[1]}`,
+        win.summary === null ? '不足' : String(win.summary.observations),
+        win.summary === null ? '-' : win.summary.meanIC.toFixed(4),
+        win.summary === null ? '-' : win.summary.icir.toFixed(3),
+      ].join(' | ')),
+      '',
+      ...(windows.every(win => win.summary === null || win.summary.icir >= 0)
+        ? ['- 分窗结论：各窗 ICIR 未翻转符号——因子区分力在该面板上跨窗口方向稳定']
+        : windows.every(win => win.summary === null || win.summary.icir < 0)
+          ? ['- 分窗结论：各窗 ICIR 全为负——方向稳定为反向因子（值越高收益越低）']
+          : ['- 分窗结论：存在符号翻转——因子区分力受状态（regime）影响，谨慎对待全样本结论']),
+      '',
+    ]),
     '',
     '## 结论',
     `- ${verdict}`,
@@ -220,4 +293,75 @@ export function formatCrossICSummary(
     '',
   ]
   return lines.join('\n')
+}
+
+/**
+ * Run the cross-sectional IC pipeline as one kernel request (`cross_section_ic`
+ * op): the kernel aligns the shared dates, computes each symbol's factor, and
+ * correlates every date's factor cross-section with its horizon-day forward
+ * returns. One subprocess for the whole panel instead of one per symbol.
+ * @param kernel - the kernel client.
+ * @param seriesBySymbol - each symbol's full fetched bars, oldest first.
+ * @param factor - the factor to evaluate.
+ * @param horizon - the forward-return horizon in bars.
+ * @param window - the factor look-back window (factor-specific default when omitted).
+ * @param signal - the caller's cancellation signal.
+ * @returns the raw kernel payload: per-date points and the aggregate summary.
+ * @throws {@link QuantError} on kernel or wire-shape failure.
+ */
+export async function runCrossSectionICKernel(
+  kernel: QuantKernelClient,
+  seriesBySymbol: Readonly<Record<string, readonly KlineBar[]>>,
+  factor: FactorName,
+  horizon: number,
+  window?: number,
+  signal?: AbortSignal,
+): Promise<{
+  readonly factor: string
+  readonly horizon: number
+  readonly symbols: string[]
+  readonly shared_dates: number
+  readonly points: CrossICPoint[]
+  readonly summary: {
+    observations: number
+    mean_ic: number
+    std_ic: number
+    icir: number
+    positive_share: number
+    t_stat: number
+  } | null
+}> {
+  const payload = await kernel.request('cross_section_ic', {
+    panel: seriesBySymbol,
+    factor,
+    horizon,
+    ...(window === undefined ? {} : { window }),
+  }, signal)
+  if (payload === null || typeof payload !== 'object' || !('points' in payload) || !Array.isArray((payload as { points: unknown }).points)) {
+    throw new QuantError('DATA', 'cross_section_ic 返回的数据形状不正确')
+  }
+  return payload as never
+}
+
+/**
+ * Project the kernel payload onto the wire summary the TS pipeline produces,
+ * so both paths feed one report shape.
+ * @param payload - the kernel response from {@link runCrossSectionICKernel}.
+ * @returns the IC points and the aggregate in the TS vocabulary.
+ */
+export function projectKernelIC(payload: Awaited<ReturnType<typeof runCrossSectionICKernel>>): {
+  points: CrossICPoint[]
+  summary: CrossICSummary | null
+} {
+  const points: CrossICPoint[] = payload.points.map(point => ({ date: point.date, ic: point.ic }))
+  const raw = payload.summary
+  const summary = raw === null ? null : {
+    observations: raw.observations,
+    meanIC: raw.mean_ic,
+    stdIC: raw.std_ic,
+    icir: raw.icir,
+    positiveShare: raw.positive_share,
+    tStat: raw.t_stat,
+  }
+  return { points, summary }
 }

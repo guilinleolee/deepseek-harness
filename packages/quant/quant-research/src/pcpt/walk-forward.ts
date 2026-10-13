@@ -24,6 +24,9 @@ export const TRAIN_RATIO_LIMITS = { min: 0.5, max: 0.9, default: 0.7 } as const
 /** Bounds plus the default for the rolling-window count (`windows >= 2` enables rolling). */
 export const ROLLING_WINDOWS_LIMITS = { min: 2, max: 10, default: 4 } as const
 
+/** Bounds for the anchored (fixed-length) train window in bars. */
+export const ANCHOR_LIMITS = { min: 30, max: 1000 } as const
+
 /** The two legs of a walk-forward split. */
 export interface WalkForwardSplit {
   /** The training leg, oldest first. */
@@ -88,6 +91,40 @@ export function splitRollingWindows(bars: readonly KlineBar[], windows: number):
 }
 
 /**
+ * Cut a series into `windows` anchored walk-forward windows with a
+ * fixed-length train leg: the train length is `anchorLength` bars and every
+ * window's test segment is one `segmentLength` bar slice, walking forward in
+ * `segmentLength` steps with no overlap. The usable span is
+ * `anchorLength + segmentLength * windows` bars (a tail shorter than one
+ * segment drops); each window's train leg is the `anchorLength` bars
+ * immediately before its test segment — no future, no overlap between
+ * consecutive test segments.
+ * @param bars - the full fetched series, oldest first.
+ * @param windows - the window count, in `ROLLING_WINDOWS_LIMITS`.
+ * @param anchorLength - the fixed train length in bars.
+ * @returns one window per test segment, chronological.
+ */
+export function splitAnchoredWindows(
+  bars: readonly KlineBar[],
+  windows: number,
+  anchorLength: number,
+): RollingWindow[] {
+  const total = bars.length
+  const segmentLength = Math.floor((total - anchorLength) / windows)
+  const windowsOut: RollingWindow[] = []
+  for (let index = 0; index < windows; index += 1) {
+    const trainStart = segmentLength * index
+    const testStart = trainStart + anchorLength
+    windowsOut.push({
+      index,
+      train: [...bars.slice(trainStart, testStart)],
+      test: [...bars.slice(testStart, testStart + segmentLength)],
+    })
+  }
+  return windowsOut
+}
+
+/**
  * Validate a rolling walk-forward plan: the window count stays inside the
  * hard bounds, and one segment length covers the widest slow window on both
  * the initial train leg (grid warmup) and every test leg.
@@ -112,6 +149,46 @@ export function validateRollingParams(bars: number, spec: GridSpec, windows: num
   }
   // The initial train leg (one segment) is what the grid validates against.
   validateGridSpec(segmentLength, spec)
+}
+
+/**
+ * Validate an anchored walk-forward plan: the window count stays inside the
+ * hard bounds, the anchor covers the widest slow window (grid warmup), every
+ * test segment covers it too, and the total bar count supports the whole
+ * walk (anchor + windows segments).
+ * @param bars - the full fetched bar count.
+ * @param spec - the search grid.
+ * @param windows - the window count.
+ * @param anchor - the fixed train length in bars.
+ * @throws {@link QuantError} code `DATA` on any invalid parameter.
+ */
+export function validateAnchoredParams(bars: number, spec: GridSpec, windows: number, anchor: number): void {
+  if (!Number.isSafeInteger(windows) || windows < ROLLING_WINDOWS_LIMITS.min || windows > ROLLING_WINDOWS_LIMITS.max) {
+    throw new QuantError(
+      'DATA',
+      `windows 必须是 ${String(ROLLING_WINDOWS_LIMITS.min)}-${String(ROLLING_WINDOWS_LIMITS.max)} 的整数，收到 ${String(windows)}`,
+    )
+  }
+  if (!Number.isSafeInteger(anchor) || anchor < ANCHOR_LIMITS.min || anchor > ANCHOR_LIMITS.max) {
+    throw new QuantError(
+      'DATA',
+      `anchor 必须是 ${String(ANCHOR_LIMITS.min)}-${String(ANCHOR_LIMITS.max)} 的整数，收到 ${String(anchor)}`,
+    )
+  }
+  if (anchor < spec.slow.max + 1) {
+    throw new QuantError(
+      'DATA',
+      `锚定训练窗 ${String(anchor)} 根不足以覆盖最宽慢线窗口（≥ ${String(spec.slow.max + 1)}），请加大 anchor`,
+    )
+  }
+  const segmentLength = Math.floor((bars - anchor) / windows)
+  if (segmentLength < spec.slow.max + 1) {
+    throw new QuantError(
+      'DATA',
+      `每段长度 ${String(segmentLength)} 不足以覆盖最宽慢线窗口（≥ ${String(spec.slow.max + 1)}），请加大 bars 或减少 windows`,
+    )
+  }
+  validateGridSpec(anchor, spec)
 }
 
 /**
@@ -290,6 +367,7 @@ export async function runRollingWalkForward(
   rankBy: RankMetric,
   topN: number,
   signal?: AbortSignal,
+  onWindow?: (result: RollingWindowResult, barsUsed: number) => Promise<void>,
 ): Promise<RollingWindowResult[]> {
   const results: RollingWindowResult[] = []
   for (const window of windows) {
@@ -302,7 +380,7 @@ export async function runRollingWalkForward(
     if (best === undefined) {
       throw new QuantError('DATA', '寻优网格返回空结果，无法选出最优参数')
     }
-    results.push({
+    const result: RollingWindowResult = {
       index: window.index,
       trainBars: window.train.length,
       testBars: window.test.length,
@@ -310,7 +388,9 @@ export async function runRollingWalkForward(
       testReport,
       returnGap: testReport.metrics.total_return - best.metrics.total_return,
       sharpeGap: testReport.metrics.sharpe - best.metrics.sharpe,
-    })
+    }
+    results.push(result)
+    if (onWindow !== undefined) await onWindow(result, window.train.length + window.test.length)
   }
   return results
 }
@@ -335,6 +415,7 @@ export function formatRollingWalkForwardSummary(
   windows: number,
   rankBy: RankMetric,
   comboCount: number,
+  anchored = false,
 ): string {
   const pct = (v: number): string => `${(v * 100).toFixed(2)}%`
   const oosReturns = results.map(r => r.testReport.metrics.total_return)
@@ -361,10 +442,14 @@ export function formatRollingWalkForwardSummary(
     '',
     '> 仅供研究参考，不构成投资建议。每个窗口都在各自时点重新寻优，样本外表现衡量的正是"每期重选参数"这一真实策略；聚合差距为负说明逐期重寻优整体在样本外劣化。',
     '',
-    '## 滚动切分（扩展窗）',
+    anchored ? '## 滚动切分（锚定窗）' : '## 滚动切分（扩展窗）',
     `- 窗口数：${String(windows)}（每窗重新寻优 ${String(comboCount)} 个组合）`,
-    `- 切分：K线均分为 ${String(windows + 1)} 段，第 1 段为初始训练段（网格 ${String(spec.fast.min)}-${String(spec.fast.max)}/${String(spec.slow.min)}-${String(spec.slow.max)}），其后每段依次作样本外测试`,
-    '- 训练窗扩展：第 i 个窗口用其之前全部历史（含更早的测试段）重新寻优，无前瞻',
+    anchored
+      ? `- 切分：锚定训练窗 ${String(results[0]?.trainBars ?? 0)} 根（网格 ${String(spec.fast.min)}-${String(spec.fast.max)}/${String(spec.slow.min)}-${String(spec.slow.max)}），其后每段等长样本外测试，逐段前移`
+      : `- 切分：K线均分为 ${String(windows + 1)} 段，第 1 段为初始训练段（网格 ${String(spec.fast.min)}-${String(spec.fast.max)}/${String(spec.slow.min)}-${String(spec.slow.max)}），其后每段依次作样本外测试`,
+    anchored
+      ? '- 训练窗固定：每个窗口只用其测试段之前紧邻的等长锚定段重新寻优，无前瞻、测试段互不重叠'
+      : '- 训练窗扩展：第 i 个窗口用其之前全部历史（含更早的测试段）重新寻优，无前瞻',
     '',
     '## 逐窗样本外表现',
     '',

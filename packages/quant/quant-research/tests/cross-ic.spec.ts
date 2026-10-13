@@ -12,7 +12,7 @@ import { DataSourceBreaker } from '../src/pdat/datasource.ts'
 import type { KlineBar } from '../src/pdat/datasource.ts'
 import { HORIZON_LIMITS, PANEL_SIZE_LIMITS, inspectCrossPanelCaps } from '../src/compliance.ts'
 import {
-  alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary, summarizeIC,
+  alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary, summarizeIC, windowedIC,
 } from '../src/paat/cross-ic.ts'
 import type { CrossICPoint } from '../src/paat/cross-ic.ts'
 import { crossFactorICTool } from '../src/tools.ts'
@@ -153,6 +153,9 @@ describe('inspectCrossPanelCaps', () => {
     expect(inspectCrossPanelCaps({ symbols: ['A', ''] })).toMatchObject({ kind: 'deny' })
     expect(inspectCrossPanelCaps({ symbols: ['A', 'B'], horizon: 21 })).toMatchObject({ kind: 'deny' })
     expect(inspectCrossPanelCaps({ symbols: ['A', 'B'], horizon: 1.5 })).toMatchObject({ kind: 'deny' })
+    expect(inspectCrossPanelCaps({ symbols: ['A', 'B'], ic_windows: 2 })).toEqual({ kind: 'allow' })
+    expect(inspectCrossPanelCaps({ symbols: ['A', 'B'], ic_windows: 7 })).toMatchObject({ kind: 'deny' })
+    expect(inspectCrossPanelCaps({ symbols: ['A', 'B'], ic_windows: 1.5 })).toMatchObject({ kind: 'deny' })
   })
 })
 
@@ -171,10 +174,30 @@ function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDep
   }
 }
 
-/** Kernel serving every panel symbol's bars from one date map. */
-function panelKernel(seriesBySymbol: Record<string, KlineBar[]>): QuantKernelClient {
+/** Kernel serving get_kline per symbol and one aggregated cross_section_ic payload. */
+function panelKernel(seriesBySymbol: Record<string, KlineBar[]>, summaryOverride?: Record<string, unknown>): QuantKernelClient {
   return {
-    request: vi.fn(async (_op: string, params: Record<string, unknown>) => seriesBySymbol[params.symbol as string] ?? []),
+    request: vi.fn(async (op: string, params: Record<string, unknown>) => {
+      if (op === 'get_kline') return seriesBySymbol[params.symbol as string] ?? []
+      if (op === 'cross_section_ic') {
+        return {
+          factor: params['factor'],
+          horizon: params['horizon'],
+          symbols: Object.keys(seriesBySymbol).sort(),
+          shared_dates: seriesBySymbol[Object.keys(seriesBySymbol)[0] ?? '']?.length ?? 0,
+          points: [{ date: '2024-01-01', ic: 0.9 }, { date: '2024-01-02', ic: 1.0 }],
+          summary: summaryOverride ?? {
+            observations: 2,
+            mean_ic: 0.95,
+            std_ic: 0.05,
+            icir: 19,
+            positive_share: 1,
+            t_stat: 26.87,
+          },
+        }
+      }
+      return {}
+    }),
   } as unknown as QuantKernelClient
 }
 
@@ -235,9 +258,25 @@ describe('quant_factor_cross_ic', () => {
     const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('completed')
     expect(outcome.result).toContain('# 横截面 IC 评估：momentum')
+    expect(outcome.result).toContain('2024-01-01')
     expect(outcome.detail).toContain('ICIR')
-    const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[1]?.symbol)
-    expect(ops).toEqual(['AAA', 'BBB', 'CCC'])
+    const calls = (kernel.request as ReturnType<typeof vi.fn>).mock.calls as Array<[string, Record<string, unknown>]>
+    // Three per-symbol kline fetches, then ONE panel request.
+    expect(calls.map(call => call[0])).toEqual(['get_kline', 'get_kline', 'get_kline', 'cross_section_ic'])
+    expect(calls[3]?.[1]).toMatchObject({ factor: 'momentum', horizon: 3 })
+    expect(Object.keys(calls[3]?.[1]['panel'] as Record<string, unknown>).sort()).toEqual(['AAA', 'BBB', 'CCC'])
+  })
+
+  it('accepts ic_windows and renders the regime table in the settled report', async () => {
+    const jobs = fakeJobs()
+    const seriesBySymbol = { AAA: bars(0, 90), BBB: bars(1, 90) }
+    const kernel = panelKernel(seriesBySymbol)
+    const tool: ToolDefinition = crossFactorICTool(depsWith(kernel, () => jobs.face))
+    const value = await tool.execute?.({ symbols: ['AAA', 'BBB'], bars: 90, horizon: 3, ic_windows: 2 }, exec)
+    expect((value as { data: { ic_windows?: number } }).data.ic_windows).toBe(2)
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
+    expect(outcome.status).toBe('completed')
+    expect(outcome.result).toContain('分窗稳定性')
   })
 
   it('validates arguments before any job starts', async () => {
@@ -250,5 +289,51 @@ describe('quant_factor_cross_ic', () => {
     const badHorizon = await tool.execute?.({ symbols: ['A', 'B'], horizon: 99 }, exec)
     expect((badHorizon as { msg: string }).msg).toContain('horizon')
     expect(jobs.specs).toHaveLength(0)
+  })
+})
+
+describe('windowedIC', () => {
+  // Half the readings positive with dispersion, half negative with dispersion:
+  // each window's ICIR is meaningful and the two signs oppose.
+  const points: CrossICPoint[] = Array.from({ length: 12 }, (_, index) => ({
+    date: `2024-01-${String(index + 1).padStart(2, '0')}`,
+    ic: (index < 6 ? 1 : -1) * (0.6 + ((index % 3) - 1) * 0.15),
+  }))
+
+  it('splits into equal-count windows with per-window aggregates', () => {
+    const windows = windowedIC(points, 2)
+    expect(windows).toHaveLength(2)
+    expect(windows[0]?.span[0]).toBe('2024-01-01')
+    expect(windows[0]?.span[1]).toBe('2024-01-06')
+    expect(windows[1]?.span[0]).toBe('2024-01-07')
+    expect(windows[1]?.summary?.meanIC).toBeCloseTo(-0.6, 6)
+    expect(windows[0]?.summary?.meanIC).toBeCloseTo(0.6, 6)
+  })
+
+  it('drops the tail remainder and rejects bad window counts', () => {
+    const ragged = windowedIC(points.slice(0, 11), 2)
+    expect(ragged[0]?.summary?.observations).toBe(5)
+    expect(ragged[1]?.summary?.observations).toBe(5)
+    expect(() => windowedIC(points, 1)).toThrow('ic_windows')
+    expect(() => windowedIC(points, 7)).toThrow('ic_windows')
+  })
+
+  it('renders the window table and the sign-flip verdict', () => {
+    const windows = windowedIC(points, 2)
+    const markdown = formatCrossICSummary(['A', 'B'], 'momentum', 5, 3, 60, points, summarizeIC(points), windows)
+    expect(markdown).toContain('分窗稳定性')
+    expect(markdown).toContain('W1 | 2024-01-01 ~ 2024-01-06 | 6 | 0.6000')
+    expect(markdown).toContain('存在符号翻转')
+  })
+
+  it('renders the stable and inverse verdicts when signs hold', () => {
+    // Windows carry genuine dispersion so their ICIRs are meaningful, not the 0 branch.
+    const jitter = (index: number): number => 0.6 + ((index % 3) - 1) * 0.2
+    const stable = Array.from({ length: 12 }, (_, index) => ({ date: `d${String(index)}`, ic: jitter(index) }))
+    const markdownStable = formatCrossICSummary(['A', 'B'], 'momentum', 5, 3, 60, stable, summarizeIC(stable), windowedIC(stable, 2))
+    expect(markdownStable).toContain('跨窗口方向稳定')
+    const inverse = stable.map(point => ({ date: point.date, ic: -point.ic }))
+    const markdownInverse = formatCrossICSummary(['A', 'B'], 'momentum', 5, 3, 60, inverse, summarizeIC(inverse), windowedIC(inverse, 2))
+    expect(markdownInverse).toContain('反向因子')
   })
 })

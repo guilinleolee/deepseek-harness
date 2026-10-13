@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-13-quant-kernel-cross-ic.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-quant-kernel-cross-ic.md
+/agent-note-the-cross-section-moves-into-the-kernel:
+  en: ca8c26a170c276cb
+  zh: ca69833ce543f4c7
+/agent-note-the-cross-section-moves-into-the-kernel/problem:
+  en: f0d33375df1087c8
+  zh: cf488e81b6f975d9
+/agent-note-the-cross-section-moves-into-the-kernel/decision:
+  en: 89255d486c424a8b
+  zh: 5750538ddde26542
+/agent-note-the-cross-section-moves-into-the-kernel/alternatives-considered:
+  en: 4690db9c723988c0
+  zh: 29064d4378c97075
+/agent-note-the-cross-section-moves-into-the-kernel/consequences:
+  en: df82fb87455f75e4
+  zh: 88327646a4887292
