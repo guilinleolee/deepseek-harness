@@ -41,3 +41,38 @@ export interface AccountRef {
   account_id?: string
   name?: string
 }
+
+/** Backtest snapshot summary projected to the wire (no equity points; fetch those separately). */
+export interface ResultSnapshotSummaryValue {
+  result_id: string
+  symbol: string
+  params: { fast: number; slow: number; bars: number; initial_cash: number; fee_rate: number }
+  metrics: {
+    total_return: number
+    annual_return: number
+    max_drawdown: number
+    sharpe: number
+    win_rate: number
+    trade_count: number
+    final_equity: number
+  }
+  created_at: number
+}
+
+/** The snapshot-list projection. */
+export interface SnapshotListValue {
+  snapshots: ResultSnapshotSummaryValue[]
+}
+
+/** One equity-curve point on the wire. */
+export interface EquityPointValue {
+  date: string
+  value: number
+}
+
+/** The equity-curve projection for one snapshot. */
+export interface EquityCurveValue {
+  result_id: string
+  symbol: string
+  equity: EquityPointValue[]
+}

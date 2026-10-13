@@ -42,6 +42,13 @@ export const FAST_WINDOW_LIMITS = { min: 2, max: 120 } as const
 export const SLOW_WINDOW_LIMITS = { min: 3, max: 250 } as const
 /** Bounds for the walk-forward train/test split ratio; not configurable. */
 export const TRAIN_RATIO_LIMITS = { min: 0.5, max: 0.9, default: 0.7 } as const
+
+/** Hard bounds for the rolling walk-forward window count (`windows >= 2` enables rolling). */
+export const ROLLING_WINDOWS_LIMITS = { min: 2, max: 10 } as const
+
+/** Hard bounds for the cross-sectional panel size and forward-return horizon. */
+export const PANEL_SIZE_LIMITS = { min: 2, max: 10 } as const
+export const HORIZON_LIMITS = { min: 1, max: 20, default: 5 } as const
 /** One inclusive integer range walked by a step. */
 export interface GridAxisSpec {
   /** First window in the axis (inclusive). */
@@ -227,6 +234,58 @@ export function inspectTrainRatioCap(args: RawArgs): ComplianceVerdict {
   return { kind: 'allow' }
 }
 
+/**
+ * Enforce the cross-sectional panel caps: the symbol list must be an array
+ * of strings inside {@link PANEL_SIZE_LIMITS} with no duplicates, and a
+ * present horizon must be an integer inside {@link HORIZON_LIMITS}.
+ * @param args - the raw tool arguments.
+ * @returns allow, or deny with the friendly cap reason.
+ */
+export function inspectCrossPanelCaps(args: RawArgs): ComplianceVerdict {
+  const record = args as Record<string, unknown>
+  const symbols = record['symbols']
+  if (!Array.isArray(symbols) || symbols.length < PANEL_SIZE_LIMITS.min || symbols.length > PANEL_SIZE_LIMITS.max
+    || symbols.some(symbol => typeof symbol !== 'string' || (symbol as string).length === 0)) {
+    return {
+      kind: 'deny',
+      reason: `symbols 必须是 ${String(PANEL_SIZE_LIMITS.min)}-${String(PANEL_SIZE_LIMITS.max)} 只标的的数组（合规硬上限）`,
+    }
+  }
+  if (new Set(symbols).size !== symbols.length) {
+    return { kind: 'deny', reason: 'symbols 数组包含重复标的（合规要求去重）' }
+  }
+  const horizon = record['horizon']
+  if (horizon === undefined) return { kind: 'allow' }
+  if (typeof horizon !== 'number' || !Number.isSafeInteger(horizon)
+    || horizon < HORIZON_LIMITS.min || horizon > HORIZON_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `horizon 必须是 ${String(HORIZON_LIMITS.min)}-${String(HORIZON_LIMITS.max)} 的整数（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
+/**
+ * Enforce the rolling window-count cap. Absent `windows` means the single
+ * split; present `windows` must be an integer inside
+ * {@link ROLLING_WINDOWS_LIMITS}.
+ * @param args - the raw tool arguments.
+ * @returns allow, or deny with the friendly cap reason.
+ */
+export function inspectRollingWindowsCap(args: RawArgs): ComplianceVerdict {
+  const windows = (args as Record<string, unknown>)['windows']
+  if (windows === undefined) return { kind: 'allow' }
+  if (typeof windows !== 'number' || !Number.isSafeInteger(windows)
+    || windows < ROLLING_WINDOWS_LIMITS.min || windows > ROLLING_WINDOWS_LIMITS.max) {
+    return {
+      kind: 'deny',
+      reason: `windows 必须是 ${String(ROLLING_WINDOWS_LIMITS.min)}-${String(ROLLING_WINDOWS_LIMITS.max)} 的整数（合规硬上限）`,
+    }
+  }
+  return { kind: 'allow' }
+}
+
 /** Rules per tool name; a tool absent from the map passes untouched. */
 const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerdict)[]>> = Object.freeze({
   quant_get_kline: [inspectBrokerMarkers, inspectBarCap],
@@ -240,7 +299,8 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
   quant_research_report: [inspectBrokerMarkers, inspectBarCap],
   quant_optimize_params: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps],
-  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap],
+  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap, inspectRollingWindowsCap],
+  quant_factor_cross_ic: [inspectBrokerMarkers, inspectBarCap, inspectCrossPanelCaps],
 })
 
 /**

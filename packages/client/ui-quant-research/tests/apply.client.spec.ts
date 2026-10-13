@@ -24,6 +24,8 @@ async function bench() {
       listAccounts: vi.fn(async () => ({ ok: true as const, value: { accounts: [] } })),
       listNotes: vi.fn(async () => ({ ok: true as const, value: { notes: [] } })),
       getAccountState: vi.fn(async () => ({ ok: true as const, value: { account_id: 'a', name: 'n', cash: 0, initial_cash: 0, equity: 0, positions: [] } })),
+      listResultSnapshots: vi.fn(async () => ({ ok: true as const, value: { snapshots: [] } })),
+      getEquityCurve: vi.fn(async () => ({ ok: true as const, value: { result_id: 'r', symbol: 's', equity: [] } })),
     })
     mounted.push(dispose)
     return async () => { dispose() }
@@ -108,6 +110,8 @@ describe('ui-quant-research apply', () => {
       listAccounts: vi.fn(async () => ({ ok: false as const, error: { code: 'DATA', message: 'boom' } })),
       listNotes: vi.fn(async () => ({ ok: true as const, value: { notes: [] } })),
       getAccountState: vi.fn(async () => ({ ok: true as const, value: { account_id: 'a', name: 'n', cash: 0, initial_cash: 0, equity: 0, positions: [] } })),
+      listResultSnapshots: vi.fn(async () => ({ ok: true as const, value: { snapshots: [] } })),
+      getEquityCurve: vi.fn(async () => ({ ok: true as const, value: { result_id: 'r', symbol: 's', equity: [] } })),
     })
     declare(ctx.get('slots') as SlotRegistry)
     const fiber = await ctx.plugin({ inject: [...inject], apply }).await()

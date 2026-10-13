@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十七个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report` 与 `quant_optimize_params` 与 `quant_walk_forward`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
+面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册十八个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report`、`quant_optimize_params`、`quant_walk_forward` 与 `quant_factor_cross_ic`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
 
 ## 安装
 
@@ -37,7 +37,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 1. **仅限研究意图** — 任何参数字符串在任意嵌套深度命中实盘/券商标记（`实盘`、`券商`、`place_order`、`submit_order`、`cancel_order`）即拒绝，返回友好中文理由。
 2. **硬上限** — K 线根数、回测资金、费率、VaR 置信度、压力幅度、调仓权重，以及寻优网格（轴界限、整数步长、快线整段严格低于慢线整段、组合数 ≤ 200，且按工具同样的默认值解析）即使绕过 schema 也被固定上限拦下。
-3. **持久审计** — 每次拒绝向 `quant_research` 域（版本 1，冻结）追加一条 `compliance_denials` 记录，含工具名、理由、agent id 与时间戳；审计写入失败仅告警，绝不撤销拒绝。
+3. **持久审计** — 每次拒绝向 `quant_research` 域（版本 3，冻结）追加一条 `compliance_denials` 记录，含工具名、理由、agent id 与时间戳；审计写入失败仅告警，绝不撤销拒绝。
 
 每条红线至少有一条非法路径单测，无钥快照在真实组合中驱动了一次真实拒绝。
 
@@ -57,7 +57,8 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_compare_backtests` | 同标的同时跑两组参数，并排对比收益、回撤与夏普。 |
 | `quant_research_report` | 运行一次回测并输出结构化 Markdown 研究报告（参数/指标/净值/成交）。 |
 | `quant_optimize_params` | 在 jobs 运行时上以可取消后台任务做双均线网格寻优；用 `job_output` 收取排名报告。 |
-| `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。 |
+| `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。`windows`（2-10）切换为扩展窗滚动：每窗重新寻优 + 样本外回测，输出逐窗表格与聚合稳定性结论。 |
+| `quant_factor_cross_ic` | 评估一个因子在 2-10 只标的面板上的横截面预测力：对齐共享交易日，逐日计算因子排名与前视收益的横截面秩相关，以后台任务输出平均 IC、ICIR、正占比与 t 统计。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
@@ -84,9 +85,9 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 ## 已知限制与延期工作
 
 - **无实盘通道（设计使然）** — 这是插件的永久红线，不是缺失功能；门禁拒绝意图标记，内核只有虚拟账户。
-- **Phase 3 完成** — 策略对比、研究报告、jobs 运行时参数寻优、walk-forward 样本外验证，以及真面板（只读账户 + 笔记 + 内联 SVG 图表，Remote 面已挂载）全部上线。插件在 Phase 3 范围内功能完备；净值曲线卡片等会话→存储的结果回流通道。
+- **净值曲线卡片由结果快照供数** — 每次成功的 `quant_run_backtest` 持久化一条 `result_snapshots` 记录（域 v3）：参数、头条指标与下采样到至多 240 点的净值曲线；表保留最新 50 条。面板的「回测结果」区经 Remote 面（`listResultSnapshots`、`getEquityCurve`）列出快照并绘制存量曲线。walk-forward 与寻优运行不写快照。
 - **寻优报告只保留前 N 名** — 每组合的净值曲线与成交流量在内核线上被丢弃以控制响应体积；选中某组参数后用 `quant_run_backtest` 取完整曲线。
-- **walk-forward 是单次切分，非滚动** — `quant_walk_forward` 按调用方指定比例做一次训练/测试切分；滚动窗口再寻优（锚定或扩展）延期。
+- **滚动 walk-forward 为扩展窗，非锚定窗** — `windows ≥ 2` 时每个窗口都用其测试段之前的全部历史重新寻优（窗口数 2-10 为合规硬上限）；不提供固定长度锚定窗。滚动运行不写结果快照。
 - **内核缓存无 TTL 策略** — `akshare` 缓存按文件存在性命中，不看新鲜度；刷新策略等具体部署需求出现后再定。
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。
 - **pytest 覆盖率为信息性指标** — 仓库的逐文件 100% 门禁只覆盖 TypeScript `src`；内核 pytest 套件独立运行、独立报告。

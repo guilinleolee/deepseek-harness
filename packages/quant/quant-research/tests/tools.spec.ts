@@ -76,8 +76,27 @@ function deps(kernel: QuantKernelClient): QuantToolDeps {
     accounts: new Map() as never,
     orders: new Map() as never,
     notes: new Map() as never,
+    snapshots: kvTable(),
     approval: { request: vi.fn(async () => 'rejected' as const) },
   }
+}
+
+
+/** A minimal in-memory KvTable fake for the snapshot write. */
+function kvTable(): QuantToolDeps['snapshots'] {
+  const store = new Map<string, unknown>()
+  return {
+    entries: () => store.entries(),
+    get size() { return store.size },
+    get: (key: string) => store.get(key),
+    put: async (key: string, value: unknown) => { store.set(key, value) },
+    delete: async (key: string) => { store.delete(key) },
+  } as never
+}
+
+/** deps() with a caller-supplied snapshot table, for asserting the durable write. */
+function depsWithSnapshots(kernel: QuantKernelClient, snapshots: unknown): QuantToolDeps {
+  return { ...deps(kernel), snapshots: snapshots as QuantToolDeps['snapshots'] }
 }
 
 describe('quant_get_kline', () => {
@@ -238,6 +257,19 @@ describe('quant_run_backtest', () => {
     const value = await definition.execute?.({ symbol: '000001', fast: 30, slow: 10 }, execWith())
     expect(value).toMatchObject({ code: 1002 })
     expect((value as { msg: string }).msg).toContain('必须小于')
+  })
+
+  it('persists a result snapshot after a successful run', async () => {
+    const snapshots = kvTable() as unknown as Map<string, never>
+    const kernel = syntheticBarsKernel()
+    await runBacktestTool(depsWithSnapshots(kernel, snapshots)).execute?.(
+      { symbol: '000001', fast: 5, slow: 20, bars: 60 },
+      execWith(),
+    )
+    const stored = [...(snapshots as unknown as Map<string, { symbol: string; params: Record<string, unknown>; metrics: { total_return: number }; equity: unknown[] }>).entries()].map(([, value]) => value)
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({ kind: 'backtest', symbol: '000001', params: { fast: 5, slow: 20, bars: 60 } })
+    expect(stored[0]!.equity.length).toBeGreaterThan(1)
   })
 
   it('appends the backtest kernel fault', async () => {
@@ -667,7 +699,7 @@ describe('render fallbacks', () => {
 })
 
 describe('registerQuantTools', () => {
-  it('registers the seventeen tools and disposes them together', () => {
+  it('registers the eighteen tools and disposes them together', () => {
     const disposers: Array<() => void> = []
     const register = vi.fn((tool: { name: string }) => {
       void tool
@@ -677,7 +709,7 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(17)
+    expect(register).toHaveBeenCalledTimes(18)
     const names = register.mock.calls.map(call => call[0].name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
@@ -686,8 +718,9 @@ describe('registerQuantTools', () => {
       'quant_compute_factor', 'quant_factor_ic',
       'quant_save_note', 'quant_list_notes', 'quant_export_report',
       'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+      'quant_factor_cross_ic',
     ])
     dispose()
-    expect(disposers).toHaveLength(17)
+    expect(disposers).toHaveLength(18)
   })
 })

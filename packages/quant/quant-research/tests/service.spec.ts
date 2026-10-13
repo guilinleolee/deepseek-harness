@@ -63,8 +63,38 @@ describe('QuantResearchService over the real storage domain', () => {
     try {
       const accounts = await harness.service.listAccountsRemote()
       const notes = await harness.service.listNotesRemote()
+      const snapshots = await harness.service.listResultSnapshotsRemote()
       expect(accounts).toEqual({ accounts: [] })
       expect(notes).toEqual({ notes: [] })
+      expect(snapshots).toEqual({ snapshots: [] })
+    } finally {
+      await harness.dispose()
+    }
+  })
+
+  it('lists result snapshots newest first without equity points and reads one curve', async () => {
+    const harness = await setupHarness()
+    try {
+      await harness.seedSnapshot('000001', 'r-old', 1_000)
+      await harness.seedSnapshot('600519', 'r-new', 2_000)
+      const { snapshots } = await harness.service.listResultSnapshotsRemote()
+      expect(snapshots.map(s => s.result_id)).toEqual(['r-new', 'r-old'])
+      expect(snapshots[0]).toMatchObject({
+        symbol: '600519',
+        params: { fast: 3, slow: 10, bars: 60, initial_cash: 100_000, fee_rate: 0.0005 },
+        metrics: { total_return: 0.05, trade_count: 4, final_equity: 105_000 },
+        created_at: 2_000,
+      })
+      expect(snapshots[0]).not.toHaveProperty('equity')
+
+      const curve = await harness.service.getEquityCurveRemote({ result_id: 'r-old' })
+      expect(curve).toMatchObject({
+        result_id: 'r-old',
+        symbol: '000001',
+        equity: [{ date: '2024-01-01', value: 100_000 }, { date: '2024-01-02', value: 105_000 }],
+      })
+      await expect(harness.service.getEquityCurveRemote({ result_id: 'missing' }))
+        .rejects.toThrow('未找到回测快照')
     } finally {
       await harness.dispose()
     }

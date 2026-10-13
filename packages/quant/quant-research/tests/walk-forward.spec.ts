@@ -1,15 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import { JobId } from '@deepseek-ai/dsh-jobs'
-import type { JobHooks, JobStart } from '@deepseek-ai/dsh-jobs'
+import type { JobHooks, JobSpec } from '@deepseek-ai/dsh-jobs'
 import { resolveConfig } from '../src/config.ts'
 import { DataSourceBreaker } from '../src/pdat/datasource.ts'
 import { DEFAULT_GRID_SPEC } from '../src/compliance.ts'
 import { inspectTrainRatioCap } from '../src/compliance.ts'
 import {
-  formatWalkForwardSummary, runWalkForward, splitBars,
+  ROLLING_WINDOWS_LIMITS, formatRollingWalkForwardSummary, formatWalkForwardSummary, runRollingWalkForward,
+  runWalkForward, splitBars, splitRollingWindows, validateRollingParams,
   validateWalkForwardParams,
 } from '../src/pcpt/walk-forward.ts'
-import type { WalkForwardSplit } from '../src/pcpt/walk-forward.ts'
+import type { RollingWindow, WalkForwardSplit } from '../src/pcpt/walk-forward.ts'
+import { inspectRollingWindowsCap } from '../src/compliance.ts'
 import type { BacktestReport, BacktestMetrics } from '../src/pcpt/backtest.ts'
 import type { GridComboResult, GridSpec } from '../src/pcpt/optimize.ts'
 import { walkForwardTool } from '../src/tools.ts'
@@ -200,16 +202,16 @@ describe('formatWalkForwardSummary', () => {
 
 /** Capturing fake registry: records every start and hands back its hooks. */
 function fakeJobs(): {
-  face: { start(spec: JobStart): ReturnType<typeof JobId> }
-  specs: JobStart[]
-  hooksOf(spec: JobStart): JobHooks
+  face: { start(spec: JobSpec): ReturnType<typeof JobId> }
+  specs: JobSpec[]
+  hooksOf(spec: JobSpec): JobHooks
 } {
-  const specs: JobStart[] = []
-  const hooksByIndex = new Map<JobStart, JobHooks>()
+  const specs: JobSpec[] = []
+  const hooksByIndex = new Map<JobSpec, JobHooks>()
   let counter = 0
   return {
     face: {
-      start(spec: JobStart): ReturnType<typeof JobId> {
+      start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
         const hooks = spec.run()
@@ -218,7 +220,7 @@ function fakeJobs(): {
       },
     },
     specs,
-    hooksOf: (spec: JobStart): JobHooks => hooksByIndex.get(spec) as JobHooks,
+    hooksOf: (spec: JobSpec): JobHooks => hooksByIndex.get(spec) as JobHooks,
   }
 }
 
@@ -230,9 +232,43 @@ function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDep
     accounts: new Map() as never,
     orders: new Map() as never,
     notes: new Map() as never,
+    snapshots: new Map() as never,
   }
   return jobs === undefined ? base : { ...base, jobs: jobs as QuantToolDeps['jobs'] }
 }
+
+describe('quant_walk_forward rolling', () => {
+  const exec = { signal: new AbortController().signal, agent: undefined } as never
+
+  it('starts a rolling job on windows >= 2 and settles with the rolling markdown', async () => {
+    const jobs = fakeJobs()
+    const trainResults = [combo(5, 30, 0.2, 1.0, 0.05), combo(10, 30, 0.1, 0.5, 0.1)]
+    const kernel = walkForwardKernel(trainResults, report(5, 30, 0.12, 0.6, 0.08))
+    const tool: ToolDefinition = walkForwardTool(depsWith(kernel, () => jobs.face))
+    const value = await tool.execute?.({ symbol: '000001', bars: 400, windows: 2, top_n: 5 }, exec)
+    const data = (value as { code: number; data: { job_id: string; windows?: number; combos: number } }).data
+    expect(data.job_id).toBe('quant-walk-forward-1')
+    expect(data.windows).toBe(2)
+    expect(data.combos).toBe(16)
+    expect(jobs.specs[0]?.label).toContain('滚动 walk-forward 2 窗')
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
+    expect(outcome.status).toBe('completed')
+    expect(outcome.result).toContain('# 滚动 Walk-forward 验证报告：000001')
+    expect(outcome.detail).toContain('2 窗聚合')
+    // One kline fetch, then one grid + one backtest per window.
+    const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[0])
+    expect(ops).toEqual(['get_kline', 'backtest_grid', 'backtest', 'backtest_grid', 'backtest'])
+  })
+
+  it('denies windows outside the compliance bounds before any job starts', async () => {
+    const jobs = fakeJobs()
+    const tool: ToolDefinition = walkForwardTool(depsWith(walkForwardKernel([], report(5, 30, 0, 0, 0)), () => jobs.face))
+    const value = await tool.execute?.({ symbol: '000001', windows: 11 }, exec)
+    expect((value as { code: number }).code).not.toBe(0)
+    expect((value as { msg: string }).msg).toContain('windows')
+    expect(jobs.specs).toHaveLength(0)
+  })
+})
 
 describe('quant_walk_forward', () => {
   const exec = { signal: new AbortController().signal, agent: undefined } as never
@@ -266,9 +302,9 @@ describe('quant_walk_forward', () => {
     expect(jobs.specs).toHaveLength(1)
     expect(jobs.specs[0]?.kind).toBe('quant-walk-forward')
     expect(jobs.specs[0]?.label).toContain('16 组合')
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('completed')
-    expect(outcome.output).toContain('# Walk-forward 验证报告：000001')
+    expect(outcome.result).toContain('# Walk-forward 验证报告：000001')
     expect(outcome.detail).toContain('SMA(')
     const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[0])
     expect(ops).toEqual(['get_kline', 'backtest_grid', 'backtest'])
@@ -287,8 +323,8 @@ describe('quant_walk_forward', () => {
     expect((value as { data: { combos: number; rank_by: string; train_ratio: number } }).data).toMatchObject({
       combos: 1, rank_by: 'max_drawdown', train_ratio: 0.6,
     })
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
-    expect(outcome.output).toContain('训练段比例：0.6')
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
+    expect(outcome.result).toContain('训练段比例：0.6')
   })
 
   it('settles as killed after cancel aborts the in-flight work', async () => {
@@ -302,7 +338,7 @@ describe('quant_walk_forward', () => {
     const tool: ToolDefinition = walkForwardTool(depsWith(kernel as QuantKernelClient, () => jobs.face))
     const value = await tool.execute?.({ symbol: '000001', bars: 250 }, exec)
     expect((value as { data: { job_id: string } }).data.job_id).toBe('quant-walk-forward-1')
-    const hooks = jobs.hooksOf(jobs.specs[0] as JobStart)
+    const hooks = jobs.hooksOf(jobs.specs[0] as JobSpec)
     const settled = hooks.done
     hooks.cancel('no longer needed')
     await expect(settled).resolves.toMatchObject({ status: 'killed' })
@@ -313,7 +349,7 @@ describe('quant_walk_forward', () => {
     const kernel = kernelByOp(() => { throw new Error('wire broke') })
     const tool: ToolDefinition = walkForwardTool(depsWith(kernel, () => jobs.face))
     await tool.execute?.({ symbol: '000001', bars: 250 }, exec)
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('failed')
     expect(outcome.detail).toBe('walk-forward 验证任务失败')
   })
@@ -328,5 +364,90 @@ describe('quant_walk_forward', () => {
     const barsBad = await tool.execute?.({ symbol: '000001', bars: 50, train_ratio: 0.9, slow_max: 60 }, exec)
     expect((barsBad as { msg: string }).msg).toContain('测试段长度')
     expect(jobs.specs).toHaveLength(0)
+  })
+})
+
+describe('splitRollingWindows', () => {
+  it('cuts equal segments with expanding trains and no lookahead', () => {
+    const windows: RollingWindow[] = splitRollingWindows(BARS, 4)
+    // 250 bars → segment = floor(250 / 5) = 50, trimmed to 250 exactly.
+    expect(windows).toHaveLength(4)
+    expect(windows[0]?.train).toHaveLength(50)
+    expect(windows[0]?.test).toHaveLength(50)
+    expect(windows[3]?.train).toHaveLength(200)
+    expect(windows[3]?.test).toHaveLength(50)
+    // Expanding: window i's train is window (i+1)'s train prefix.
+    expect(windows[1]?.train.slice(0, 50)).toEqual(windows[0]?.train)
+    // No lookahead: each test segment starts exactly at its train end.
+    expect(windows[2]?.test[0]?.date).toBe(BARS[150]?.date)
+    // Remainder bars are dropped when the count does not divide evenly.
+    const ragged = splitRollingWindows(BARS.slice(0, 243), 4)
+    expect(ragged[0]?.train).toHaveLength(48) // floor(243 / 5) = 48
+    expect(ragged[3]?.test).toHaveLength(48)
+  })
+})
+
+describe('validateRollingParams', () => {
+  it('enforces the window bounds', () => {
+    expect(() => validateRollingParams(1500, SPEC, 1)).toThrow('windows')
+    expect(() => validateRollingParams(1500, SPEC, 11)).toThrow('windows')
+    expect(() => validateRollingParams(1500, SPEC, Number.NaN)).toThrow('windows')
+    expect(() => validateRollingParams(1500, SPEC, 2)).not.toThrow()
+  })
+
+  it('rejects segments too short for the widest slow window', () => {
+    // 300 bars / (4+1) = 60 segments, slow.max = 60 → need ≥ 61.
+    expect(() => validateRollingParams(300, SPEC, 4)).toThrow('每段长度')
+    expect(() => validateRollingParams(305, SPEC, 4)).not.toThrow()
+  })
+})
+
+describe('inspectRollingWindowsCap', () => {
+  it('allows absent windows and the in-bounds integers', () => {
+    expect(inspectRollingWindowsCap({})).toEqual({ kind: 'allow' })
+    expect(inspectRollingWindowsCap({ windows: 2 })).toEqual({ kind: 'allow' })
+    expect(inspectRollingWindowsCap({ windows: 10 })).toEqual({ kind: 'allow' })
+  })
+
+  it('denies out-of-bounds and non-integer windows', () => {
+    expect(inspectRollingWindowsCap({ windows: 1 })).toMatchObject({ kind: 'deny' })
+    expect(inspectRollingWindowsCap({ windows: 11 })).toMatchObject({ kind: 'deny' })
+    expect(inspectRollingWindowsCap({ windows: 2.5 })).toMatchObject({ kind: 'deny' })
+    expect(inspectRollingWindowsCap({ windows: 'many' })).toMatchObject({ kind: 'deny' })
+  })
+})
+
+describe('runRollingWalkForward', () => {
+  it('re-optimizes per window and reports chronological gaps', async () => {
+    // Every window: train grid returns two combos, best is fast 5; test runs on (5, 30).
+    const kernel = walkForwardKernel([combo(5, 30, 0.2, 1.0, 0.05), combo(10, 30, 0.1, 0.5, 0.1)], report(5, 30, 0.1, 0.6, 0.08))
+    const windows: RollingWindow[] = splitRollingWindows(BARS, ROLLING_WINDOWS_LIMITS.min)
+    const results = await runRollingWalkForward(kernel, '000001', windows, SPEC, 1_000_000, 0.0005, 'total_return', 5)
+    expect(results).toHaveLength(2)
+    expect(results.map(r => r.index)).toEqual([0, 1])
+    expect(results.every(r => r.best.fast === 5)).toBe(true)
+    expect(results[0]?.returnGap).toBeCloseTo(0.1 - 0.2, 10)
+    expect(results[1]?.sharpeGap).toBeCloseTo(0.6 - 1.0, 10)
+    const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[0])
+    // One grid + one backtest per window; the caller supplies bars directly, so no kline fetch.
+    expect(ops).toEqual(['backtest_grid', 'backtest', 'backtest_grid', 'backtest'])
+  })
+})
+
+describe('formatRollingWalkForwardSummary', () => {
+  it('renders the per-window table and the aggregate stability read', async () => {
+    const kernel = walkForwardKernel([combo(5, 30, 0.2, 1.0, 0.05), combo(10, 30, 0.15, 0.8, 0.1)], report(5, 30, 0.12, 0.6, 0.08))
+    const windows: RollingWindow[] = splitRollingWindows(BARS, ROLLING_WINDOWS_LIMITS.min)
+    const results = await runRollingWalkForward(kernel, '600519', windows, SPEC, 1_000_000, 0.0005, 'total_return', 5)
+    const markdown = formatRollingWalkForwardSummary('600519', SPEC, results, 2, 'total_return', 16)
+    expect(markdown).toContain('# 滚动 Walk-forward 验证报告：600519')
+    expect(markdown).toContain('窗口数：2')
+    expect(markdown).toContain('W1 | SMA(5/30)')
+    expect(markdown).toContain('W2 | SMA(5/30)')
+    expect(markdown).toContain('样本外收益均值')
+    expect(markdown).toContain('平均收益差距')
+    expect(markdown).toContain('样本外为正的窗口占比')
+    expect(markdown).toContain('结论：')
+    expect(markdown).toContain('仅供研究参考')
   })
 })

@@ -2723,6 +2723,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
       dshmarket:
         specifier: ^1.41.0
         version: 1.66.15(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)

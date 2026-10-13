@@ -11,7 +11,9 @@ import { BarRow, Sparkline, barGeometry, sparklinePoints } from '../src/client/c
 import { en } from '../src/client/locales.ts'
 import { QuantEntry } from '../src/client/QuantEntry.tsx'
 import { QuantPanel } from '../src/client/QuantPanel.tsx'
-import type { AccountListValue, AccountSummaryValue, NoteListValue } from '@deepseek-ai/dsh-quant-research/types'
+import type {
+  AccountListValue, AccountSummaryValue, EquityCurveValue, NoteListValue, ResultSnapshotSummaryValue,
+} from '@deepseek-ai/dsh-quant-research/types'
 
 afterEach(cleanup)
 
@@ -39,11 +41,27 @@ const notesValue: NoteListValue = {
   ],
 }
 
+const snapshotValue: ResultSnapshotSummaryValue = {
+  result_id: 'r-1',
+  symbol: '000001',
+  params: { fast: 5, slow: 20, bars: 60, initial_cash: 100_000, fee_rate: 0.0005 },
+  metrics: { total_return: 0.05, annual_return: 0.4, max_drawdown: 0.03, sharpe: 1.2, win_rate: 0.6, trade_count: 4, final_equity: 105_000 },
+  created_at: 1_700_000_000_000,
+}
+
+const curveValue: EquityCurveValue = {
+  result_id: 'r-1',
+  symbol: '000001',
+  equity: [{ date: '2024-01-01', value: 100_000 }, { date: '2024-01-02', value: 102_000 }, { date: '2024-01-03', value: 105_000 }],
+}
+
 /** The panel's injected face with stubbed remote reads. */
 function face(
   listAccounts: () => Promise<AccountListValue>,
   listNotes: () => Promise<NoteListValue>,
   getAccountState?: (ref: { account_id?: string; name?: string }) => Promise<AccountSummaryValue>,
+  listResultSnapshots?: () => Promise<{ snapshots: ResultSnapshotSummaryValue[] }>,
+  getEquityCurve?: (ref: { result_id: string }) => Promise<EquityCurveValue>,
 ) {
   const panel = createPanelController()
   return {
@@ -51,6 +69,8 @@ function face(
     listAccounts,
     listNotes,
     getAccountState: getAccountState ?? (async () => account()),
+    listResultSnapshots: listResultSnapshots ?? (async () => ({ snapshots: [] })),
+    getEquityCurve: getEquityCurve ?? (async () => curveValue),
     t: t as never,
   }
 }
@@ -315,5 +335,47 @@ describe('panel controller guards', () => {
 describe('node half', () => {
   it('node-half apply is a no-op host placeholder', () => {
     nodeApply() // reaching here without throwing is the no-op contract
+  })
+})
+
+describe('QuantPanel result snapshots', () => {
+  it('renders the empty state when no snapshots exist', async () => {
+    const props = face(
+      () => Promise.resolve(accountsValue([])),
+      () => Promise.resolve({ notes: [] }),
+      undefined,
+      () => Promise.resolve({ snapshots: [] }),
+    )
+    const view = render(<QuantPanel {...props} />)
+    act(() => { props.panel.open() })
+    const dialog = await waitFor(() => view.getByRole('dialog'))
+    await waitFor(() => expect(dialog.textContent).toContain(t('panel.results.empty')))
+  })
+
+  it('renders a snapshot card and draws the curve on expand', async () => {
+    const getEquityCurve = vi.fn(async () => curveValue)
+    const props = face(
+      () => Promise.resolve(accountsValue([])),
+      () => Promise.resolve({ notes: [] }),
+      undefined,
+      () => Promise.resolve({ snapshots: [snapshotValue] }),
+      getEquityCurve as never,
+    )
+    const view = render(<QuantPanel {...props} />)
+    act(() => { props.panel.open() })
+    const dialog = await waitFor(() => view.getByRole('dialog'))
+    // Collapsed head: symbol, windows, and the headline metrics.
+    await waitFor(() => expect(dialog.textContent).toContain('000001 SMA(5/20)'))
+    expect(dialog.textContent).toContain('5.00%')
+    expect(dialog.textContent).toContain('3.00%')
+    expect(getEquityCurve).not.toHaveBeenCalled()
+    expect(dialog.querySelector('svg')).toBeNull()
+
+    const head = view.getAllByRole('button').find(button => button.textContent?.includes('SMA(5/20)'))
+    expect(head).toBeDefined()
+    fireEvent.click(head!)
+    await waitFor(() => expect(getEquityCurve).toHaveBeenCalledWith({ result_id: 'r-1' }))
+    const chart = await waitFor(() => dialog.querySelector('svg[aria-label="000001 净值曲线"]'))
+    expect(chart?.querySelector('polyline')).not.toBeNull()
   })
 })
