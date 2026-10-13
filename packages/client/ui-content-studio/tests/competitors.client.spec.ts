@@ -221,3 +221,17 @@ describe('competitorWorkToTopicInput', () => {
     expect(input.source.url).toBeNull()
   })
 })
+
+describe('volume compare word collection', () => {
+  it('derives the niche-word rows from account topics, deduped and non-empty', () => {
+    const accounts: readonly CompetitorAccount[] = [
+      { id: 'acc-1', name: 'A', platform: 'xhs', homepageUrl: '', topics: ['效率工具', 'AI'], priority: 'medium', note: '', positioning: '', followerTier: '', monetization: '', intervalDays: 7, enabled: true, createdAt: 't' },
+      { id: 'acc-2', name: 'B', platform: 'xhs', homepageUrl: '', topics: ['效率工具', ' '], priority: 'medium', note: '', positioning: '', followerTier: '', monetization: '', intervalDays: 7, enabled: true, createdAt: 't' },
+    ]
+    const words = [...new Set(accounts.flatMap(account => [...account.topics]))]
+      .filter(word => word.trim().length > 0)
+    expect(words).toHaveLength(2)
+    expect(words).toContain('效率工具')
+    expect(words).toContain('AI')
+  })
+})

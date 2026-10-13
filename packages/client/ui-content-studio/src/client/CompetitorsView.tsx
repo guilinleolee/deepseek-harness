@@ -14,7 +14,7 @@ import type {
   CompetitorAccountDigest, CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult,
   CompetitorManifest, CompetitorManifestRead, CompetitorMetricSnapshot, CompetitorPlatform,
   CompetitorReport, CompetitorReportId, CompetitorReportRequest, CompetitorReportResult, CompetitorWork,
-  ContentOutputsSnapshot, OutputProject,
+  ContentOutputsSnapshot, OutputProject, SentimentSnapshot, SentimentStats,
 } from '@deepseek-ai/dsh-content-outputs/types'
 import {
   aggregateAccountDigest, buildIdeaMarkdown, COMPETITOR_PLATFORMS, competitorWorkToTopicInput,
@@ -44,22 +44,28 @@ export interface CompetitorsViewInjected {
   readAsset: (theme: string, file: string) => Promise<{ content?: string }>
   analyzeCompetitorWork: (request: CompetitorAnalyzeWorkRequest) => Promise<CompetitorAnalyzeWorkResult>
   generateCompetitorReport: (request: CompetitorReportRequest) => Promise<CompetitorReportResult>
+  /** The sentiment read faces the volume-compare block consumes (optional: the block hides when absent). */
+  sentimentRead?: {
+    getSentiment: () => Promise<SentimentSnapshot>
+    sentimentStats: () => Promise<SentimentStats>
+  }
 }
 
 /** Full view props: the injected face plus the locale seat. */
 export type CompetitorsViewProps = CompetitorsViewInjected & PropsLocale<'content-studio'>
 
-/** The view's three sections. */
-type CompetitorSection = 'accounts' | 'works' | 'reports'
+/** The view's four sections. */
+type CompetitorSection = 'accounts' | 'works' | 'reports' | 'volume'
 
 /** Section tab order. */
-const SECTIONS: readonly CompetitorSection[] = ['accounts', 'works', 'reports']
+const SECTIONS: readonly CompetitorSection[] = ['accounts', 'works', 'reports', 'volume']
 
 /** Locale key per section tab. */
 const SECTION_KEYS: Record<CompetitorSection, StudioKey> = {
   accounts: 'comp.section.accounts',
   works: 'comp.section.works',
   reports: 'comp.section.reports',
+  volume: 'comp.section.volume',
 }
 
 /** Locale key per platform. */
@@ -160,7 +166,7 @@ function numberField(value: string): number {
 export function CompetitorsView(props: CompetitorsViewProps) {
   const {
     listOutputs, readCompetitorManifest, writeCompetitorManifest, writeAsset, deleteAsset, readAsset,
-    analyzeCompetitorWork, generateCompetitorReport, topics, t,
+    analyzeCompetitorWork, generateCompetitorReport, topics, sentimentRead, t,
   } = props
   const [accounts, setAccounts] = useState<readonly CompetitorAccount[]>(() => loadAccounts().accounts)
   const [storageDegraded, setStorageDegraded] = useState(false)
@@ -172,6 +178,7 @@ export function CompetitorsView(props: CompetitorsViewProps) {
   const [manifestError, setManifestError] = useState<string | undefined>(undefined)
   const [accountForm, setAccountForm] = useState<AccountForm | undefined>(undefined)
   const [importOpen, setImportOpen] = useState(false)
+  const [sentimentSnapshot, setSentimentSnapshot] = useState<SentimentSnapshot | undefined>(undefined)
   const [workFormState, setWorkFormState] = useState<WorkForm>(workForm('', 'xhs'))
   const [query, setQuery] = useState('')
   const [flagFilter, setFlagFilter] = useState<'all' | 'hot' | 'favorite' | 'analyzed' | 'unanalyzed'>('all')
@@ -222,6 +229,20 @@ export function CompetitorsView(props: CompetitorsViewProps) {
     )
     return () => { cancelled = true }
   }, [theme, readCompetitorManifest])
+
+  // The volume-compare section needs the sentiment mentions once per visit;
+  // a failed read leaves the block on its no-data hint.
+  useEffect(() => {
+    if (section !== 'volume' || sentimentRead === undefined) return
+    let cancelled = false
+    sentimentRead.getSentiment().then(
+      (snapshot) => { if (!cancelled) setSentimentSnapshot(snapshot) },
+      (error: unknown) => {
+        if (!cancelled) console.error('[content-studio] contentOutputs/getSentiment failed:', error)
+      },
+    )
+    return () => { cancelled = true }
+  }, [section, sentimentRead])
 
   const commitManifest = useCallback(async (next: CompetitorManifest): Promise<void> => {
     await writeCompetitorManifest(theme, next)
@@ -650,6 +671,51 @@ export function CompetitorsView(props: CompetitorsViewProps) {
                 />
               )}
           </div>
+        </div>
+      )}
+
+      {section === 'volume' && (
+        <div className={css.compVolume}>
+          <p className={css.compBanner}>{t('comp.volume.explain')}</p>
+          {sentimentRead === undefined && <p>{t('comp.volume.noFace')}</p>}
+          {sentimentRead !== undefined && sentimentSnapshot !== undefined && sentimentSnapshot.mentions.length === 0 && (
+            <p>{t('comp.volume.noSentiment')}</p>
+          )}
+          {sentimentRead !== undefined && (sentimentSnapshot === undefined || sentimentSnapshot.mentions.length > 0) && (() => {
+            const words: string[] = [...new Set(accounts.flatMap(account => [...account.topics]))]
+              .filter(word => word.trim().length > 0)
+              .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+            const works = manifest?.works ?? []
+            if (words.length === 0) return <p>{t('comp.volume.noTopics')}</p>
+            const counts = (word: string): { mine: number; works: number } => ({
+              mine: sentimentSnapshot?.mentions
+                .filter(mention => mention.title.includes(word) || mention.summary.includes(word)).length ?? 0,
+              works: works.filter(work => work.title.includes(word)).length,
+            })
+            return (
+              <table className={css.compVolumeTable}>
+                <thead>
+                  <tr>
+                    <th>{t('comp.volume.topicWord')}</th>
+                    <th>{t('comp.volume.mine')}</th>
+                    <th>{t('comp.volume.competitorWorks')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {words.map((word) => {
+                    const row = counts(word)
+                    return (
+                      <tr key={word}>
+                        <td>{word}</td>
+                        <td>{String(row.mine)}</td>
+                        <td>{String(row.works)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )
+          })()}
         </div>
       )}
 

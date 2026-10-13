@@ -1,0 +1,397 @@
+/* Sentiment view (企业舆情分析) styles: static phase-1 preview. Tokens only. */
+
+.sentiment {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sentimentHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sentimentTitle {
+  margin: 0;
+  font-size: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentSub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sentimentTabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.sentimentTab,
+.sentimentTabOn {
+  padding: 8px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sentimentTab:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentTabOn,
+.sentimentTabOn:hover {
+  border-bottom-color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
+  color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
+  font-weight: 600;
+}
+
+.sentimentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sentimentActionBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sentimentPrimary {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sentimentPrimary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sentimentGhost {
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sentimentGhost:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.sentimentInput,
+.sentimentSelect {
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+}
+
+.sentimentTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sentimentTable th,
+.sentimentTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  text-align: left;
+  color: var(--dsw-alias-label-primary);
+  vertical-align: top;
+}
+
+.sentimentTable th {
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sentimentSummary {
+  max-width: 320px;
+}
+
+.sentimentRowActions {
+  white-space: nowrap;
+}
+
+.sentimentRowActions .sentimentGhost {
+  padding: 3px 8px;
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+.sentimentTagOn,
+.sentimentTagOff,
+.sentimentTagPos,
+.sentimentTagNeu,
+.sentimentTagNeg {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sentimentTagOn {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary)) 40%, transparent);
+  color: var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary));
+}
+
+.sentimentTagOff {
+  border: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sentimentTagPos {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary)) 40%, transparent);
+  color: var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary));
+}
+
+.sentimentTagNeu {
+  border: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sentimentTagNeg {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-danger, var(--dsw-alias-label-primary)) 45%, transparent);
+  color: var(--dsw-alias-text-danger);
+}
+
+.sentimentLevel1,
+.sentimentLevel2,
+.sentimentLevel3,
+.sentimentLevel4 {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sentimentLevel1 {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-text-danger) 45%, transparent);
+  color: var(--dsw-alias-text-danger);
+}
+
+.sentimentLevel2 {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-label-primary)) 45%, transparent);
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-label-primary));
+}
+
+.sentimentLevel3,
+.sentimentLevel4 {
+  border: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sentimentStatRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.sentimentStatCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.sentimentStatValue {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentStatLabel {
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sentimentChartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.sentimentChartCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+}
+
+.sentimentChartPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-dimmed, var(--dsw-alias-label-tertiary));
+  font-size: 13px;
+}
+
+.sentimentAlertList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.sentimentAlertList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sentimentModal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 70%, transparent);
+}
+
+.sentimentModalCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(640px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.sentimentModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentSteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+}
+
+.sentimentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sentimentFieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sentimentFieldRow > .sentimentInput {
+  width: 100%;
+}
+
+.sentimentFieldLabel {
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sentimentChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.sentimentCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sentimentMockSaved {
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary)) 40%, transparent);
+  border-radius: 8px;
+  color: var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary));
+  font-size: 14px;
+}
+
+.sentimentModalFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sentimentDetailText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sentimentReportPreview {
+  min-height: 260px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.sentimentReportText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--dsw-alias-label-primary);
+  white-space: pre-wrap;
+}

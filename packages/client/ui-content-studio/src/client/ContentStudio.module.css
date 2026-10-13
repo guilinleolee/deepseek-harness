@@ -1,50 +1,7 @@
-/* Content Studio styles: the sidebar footer entry (wide row / rail icon) and
-   the frame-wide workbench surface. Tokens only — no literal colors. */
-
-/* ── sidebar footer entry ── */
-
-.entryWide {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 15px;
-  cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
-}
-
-.entryWide:hover,
-.entryRail:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.entryRail {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin: 0 auto;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
-}
-
-.entryLabel {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Content Studio styles: the frame-wide workbench surface. The sidebar
+   footer entry styles live in the shared primitives package
+   (SidebarFooterEntry) so every plugin's entry reads identically.
+   Tokens only — no literal colors. */
 
 /* ── frame-wide surface ── */
 
@@ -1250,4 +1207,174 @@
 .compBadgeFailed {
   color: var(--dsw-alias-state-danger-primary, var(--dsw-alias-label-primary));
   background: color-mix(in srgb, var(--dsw-alias-state-danger-primary, var(--dsw-alias-label-primary)) 12%, transparent);
+}
+
+.accountsLoginHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountsLoginRisk {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-label-primary));
+}
+
+.accountsLoginGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin: 0 0 18px;
+}
+
+.accountsLoginCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.accountsLoginCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.accountsLoginCardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.accountsLoginBadge,
+.accountsLoginBadgeOn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.accountsLoginBadge {
+  border: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.accountsLoginBadgeOn {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary)) 40%, transparent);
+  color: var(--dsw-alias-state-success-primary, var(--dsw-alias-label-primary));
+}
+
+.accountsLoginCardBody {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.accountsLoginAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary)) 14%, transparent);
+  color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.accountsLoginBackend {
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.accountsLoginActions {
+  display: flex;
+  gap: 8px;
+}
+
+.accountsLoginActions .personaMini {
+  flex: 1;
+}
+
+.accountsLoginButton {
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.accountsLoginButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.accountsLoginManualHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+  line-height: 1.5;
+}
+
+.accountsRefresh {
+  padding: 6px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.accountsRefresh:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.accountsLoginAction {
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.accountsLoginAction:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* ---------------------------------------------------------- volume compare ---- */
+
+.compVolume {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compVolumeTable {
+  border-collapse: collapse;
+  font-size: 14px;
+  width: 100%;
+}
+
+.compVolumeTable th,
+.compVolumeTable td {
+  border: 1px solid var(--dsw-alias-border-l1);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.compVolumeTable th {
+  background: var(--dsw-alias-fill-l1);
+  font-weight: 600;
 }

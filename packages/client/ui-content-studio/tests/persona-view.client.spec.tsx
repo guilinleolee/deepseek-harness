@@ -15,6 +15,20 @@ import { PersonaView } from '../src/client/PersonaView.tsx'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   writeClipboard: vi.fn(async () => true),
+  // The wizard's advanced block: a minimal controlled disclosure mirror.
+  DisclosureRow: ({ title, open, expandOnRowClick, onToggle, children }: {
+    title: string
+    open: boolean
+    expandOnRowClick?: boolean
+    onToggle: () => void
+    children?: React.ReactNode
+  }) => (
+    <div>
+      <button type="button" onClick={expandOnRowClick === true ? onToggle : undefined}>{title}</button>
+      {open && children}
+    </div>
+  ),
+  IconSparkle16: () => <svg data-testid="sparkle" />,
 }))
 
 afterEach(() => {
@@ -56,6 +70,11 @@ function gateway(overrides: Partial<PersonaGateway> = {}): PersonaGateway {
     putPersona: async input => ({ ...entry(), ...input, id: input.id ?? ('p-new' as PersonaEntry['id']), revision: input.id === undefined ? 1 : 3, digest: '新摘要（v3）' }),
     putPersonaReport: async (_id, report) => entry({ report }),
     deletePersona: async () => undefined,
+    socialStatuses: async () => ({ rows: [], dailyCap: 3 }),
+    socialStartLogin: async () => undefined,
+    socialCapture: async () => ({ platform: 'xhs', url: '', text: '' }),
+    socialForget: async () => undefined,
+    socialVerify: async () => ({ platform: 'xhs', valid: true, nickname: null }),
     processPersonaAi: (async () => ({ operation: 'fill', promptVersion: 'persona-fill@1', fields: { audience: '职场人群' } })) as unknown as PersonaGateway['processPersonaAi'],
     ...overrides,
   }
@@ -98,9 +117,10 @@ describe('the card list', () => {
     const dialog = await openWizard()
     fireEvent.change(within(dialog).getByPlaceholderText('one persona per identity, reusable across platforms'), { target: { value: '老王' } })
     fireEvent.click(within(dialog).getByText('Save persona'))
-    await waitFor(() => { expect(screen.getByText('Failed to save; please retry')).toBeTruthy() })
-    fireEvent.click(screen.getByText('Failed to save; please retry'))
-    expect(screen.queryByText('Failed to save; please retry')).toBeNull()
+    // The notice renders inside the modal overlay, which hides the page-level bar.
+    await waitFor(() => { expect(within(dialog).getByText('Failed to save; please retry')).toBeTruthy() })
+    fireEvent.click(within(dialog).getByText('Failed to save; please retry'))
+    expect(within(dialog).queryByText('Failed to save; please retry')).toBeNull()
   })
 
   it('shows the legacy import banner and clears it on import', async () => {
@@ -158,6 +178,11 @@ describe('the four-step wizard', () => {
     renderView({ putPersona: putSpy })
     const dialog = await openWizard()
     expect(within(dialog).getByText('1 / 4 · Basics')).toBeTruthy()
+    // whoAmI / audience / oneLiner have no manual inputs in step 1; the AI
+    // faces infer them and the preview shows the adopted values.
+    expect(within(dialog).queryByText('我是谁（主体背景）')).toBeNull()
+    expect(within(dialog).queryByText('目标受众')).toBeNull()
+    expect(within(dialog).queryByText('人设一句话简介')).toBeNull()
 
     const nameInput = within(dialog).getByPlaceholderText('one persona per identity, reusable across platforms') as HTMLInputElement
     fireEvent.change(nameInput, { target: { value: '老王' } })
@@ -166,29 +191,39 @@ describe('the four-step wizard', () => {
     fireEvent.click(within(dialog).getByText('Next'))
 
     expect(within(dialog).getByText('2 / 4 · Social links')).toBeTruthy()
-    fireEvent.click(within(dialog).getByText('Add social link'))
-    fireEvent.change(within(dialog).getByPlaceholderText('Profile URL'), { target: { value: 'https://x.example' } })
-    fireEvent.change(within(dialog).getByPlaceholderText('Account bio'), { target: { value: '简介' } })
-    fireEvent.click(within(dialog).getByText('Remove'))
+    // The fixed platform list: one labeled URL row per platform (labels come
+    // from the shared model table), no dropdown, no bio.
+    expect(within(dialog).getByText('抖音')).toBeTruthy()
+    expect(within(dialog).queryByPlaceholderText('Account bio')).toBeNull()
+    fireEvent.change(within(dialog).getByLabelText('小红书'), { target: { value: 'https://xhs.example/laoli' } })
     fireEvent.click(within(dialog).getByText('Next'))
 
     expect(within(dialog).getByText('3 / 4 · Intent')).toBeTruthy()
+    // The intent step: chips to tick, a custom remainder input, and the scoped AI-infer button.
+    expect(within(dialog).getByText('What should this account achieve: followers, influence, or conversion?')).toBeTruthy()
+    fireEvent.click(within(dialog).getByText('带货转化'))
+    expect(within(dialog).getByPlaceholderText('e.g. every Tuesday & Friday at 8pm')).toBeTruthy()
+    expect(within(dialog).getByText('AI-infer this step')).toBeTruthy()
     fireEvent.click(within(dialog).getByText('Next'))
 
     expect(within(dialog).getByText('4 / 4 · Style & red lines')).toBeTruthy()
     expect(within(dialog).getByText('Persona prompt preview')).toBeTruthy()
+    // The style presets are a checkable chip list with a readable sample line.
+    fireEvent.click(within(dialog).getByText('幽默网感'))
+    expect(within(dialog).getByText('e.g. 咱就是说，这功能一开，效率直接起飞。')).toBeTruthy()
     // The save button lands on every step; the gateway receives the form.
     fireEvent.click(within(dialog).getByText('Save persona'))
     await waitFor(() => { expect(putSpy).toHaveBeenCalled() })
     expect(putSpy.mock.calls[0]?.[0].name).toBe('老王')
     expect(putSpy.mock.calls[0]?.[0].platforms).toEqual(['douyin'])
+    expect(putSpy.mock.calls[0]?.[0].style.preset).toBe('humor')
   })
 
   it('refuses to save without the required name and navigates back', async () => {
     renderView()
     const dialog = await openWizard()
     fireEvent.click(within(dialog).getByText('Save persona'))
-    expect(screen.getByText('Enter the persona name first')).toBeTruthy()
+    expect(within(dialog).getByText('Enter the persona name first')).toBeTruthy()
     fireEvent.click(within(dialog).getByText('Next'))
     fireEvent.click(within(dialog).getByText('Back'))
     expect(within(dialog).getByText('1 / 4 · Basics')).toBeTruthy()
@@ -221,17 +256,124 @@ describe('the four-step wizard', () => {
     await waitFor(() => { expect(screen.queryByText(/AI fill preview/)).toBeNull() })
   })
 
+  it('analyzes the social homepages from step 2 and adopts the candidates', async () => {
+    const processSocial = (async () => ({ operation: 'social', promptVersion: 'persona-social@1', fields: { audience: '宝妈群体' } })) as unknown as PersonaGateway['processPersonaAi']
+    renderView({ processPersonaAi: processSocial })
+    const dialog = await openWizard()
+    fireEvent.click(within(dialog).getByText('Next'))
+    // The analyze action lives on the social-links step itself.
+    expect(within(dialog).getByText('Analyze social profiles')).toBeTruthy()
+    fireEvent.change(within(dialog).getByLabelText('小红书'), { target: { value: 'https://xhs.example/laoli' } })
+    fireEvent.click(within(dialog).getByText('Analyze social profiles'))
+    await waitFor(() => { expect(screen.getByText(/AI fill preview/)).toBeTruthy() })
+    fireEvent.click(screen.getByText('Adopt all'))
+    await waitFor(() => { expect(screen.queryByText(/AI fill preview/)).toBeNull() })
+
+    // With no link at all: the explicit notice instead of a gateway call.
+    fireEvent.change(within(dialog).getByLabelText('小红书'), { target: { value: '' } })
+    fireEvent.click(within(dialog).getByText('Analyze social profiles'))
+    expect(within(dialog).getByText('Fill at least one profile URL in the social-links step first')).toBeTruthy()
+  })
+
+  it('composes the intent chips into the values and infers only the intent blanks', async () => {
+    const processSpy = vi.fn(async () => ({ operation: 'fill', promptVersion: 'persona-fill@1', fields: { cadence: '每周 3 条' } }))
+    const putSpy = vi.fn(async (_input: PersonaInput) => entry())
+    renderView({ processPersonaAi: processSpy as unknown as PersonaGateway['processPersonaAi'], putPersona: putSpy })
+    const dialog = await openWizard()
+    fireEvent.change(within(dialog).getByPlaceholderText('one persona per identity, reusable across platforms'), { target: { value: '老王' } })
+    fireEvent.click(within(dialog).getByText('Next'))
+    fireEvent.click(within(dialog).getByText('Next'))
+
+    // Multi-select goal chips compose into one value; the template seeds the content value.
+    fireEvent.click(within(dialog).getByText('带货转化'))
+    fireEvent.click(within(dialog).getByText('引流到店'))
+    fireEvent.click(within(dialog).getByText('教用户怎么做（教程型）'))
+    expect(within(dialog).getByDisplayValue('教用户怎么做（教程型）')).toBeTruthy()
+
+    // The scoped inference fills only the still-blank intent fields.
+    fireEvent.click(within(dialog).getByText('AI-infer this step'))
+    await waitFor(() => { expect(processSpy).toHaveBeenCalled() })
+    const firstCall = processSpy.mock.calls[0] as [{ operation: string; blanks?: string[] }?] | []
+    const request = firstCall[0]
+    if (request === undefined) throw new Error('expected one processPersonaAi call')
+    expect(request.blanks).toEqual(['monetize', 'cadence'])
+    await waitFor(() => { expect(screen.getByText(/AI fill preview/)).toBeTruthy() })
+    fireEvent.click(screen.getByText('Adopt all'))
+    await waitFor(() => { expect(screen.queryByText(/AI fill preview/)).toBeNull() })
+
+    fireEvent.click(within(dialog).getByText('Save persona'))
+    await waitFor(() => { expect(putSpy).toHaveBeenCalled() })
+    const payload = putSpy.mock.calls[0]?.[0]
+    expect(payload?.fields.goal.value).toBe('带货转化；引流到店')
+    expect(payload?.fields.contentValue.value).toBe('教用户怎么做（教程型）')
+    expect(payload?.fields.cadence.value).toBe('每周 3 条')
+  })
+
+  it('keeps the advanced fields behind a disclosure and composes red-line presets', async () => {
+    const putSpy = vi.fn(async (_input: PersonaInput) => entry())
+    renderView({ putPersona: putSpy })
+    const dialog = await openWizard()
+    fireEvent.change(within(dialog).getByPlaceholderText('one persona per identity, reusable across platforms'), { target: { value: '老王' } })
+    for (let at = 0; at < 3; at += 1) fireEvent.click(within(dialog).getByText('Next'))
+
+    // First screen: pick a style, see the sample; the advanced block stays collapsed.
+    fireEvent.click(within(dialog).getByText('幽默网感'))
+    expect(within(dialog).getByText('e.g. 咱就是说，这功能一开，效率直接起飞。')).toBeTruthy()
+    expect(within(dialog).queryByPlaceholderText(/Extra style description/)).toBeNull()
+
+    // Red-line presets live on the first screen and compose into the value.
+    fireEvent.click(within(dialog).getByText('不提竞品'))
+    fireEvent.click(within(dialog).getByText('不聊政治'))
+
+    fireEvent.click(within(dialog).getByText('Advanced (optional)'))
+    expect(within(dialog).getByPlaceholderText(/Extra style description/)).toBeTruthy()
+    expect(within(dialog).getByText('Follow strictly (self-check every line)')).toBeTruthy()
+
+    fireEvent.click(within(dialog).getByText('Save persona'))
+    await waitFor(() => { expect(putSpy).toHaveBeenCalled() })
+    const payload = putSpy.mock.calls[0]?.[0]
+    expect(payload?.style.preset).toBe('humor')
+    expect(payload?.style.redLines).toEqual(['不聊政治', '不提竞品'])
+  })
+
   it('gates the résumé extraction behind text and consent', async () => {
     renderView({ processPersonaAi: (async () => ({ operation: 'resume', promptVersion: 'persona-resume@1', fields: { whoAmI: '工程师' } })) as unknown as PersonaGateway['processPersonaAi'] })
     const dialog = await openWizard()
     fireEvent.change(within(dialog).getByPlaceholderText(/Paste text or upload/), { target: { value: '简历正文' } })
     fireEvent.click(within(dialog).getByText('AI extract & prefill'))
-    expect(screen.getByText('Tick the consent box first')).toBeTruthy()
+    // The notice renders inside the modal overlay — the page-level bar is hidden behind it.
+    expect(within(dialog).getByText('Tick the consent box first')).toBeTruthy()
     fireEvent.click(within(dialog).getByText('I understand the résumé content will be sent to the AI model'))
     fireEvent.click(within(dialog).getByText('AI extract & prefill'))
     await waitFor(() => { expect(screen.getByText(/AI fill preview/)).toBeTruthy() })
     fireEvent.click(screen.getByText('Adopt all'))
     await waitFor(() => { expect(screen.queryByText(/AI fill preview/)).toBeNull() })
+  })
+
+  it('fetches and parses the own site from step 1 and adopts the candidates', async () => {
+    renderView({ processPersonaAi: (async () => ({ operation: 'site', promptVersion: 'persona-site@1', fields: { niche: '效率工具' }, text: '抓取到的官网正文' })) as unknown as PersonaGateway['processPersonaAi'] })
+    const dialog = await openWizard()
+    expect(within(dialog).getByText('Website / blog')).toBeTruthy()
+    fireEvent.change(within(dialog).getByPlaceholderText(/fill it in to fetch and parse/), { target: { value: 'https://laoli.example' } })
+    fireEvent.click(within(dialog).getByText('Fetch & parse'))
+    await waitFor(() => { expect(screen.getByText(/AI fill preview/)).toBeTruthy() })
+    expect(screen.getByDisplayValue('抓取到的官网正文')).toBeTruthy()
+    fireEvent.click(screen.getByText('Adopt all'))
+    await waitFor(() => { expect(screen.queryByText(/AI fill preview/)).toBeNull() })
+
+    // Empty URL and paste: the explicit notice, no AI call.
+    fireEvent.change(within(dialog).getByPlaceholderText(/fill it in to fetch and parse/), { target: { value: '' } })
+    fireEvent.change(screen.getByDisplayValue('抓取到的官网正文'), { target: { value: '' } })
+    fireEvent.click(within(dialog).getByText('Fetch & parse'))
+    expect(within(dialog).getByText('Enter the URL, or paste the site content first')).toBeTruthy()
+  })
+
+  it('shows a failed site fetch inside the dialog instead of silently doing nothing', async () => {
+    renderView({ processPersonaAi: (async () => { throw new Error('fetch blocked') }) as unknown as PersonaGateway['processPersonaAi'] })
+    const dialog = await openWizard()
+    fireEvent.change(within(dialog).getByPlaceholderText(/fill it in to fetch and parse/), { target: { value: 'https://laoli.example' } })
+    fireEvent.click(within(dialog).getByText('Fetch & parse'))
+    await waitFor(() => { expect(within(dialog).getByText('Fetching or parsing the site failed; please retry later')).toBeTruthy() })
   })
 })
 
