@@ -28,7 +28,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
       {open && children}
     </div>
   ),
-  IconSparkle16: () => <svg data-testid="sparkle" />,
+  IconSparkleRegular: () => <svg data-testid="sparkle" />,
 }))
 
 afterEach(() => {

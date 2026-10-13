@@ -244,7 +244,7 @@ describe('import and export', () => {
     document.createElement = ((tag: string) => {
       if (tag === 'a') return { click: () => { clicks.push('download') }, href: '', download: '' } as unknown as HTMLAnchorElement
       return createOriginal(tag)
-    })
+    }) as typeof document.createElement
     window.URL.createObjectURL = vi.fn(() => 'blob:test')
     window.URL.revokeObjectURL = vi.fn()
     controller.exportIds(['t-1'])

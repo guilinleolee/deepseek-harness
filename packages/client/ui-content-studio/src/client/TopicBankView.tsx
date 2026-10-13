@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { IconRefreshOutline14, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconRefreshOutlineMedium, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ScheduleItemId, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
 import type { ContentTopicsSnapshot, TopicItem, TopicItemInput, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
@@ -433,10 +433,10 @@ export function TopicBankView({
   if (failed !== undefined) {
     return (
       <div className={css.libraryState}>
-        <IconWarningOutline16 size={16} />
+        <IconWarningOutlineRegular size={16} />
         <span>{t('topicBank.error')}: {failed}</span>
         <button type="button" className={css.retry} onClick={() => { void load() }}>
-          <IconRefreshOutline14 size={14} />
+          <IconRefreshOutlineMedium size={14} />
           {t('library.retry')}
         </button>
       </div>
@@ -562,7 +562,7 @@ export function TopicBankView({
       )}
       {snapshot.problems.length > 0 && (
         <div className={css.libraryProblems} role="alert">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('topicBank.problems', { n: snapshot.problems.length })}</span>
         </div>
       )}

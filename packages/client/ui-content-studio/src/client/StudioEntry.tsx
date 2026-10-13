@@ -5,7 +5,7 @@
  * renders through the shared primitives component so every plugin's entry
  * reads identically.
  */
-import { IconSparkle16, SidebarFooterEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSparkleRegular, SidebarFooterEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContentStudioController } from './studio-store.ts'
 
@@ -28,7 +28,7 @@ export function StudioEntry({ wide, studio, t }: StudioEntryProps) {
       wide={wide}
       label={t('entry.label')}
       ariaLabel={t('entry.aria')}
-      icon={<IconSparkle16 size={wide ? 16 : 18} />}
+      icon={<IconSparkleRegular size={wide ? 16 : 18} />}
       onClick={() => { studio.open() }}
     />
   )

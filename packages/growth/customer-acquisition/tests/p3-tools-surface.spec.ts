@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { NurtureContentService } from '../src/content/service.ts'
 import type { SopService } from '../src/sop/service.ts'
 import type { PermissionContextService, ResolvedOperator } from '../src/permission/types.ts'
@@ -23,7 +22,7 @@ import {
   sopTemplateUpdateTool,
 } from '../src/tools/sop.ts'
 
-const EXEC = { callId: 'c', rootCallId: 'c', name: 'probe', arguments: {}, signal: new AbortController().signal, agent: { id: 'a1' } } as never
+const EXEC = { callId: 'c', rootCallId: 'c', name: 'probe', arguments: {}, signal: new AbortController().signal, agent: { id: 'a1' } } as unknown as ToolRunContext
 const COMPLETION: PromptCompletion = { complete: async () => 'x' }
 
 function permissionOf(operator: ResolvedOperator = FULL_OPERATOR): PermissionContextService {
@@ -208,7 +207,7 @@ describe('P3 SOP tool renders and executes', () => {
 })
 
 export { COMPLETION, permissionOf, contentOf, sopOf, vi }
-import type { ToolDefinition as ToolDefinitionType } from '@deepseek-ai/dsh-tools'
+import type { ToolDefinition as ToolDefinitionType, ToolRunContext } from '@deepseek-ai/dsh-tools'
 type ToolDefinition = ToolDefinitionType
 /** Minimal args each presentCall accepts; absent optionals stay undefined. */
 function sampleArgs(name: string): Record<string, unknown> {

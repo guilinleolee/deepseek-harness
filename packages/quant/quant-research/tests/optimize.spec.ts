@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { JobId } from '@deepseek-ai/dsh-jobs'
-import type { JobHooks, JobStart } from '@deepseek-ai/dsh-jobs'
+import type { JobHooks, JobSpec } from '@deepseek-ai/dsh-jobs'
 import { resolveConfig } from '../src/config.ts'
 import { DataSourceBreaker } from '../src/pdat/datasource.ts'
 import {
@@ -183,25 +183,25 @@ describe('runBacktestGrid', () => {
 
 /** Capturing fake registry: records every start and hands back its hooks. */
 function fakeJobs(): {
-  face: { start(spec: JobStart): ReturnType<typeof JobId> }
-  specs: JobStart[]
-  hooksOf(spec: JobStart): JobHooks
+  face: { start(spec: JobSpec): ReturnType<typeof JobId> }
+  specs: JobSpec[]
+  hooksOf(spec: JobSpec): JobHooks
 } {
-  const specs: JobStart[] = []
-  const hooksByIndex = new Map<JobStart, JobHooks>()
+  const specs: JobSpec[] = []
+  const hooksByIndex = new Map<JobSpec, JobHooks>()
   let counter = 0
   return {
     face: {
-      start(spec: JobStart): ReturnType<typeof JobId> {
+      start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
-        const hooks = spec.run()
+        const hooks = spec.run({ append() {}, progress() {} } as never)
         hooksByIndex.set(spec, hooks)
         return JobId(`quant-optimize-${String(counter)}`)
       },
     },
     specs,
-    hooksOf: (spec: JobStart): JobHooks => hooksByIndex.get(spec) as JobHooks,
+    hooksOf: (spec: JobSpec): JobHooks => hooksByIndex.get(spec) as JobHooks,
   }
 }
 
@@ -253,9 +253,9 @@ describe('quant_optimize_params', () => {
     expect(jobs.specs).toHaveLength(1)
     expect(jobs.specs[0]?.kind).toBe('quant-optimize')
     expect(jobs.specs[0]?.label).toContain('16 组合')
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('completed')
-    expect(outcome.output).toContain('# 参数寻优报告：000001')
+    expect(outcome.result).toContain('# 参数寻优报告：000001')
     expect(outcome.detail).toContain('SMA(')
     // One kernel fetch and exactly one grid request — the grid is one process.
     const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[0])
@@ -276,8 +276,8 @@ describe('quant_optimize_params', () => {
     expect((value as { data: { combos: number; rank_by: string } }).data).toMatchObject({
       combos: 1, rank_by: 'max_drawdown',
     })
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
-    expect(outcome.output).toContain('排名指标：max_drawdown')
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
+    expect(outcome.result).toContain('排名指标：max_drawdown')
   })
 
   it('settles as killed after cancel aborts the in-flight work', async () => {
@@ -291,7 +291,7 @@ describe('quant_optimize_params', () => {
     const tool: ToolDefinition = optimizeParamsTool(depsWith(kernel as QuantKernelClient, () => jobs.face))
     const value = await tool.execute?.({ symbol: '000001', bars: 80 }, exec)
     expect((value as { data: { job_id: string } }).data.job_id).toBe('quant-optimize-1')
-    const hooks = jobs.hooksOf(jobs.specs[0] as JobStart)
+    const hooks = jobs.hooksOf(jobs.specs[0] as JobSpec)
     const settled = hooks.done
     hooks.cancel('no longer needed')
     await expect(settled).resolves.toMatchObject({ status: 'killed' })
@@ -304,7 +304,7 @@ describe('quant_optimize_params', () => {
     })
     const tool: ToolDefinition = optimizeParamsTool(depsWith(kernel, () => jobs.face))
     await tool.execute?.({ symbol: '000001', bars: 80 }, exec)
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('failed')
     expect(outcome.detail).toBe('参数寻优任务失败')
   })

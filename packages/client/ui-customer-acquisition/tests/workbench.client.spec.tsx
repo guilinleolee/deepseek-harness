@@ -99,7 +99,7 @@ function faceOf(overrides: Partial<WorkbenchInjected> = {}): WorkbenchInjected {
       total: 1,
     })),
     ...overrides,
-  }
+  } as WorkbenchInjected
 }
 
 
@@ -108,7 +108,7 @@ function faceOf(overrides: Partial<WorkbenchInjected> = {}): WorkbenchInjected {
 function renderPage(page: string, overrides: Partial<WorkbenchInjected> = {}) {
   const face = faceOf(overrides)
   face.panel.open()
-  const view = render(<AcquisitionWorkbench {...face} t={key => zh[key]} />)
+  const view = render(<AcquisitionWorkbench {...face} t={key => zh[key as keyof typeof zh]} />)
   // tab queries match by text content inside the nav; page bodies may repeat
   // the labels, and jsdom's accessible-name computation is unreliable here
   const tabs = within(view.getByRole('navigation'))
@@ -128,7 +128,7 @@ function renderPage(page: string, overrides: Partial<WorkbenchInjected> = {}) {
 describe('workbench shell', () => {
   it('renders null while closed and the dialog with eight tabs while open', () => {
     const face = faceOf()
-    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key]} />)
+    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key as keyof typeof zh]} />)
     expect(view.container.firstElementChild).toBeNull()
     act(() => { face.panel.open() })
     expect(view.getByRole('dialog', { name: '获客运营' })).toBeDefined()
@@ -142,7 +142,7 @@ describe('workbench shell', () => {
   it('closes through the button and through Escape', () => {
     const face = faceOf()
     face.panel.open()
-    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key]} />)
+    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key as keyof typeof zh]} />)
     fireEvent.click(clickButton(view, '返回对话'))
     expect(face.panel.isOpen()).toBe(false)
     act(() => { face.panel.open() })
@@ -296,9 +296,9 @@ describe('settings page', () => {
 describe('read plumbing', () => {
   it('drops a late read result after unmount without warning', async () => {
     const pending = deferred<string>()
-    const face = faceOf({ listLeads: vi.fn(() => pending.promise) })
+    const face = faceOf({ listLeads: vi.fn(() => pending.promise) as never })
     face.panel.open()
-    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key]} />)
+    const view = render(<AcquisitionWorkbench {...face} t={key => zh[key as keyof typeof zh]} />)
     view.unmount()
     pending.resolve('late')
     await new Promise(resolve => setTimeout(resolve, 10))

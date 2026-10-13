@@ -48,7 +48,7 @@ export function completionReturning(text: string): PromptCompletion {
 }
 
 /** Build one valid model scoring answer over a profile's dimensions. */
-export function scoreJsonFor(profile: IcpProfile, score: number, reason = '整体匹配度不错'): string {
+export function scoreJsonFor(profile: Pick<IcpProfile, 'dimensions'>, score: number, reason = '整体匹配度不错'): string {
   return JSON.stringify({
     items: profile.dimensions.map(dimension => ({
       dimension_id: dimension.id,

@@ -5,7 +5,7 @@
  * an injected fetch.
  */
 import { describe, expect, it } from 'vitest'
-import type { SentimentAlert, SentimentAlertId, SentimentSettings, SentimentTask } from '../src/sentiment/types.ts'
+import type { SentimentAlert, SentimentAlertId, SentimentMention, SentimentSettings, SentimentTask } from '../src/sentiment/types.ts'
 import {
   SENTIMENT_PUSH_ALERT_CAP, formatAlertMessage, pushAlertRound, pushDingtalk, pushEmail, pushWecom,
 } from '../src/sentiment/push.ts'
@@ -104,7 +104,7 @@ describe('pushAlertRound', () => {
     const posts: string[] = []
     const fetchImpl: typeof fetch = async (input) => {
       posts.push(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
-      if (posts[posts.length - 1].includes('dingtalk')) return new Response('err', { status: 500 })
+      if (posts.at(-1)?.includes('dingtalk')) return new Response('err', { status: 500 })
       throw new Error('network down')
     }
     const result = await pushAlertRound(

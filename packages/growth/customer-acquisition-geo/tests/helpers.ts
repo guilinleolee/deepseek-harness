@@ -18,7 +18,7 @@ export interface HarnessOptions {
 
 export interface Harness {
   readonly ctx: Context
-  readonly service?: GeoDiagnosisService
+  readonly service: GeoDiagnosisService
   readonly web: FakeWeb
   dispose(): Promise<void>
 }
@@ -108,7 +108,7 @@ export async function setupHarness(
   }
   return {
     ctx,
-    ...(premountService ? { service: ctx.geoDiagnosis } : {}),
+    service: ctx.geoDiagnosis!,
     web,
     async dispose() {
       await ctx.fiber.dispose()

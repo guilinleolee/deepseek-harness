@@ -42,7 +42,7 @@ import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import type {} from '@deepseek-ai/dsh-jobs'
-import type { JobId, JobOutcome, JobStart } from '@deepseek-ai/dsh-jobs'
+import type { JobId, JobOutcome, JobSpec } from '@deepseek-ai/dsh-jobs'
 import type { QuantKernelClient } from './kernel-client/client.ts'
 import {
   DEFAULT_GRID_SPEC, GRID_COMBO_HARD_LIMIT,
@@ -118,7 +118,7 @@ export interface JobsStartFace {
    * @param spec - the producer declaration.
    * @returns the registry-issued job id.
    */
-  start(spec: JobStart): JobId
+  start(spec: JobSpec): JobId
 }
 
 /** The tool layer's resolved dependencies. */
@@ -1340,7 +1340,7 @@ export function optimizeParamsTool(deps: QuantToolDeps): ToolDefinition {
         const id = jobs.start({
           kind: 'quant-optimize',
           label,
-          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          ...(exec.agent === undefined ? {} : { owner: exec.agent.id }),
           run: () => {
             const done = (async (): Promise<JobOutcome> => {
               try {
@@ -1361,7 +1361,7 @@ export function optimizeParamsTool(deps: QuantToolDeps): ToolDefinition {
                 const best = ranked[0]
                 return {
                   status: 'completed' as const,
-                  output: markdown,
+                  result: markdown,
                   ...(best === undefined ? {} : { detail: `最优 SMA(${String(best.fast)}/${String(best.slow)})` }),
                 }
               } catch (error: unknown) {
@@ -1487,7 +1487,7 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
         const id = jobs.start({
           kind: 'quant-walk-forward',
           label,
-          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          ...(exec.agent === undefined ? {} : { owner: exec.agent.id }),
           run: () => {
             const done = (async (): Promise<JobOutcome> => {
               try {
@@ -1510,7 +1510,7 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
                 const best = ranked[0]
                 return {
                   status: 'completed' as const,
-                  output: markdown,
+                  result: markdown,
                   ...(best === undefined ? {} : { detail: `最优 SMA(${best.fast}/${best.slow}) 测试总收益 ${(testReport.metrics.total_return * 100).toFixed(2)}%` }),
                 }
               } catch (error: unknown) {

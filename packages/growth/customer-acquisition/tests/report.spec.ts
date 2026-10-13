@@ -208,7 +208,7 @@ describe('P4 overview tool and render', () => {
       report: { overview } as never,
       permission: permissionOf(),
     })
-    const value = await tool.execute({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, { agent: { id: 'a1' } } as never)
+    const value = await tool.execute({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, { agent: { id: 'a1' } } as never) as { totals: { lead_count: number } }
     expect(overview).toHaveBeenLastCalledWith({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, FULL_OPERATOR)
     await tool.execute({ period: 'week' }, { agent: { id: 'a1' } } as never)
     expect(overview).toHaveBeenLastCalledWith({ period: 'week' }, FULL_OPERATOR)
@@ -281,7 +281,7 @@ describe('P4 panel Remote read faces', () => {
     // an older report for the same scan arriving last never replaces the latest
     await domain.table('geo_reports').put('r3' as never, geoReportRow('r3', 's1', 70, NOW - 1) as never)
     // the panel resolves the web operator per call; this employee sees only emp-1 leads + pool
-    vi.spyOn(service.ctx.permissionContext, 'resolve').mockImplementation(async () => OWN_OPERATOR)
+    vi.spyOn((service as unknown as { ctx: { permissionContext: { resolve: () => Promise<typeof OWN_OPERATOR> } } }).ctx.permissionContext, 'resolve').mockImplementation(async () => OWN_OPERATOR)
 
     const leads = await service.listLeadsRemote({ owner: 'me' })
     expect(leads.items.map(lead => lead.company_name)).toEqual(['自有一'])

@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
-import { IconRefreshOutline14, IconTrashOutline16, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconRefreshOutlineMedium, IconTrashOutlineRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CompetitorAccountDigest, CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult,
@@ -554,13 +554,13 @@ export function CompetitorsView(props: CompetitorsViewProps) {
       {storageDegraded && <div className={css.compBanner}>{t('comp.storageDegraded')}</div>}
       {manifestError !== undefined && (
         <div className={css.compBanner}>
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('comp.manifestError')}: {manifestError}</span>
         </div>
       )}
       {manifestProblems.length > 0 && (
         <div className={css.compBanner} role="alert">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('comp.manifestProblems', { n: manifestProblems.length })}</span>
         </div>
       )}
@@ -851,11 +851,11 @@ function WorkDetail({
         <button type="button" className={css.retry} onClick={onToggleHot}>{work.hot ? t('comp.unmarkHot') : t('comp.markHot')}</button>
         <button type="button" className={css.retry} onClick={onToggleFavorite}>{work.favorite ? t('comp.unmarkFavorite') : t('comp.markFavorite')}</button>
         <button type="button" className={css.retry} disabled={!themeReady || work.collectedIdeaRef !== undefined} onClick={onIdea} title={work.collectedIdeaRef}>{t('comp.addIdea')}</button>
-        <button type="button" className={css.retry} onClick={onRemove} aria-label={t('comp.removeWork')}><IconTrashOutline16 size={12} /></button>
+        <button type="button" className={css.retry} onClick={onRemove} aria-label={t('comp.removeWork')}><IconTrashOutlineRegular size={12} /></button>
       </div>
       {work.analysis.status === 'failed' && (
         <div className={css.compBanner} role="alert">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('comp.analysisFailed')}: {work.analysis.error}</span>
         </div>
       )}
@@ -1028,9 +1028,9 @@ function AccountsSection({ accounts, form, onForm, onSubmit, onRemove, onImport,
                 {account.positioning.length > 0 && <span className={css.listMeta}>{account.positioning}</span>}
                 <div className={css.compActions}>
                   <button type="button" className={css.retry} onClick={() => { onToggle(account) }}>{account.enabled ? t('comp.accountDisable') : t('comp.accountEnable')}</button>
-                  <button type="button" className={css.retry} disabled={manifest === undefined} onClick={() => { onCollect([account.id]) }}><IconRefreshOutline14 size={12} /> {t('comp.markCollectedOne')}</button>
+                  <button type="button" className={css.retry} disabled={manifest === undefined} onClick={() => { onCollect([account.id]) }}><IconRefreshOutlineMedium size={12} /> {t('comp.markCollectedOne')}</button>
                   <button type="button" className={css.retry} onClick={() => { onForm(accountForm(account)) }}>{t('comp.accountEdit')}</button>
-                  <button type="button" className={css.retry} onClick={() => { onRemove(account) }} aria-label={t('comp.accountRemove')}><IconTrashOutline16 size={12} /></button>
+                  <button type="button" className={css.retry} onClick={() => { onRemove(account) }} aria-label={t('comp.accountRemove')}><IconTrashOutlineRegular size={12} /></button>
                 </div>
               </div>
             )

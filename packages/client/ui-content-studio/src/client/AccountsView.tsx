@@ -4,7 +4,7 @@
  * machine) plus the creation-account selector that injects the active
  * account name into every copied instruction.
  */
-import { IconTrashOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconTrashOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SocialPlatform } from '@deepseek-ai/dsh-content-outputs/types'
 import { AccountSelect } from './AccountSelect.tsx'
@@ -159,7 +159,7 @@ export function AccountsView({ personas, account, accounts, onSelect, onAdd, onR
                   aria-label={t('accounts.delete')}
                   onClick={() => { onRemove(name) }}
                 >
-                  <IconTrashOutline16 size={12} />
+                  <IconTrashOutlineRegular size={12} />
                 </button>
               )}
             </div>

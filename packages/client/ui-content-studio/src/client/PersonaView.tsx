@@ -8,7 +8,7 @@
  * the injected controller; this file only wires them to the DOM.
  */
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { DisclosureRow, IconSparkle16, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DisclosureRow, IconSparkleRegular, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PersonaEntry, PersonaFieldKey, PersonaId } from '@deepseek-ai/dsh-content-outputs/types'
 import { parseWordList } from './persona/model.ts'
@@ -603,7 +603,7 @@ function PersonaWizard(props: {
               />
             </FieldRow>
             <DisclosureRow
-              icon={<IconSparkle16 size={14} />}
+              icon={<IconSparkleRegular size={14} />}
               title={t('persona.style.advanced')}
               open={advancedOpen}
               expandable

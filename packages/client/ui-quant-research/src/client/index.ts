@@ -9,6 +9,7 @@
  * @module @deepseek-ai/dsh-client-ui-quant-research/client
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay') into this
 // program so the surface registration below typechecks.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'

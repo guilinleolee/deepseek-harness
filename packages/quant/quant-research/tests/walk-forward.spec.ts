@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { JobId } from '@deepseek-ai/dsh-jobs'
-import type { JobHooks, JobStart } from '@deepseek-ai/dsh-jobs'
+import type { JobHooks, JobSpec } from '@deepseek-ai/dsh-jobs'
 import { resolveConfig } from '../src/config.ts'
 import { DataSourceBreaker } from '../src/pdat/datasource.ts'
 import { DEFAULT_GRID_SPEC } from '../src/compliance.ts'
@@ -200,25 +200,25 @@ describe('formatWalkForwardSummary', () => {
 
 /** Capturing fake registry: records every start and hands back its hooks. */
 function fakeJobs(): {
-  face: { start(spec: JobStart): ReturnType<typeof JobId> }
-  specs: JobStart[]
-  hooksOf(spec: JobStart): JobHooks
+  face: { start(spec: JobSpec): ReturnType<typeof JobId> }
+  specs: JobSpec[]
+  hooksOf(spec: JobSpec): JobHooks
 } {
-  const specs: JobStart[] = []
-  const hooksByIndex = new Map<JobStart, JobHooks>()
+  const specs: JobSpec[] = []
+  const hooksByIndex = new Map<JobSpec, JobHooks>()
   let counter = 0
   return {
     face: {
-      start(spec: JobStart): ReturnType<typeof JobId> {
+      start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
-        const hooks = spec.run()
+        const hooks = spec.run({ append() {}, progress() {} } as never)
         hooksByIndex.set(spec, hooks)
         return JobId(`quant-walk-forward-${String(counter)}`)
       },
     },
     specs,
-    hooksOf: (spec: JobStart): JobHooks => hooksByIndex.get(spec) as JobHooks,
+    hooksOf: (spec: JobSpec): JobHooks => hooksByIndex.get(spec) as JobHooks,
   }
 }
 
@@ -266,9 +266,9 @@ describe('quant_walk_forward', () => {
     expect(jobs.specs).toHaveLength(1)
     expect(jobs.specs[0]?.kind).toBe('quant-walk-forward')
     expect(jobs.specs[0]?.label).toContain('16 组合')
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('completed')
-    expect(outcome.output).toContain('# Walk-forward 验证报告：000001')
+    expect(outcome.result).toContain('# Walk-forward 验证报告：000001')
     expect(outcome.detail).toContain('SMA(')
     const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[0])
     expect(ops).toEqual(['get_kline', 'backtest_grid', 'backtest'])
@@ -287,8 +287,8 @@ describe('quant_walk_forward', () => {
     expect((value as { data: { combos: number; rank_by: string; train_ratio: number } }).data).toMatchObject({
       combos: 1, rank_by: 'max_drawdown', train_ratio: 0.6,
     })
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
-    expect(outcome.output).toContain('训练段比例：0.6')
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
+    expect(outcome.result).toContain('训练段比例：0.6')
   })
 
   it('settles as killed after cancel aborts the in-flight work', async () => {
@@ -302,7 +302,7 @@ describe('quant_walk_forward', () => {
     const tool: ToolDefinition = walkForwardTool(depsWith(kernel as QuantKernelClient, () => jobs.face))
     const value = await tool.execute?.({ symbol: '000001', bars: 250 }, exec)
     expect((value as { data: { job_id: string } }).data.job_id).toBe('quant-walk-forward-1')
-    const hooks = jobs.hooksOf(jobs.specs[0] as JobStart)
+    const hooks = jobs.hooksOf(jobs.specs[0] as JobSpec)
     const settled = hooks.done
     hooks.cancel('no longer needed')
     await expect(settled).resolves.toMatchObject({ status: 'killed' })
@@ -313,7 +313,7 @@ describe('quant_walk_forward', () => {
     const kernel = kernelByOp(() => { throw new Error('wire broke') })
     const tool: ToolDefinition = walkForwardTool(depsWith(kernel, () => jobs.face))
     await tool.execute?.({ symbol: '000001', bars: 250 }, exec)
-    const outcome = await jobs.hooksOf(jobs.specs[0] as JobStart).done
+    const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('failed')
     expect(outcome.detail).toBe('walk-forward 验证任务失败')
   })

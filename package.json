@@ -282,9 +282,5 @@
     "@deepseek-ai/dsh-working-directory": "workspace:*",
     "@deepseek-ai/dsh-experimental-worktree": "workspace:*",
     "@deepseek-ai/dsh-experimental-tool-worktree": "workspace:*"
-  },
-  "dependencies": {
-    "@earendil-works/pi-ai": "^0.82.1",
-    "schemastery": "^3.18.0"
   }
 }

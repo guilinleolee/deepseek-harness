@@ -135,7 +135,7 @@ describe('final P3 render and forward fills', () => {
     const tListAll = contentTemplateListTool({ content: contentStubWith(listTemplates), permission: permissionOf(), policy: POLICY })
     await tListAll.execute({ type: 'sms_followup', enabled_only: true }, EXEC)
     const [bare] = tListAll.output.render({}, {
-      items: [{ id: 't1', name: '甲', industry: undefined, type: 'sms_followup', body: 'b', enabled: true, variables: [] }],
+      items: [{ id: 't1', name: '甲', type: 'sms_followup', body: 'b', enabled: true, variables: [] }],
     })
     expect((bare as { text: string }).text).toContain('sms_followup')
 
@@ -199,12 +199,12 @@ describe('final P3 render and forward fills', () => {
   })
 })
 
-function contentStubWith(listTemplates: () => unknown[]): NurtureContentService {
+function contentStubWith(listTemplates: () => unknown[] | Promise<undefined>): NurtureContentService {
   const base = contentOf()
   return { ...base, listTemplates } as never
 }
 
-function sopStubWith(listTemplates: () => unknown[]): SopService {
+function sopStubWith(listTemplates: () => unknown[] | Promise<undefined>): SopService {
   const base = sopOf()
   return { ...base, listTemplates } as never
 }

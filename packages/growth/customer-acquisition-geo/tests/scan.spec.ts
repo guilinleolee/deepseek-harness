@@ -8,6 +8,7 @@ import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
 import { describe, expect, it } from 'vitest'
 import { geoCompareTool, geoHistoryTool, geoReportGetTool, geoScanTool } from '../src/tools.ts'
 import { GeoDiagnosisService, renderReportMd } from '../src/service.ts'
+import type { GeoCompareValue, GeoHistoryItem, GeoReportValue, GeoScanValue } from '../src/types.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import { localOperator, setupHarness, type Harness } from './helpers.ts'
 
@@ -27,7 +28,7 @@ function routes(home: string): Record<string, string> {
   }
 }
 
-async function scan(harness: Harness, url = 'https://x.com/') {
+async function scan(harness: Harness, url = 'https://x.com/'): Promise<GeoScanValue> {
   return harness.service.runScan({ url }, await localOperator(harness))
 }
 
@@ -136,10 +137,10 @@ describe('geo scan end-to-end over the composed stack', () => {
     const harness = await setupHarness(routes(ROUND1_HOME))
     try {
       const tool = geoScanTool(harness.service, harness.ctx.permissionContext)
-      const value = await tool.execute({ url: 'https://x.com/', max_pages: 2 }, {} as never)
+      const value = await tool.execute({ url: 'https://x.com/', max_pages: 2 }, {} as never) as GeoScanValue
       expect(value.scan_id).toBeTruthy()
-      const rendered = tool.output.render({ url: 'https://x.com/' }, value)
-      expect(rendered[0]!.text).toContain('GEO 诊断报告')
+      const rendered = tool.output.render({ url: 'https://x.com/' }, value as unknown as import('@deepseek-ai/dsh-util-values').JsonValue)
+      expect((rendered[0] as { text: string }).text).toContain('GEO 诊断报告')
     } finally {
       await harness.dispose()
     }
@@ -151,18 +152,18 @@ describe('geo scan end-to-end over the composed stack', () => {
       const first = await scan(harness)
       harness.web.setRoute('https://x.com/', ROUND2_HOME)
       const second = await scan(harness)
-      const page = await geoHistoryTool(harness.service).execute({})
-      const baselineId = page.items.find(item => item.scan_id === first.scan_id)!.report_id
-      const improvedId = page.items.find(item => item.scan_id === second.scan_id)!.report_id
+      const page = await geoHistoryTool(harness.service).execute({}, {} as never) as { items: GeoHistoryItem[]; total: number }
+      const baselineId = page.items.find((item: GeoHistoryItem) => item.scan_id === first.scan_id)!.report_id
+      const improvedId = page.items.find((item: GeoHistoryItem) => item.scan_id === second.scan_id)!.report_id
 
-      const detail = await geoReportGetTool(harness.service).execute({ report_id: improvedId }, {} as never)
+      const detail = await geoReportGetTool(harness.service).execute({ report_id: improvedId }, {} as never) as GeoReportValue
       expect(detail.report.score).toBe(second.score)
       expect(detail.report.findings[0]).toMatchObject({ id: expect.any(String), severity: expect.any(String) })
 
       const compared = await geoCompareTool(harness.service).execute(
         { report_a_id: baselineId, report_b_id: improvedId },
         {} as never,
-      )
+      ) as GeoCompareValue
       expect(compared.score_delta).toBeGreaterThan(0)
     } finally {
       await harness.dispose()

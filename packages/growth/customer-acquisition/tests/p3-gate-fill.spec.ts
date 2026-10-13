@@ -190,11 +190,11 @@ describe('P3 SOP service remaining branches', () => {
 
 describe('P3 scope guards', () => {
   it('assertCopyScope and assertSopScope mirror each other', () => {
-    const lead = { owner_id: undefined, company_name: '公海' } as never
+    const lead = { owner_id: undefined, company_name: '公海' } as unknown as Parameters<typeof assertSopScope>[0]
     expect(() =>{  assertCopyScope(lead, OWN_OPERATOR) }).toThrow('先领取')
     expect(() =>{  assertSopScope(lead, OWN_OPERATOR) }).toThrow('先领取')
-    expect(() =>{  assertCopyScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as never, OWN_OPERATOR) }).toThrow('无权为他人线索生成文案')
-    expect(() =>{  assertSopScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as never, OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
+    expect(() =>{  assertCopyScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as unknown as Parameters<typeof assertSopScope>[0], OWN_OPERATOR) }).toThrow('无权为他人线索生成文案')
+    expect(() =>{  assertSopScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as unknown as Parameters<typeof assertSopScope>[0], OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
   })
 
   it('cadenceOffsets tolerates offset-free cadences and preserves order', () => {

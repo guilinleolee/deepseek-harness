@@ -119,30 +119,30 @@ describe('parseScoreOutput repair integration', () => {
     id: 'p', name: '画像', industry: '测试',
     dimensions: [{ id: 'a', name: '维度A', description: 'd', weight: 100 }],
     enabled: true, created_at: 1, updated_at: 1,
-  } as never
+  } as unknown as import('../src/domain/spec.ts').IcpProfile
 
   it('recovers from in-string newlines via repairJsonBody', () => {
     const raw = '{"items":[{"dimension_id":"a","score":85,\n"reason":"多行\n理由"}],"reason":"整体"}'
-    const parsed = parseScoreOutput(raw, profile as never)
+    const parsed = parseScoreOutput(raw, profile)
     expect(parsed.total).toBe(85)
     expect(parsed.reason).toBe('整体')
   })
 
   it('recovers from full-width structural separators', () => {
     const raw = '{"items"：[{"dimension_id"："a"，"score"：85，"reason"："r"}]，"reason"："整体"}'
-    const parsed = parseScoreOutput(raw, profile as never)
+    const parsed = parseScoreOutput(raw, profile)
     expect(parsed.total).toBe(85)
   })
 })
 
 describe('SOP scope guard mirror', () => {
-  const lead = { owner_id: undefined, company_name: '公海' } as never
+  const lead = { owner_id: undefined, company_name: '公海' } as unknown as Parameters<typeof assertSopScope>[0]
   const ownOperator = {
     userId: 'u', displayName: 'n',
     capabilities: { lead_scope: 'own', can_manage_global_templates: false, can_delete_any_lead: false, can_export: false, can_manage_settings: false },
-  } as never
+  } as unknown as Parameters<typeof assertSopScope>[1]
   it('blocks pool and other-owned leads for copy and SOP generation alike', () => {
     expect(() => assertSopScope(lead, ownOperator)).toThrow('先领取')
-    expect(() => assertSopScope({ ...lead, owner_id: 'u2' } as never, ownOperator)).toThrow('无权为他人线索')
+    expect(() => assertSopScope({ ...lead, owner_id: 'u2' } as unknown as Parameters<typeof assertSopScope>[0], ownOperator)).toThrow('无权为他人线索')
   })
 })
