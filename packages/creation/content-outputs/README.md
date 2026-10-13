@@ -18,13 +18,22 @@ All gather storage lives under `outputs/<theme>/assets/`: the `_gather.json` man
 
 Retention: per source, the newest 50 `unread`/`read` materials stay in a theme; `favorite` and `picked` markers and their snapshots are never removed automatically.
 
+## Sentiment faces
+
+The opinion-monitoring storage is one root-level `_sentiment.json` manifest (tasks, mentions, alerts, settings, and the newest report; `formatVersion 0`) following the persona manifest rules: a malformed record is named in `problems` and never hides the rest, and every write refuses to touch a file whose current parse dropped records.
+
+- `getSentiment` returns the projection (including the stored report) plus the single-slot `scanning` flag and the last scan's summary; `putSentimentTask` / `deleteSentimentTask` (cascades the task's mentions and alerts) / `setSentimentTaskEnabled` manage tasks; `putSentimentSettings` replaces the settings block (domain and account blacklists, thresholds, retention, the push master switch, webhook URLs, and the SMTP transport fields); `handleSentimentAlert` marks one alert handled.
+- `scanSentiment` runs the whole pipeline once per enabled task over the task's `sources` flags: RSS feeds through the shared gather fetcher (30-entries-per-feed cap, keyword-group filtering), plus — when toggled — one weibo visitor-search page and one bilibili wbi-signed hot-search page per task on the first subject (both anonymous public web endpoints; the subject search is the retrieval filter, so social mentions skip the keyword groups but run the same two-stage classification, the domain blacklist, and the account blacklist against the author). Negatives aggregate into task+day alert rows leveled 1–4 by heat against the configured threshold; every adapter degrades to an empty page on any failure, so a blocked source never fails the scan. Dedupe is per task+URL, retention and the 5,000-mention hard cap prune on every append, and a concurrent scan call rejects immediately. After persistence, when the push switch is on, the scan posts one text digest per configured channel — Dingtalk and WeCom group robots (plain-JSON text protocol) and one email via nodemailer when the SMTP host/recipient/password are all set (implicit TLS on 465, STARTTLS otherwise); a channel failure only logs — push is best-effort because the alerts are already stored.
+- `sentimentStats` computes the dashboard projection: totals, polarity counts, the 14-day trend, and the per-platform top list.
+- `generateSentimentReport` frames the stored state (stats, task names, platform spread, the newest 10 alerts and 40 mention lines, 12k-char cap) into one model call over a fixed five-section prompt (`sentiment-report@1`); any model failure lands the deterministic data-only degraded template instead of an error, and the manifest keeps the newest report only.
+
 ## Model Experience
 
 ### Explicit one-shot AI remotes
 
 #### What the model sees
 
-Every user click assembles exactly one framed request through the shared `llm` service: material processing, creation generation/rewrite/evaluation, competitor teardowns and reports, persona fill/resume/site/social/report, publish adaptation, review diagnosis and period reports, template generate/optimize/extract, and interaction reply drafts, sentiment/intent classification, and insight extraction. Prompts are frozen gateway constants versioned per face (`processMaterial`, `generateCreateContent`, `analyzeCompetitorWork`), inputs are truncated to the configured character cap, and the JSON-contract faces parse strictly with per-field problems; a failed or rate-limited call surfaces to the caller and never blocks the filesystem operations.
+Every user click assembles exactly one framed request through the shared `llm` service: material processing, creation generation/rewrite/evaluation, competitor teardowns and reports, persona fill/resume/site/social/report, publish adaptation, review diagnosis and period reports, template generate/optimize/extract, and interaction reply drafts, sentiment/intent classification, insight extraction, and the sentiment scan's batched polarity refinement. Prompts are frozen gateway constants versioned per face (`processMaterial`, `generateCreateContent`, `analyzeCompetitorWork`), inputs are truncated to the configured character cap, and the JSON-contract faces parse strictly with per-field problems; a failed or rate-limited call surfaces to the caller and never blocks the filesystem operations.
 
 #### Token effect
 

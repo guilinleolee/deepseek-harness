@@ -107,6 +107,58 @@ export interface PersonaLink {
   readonly sampleText: string | null
 }
 
+/**
+ * Platforms the social-capture faces support with a browser session:
+ * the PersonaPlatform subset with an anonymously unusable but logged-in
+ * readable homepage. 头条 (and every other platform) stays on the manual
+ * paste / plain link-fetch paths by design.
+ */
+export type SocialPlatform = 'xhs' | 'douyin' | 'weibo' | 'bili'
+
+/** Every supported social-capture platform, frozen for wire validation. */
+export const SOCIAL_PLATFORMS = ['xhs', 'douyin', 'weibo', 'bili'] as const
+
+/** Chinese label of one social-capture platform; shared by the wizard and the AI section header. */
+export const SOCIAL_PLATFORM_LABELS: Readonly<Record<SocialPlatform, string>> = {
+  xhs: '小红书',
+  douyin: '抖音',
+  weibo: '微博',
+  bili: 'B 站',
+}
+
+/** Login/capture availability of one social-capture platform. */
+export interface SocialStatusRow {
+  /** A stored browser session (storage state) exists for this platform. */
+  readonly hasSession: boolean
+  /** Captures already performed today (the daily cap counts down from the configured maximum). */
+  readonly captureCountToday: number
+}
+
+/** Result face of listing all supported platforms' statuses. */
+export interface SocialStatuses {
+  readonly rows: ReadonlyArray<{ readonly platform: SocialPlatform } & SocialStatusRow>
+  /** The configured daily per-platform cap, echoed so clients can show the remaining quota. */
+  readonly dailyCap: number
+}
+
+/** Result face of verifying one stored session against its platform. */
+export interface SocialVerifyResult {
+  readonly platform: SocialPlatform
+  /** The platform's session cookie is still present on a live logged-in page. */
+  readonly valid: boolean
+  /** The account nickname when the platform exposes it on the home page; null otherwise. */
+  readonly nickname: string | null
+}
+
+/** One captured profile, already rendered as the labeled section text the social AI face consumes. */
+export interface SocialCaptureResult {
+  readonly platform: SocialPlatform
+  readonly url: string
+  /** The rendered section: 【平台】url + 昵称/简介/认证/作品标题 lines. */
+  readonly text: string
+  readonly capturedAt: string
+}
+
 /** Writing style configuration (wizard step 4); `preset` and `customText` may coexist, the custom text wins. */
 export interface PersonaStyle {
   readonly preset: PersonaStylePreset | null
@@ -200,6 +252,12 @@ export type PersonaAiRequest =
     readonly known: Readonly<Partial<Record<PersonaFieldKey, string>>>
     /** The blank field keys the caller wants filled. */
     readonly blanks: readonly PersonaFieldKey[]
+    /**
+     * Raw reference material (fetched site text, résumé excerpt) that gives
+     * the model something to ground on when the structured fields are
+     * sparse; truncated by the gateway to the configured input cap.
+     */
+    readonly context?: string
   }
   | {
     /** Extract structured fields from one résumé / background text; `whoAmI` is allowed here. */
@@ -219,13 +277,16 @@ export type PersonaAiRequest =
   | {
     /**
      * Extract structured fields from the persona's social profile homepages
-     * (wizard step 4); `whoAmI` is allowed here. The gateway fetches each
-     * link server-side and skips the ones that yield nothing readable —
-     * social pages are frequently login-walled — then extracts from the
-     * surviving sections in one model call. At least one link is required.
+     * (wizard step 2); `whoAmI` is allowed here. Captured profiles (browser
+     * session reads, already labeled) are analyzed as-is; the remaining links
+     * are fetched server-side and skipped when they yield nothing readable —
+     * social pages are frequently login-walled. At least one of the two
+     * inputs must carry content.
      */
     readonly operation: 'social'
-    readonly links: ReadonlyArray<{ readonly platform: PersonaPlatform; readonly url: string }>
+    readonly links?: ReadonlyArray<{ readonly platform: PersonaPlatform; readonly url: string }>
+    /** Pre-captured labeled sections (from the browser-session capture faces), used without refetching. */
+    readonly profiles?: ReadonlyArray<{ readonly platform: PersonaPlatform; readonly text: string }>
   }
   | {
     /** Generate the full persona report from one saved entry's facts. */
