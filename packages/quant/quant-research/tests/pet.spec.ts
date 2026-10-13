@@ -37,14 +37,15 @@ const BARS: KlineBar[] = [
 const PRICES = { '000001': 10, AAPL: 100 }
 
 function petDeps(kernel: QuantKernelClient, approval?: { request: (req: unknown) => Promise<string> }): QuantToolDeps {
-  return {
+  const base: QuantToolDeps = {
     config: CONFIG,
     kernel,
     breaker: new DataSourceBreaker(3),
     accounts: table(),
     orders: table(),
-    ...(approval === undefined ? {} : { approval: approval as never }),
+    notes: new Map() as never,
   }
+  return approval === undefined ? base : { ...base, approval: approval as never }
 }
 
 describe('computeRebalanceTrades', () => {

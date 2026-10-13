@@ -23,6 +23,7 @@ import type { KlineBar } from './pdat/datasource.ts'
 import * as indicators from './paat/indicators.ts'
 import type { Series } from './paat/indicators.ts'
 import { runBacktest, validateBacktestParams } from './pcpt/backtest.ts'
+import { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
 import {
   annualVolatility, dailyReturns, historicalCVar, historicalVar, maxDrawdown, shockBars,
   validateStressParams,
@@ -36,9 +37,32 @@ import {
   applyTrades, createAccount, requireAccount,
 } from './pet/service.ts'
 import { computeRebalanceTrades, latestClose } from './pet/rebalance.ts'
+import { exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNoteEntry } from './pet/notes.ts'
+import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
+import type {} from '@deepseek-ai/dsh-jobs'
+import type { JobId, JobOutcome, JobStart } from '@deepseek-ai/dsh-jobs'
 import type { QuantKernelClient } from './kernel-client/client.ts'
+import {
+  DEFAULT_GRID_SPEC, GRID_COMBO_HARD_LIMIT,
+} from './compliance.ts'
+import type { GridAxisSpec } from './compliance.ts'
+import {
+  DEFAULT_RANK_METRIC, TOP_N_LIMITS, axisLength, formatOptimizationSummary,
+  rankGridResults, runBacktestGrid, validateGridSpec,
+} from './pcpt/optimize.ts'
+import type { GridSpec, RankMetric } from './pcpt/optimize.ts'
+import {
+  TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars, validateWalkForwardParams,
+} from './pcpt/walk-forward.ts'
+
+declare module '@deepseek-ai/dsh-jobs' {
+  interface JobKindMap {
+    'quant-optimize': 'quant-optimize'
+    'quant-walk-forward': 'quant-walk-forward'
+  }
+}
 
 /** Bar-count default for one kline/indicator request. */
 export const DEFAULT_KLINE_BARS = 120
@@ -87,6 +111,16 @@ export interface ApprovalAsk {
   }): Promise<ApprovalOutcome>
 }
 
+/** The job-registry face the optimize tool starts background work through. */
+export interface JobsStartFace {
+  /**
+   * Start one background job; the registry owns identity and lifecycle.
+   * @param spec - the producer declaration.
+   * @returns the registry-issued job id.
+   */
+  start(spec: JobStart): JobId
+}
+
 /** The tool layer's resolved dependencies. */
 export interface QuantToolDeps {
   /** The resolved plugin configuration. */
@@ -99,11 +133,13 @@ export interface QuantToolDeps {
   readonly accounts: AccountsTable
   /** The simulated-fill table (domain v2). */
   readonly orders: OrdersTable
+  /** The research-notes table (domain v2). */
+  readonly notes: NotesTable
   /** The user-approval ask face, when the host composes it. */
-  readonly approval?: ApprovalAsk
-}
-
-/**
+  readonly approval?: ApprovalAsk | undefined
+  /** Lazy access to the host's job registry, when one is composed. */
+  readonly jobs?: (() => JobsStartFace | undefined) | undefined
+}/**
  * Read the envelope's failure message when the value is one.
  * @param value - the tool result value.
  * @returns the friendly failure line, or `undefined` for a success envelope.
@@ -915,7 +951,7 @@ export function computeFactorTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderFactor(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `计算因子：${args.symbol} ${args.factor}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `计算因子：${args.symbol} ${args.factor}` }),
     async execute(args, exec) {
       return envelopeFrom('get_kline', exec, async () => {
         const series = await fetchKline(deps.kernel, deps.breaker, {
@@ -957,7 +993,7 @@ export function factorICTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderIC(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `IC 分析：${args.symbol} ${args.factor}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `IC 分析：${args.symbol} ${args.factor}` }),
     async execute(args, exec) {
       return envelopeFrom('get_kline', exec, async () => {
         const series = await fetchKline(deps.kernel, deps.breaker, {
@@ -989,6 +1025,559 @@ export function factorICTool(deps: QuantToolDeps): ToolDefinition {
 }
 
 /**
+ * Build the note-save tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function saveNoteTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_save_note',
+    description: '保存量化研究笔记（策略思路、回测结论），按 symbol 和标签归档，可通过 quant_list_notes 查询。',
+    parameters: {
+      title: { type: 'string', required: true, description: '笔记标题' },
+      body: { type: 'string', required: true, description: '笔记正文' },
+      symbol: { type: 'string', description: '关联标的（可选）' },
+      tags: { type: 'array', items: { type: 'string' }, description: '标签列表（可选）' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteSave(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `保存笔记：${args.title}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const note = await saveNoteEntry(deps.notes, {
+          title: args.title, body: args.body,
+          ...(args.symbol === undefined ? {} : { symbol: args.symbol }),
+          ...(args.tags === undefined ? {} : { tags: args.tags }),
+        })
+        return { note_id: note.id, title: note.title, tags: note.tags }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Build the note-list tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function listNotesTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_list_notes',
+    description: '列出量化研究笔记，可按标的或标签筛选，按创建时间降序排列。',
+    parameters: {
+      symbol: { type: 'string', description: '按标的筛选（可选）' },
+      tag: { type: 'string', description: '按标签筛选（可选）' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteList(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `查询笔记${args.symbol ? `：${args.symbol}` : ''}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const notes = listNoteEntries(deps.notes, {
+          ...(args.symbol === undefined ? {} : { symbol: args.symbol }),
+          ...(args.tag === undefined ? {} : { tag: args.tag }),
+        })
+        return { count: notes.length, notes: notes.map(note => ({ note_id: note.id, title: note.title, symbol: note.symbol ?? null, tags: note.tags, created_at: note.created_at })) }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Build the report-export tool.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function exportReportTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_export_report',
+    description: '导出量化研究笔记为 Markdown 报告（含标题、正文与标签），仅供研究参考。',
+    parameters: { symbol: { type: 'string', description: '按标的筛选（可选）' } },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderNoteExport(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `导出报告${args.symbol ? `：${args.symbol}` : ''}` }),
+    async execute(args) {
+      return envelopeFrom('ping', { signal: new AbortController().signal, agent: undefined } as never, async () => {
+        const notes = listNoteEntries(deps.notes, { ...(args.symbol === undefined ? {} : { symbol: args.symbol }) })
+        return { markdown: exportNotesMarkdown(notes), note_count: notes.length }
+      }) as never
+    },
+  })
+}
+
+function renderNoteSave(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { note_id?: string; title?: string; tags?: string[] } | undefined
+  if (data?.note_id === undefined) return [{ type: 'text', text: `保存结果为空。\n\n${DISCLAIMER}` }]
+  const tags = data.tags?.length ? ` [${data.tags.join(', ')}]` : ''
+  return [{ type: 'text', text: `笔记已保存${tags}\n\n${DISCLAIMER}` }]
+}
+
+function renderNoteList(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { count?: number; notes?: { title: string; symbol: string | null; tags: string[] }[] } | undefined
+  if (data?.notes === undefined) return [{ type: 'text', text: `笔记列表为空。\n\n${DISCLAIMER}` }]
+  const lines = data.notes.map(n => `- ${n.title}${n.symbol ? ` (${n.symbol})` : ''}${n.tags.length ? ` [${n.tags.join(', ')}]` : ''}`).join('\n')
+  return [{ type: 'text', text: `共 ${String(data.count ?? 0)} 条研究笔记：\n${lines}\n\n${DISCLAIMER}` }]
+}
+
+function renderNoteExport(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { markdown?: string } | undefined
+  if (data?.markdown === undefined) return [{ type: 'text', text: `报告为空。\n\n${DISCLAIMER}` }]
+  return [{ type: 'text', text: `${data.markdown}\n\n${DISCLAIMER}` }]
+}
+
+/**
+ * Build the backtest-comparison tool: runs the same strategy with two
+ * parameter sets and compares metrics side by side.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function compareBacktestsTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_compare_backtests',
+    description: '对比两组双均线策略参数的回测结果（研究用，模拟盘）：同标的同时跑 A/B 两组回测，对比总收益、最大回撤与夏普。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码' },
+      fast_a: { type: 'integer', description: `A 组快线（2-120），默认 ${String(DEFAULT_BACKTEST_FAST)}` },
+      slow_a: { type: 'integer', description: `A 组慢线（3-250），默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
+      fast_b: { type: 'integer', description: 'B 组快线（2-120），默认 20' },
+      slow_b: { type: 'integer', description: 'B 组慢线（3-250），默认 60' },
+      bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderComparison(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `对比回测：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest', exec, async () => {
+        const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+        const paramsA = { fast: args.fast_a ?? 10, slow: args.slow_a ?? 30, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
+        const paramsB = { fast: args.fast_b ?? 20, slow: args.slow_b ?? 60, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
+        validateBacktestParams(bars, paramsA)
+        validateBacktestParams(bars, paramsB)
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource, symbol: args.symbol, bars,
+          retries: deps.config.sourceMaxRetries, cacheDir: deps.config.cacheDir, signal: exec.signal,
+        })
+        const runA = await runBacktest(deps.kernel, args.symbol, series, paramsA, exec.signal)
+        const runB = await runBacktest(deps.kernel, args.symbol, series, paramsB, exec.signal)
+        const delta = compareBacktests(runA, runB)
+        return {
+          symbol: args.symbol, bars,
+          baseline: { fast: paramsA.fast, slow: paramsA.slow, metrics: runA.metrics },
+          challenger: { fast: paramsB.fast, slow: paramsB.slow, metrics: runB.metrics },
+          delta,
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the comparison envelope.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderComparison(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    symbol?: string
+    baseline?: { fast: number; slow: number; metrics: { total_return: number; max_drawdown: number; sharpe: number } }
+    challenger?: { fast: number; slow: number; metrics: { total_return: number; max_drawdown: number; sharpe: number } }
+    delta?: { total_return_delta: number; winner: string }
+  } | undefined
+  if (data?.baseline === undefined || data?.challenger === undefined || data.symbol === undefined) {
+    return [{ type: 'text', text: `对比结果为空。\n\n${DISCLAIMER}` }]
+  }
+  const pct = (v: number): string => `${(v * 100).toFixed(2)}%`
+  const b = data.baseline
+  const c = data.challenger
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 策略对比（SMA(${b.fast}/${b.slow}) vs SMA(${c.fast}/${c.slow})）：\n`
+      + `- 总收益：${pct(b.metrics.total_return)} vs ${pct(c.metrics.total_return)}\n`
+      + `- 最大回撤：${pct(b.metrics.max_drawdown)} vs ${pct(c.metrics.max_drawdown)}\n`
+      + `- 夏普：${b.metrics.sharpe.toFixed(2)} vs ${c.metrics.sharpe.toFixed(2)}\n`
+      + `- 优胜方：${data.delta?.winner ?? '?'}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
+ * Build the report-export tool: runs one backtest and formats the full
+ * research report as markdown.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function researchReportTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_research_report',
+    description: '生成结构化量化研究报告（研究用）：运行双均线回测后输出包含参数、绩效指标、净值曲线与成交记录的 Markdown 报告。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码' },
+      fast: { type: 'integer', description: `快线窗口，默认 ${String(DEFAULT_BACKTEST_FAST)}` },
+      slow: { type: 'integer', description: `慢线窗口，默认 ${String(DEFAULT_BACKTEST_SLOW)}` },
+      bars: { type: 'integer', description: `回测K线根数，默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderReportExport(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `研究报告：${args.symbol}` }),
+    async execute(args, exec) {
+      const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+      const params = {
+        fast: args.fast ?? DEFAULT_BACKTEST_FAST,
+        slow: args.slow ?? DEFAULT_BACKTEST_SLOW,
+        initialCash: deps.config.defaultCash,
+        feeRate: deps.config.feeRate,
+      }
+      return envelopeFrom('backtest', exec, async () => {
+        validateBacktestParams(bars, params)
+        const series = await fetchKline(deps.kernel, deps.breaker, {
+          source: deps.config.dataSource, symbol: args.symbol, bars,
+          retries: deps.config.sourceMaxRetries, cacheDir: deps.config.cacheDir, signal: exec.signal,
+        })
+        const report = await runBacktest(deps.kernel, args.symbol, series, params, exec.signal)
+        const markdown = formatBacktestReport(report, `双均线策略研究报告：${report.symbol}`)
+        return { report: report, markdown, title: `双均线策略研究报告：${report.symbol}` }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the report-export envelope.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderReportExport(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as { markdown?: string; title?: string } | undefined
+  if (data?.markdown === undefined) {
+    return [{ type: 'text', text: `报告为空。\n\n${DISCLAIMER}` }]
+  }
+  return [{ type: 'text', text: data.markdown }]
+}
+
+/** Bar-count default for one optimization grid run. */
+const DEFAULT_OPTIMIZE_BARS = DEFAULT_BACKTEST_BARS
+
+/**
+ * Resolve the caller's axis fields against {@link DEFAULT_GRID_SPEC}, exactly
+ * as the compliance gate does, so the tool and the gate agree on the grid.
+ * @param args - the raw tool arguments.
+ * @param axis - which axis to resolve.
+ * @returns the effective axis.
+ */
+function resolveAxis(args: Record<string, unknown>, axis: 'fast' | 'slow'): GridAxisSpec {
+  const fallback = DEFAULT_GRID_SPEC[axis]
+  return {
+    min: typeof args[`${axis}_min`] === 'number' ? args[`${axis}_min`] as number : fallback.min,
+    max: typeof args[`${axis}_max`] === 'number' ? args[`${axis}_max`] as number : fallback.max,
+    step: typeof args[`${axis}_step`] === 'number' ? args[`${axis}_step`] as number : fallback.step,
+  }
+}
+
+/**
+ * Build the parameter-optimization tool: starts one background job on the
+ * host's job registry, fetches the bars once, and runs the whole grid
+ * through a single `backtest_grid` kernel request inside the job. The tool
+ * returns the job id immediately; the model collects the ranked report with
+ * `job_output` and cancels with `job_kill`.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function optimizeParamsTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_optimize_params',
+    description: '双均线参数网格寻优（研究用，后台任务）：在快/慢线窗口网格上重跑同一内核回测引擎，按总收益/夏普/最大回撤排名并输出最优参数报告。寻优转入后台任务，用 job_output 收取结果。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      bars: { type: 'integer', description: `K线根数（需覆盖最宽慢线窗口，上限 1500），默认 ${String(DEFAULT_OPTIMIZE_BARS)}` },
+      fast_min: { type: 'integer', description: `快线起点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.min)}` },
+      fast_max: { type: 'integer', description: `快线终点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.max)}` },
+      fast_step: { type: 'integer', description: `快线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.fast.step)}` },
+      slow_min: { type: 'integer', description: `慢线起点（3-250，需整段大于快线），默认 ${String(DEFAULT_GRID_SPEC.slow.min)}` },
+      slow_max: { type: 'integer', description: `慢线终点（3-250），默认 ${String(DEFAULT_GRID_SPEC.slow.max)}` },
+      slow_step: { type: 'integer', description: `慢线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.slow.step)}` },
+      rank_by: {
+        type: 'string', enum: ['total_return', 'sharpe', 'max_drawdown'],
+        description: `排名指标：总收益/夏普/最大回撤（升序），默认 ${DEFAULT_RANK_METRIC}`,
+      },
+      top_n: { type: 'integer', description: `报告保留前 N 名（1-${String(TOP_N_LIMITS.max)}），默认 ${String(TOP_N_LIMITS.default)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderOptimize(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `参数寻优：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest_grid', exec, async () => {
+        const jobs = deps.jobs?.()
+        if (jobs === undefined) {
+          throw new QuantError(
+            'CONFIG',
+            '参数寻优需要后台任务运行时：请在组合中加入 @deepseek-ai/dsh-jobs-local 与 @deepseek-ai/dsh-tool-jobs',
+          )
+        }
+        const spec: GridSpec = {
+          fast: resolveAxis(args as Record<string, unknown>, 'fast'),
+          slow: resolveAxis(args as Record<string, unknown>, 'slow'),
+        }
+        const bars = args.bars ?? DEFAULT_OPTIMIZE_BARS
+        const rankBy = (args.rank_by ?? DEFAULT_RANK_METRIC) as RankMetric
+        const topN = args.top_n ?? TOP_N_LIMITS.default
+        if (!Number.isSafeInteger(topN) || topN < TOP_N_LIMITS.min || topN > TOP_N_LIMITS.max) {
+          throw new QuantError('DATA', `top_n 必须是 ${String(TOP_N_LIMITS.min)}-${String(TOP_N_LIMITS.max)} 的整数`)
+        }
+        validateGridSpec(bars, spec)
+        const combos = axisLength(spec.fast) * axisLength(spec.slow)
+        const label = `${args.symbol} 网格寻优 ${String(combos)} 组合`
+        const controller = new AbortController()
+        const id = jobs.start({
+          kind: 'quant-optimize',
+          label,
+          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          run: () => {
+            const done = (async (): Promise<JobOutcome> => {
+              try {
+                const series = await fetchKline(deps.kernel, deps.breaker, {
+                  source: deps.config.dataSource,
+                  symbol: args.symbol,
+                  bars,
+                  retries: deps.config.sourceMaxRetries,
+                  cacheDir: deps.config.cacheDir,
+                  signal: controller.signal,
+                })
+                const results = await runBacktestGrid(
+                  deps.kernel, args.symbol, series, spec,
+                  deps.config.defaultCash, deps.config.feeRate, controller.signal,
+                )
+                const ranked = rankGridResults(results, rankBy, topN)
+                const markdown = formatOptimizationSummary(args.symbol, spec, ranked, rankBy, results.length)
+                const best = ranked[0]
+                return {
+                  status: 'completed' as const,
+                  output: markdown,
+                  ...(best === undefined ? {} : { detail: `最优 SMA(${String(best.fast)}/${String(best.slow)})` }),
+                }
+              } catch (error: unknown) {
+                recordKernelFault(exec, 'backtest_grid', error)
+                if (controller.signal.aborted) {
+                  return { status: 'killed' as const, detail: '参数寻优已取消' }
+                }
+                const detail = isQuantError(error) ? error.message : '参数寻优任务失败'
+                return { status: 'failed' as const, detail }
+              }
+            })()
+            return {
+              cancel: () => { controller.abort() },
+              done,
+            }
+          },
+        })
+        return {
+          job_id: id,
+          kind: 'background',
+          symbol: args.symbol,
+          bars,
+          combos,
+          grid: { fast: spec.fast, slow: spec.slow },
+          rank_by: rankBy,
+          top_n: topN,
+          combo_cap: GRID_COMBO_HARD_LIMIT,
+          hint: '后台寻优已启动：用 job_output(job_id, wait: true) 收取排名报告；不再需要时用 job_kill(job_id) 取消',
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the optimization-start envelope: the job id, the grid shape, and
+ * the collection instruction.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderOptimize(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    job_id?: string
+    symbol?: string
+    combos?: number
+    grid?: { fast: GridAxisSpec; slow: GridAxisSpec }
+    rank_by?: string
+    top_n?: number
+    hint?: string
+  } | undefined
+  if (data?.job_id === undefined || data.symbol === undefined || data.grid === undefined) {
+    return [{ type: 'text', text: `寻优任务启动失败。\n\n${DISCLAIMER}` }]
+  }
+  const axisText = (axis: GridAxisSpec): string =>
+    `${String(axis.min)}-${String(axis.max)} 步长 ${String(axis.step)}（${String(axisLength(axis))} 个）`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} 参数寻优已转入后台任务 ${data.job_id}：`
+      + `快线 ${axisText(data.grid.fast)} × 慢线 ${axisText(data.grid.slow)}，共 ${String(data.combos ?? '?')} 组合，`
+      + `按 ${data.rank_by ?? '?'} 排名取前 ${String(data.top_n ?? '?')}。\n${data.hint ?? ''}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
+ * Build the walk-forward validation tool: starts one background job that
+ * splits the fetched bars into train/test, runs the grid on the train leg,
+ * picks the best (fast, slow), and runs one backtest on the test leg with
+ * those parameters. The markdown report carries the train ranking, the
+ * out-of-sample metrics, and the overfitting gap.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_walk_forward',
+    description: '双均线参数 walk-forward 样本外验证（研究用，后台任务）：把K线切训练/测试两段，在训练段网格寻优，用最优参数在测试段跑一次回测，报告样本外指标与过拟合差距。',
+    parameters: {
+      symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
+      bars: { type: 'integer', description: `K线根数（需同时覆盖训练与测试段的最宽慢线窗口，上限 1500），默认 ${String(DEFAULT_BACKTEST_BARS)}` },
+      train_ratio: { type: 'number', description: `训练段占比（0.5-0.9），默认 ${String(TRAIN_RATIO_LIMITS.default)}` },
+      fast_min: { type: 'integer', description: `快线起点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.min)}` },
+      fast_max: { type: 'integer', description: `快线终点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.max)}` },
+      fast_step: { type: 'integer', description: `快线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.fast.step)}` },
+      slow_min: { type: 'integer', description: `慢线起点（3-250，需整段大于快线），默认 ${String(DEFAULT_GRID_SPEC.slow.min)}` },
+      slow_max: { type: 'integer', description: `慢线终点（3-250），默认 ${String(DEFAULT_GRID_SPEC.slow.max)}` },
+      slow_step: { type: 'integer', description: `慢线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.slow.step)}` },
+      rank_by: {
+        type: 'string', enum: ['total_return', 'sharpe', 'max_drawdown'],
+        description: `训练段排名指标，默认 ${DEFAULT_RANK_METRIC}`,
+      },
+      top_n: { type: 'integer', description: `训练段报告保留前 N 名（1-${String(TOP_N_LIMITS.max)}），默认 ${String(TOP_N_LIMITS.default)}` },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderWalkForward(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: (args) => ({ card: 'generic' as const, title: `Walk-forward：${args.symbol}` }),
+    async execute(args, exec) {
+      return envelopeFrom('backtest_grid', exec, async () => {
+        const jobs = deps.jobs?.()
+        if (jobs === undefined) {
+          throw new QuantError(
+            'CONFIG',
+            'walk-forward 验证需要后台任务运行时：请在组合中加入 @deepseek-ai/dsh-jobs-local 与 @deepseek-ai/dsh-tool-jobs',
+          )
+        }
+        const spec: GridSpec = {
+          fast: resolveAxis(args as Record<string, unknown>, 'fast'),
+          slow: resolveAxis(args as Record<string, unknown>, 'slow'),
+        }
+        const bars = args.bars ?? DEFAULT_BACKTEST_BARS
+        const trainRatio = args.train_ratio ?? TRAIN_RATIO_LIMITS.default
+        const rankBy = (args.rank_by ?? DEFAULT_RANK_METRIC) as RankMetric
+        const topN = args.top_n ?? TOP_N_LIMITS.default
+        if (!Number.isSafeInteger(topN) || topN < TOP_N_LIMITS.min || topN > TOP_N_LIMITS.max) {
+          throw new QuantError('DATA', `top_n 必须是 ${String(TOP_N_LIMITS.min)}-${String(TOP_N_LIMITS.max)} 的整数`)
+        }
+        validateWalkForwardParams(bars, spec, trainRatio)
+        const combos = axisLength(spec.fast) * axisLength(spec.slow)
+        const label = `${args.symbol} walk-forward ${String(combos)} 组合 训练${String(Math.round(trainRatio * 100))}%`
+        const controller = new AbortController()
+        const id = jobs.start({
+          kind: 'quant-walk-forward',
+          label,
+          ...(exec.agent === undefined ? {} : { owner: exec.agent }),
+          run: () => {
+            const done = (async (): Promise<JobOutcome> => {
+              try {
+                const series = await fetchKline(deps.kernel, deps.breaker, {
+                  source: deps.config.dataSource,
+                  symbol: args.symbol,
+                  bars,
+                  retries: deps.config.sourceMaxRetries,
+                  cacheDir: deps.config.cacheDir,
+                  signal: controller.signal,
+                })
+                const split = splitBars(series, trainRatio)
+                const { trainResults, ranked, testReport } = await runWalkForward(
+                  deps.kernel, args.symbol, split, spec,
+                  deps.config.defaultCash, deps.config.feeRate, rankBy, topN, controller.signal,
+                )
+                const markdown = formatWalkForwardSummary(
+                  args.symbol, spec, ranked, testReport, trainRatio, trainResults.length, rankBy,
+                )
+                const best = ranked[0]
+                return {
+                  status: 'completed' as const,
+                  output: markdown,
+                  ...(best === undefined ? {} : { detail: `最优 SMA(${best.fast}/${best.slow}) 测试总收益 ${(testReport.metrics.total_return * 100).toFixed(2)}%` }),
+                }
+              } catch (error: unknown) {
+                recordKernelFault(exec, 'backtest_grid', error)
+                if (controller.signal.aborted) {
+                  return { status: 'killed' as const, detail: 'walk-forward 验证已取消' }
+                }
+                const detail = isQuantError(error) ? error.message : 'walk-forward 验证任务失败'
+                return { status: 'failed' as const, detail }
+              }
+            })()
+            return {
+              cancel: () => { controller.abort() },
+              done,
+            }
+          },
+        })
+        return {
+          job_id: id,
+          kind: 'background',
+          symbol: args.symbol,
+          bars,
+          train_ratio: trainRatio,
+          combos,
+          grid: { fast: spec.fast, slow: spec.slow },
+          rank_by: rankBy,
+          top_n: topN,
+          combo_cap: GRID_COMBO_HARD_LIMIT,
+          hint: '后台 walk-forward 已启动：用 job_output(job_id, wait: true) 收取样本外报告；不再需要时用 job_kill(job_id) 取消',
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the walk-forward start envelope: the job id, the split, and the
+ * collection instruction.
+ * @param value - the tool result value.
+ * @returns the model-facing text blocks.
+ */
+function renderWalkForward(value: unknown): { type: 'text'; text: string }[] {
+  const failed = failureLine(value)
+  if (failed !== undefined) return [{ type: 'text', text: `${failed}\n\n${DISCLAIMER}` }]
+  const data = successData(value) as {
+    job_id?: string
+    symbol?: string
+    train_ratio?: number
+    combos?: number
+    grid?: { fast: GridAxisSpec; slow: GridAxisSpec }
+    hint?: string
+  } | undefined
+  if (data?.job_id === undefined || data.symbol === undefined || data.grid === undefined) {
+    return [{ type: 'text', text: `walk-forward 任务启动失败。\n\n${DISCLAIMER}` }]
+  }
+  const axisText = (axis: GridAxisSpec): string =>
+    `${String(axis.min)}-${String(axis.max)} 步长 ${String(axis.step)}（${String(axisLength(axis))} 个）`
+  return [{
+    type: 'text',
+    text: `标的 ${data.symbol} walk-forward 已转入后台任务 ${data.job_id}：`
+      + `训练 ${String(Math.round((data.train_ratio ?? 0) * 100))}% / 测试 ${String(Math.round((1 - (data.train_ratio ?? 0)) * 100))}%，`
+      + `快线 ${axisText(data.grid.fast)} × 慢线 ${axisText(data.grid.slow)}，共 ${String(data.combos ?? '?')} 组合。\n${data.hint ?? ''}`
+      + `\n\n${DISCLAIMER}`,
+  }]
+}
+
+/**
  * Register the research tools on one context.
  * @param ctx - the runtime fiber's context carrying the tool registry.
  * @param deps - the tool layer dependencies.
@@ -1006,6 +1595,13 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     executeRebalanceTool(deps),
     computeFactorTool(deps),
     factorICTool(deps),
+    saveNoteTool(deps),
+    listNotesTool(deps),
+    exportReportTool(deps),
+    compareBacktestsTool(deps),
+    researchReportTool(deps),
+    optimizeParamsTool(deps),
+    walkForwardTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

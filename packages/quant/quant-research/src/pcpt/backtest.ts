@@ -8,15 +8,14 @@
  */
 
 import { z } from 'zod'
-import { BARS_HARD_LIMIT, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT } from '../compliance.ts'
+import {
+  BARS_HARD_LIMIT, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SLOW_WINDOW_LIMITS,
+} from '../compliance.ts'
 import { QuantError } from '../errors.ts'
 import type { QuantKernelClient } from '../kernel-client/client.ts'
 import type { KlineBar } from '../pdat/datasource.ts'
 
-/** Bounds for the fast SMA window. */
-export const FAST_WINDOW_LIMITS = { min: 2, max: 120 } as const
-/** Bounds for the slow SMA window. */
-export const SLOW_WINDOW_LIMITS = { min: 3, max: 250 } as const
+export { FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS }
 
 /** Parameters of one backtest run; the caller's config supplies the cash and fee defaults. */
 export interface BacktestParams {
@@ -93,7 +92,8 @@ const tradeSchema = z.object({
   price: z.number(),
   shares: z.number(),
 })
-const metricsSchema = z.object({
+/** Wire schema of one metrics block; shared with the grid round trip. */
+export const metricsSchema = z.object({
   total_return: z.number(),
   annual_return: z.number(),
   max_drawdown: z.number(),

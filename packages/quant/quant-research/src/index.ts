@@ -1,8 +1,9 @@
 /**
- * Quant research plugin (phase 1): kernel-backed market data, deterministic
- * TypeScript indicators, and a daily SMA-cross backtester for research-only
+ * Quant research plugin: kernel-backed market data, deterministic TypeScript
+ * indicators, the daily SMA-cross backtester with its risk/stress/factor/PET
+ * suite, and jobs-runtime parameter optimization — all for research-only
  * workflows. The plugin opens the `quant_research` storage domain (the
- * compliance-denial audit trail), registers the three `quant_*` tools, and
+ * compliance-denial audit trail), registers the `quant_*` tools, and
  * installs the pre-execute compliance gate enforcing the research-only red
  * lines. No real-broker path exists anywhere in the plugin.
  * @module @deepseek-ai/dsh-quant-research
@@ -33,12 +34,13 @@ export {
 } from './domain/spec.ts'
 export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
 export {
-  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT,
-  SHOCK_LIMITS, TOOL_PREFIX, collectArgStrings, denialAuditCallback, inspectBarCap,
-  inspectBacktestCaps, inspectBrokerMarkers, inspectConfidenceCap, inspectShockCap, inspectToolCall,
+  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
+  GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
+  collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
+  inspectConfidenceCap, inspectGridCaps, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
   installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
-export type { ComplianceDenialInput, ComplianceVerdict } from './compliance.ts'
+export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
 export {
   KERNEL_PROTOCOL_VERSION, ResponseParser, encodeRequest, kernelErrorToQuantCode, parseResponseLine,
 } from './kernel-client/protocol.ts'
@@ -62,7 +64,7 @@ export type { FactorName, FactorSeries } from './paat/factors.ts'
 export { informationRatio, rollingIC, spearman } from './paat/ic.ts'
 export type { ICPeriod } from './paat/ic.ts'
 export {
-  FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
+  runBacktest, validateBacktestParams,
 } from './pcpt/backtest.ts'
 export {
   CONFIDENCE_LIMITS as PRT_CONFIDENCE_LIMITS, DEFAULT_STRESS_SEGMENT, SHOCK_LIMITS as PRT_SHOCK_LIMITS,
@@ -73,6 +75,11 @@ export type { StressParams, StressScenario } from './prt/risk.ts'
 export {
   applyTrades, cashDelta, createAccount, listAccounts, requireAccount,
 } from './pet/service.ts'
+export {
+  deleteNote, exportNotesMarkdown, listNotes, renderNoteMarkdown, saveNote,
+} from './pet/notes.ts'
+export type { NoteSaveInput } from './pet/notes.ts'
+export type { ResearchNote } from './domain/spec.ts'
 export type { AccountCreateInput } from './pet/service.ts'
 export type { PetPosition } from './pet/rebalance.ts'
 export {
@@ -83,14 +90,29 @@ export type { ApprovalAsk } from './tools.ts'
 export type {
   BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
 } from './pcpt/backtest.ts'
+export { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
+export {
+  DEFAULT_RANK_METRIC, RANK_METRICS, TOP_N_LIMITS, axisLength, enumerateGrid, formatOptimizationSummary,
+  rankGridResults, runBacktestGrid, validateGridSpec,
+} from './pcpt/optimize.ts'
+export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
+export {
+  TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars,
+  validateWalkForwardParams,
+} from './pcpt/walk-forward.ts'
+export type { WalkForwardSplit } from './pcpt/walk-forward.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  executeRebalanceTool, factorICTool, getKlineTool, registerQuantTools, runBacktestTool,
-  stressTestTool,
+  compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
+  walkForwardTool,
 } from './tools.ts'
-export type { QuantToolDeps } from './tools.ts'
-export { QuantResearchService, type AccountSummaryValue } from './service.ts'
+export type { JobsStartFace, QuantToolDeps } from './tools.ts'
+export { QuantResearchService } from './service.ts'
+export type {
+  AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue,
+} from './types.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
@@ -155,7 +177,10 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         breaker,
         accounts: domain.table('accounts'),
         orders: domain.table('orders'),
+        notes: domain.table('research_notes'),
         approval: runtimeCtx.approval,
+        // Resolved per call: the jobs service may mount after this plugin.
+        jobs: () => runtimeCtx.get('jobs'),
       })
       const uninstallGate = installQuantComplianceGate(
         runtimeCtx,
