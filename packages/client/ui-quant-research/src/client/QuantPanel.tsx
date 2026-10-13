@@ -5,9 +5,12 @@
  * renders null while the slot entry stays mounted.
  */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import type { AccountListValue, AccountRef, AccountSummaryValue, NoteListValue } from '@deepseek-ai/dsh-quant-research/types'
+import type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, NoteListValue,
+  ResultSnapshotSummaryValue,
+} from '@deepseek-ai/dsh-quant-research/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { BarRow } from './charts.tsx'
+import { BarRow, Sparkline } from './charts.tsx'
 import type { PanelController } from './panel-controller.ts'
 import css from './QuantPanel.module.css'
 
@@ -17,6 +20,8 @@ export interface QuantPanelInjected {
   listAccounts: () => Promise<AccountListValue>
   listNotes: () => Promise<NoteListValue>
   getAccountState: (ref: AccountRef) => Promise<AccountSummaryValue>
+  listResultSnapshots: () => Promise<{ snapshots: ResultSnapshotSummaryValue[] }>
+  getEquityCurve: (ref: { result_id: string }) => Promise<EquityCurveValue>
 }
 
 /** Full surface props: the injected face plus the locale seat. */
@@ -27,12 +32,15 @@ export type QuantPanelProps = QuantPanelInjected & PropsLocale<'quant-research'>
  * @param props - the injected server reads, the shared controller, and the locale seat.
  * @returns the overlay element tree, or `null` while closed.
  */
-export function QuantPanel({ panel, listAccounts, listNotes, getAccountState, t }: QuantPanelProps) {
+export function QuantPanel({
+  panel, listAccounts, listNotes, getAccountState, listResultSnapshots, getEquityCurve, t,
+}: QuantPanelProps) {
   const subscribe = useCallback((listener: () => void) => panel.subscribe(listener), [panel])
   const getOpenState = useCallback(() => panel.isOpen(), [panel])
   const open = useSyncExternalStore(subscribe, getOpenState)
   const [accounts, setAccounts] = useState<AccountSummaryValue[]>()
   const [notes, setNotes] = useState<NoteListValue['notes']>()
+  const [snapshots, setSnapshots] = useState<ResultSnapshotSummaryValue[]>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
@@ -46,8 +54,9 @@ export function QuantPanel({ panel, listAccounts, listNotes, getAccountState, t 
     }
     read(listAccounts, (value: AccountListValue) => { setAccounts(value.accounts) })
     read(listNotes, (value: NoteListValue) => { setNotes(value.notes) })
+    read(listResultSnapshots, value => { setSnapshots(value.snapshots) })
     return () => { cancelled = true }
-  }, [open, listAccounts, listNotes])
+  }, [open, listAccounts, listNotes, listResultSnapshots])
 
   useEffect(() => {
     if (!open) return
@@ -67,8 +76,10 @@ export function QuantPanel({ panel, listAccounts, listNotes, getAccountState, t 
     setError(undefined)
     setAccounts(undefined)
     setNotes(undefined)
+    setSnapshots(undefined)
     listAccounts().then(value => setAccounts(value.accounts)).catch(fail)
     listNotes().then(value => setNotes(value.notes)).catch(fail)
+    listResultSnapshots().then(value => setSnapshots(value.snapshots)).catch(fail)
   }
   return (
     <div className={css.overlay} role="dialog" aria-label={t('panel.title')}>
@@ -107,6 +118,14 @@ export function QuantPanel({ panel, listAccounts, listNotes, getAccountState, t 
             </li>
           ))}
         </ul>
+
+        <div className={css.sectionTitle}>{t('panel.results.title')}</div>
+        {snapshots !== undefined && snapshots.length === 0 && (
+          <div className={css.empty}>{t('panel.results.empty')}</div>
+        )}
+        {snapshots?.map(snapshot => (
+          <SnapshotCard key={snapshot.result_id} snapshot={snapshot} getEquityCurve={getEquityCurve} t={t} />
+        ))}
 
         <button type="button" className={css.close} onClick={() => { panel.close() }}>{t('panel.close')}</button>
       </div>
@@ -158,6 +177,62 @@ function AccountCard({ account, getAccountState, t }: AccountCardProps) {
       {account.positions.length > 0
         ? <BarRow data={bars} ariaLabel={`${account.name} ${t('panel.accounts.weight')}`} />
         : <div className={css.empty}>{t('panel.accounts.noPositions')}</div>}
+    </div>
+  )
+}
+
+/** Props of one backtest-snapshot card. */
+interface SnapshotCardProps {
+  readonly snapshot: ResultSnapshotSummaryValue
+  readonly getEquityCurve: QuantPanelInjected['getEquityCurve']
+  readonly t: QuantPanelProps['t']
+}
+
+/** Format a ratio as a signed percentage with two decimals. */
+function percent(ratio: number): string {
+  return `${(ratio * 100).toFixed(2)}%`
+}
+
+/**
+ * One persisted backtest card: symbol, SMA windows, and headline metrics in
+ * the collapsed head; expanding fetches the stored equity curve once and
+ * draws it as an inline-SVG sparkline.
+ * @param props - the snapshot summary, the curve fetch face, and the locale seat.
+ * @returns the card element tree.
+ */
+function SnapshotCard({ snapshot, getEquityCurve, t }: SnapshotCardProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [curve, setCurve] = useState<EquityCurveValue>()
+  const expand = () => {
+    const next = !expanded
+    setExpanded(next)
+    if (next && curve === undefined) {
+      getEquityCurve({ result_id: snapshot.result_id })
+        .then(value => setCurve(value))
+        .catch(() => { /* the headline already renders; the curve stays collapsed */ })
+    }
+  }
+  return (
+    <div className={css.accountCard}>
+      <button type="button" className={css.accountHead} onClick={expand}>
+        <span className={css.accountName}>
+          {snapshot.symbol} SMA({String(snapshot.params.fast)}/{String(snapshot.params.slow)})
+        </span>
+        <span className={css.accountEquity}>{t('panel.results.return')} {percent(snapshot.metrics.total_return)}</span>
+      </button>
+      <div className={css.accountMeta}>
+        {t('panel.results.drawdown')} {percent(snapshot.metrics.max_drawdown)}
+        {` · ${t('panel.results.trades')} ${String(snapshot.metrics.trade_count)}`}
+        {` · ${new Date(snapshot.created_at).toLocaleDateString()}`}
+      </div>
+      {expanded && curve !== undefined && curve.equity.length > 1 && (
+        <Sparkline
+          values={curve.equity.map(point => point.value)}
+          ariaLabel={`${snapshot.symbol} ${t('panel.results.curve')}`}
+          width={320}
+          height={72}
+        />
+      )}
     </div>
   )
 }

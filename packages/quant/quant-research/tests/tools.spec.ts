@@ -76,8 +76,27 @@ function deps(kernel: QuantKernelClient): QuantToolDeps {
     accounts: new Map() as never,
     orders: new Map() as never,
     notes: new Map() as never,
+    snapshots: kvTable(),
     approval: { request: vi.fn(async () => 'rejected' as const) },
   }
+}
+
+
+/** A minimal in-memory KvTable fake for the snapshot write. */
+function kvTable(): QuantToolDeps['snapshots'] {
+  const store = new Map<string, unknown>()
+  return {
+    entries: () => store.entries(),
+    get size() { return store.size },
+    get: (key: string) => store.get(key),
+    put: async (key: string, value: unknown) => { store.set(key, value) },
+    delete: async (key: string) => { store.delete(key) },
+  } as never
+}
+
+/** deps() with a caller-supplied snapshot table, for asserting the durable write. */
+function depsWithSnapshots(kernel: QuantKernelClient, snapshots: unknown): QuantToolDeps {
+  return { ...deps(kernel), snapshots: snapshots as QuantToolDeps['snapshots'] }
 }
 
 describe('quant_get_kline', () => {
@@ -238,6 +257,19 @@ describe('quant_run_backtest', () => {
     const value = await definition.execute?.({ symbol: '000001', fast: 30, slow: 10 }, execWith())
     expect(value).toMatchObject({ code: 1002 })
     expect((value as { msg: string }).msg).toContain('必须小于')
+  })
+
+  it('persists a result snapshot after a successful run', async () => {
+    const snapshots = kvTable() as unknown as Map<string, never>
+    const kernel = syntheticBarsKernel()
+    await runBacktestTool(depsWithSnapshots(kernel, snapshots)).execute?.(
+      { symbol: '000001', fast: 5, slow: 20, bars: 60 },
+      execWith(),
+    )
+    const stored = [...(snapshots as unknown as Map<string, { symbol: string; params: Record<string, unknown>; metrics: { total_return: number }; equity: unknown[] }>).entries()].map(([, value]) => value)
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({ kind: 'backtest', symbol: '000001', params: { fast: 5, slow: 20, bars: 60 } })
+    expect(stored[0]!.equity.length).toBeGreaterThan(1)
   })
 
   it('appends the backtest kernel fault', async () => {

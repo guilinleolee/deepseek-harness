@@ -110,6 +110,10 @@ function mainApply(ctx: Context): void {
     unwrap('quantResearch.listNotes', ctx.remote.quantResearch.listNotes())
   const getAccountState: QuantPanelInjected['getAccountState'] = (ref: { name?: string; account_id?: string }) =>
     unwrap('quantResearch.getAccountState', ctx.remote.quantResearch.getAccountState(ref))
+  const listResultSnapshots: QuantPanelInjected['listResultSnapshots'] = () =>
+    unwrap('quantResearch.listResultSnapshots', ctx.remote.quantResearch.listResultSnapshots())
+  const getEquityCurve: QuantPanelInjected['getEquityCurve'] = (ref: { result_id: string }) =>
+    unwrap('quantResearch.getEquityCurve', ctx.remote.quantResearch.getEquityCurve(ref))
 
   ctx.slots.inject('sidebar.footer.action', function* () {
     yield ctx.slots.register({
@@ -123,7 +127,7 @@ function mainApply(ctx: Context): void {
       id: 'quant-research',
       order: 52,
       locale: NS,
-      inject: () => ({ panel, listAccounts, listNotes, getAccountState }),
+      inject: () => ({ panel, listAccounts, listNotes, getAccountState, listResultSnapshots, getEquityCurve }),
     }, QuantPanel)
   })
 }

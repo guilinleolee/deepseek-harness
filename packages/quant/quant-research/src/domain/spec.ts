@@ -1,8 +1,11 @@
 /**
- * Durable storage-domain declaration for the quant-research domain (v1):
- * the compliance-denial audit trail. One spec object is the single source of
- * the domain's identity and record schemas; the frozen contract may only
- * change through a domain version bump confirmed by the owner.
+ * Durable storage-domain declaration for the quant-research domain (v3):
+ * the compliance-denial audit trail, the PET virtual accounts with their
+ * simulated fills, research notes, and the persisted backtest result
+ * snapshots feeding the panel's equity-curve cards. One spec object is the
+ * single source of the domain's identity and record schemas; the frozen
+ * contract may only change through a domain version bump confirmed by the
+ * owner.
  * @module @deepseek-ai/dsh-quant-research/domain/spec
  */
 
@@ -17,6 +20,8 @@ export type AccountId = Branded<'AccountId'>
 /** One simulated fill inside a virtual account. */
 export type OrderId = Branded<'OrderId'>
 export type ResearchNoteId = Branded<'ResearchNoteId'>
+/** One persisted backtest result snapshot (PRT panel equity curve). */
+export type ResultSnapshotId = Branded<'ResultSnapshotId'>
 
 /** Brand a plain string as an account id. */
 export const AccountId = (value: string): AccountId => value as AccountId
@@ -26,6 +31,9 @@ export const OrderId = (value: string): OrderId => value as OrderId
 
 /** Brand a plain string as a research note id. */
 export const ResearchNoteId = (value: string): ResearchNoteId => value as ResearchNoteId
+
+/** Brand a plain string as a result-snapshot id. */
+export const ResultSnapshotId = (value: string): ResultSnapshotId => value as ResultSnapshotId
 
 /**
  * Brand a plain string as a denial id.
@@ -99,21 +107,62 @@ export const researchNoteSchema = z.object({
 })
 export type ResearchNote = z.infer<typeof researchNoteSchema>
 
+/** One persisted equity-curve point (date string plus account equity). */
+export const snapshotEquityPointSchema = z.object({
+  date: z.string().min(1),
+  value: z.number(),
+})
+
+/** One persisted backtest result: the parameters, headline metrics, and the downsampled equity curve. */
+export const resultSnapshotSchema = z.object({
+  id: z.string().min(1).transform(ResultSnapshotId),
+  /** Snapshot kind; only `backtest` exists today, the field keys future report kinds. */
+  kind: z.literal('backtest'),
+  symbol: z.string().min(1),
+  /** The SMA windows and money parameters the run used. */
+  params: z.object({
+    fast: z.number().int(),
+    slow: z.number().int(),
+    bars: z.number().int().positive(),
+    initial_cash: z.number().positive(),
+    fee_rate: z.number().nonnegative(),
+  }),
+  /** Headline performance metrics, mirroring the backtest report. */
+  metrics: z.object({
+    total_return: z.number(),
+    annual_return: z.number(),
+    max_drawdown: z.number(),
+    sharpe: z.number(),
+    win_rate: z.number(),
+    trade_count: z.number().int().nonnegative(),
+    final_equity: z.number(),
+  }),
+  /** The equity curve, downsampled to at most 240 points at save time. */
+  equity: z.array(snapshotEquityPointSchema).min(2),
+  created_at: epochMs,
+})
+
+/** One persisted backtest result snapshot. */
+export type ResultSnapshot = z.infer<typeof resultSnapshotSchema>
+
 /** One red-line denial record. */
 export type ComplianceDenial = z.infer<typeof complianceDenialSchema>
 
 /**
- * The quant-research domain v2: the denial audit trail plus the PET virtual
- * accounts and their simulated fills. v2 adds the two PET tables; there is
- * no migration (pre-release stance), so a v1 medium rejects at open.
+ * The quant-research domain v3: the denial audit trail, the PET virtual
+ * accounts with their simulated fills, research notes, and the backtest
+ * result snapshots feeding the panel's equity-curve cards. v3 adds the
+ * `result_snapshots` table; there is no migration (pre-release stance), so
+ * a v2 medium rejects at open.
  */
 export const quantResearchDomainSpec = defineDomain({
   name: 'quant_research',
-  version: 2,
+  version: 3,
   tables: {
     compliance_denials: domainTable<ComplianceDenialId, ComplianceDenial>(complianceDenialSchema),
     accounts: domainTable<AccountId, Account>(accountSchema),
     orders: domainTable<OrderId, Order>(orderSchema),
     research_notes: domainTable<ResearchNoteId, ResearchNote>(researchNoteSchema),
+    result_snapshots: domainTable<ResultSnapshotId, ResultSnapshot>(resultSnapshotSchema),
   },
 })

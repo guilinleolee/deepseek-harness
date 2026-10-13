@@ -37,7 +37,7 @@ One `tools/pre-execute` listener owns enforcement for every `quant_*` call and d
 
 1. **Research-only intent** — any argument string carrying a real-trading or broker-API marker (`实盘`, `券商`, `place_order`, `submit_order`, `cancel_order`) is denied with a friendly Chinese reason, at any nesting depth.
 2. **Hard caps** — bar counts, backtest cash, fee rates, VaR confidence, stress magnitude, rebalance weights, and the optimization grid (axis bounds, integer steps, the whole fast range strictly below the slow range, and at most 200 combinations, resolved against the same defaults the tool applies) stay within the fixed limits even if a caller smuggles larger values past the schema.
-3. **Durable audit** — every denial appends one `compliance_denials` record to the `quant_research` domain (version 1, frozen) with the tool name, reason, agent id, and timestamp; a failed audit write warns and never un-denies.
+3. **Durable audit** — every denial appends one `compliance_denials` record to the `quant_research` domain (version 3, frozen) with the tool name, reason, agent id, and timestamp; a failed audit write warns and never un-denies.
 
 Each red line has at least one illegal-path unit test, and the keyless snapshot drives a real denial through the assembled composition.
 
@@ -84,7 +84,7 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 ## Known Limitations and Deferred Work
 
 - **No live-trading channel, by design** — this is the plugin's permanent red line, not a missing feature; the gate denies intent markers and the kernel holds only virtual accounts.
-- **Phase 3 complete** — strategy comparison, the research report, jobs-runtime parameter optimization, walk-forward out-of-sample validation, and the real panel (read-only accounts + notes with inline-SVG charts, the Remote face mounted) are all live. The plugin is feature-complete for phase 3; equity-curve cards wait for a session-to-storage results channel.
+- **Equity-curve cards are fed by result snapshots** — every successful `quant_run_backtest` persists one `result_snapshots` record (domain v3): parameters, headline metrics, and the equity curve downsampled to at most 240 points; the table keeps the newest 50. The panel's Backtest-results section lists snapshots and draws the stored curve through the Remote face (`listResultSnapshots`, `getEquityCurve`). Walk-forward and optimization runs do not snapshot.
 - **Optimization reports top-N only** — per-combination equity curves and fills are dropped on the kernel wire to keep the response bounded; re-run `quant_run_backtest` on a chosen pair for the full curve.
 - **Walk-forward is one split, not rolling** — `quant_walk_forward` validates one train/test split at a caller-chosen ratio; rolling-window re-optimization (anchored or expanding) is deferred.
 - **Kernel cache has no TTL policy** — `akshare` cache files are read by existence, not freshness; a refresh strategy waits for a concrete deployment requirement.

@@ -44,6 +44,7 @@ function petDeps(kernel: QuantKernelClient, approval?: { request: (req: unknown)
     accounts: table(),
     orders: table(),
     notes: new Map() as never,
+    snapshots: new Map() as never,
   }
   return approval === undefined ? base : { ...base, approval: approval as never }
 }

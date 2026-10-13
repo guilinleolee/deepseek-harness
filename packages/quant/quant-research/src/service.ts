@@ -11,10 +11,16 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import { quantResearchDomainSpec } from './domain/spec.ts'
-import { AccountId } from './domain/spec.ts'
-import type { Account, ResearchNote } from './domain/spec.ts'
-import type { AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue } from './types.ts'
-export type { AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue } from './types.ts'
+import { AccountId, ResultSnapshotId } from './domain/spec.ts'
+import type { Account, ResearchNote, ResultSnapshot } from './domain/spec.ts'
+import type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
+} from './types.ts'
+export type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
+} from './types.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -107,6 +113,36 @@ export class QuantResearchService extends TypertRemoteService {
     }
     return { notes: notes.sort((a, b) => b.created_at - a.created_at) }
   }
+
+  /**
+   * List persisted backtest snapshots, newest first, without equity points.
+   */
+  @Remote('listResultSnapshots')
+  async listResultSnapshotsRemote(): Promise<SnapshotListValue> {
+    const domain = this.requireDomain()
+    const snapshots: ResultSnapshotSummaryValue[] = []
+    for (const [, snapshot] of domain.table('result_snapshots').entries()) {
+      snapshots.push(projectSnapshot(snapshot))
+    }
+    return { snapshots: snapshots.sort((a, b) => b.created_at - a.created_at) }
+  }
+
+  /**
+   * Read one snapshot's equity curve.
+   */
+  @Remote('getEquityCurve')
+  async getEquityCurveRemote(ref: { result_id: string }): Promise<EquityCurveValue> {
+    const domain = this.requireDomain()
+    const snapshot = domain.table('result_snapshots').get(ResultSnapshotId(ref.result_id))
+    if (snapshot === undefined) {
+      throw new Error(`未找到回测快照：${ref.result_id}`)
+    }
+    return {
+      result_id: snapshot.id,
+      symbol: snapshot.symbol,
+      equity: snapshot.equity.map(point => ({ date: point.date, value: point.value })),
+    }
+  }
 }
 
 /** Project a domain ResearchNote record to the wire summary shape. */
@@ -118,6 +154,17 @@ function projectNote(note: ResearchNote): NoteSummaryValue {
     symbol: note.symbol ?? null,
     tags: [...note.tags],
     created_at: note.created_at,
+  }
+}
+
+/** Project a domain ResultSnapshot record to the wire summary shape (no equity points). */
+function projectSnapshot(snapshot: ResultSnapshot): ResultSnapshotSummaryValue {
+  return {
+    result_id: snapshot.id,
+    symbol: snapshot.symbol,
+    params: { ...snapshot.params },
+    metrics: { ...snapshot.metrics },
+    created_at: snapshot.created_at,
   }
 }
 

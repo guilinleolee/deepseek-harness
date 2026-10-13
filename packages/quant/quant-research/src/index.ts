@@ -30,9 +30,10 @@ export {
 } from './errors.ts'
 export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
 export {
-  AccountId, OrderId, accountSchema, complianceDenialSchema, orderSchema, quantResearchDomainSpec,
+  AccountId, OrderId, ResultSnapshotId, accountSchema, complianceDenialSchema, orderSchema,
+  quantResearchDomainSpec, resultSnapshotSchema,
 } from './domain/spec.ts'
-export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
+export type { Account, ComplianceDenial, ComplianceDenialId, Order, ResultSnapshot } from './domain/spec.ts'
 export {
   BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
   GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
@@ -111,8 +112,14 @@ export {
 export type { JobsStartFace, QuantToolDeps } from './tools.ts'
 export { QuantResearchService } from './service.ts'
 export type {
-  AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue,
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, EquityPointValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
 } from './types.ts'
+export {
+  EQUITY_SNAPSHOT_MAX_POINTS, SNAPSHOT_KEEP_LIMIT, downsampleEquity, listSnapshots, requireSnapshot,
+  saveSnapshot,
+} from './pcpt/snapshots.ts'
+export type { ResultSnapshotsTable, SnapshotSaveInput } from './pcpt/snapshots.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
@@ -178,6 +185,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         accounts: domain.table('accounts'),
         orders: domain.table('orders'),
         notes: domain.table('research_notes'),
+        snapshots: domain.table('result_snapshots'),
         approval: runtimeCtx.approval,
         // Resolved per call: the jobs service may mount after this plugin.
         jobs: () => runtimeCtx.get('jobs'),
