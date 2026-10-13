@@ -10,7 +10,8 @@ import type {
   ResultSnapshotSummaryValue,
 } from '@deepseek-ai/dsh-quant-research/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { BarRow, Sparkline } from './charts.tsx'
+import { BarRow, CompareLines, Sparkline } from './charts.tsx'
+import type { CompareLine } from './charts.tsx'
 import type { PanelController } from './panel-controller.ts'
 import css from './QuantPanel.module.css'
 
@@ -124,7 +125,7 @@ export function QuantPanel({
           <div className={css.empty}>{t('panel.results.empty')}</div>
         )}
         {snapshots?.map(snapshot => (
-          <SnapshotCard key={snapshot.result_id} snapshot={snapshot} getEquityCurve={getEquityCurve} t={t} />
+          <SnapshotCard key={snapshot.result_id} snapshot={snapshot} snapshots={snapshots} getEquityCurve={getEquityCurve} t={t} />
         ))}
 
         <button type="button" className={css.close} onClick={() => { panel.close() }}>{t('panel.close')}</button>
@@ -184,6 +185,7 @@ function AccountCard({ account, getAccountState, t }: AccountCardProps) {
 /** Props of one backtest-snapshot card. */
 interface SnapshotCardProps {
   readonly snapshot: ResultSnapshotSummaryValue
+  readonly snapshots: readonly ResultSnapshotSummaryValue[]
   readonly getEquityCurve: QuantPanelInjected['getEquityCurve']
   readonly t: QuantPanelProps['t']
 }
@@ -200,9 +202,12 @@ function percent(ratio: number): string {
  * @param props - the snapshot summary, the curve fetch face, and the locale seat.
  * @returns the card element tree.
  */
-function SnapshotCard({ snapshot, getEquityCurve, t }: SnapshotCardProps) {
+function SnapshotCard({ snapshot, snapshots, getEquityCurve, t }: SnapshotCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [curve, setCurve] = useState<EquityCurveValue>()
+  const [otherId, setOtherId] = useState('')
+  const [otherCurve, setOtherCurve] = useState<EquityCurveValue>()
+  const others = snapshots.filter(candidate => candidate.result_id !== snapshot.result_id)
   const expand = () => {
     const next = !expanded
     setExpanded(next)
@@ -212,6 +217,21 @@ function SnapshotCard({ snapshot, getEquityCurve, t }: SnapshotCardProps) {
         .catch(() => { /* the headline already renders; the curve stays collapsed */ })
     }
   }
+  const pickOther = (id: string) => {
+    setOtherId(id)
+    setOtherCurve(undefined)
+    if (id !== '') {
+      getEquityCurve({ result_id: id })
+        .then(value => setOtherCurve(value))
+        .catch(() => { /* the primary curve already renders; the comparison simply stays unselected */ })
+    }
+  }
+  const compareLines: CompareLine[] | undefined = curve !== undefined && otherCurve !== undefined
+    ? [
+      { label: `${snapshot.symbol} SMA(${String(snapshot.params.fast)}/${String(snapshot.params.slow)})`, values: curve.equity.map(point => point.value), color: 'var(--dsh-accent, #4a7dff)' },
+      { label: `${otherCurve.symbol} SMA(${String(snapshots.find(c => c.result_id === otherId)?.params.fast ?? '?')}/${String(snapshots.find(c => c.result_id === otherId)?.params.slow ?? '?')})`, values: otherCurve.equity.map(point => point.value), color: 'var(--dsh-danger, #e06666)' },
+    ]
+    : undefined
   return (
     <div className={css.accountCard}>
       <button type="button" className={css.accountHead} onClick={expand}>
@@ -231,6 +251,25 @@ function SnapshotCard({ snapshot, getEquityCurve, t }: SnapshotCardProps) {
           ariaLabel={`${snapshot.symbol} ${t('panel.results.curve')}`}
           width={320}
           height={72}
+        />
+      )}
+      {expanded && others.length > 0 && (
+        <label className={css.accountMeta}>
+          {t('panel.results.compareWith')}
+          <select value={otherId} onChange={event => { pickOther(event.target.value) }}>
+            <option value="">{t('panel.results.compareNone')}</option>
+            {others.map(other => (
+              <option key={other.result_id} value={other.result_id}>
+                {other.symbol} SMA({String(other.params.fast)}/{String(other.params.slow)}) · {percent(other.metrics.total_return)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {expanded && compareLines !== undefined && (
+        <CompareLines
+          lines={compareLines}
+          ariaLabel={`${snapshot.symbol} ${t('panel.results.compareLabel')}`}
         />
       )}
     </div>

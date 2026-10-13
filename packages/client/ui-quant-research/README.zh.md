@@ -18,7 +18,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 - `shell.overlay` 面板渲染：
   - **虚拟账户** — 每账户一张卡片（名称、现金、权益），内联 SVG 条形图画持仓权重；展开卡片经 `getAccountState` 重取完整状态并显示持仓数。
   - **研究笔记** — 按时间倒序的列表（标题、标的、日期），读自 `research_notes` 表。
-  - **回测结果** — 每条持久化快照一张卡片（标的、SMA 窗口、累计收益、最大回撤、交易数、日期）；展开经 `getEquityCurve` 取存量净值曲线并以内联 SVG sparkline 绘制。
+  - **回测结果** — 每条持久化快照一张卡片（标的、SMA 窗口、累计收益、最大回撤、交易数、日期）；展开经 `getEquityCurve` 取存量净值曲线并以内联 SVG sparkline 绘制。卡片上的对比下拉可选另一条快照，两条曲线以同一坐标尺度叠加（`CompareLines`——双 polyline、色彩图例、纯 `compareLinesPoints` 几何）。
 
 两个注册共享一个开合控制器，随各自声明的生命周期安装与卸载。插件在注册 slot 之前挂载核心包的 Remote 贡献，并注册 `quant-research` locale 命名空间（中/英）承载文案。
 
