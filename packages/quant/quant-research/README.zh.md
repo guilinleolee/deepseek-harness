@@ -57,7 +57,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_compare_backtests` | 同标的同时跑两组参数，并排对比收益、回撤与夏普。 |
 | `quant_research_report` | 运行一次回测并输出结构化 Markdown 研究报告（参数/指标/净值/成交）。 |
 | `quant_optimize_params` | 在 jobs 运行时上以可取消后台任务做双均线网格寻优；用 `job_output` 收取排名报告。 |
-| `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。 |
+| `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。`windows`（2-10）切换为扩展窗滚动：每窗重新寻优 + 样本外回测，输出逐窗表格与聚合稳定性结论。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
@@ -86,7 +86,7 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 - **无实盘通道（设计使然）** — 这是插件的永久红线，不是缺失功能；门禁拒绝意图标记，内核只有虚拟账户。
 - **净值曲线卡片由结果快照供数** — 每次成功的 `quant_run_backtest` 持久化一条 `result_snapshots` 记录（域 v3）：参数、头条指标与下采样到至多 240 点的净值曲线；表保留最新 50 条。面板的「回测结果」区经 Remote 面（`listResultSnapshots`、`getEquityCurve`）列出快照并绘制存量曲线。walk-forward 与寻优运行不写快照。
 - **寻优报告只保留前 N 名** — 每组合的净值曲线与成交流量在内核线上被丢弃以控制响应体积；选中某组参数后用 `quant_run_backtest` 取完整曲线。
-- **walk-forward 是单次切分，非滚动** — `quant_walk_forward` 按调用方指定比例做一次训练/测试切分；滚动窗口再寻优（锚定或扩展）延期。
+- **滚动 walk-forward 为扩展窗，非锚定窗** — `windows ≥ 2` 时每个窗口都用其测试段之前的全部历史重新寻优（窗口数 2-10 为合规硬上限）；不提供固定长度锚定窗。滚动运行不写结果快照。
 - **内核缓存无 TTL 策略** — `akshare` 缓存按文件存在性命中，不看新鲜度；刷新策略等具体部署需求出现后再定。
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。
 - **pytest 覆盖率为信息性指标** — 仓库的逐文件 100% 门禁只覆盖 TypeScript `src`；内核 pytest 套件独立运行、独立报告。

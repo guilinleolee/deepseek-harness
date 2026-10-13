@@ -57,7 +57,7 @@ Each red line has at least one illegal-path unit test, and the keyless snapshot 
 | `quant_compare_backtests` | Run two parameter sets on the same symbol and compare return, drawdown, and Sharpe side by side. |
 | `quant_research_report` | Run one backtest and format the structured markdown research report (parameters, metrics, equity, fills). |
 | `quant_optimize_params` | Grid-search the SMA windows as one cancellable background job on the jobs runtime; collect the ranked markdown report with `job_output`. |
-| `quant_walk_forward` | Split the bars into train/test, grid-search on train, run one backtest on test with the train-optimal parameters; report out-of-sample metrics and the overfitting gap as a background job. |
+| `quant_walk_forward` | Split the bars into train/test, grid-search on train, run one backtest on test with the train-optimal parameters; report out-of-sample metrics and the overfitting gap as a background job. `windows` (2-10) switches to expanding-window rolling: one grid re-optimization plus one out-of-sample backtest per window, with a per-window table and an aggregate stability verdict. |
 
 Every result is the unified `{code, msg, data}` envelope — `code: 0` on success, the error tier's numeric code with `data: null` on failure (`NETWORK`, `DATA`, `KERNEL`, `RISK`, `CONFIG`, `CANCELLED`, `INTERNAL`) — and every rendered output ends with the research-only disclaimer.
 
@@ -86,7 +86,7 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 - **No live-trading channel, by design** — this is the plugin's permanent red line, not a missing feature; the gate denies intent markers and the kernel holds only virtual accounts.
 - **Equity-curve cards are fed by result snapshots** — every successful `quant_run_backtest` persists one `result_snapshots` record (domain v3): parameters, headline metrics, and the equity curve downsampled to at most 240 points; the table keeps the newest 50. The panel's Backtest-results section lists snapshots and draws the stored curve through the Remote face (`listResultSnapshots`, `getEquityCurve`). Walk-forward and optimization runs do not snapshot.
 - **Optimization reports top-N only** — per-combination equity curves and fills are dropped on the kernel wire to keep the response bounded; re-run `quant_run_backtest` on a chosen pair for the full curve.
-- **Walk-forward is one split, not rolling** — `quant_walk_forward` validates one train/test split at a caller-chosen ratio; rolling-window re-optimization (anchored or expanding) is deferred.
+- **Rolling walk-forward is expanding, not anchored** — with `windows >= 2` every window re-optimizes on all history before its test segment (the window count 2-10 is a compliance cap); fixed-length anchored windows are not offered. Rolling runs do not write result snapshots.
 - **Kernel cache has no TTL policy** — `akshare` cache files are read by existence, not freshness; a refresh strategy waits for a concrete deployment requirement.
 - **`akshare` depends on the host environment** — the source fails with a friendly config error until `kernel-py/requirements.txt` is installed; Tushare is a later optional source (its open-source library has been stale since 2024-03).
 - **pytest coverage is informational** — the repository's per-file 100% gate covers the TypeScript `src` only; the kernel's pytest suite runs independently and reports separately.

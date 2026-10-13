@@ -56,7 +56,9 @@ import {
 } from './pcpt/optimize.ts'
 import type { GridSpec, RankMetric } from './pcpt/optimize.ts'
 import {
-  TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars, validateWalkForwardParams,
+  ROLLING_WINDOWS_LIMITS, TRAIN_RATIO_LIMITS, formatRollingWalkForwardSummary, formatWalkForwardSummary,
+  runRollingWalkForward, runWalkForward, splitBars, splitRollingWindows, validateRollingParams,
+  validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
 
 declare module '@deepseek-ai/dsh-jobs' {
@@ -1453,6 +1455,7 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
       symbol: { type: 'string', required: true, description: '标的代码，如 000001、AAPL' },
       bars: { type: 'integer', description: `K线根数（需同时覆盖训练与测试段的最宽慢线窗口，上限 1500），默认 ${String(DEFAULT_BACKTEST_BARS)}` },
       train_ratio: { type: 'number', description: `训练段占比（0.5-0.9），默认 ${String(TRAIN_RATIO_LIMITS.default)}` },
+      windows: { type: 'integer', description: `滚动窗口数（${String(ROLLING_WINDOWS_LIMITS.min)}-${String(ROLLING_WINDOWS_LIMITS.max)}）；≥2 时启用扩展窗滚动重寻优，默认 1 = 单次切分` },
       fast_min: { type: 'integer', description: `快线起点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.min)}` },
       fast_max: { type: 'integer', description: `快线终点（2-120），默认 ${String(DEFAULT_GRID_SPEC.fast.max)}` },
       fast_step: { type: 'integer', description: `快线步长（≥1），默认 ${String(DEFAULT_GRID_SPEC.fast.step)}` },
@@ -1488,9 +1491,16 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
         if (!Number.isSafeInteger(topN) || topN < TOP_N_LIMITS.min || topN > TOP_N_LIMITS.max) {
           throw new QuantError('DATA', `top_n 必须是 ${String(TOP_N_LIMITS.min)}-${String(TOP_N_LIMITS.max)} 的整数`)
         }
-        validateWalkForwardParams(bars, spec, trainRatio)
+        const windows = args.windows ?? 1
+        if (windows >= ROLLING_WINDOWS_LIMITS.min) {
+          validateRollingParams(bars, spec, windows)
+        } else {
+          validateWalkForwardParams(bars, spec, trainRatio)
+        }
         const combos = axisLength(spec.fast) * axisLength(spec.slow)
-        const label = `${args.symbol} walk-forward ${String(combos)} 组合 训练${String(Math.round(trainRatio * 100))}%`
+        const label = windows >= ROLLING_WINDOWS_LIMITS.min
+          ? `${args.symbol} 滚动 walk-forward ${String(windows)} 窗 × ${String(combos)} 组合`
+          : `${args.symbol} walk-forward ${String(combos)} 组合 训练${String(Math.round(trainRatio * 100))}%`
         const controller = new AbortController()
         const id = jobs.start({
           kind: 'quant-walk-forward',
@@ -1507,6 +1517,23 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
                   cacheDir: deps.config.cacheDir,
                   signal: controller.signal,
                 })
+                if (windows >= ROLLING_WINDOWS_LIMITS.min) {
+                  const rolling = splitRollingWindows(series, windows)
+                  const results = await runRollingWalkForward(
+                    deps.kernel, args.symbol, rolling, spec,
+                    deps.config.defaultCash, deps.config.feeRate, rankBy, topN, controller.signal,
+                  )
+                  const markdown = formatRollingWalkForwardSummary(
+                    args.symbol, spec, results, windows, rankBy, combos,
+                  )
+                  const meanOos = results.reduce((sum, r) => sum + r.testReport.metrics.total_return, 0) / results.length
+                  const meanGap = results.reduce((sum, r) => sum + r.returnGap, 0) / results.length
+                  return {
+                    status: 'completed' as const,
+                    result: markdown,
+                    detail: `${String(windows)} 窗聚合：样本外均值 ${(meanOos * 100).toFixed(2)}%，平均差距 ${(meanGap * 100).toFixed(2)}%`,
+                  }
+                }
                 const split = splitBars(series, trainRatio)
                 const { trainResults, ranked, testReport } = await runWalkForward(
                   deps.kernel, args.symbol, split, spec,
@@ -1542,6 +1569,7 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
           symbol: args.symbol,
           bars,
           train_ratio: trainRatio,
+          ...(windows >= ROLLING_WINDOWS_LIMITS.min ? { windows } : {}),
           combos,
           grid: { fast: spec.fast, slow: spec.slow },
           rank_by: rankBy,

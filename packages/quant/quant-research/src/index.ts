@@ -38,7 +38,7 @@ export {
   BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
   GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
   collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectConfidenceCap, inspectGridCaps, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
+  inspectConfidenceCap, inspectGridCaps, inspectRollingWindowsCap, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
   installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
 export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
@@ -98,10 +98,11 @@ export {
 } from './pcpt/optimize.ts'
 export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
 export {
-  TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars,
-  validateWalkForwardParams,
+  ROLLING_WINDOWS_LIMITS, TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatRollingWalkForwardSummary,
+  formatWalkForwardSummary, runRollingWalkForward, runWalkForward, splitBars, splitRollingWindows,
+  validateRollingParams, validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
-export type { WalkForwardSplit } from './pcpt/walk-forward.ts'
+export type { RollingWindow, RollingWindowResult, WalkForwardSplit } from './pcpt/walk-forward.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
