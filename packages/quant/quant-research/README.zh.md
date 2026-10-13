@@ -58,7 +58,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 | `quant_research_report` | 运行一次回测并输出结构化 Markdown 研究报告（参数/指标/净值/成交）。 |
 | `quant_optimize_params` | 在 jobs 运行时上以可取消后台任务做双均线网格寻优；用 `job_output` 收取排名报告。 |
 | `quant_walk_forward` | 切训练/测试两段，训练段网格寻优，用最优参数在测试段跑一次回测；以后台任务报告样本外指标与过拟合差距。`windows`（2-10）切换为扩展窗滚动：每窗重新寻优 + 样本外回测，输出逐窗表格与聚合稳定性结论。 |
-| `quant_factor_cross_ic` | 评估一个因子在 2-10 只标的面板上的横截面预测力：对齐共享交易日，逐日计算因子排名与前视收益的横截面秩相关，以后台任务输出平均 IC、ICIR、正占比与 t 统计。 |
+| `quant_factor_cross_ic` | 评估一个因子在 2-10 只标的面板上的横截面预测力：对齐共享交易日，逐日计算因子排名与前视收益的横截面秩相关，以后台任务输出平均 IC、ICIR、正占比与 t 统计；`ic_windows`（2-6）可再把 IC 序列分窗逐窗聚合，给出跨窗口（regime）稳定性结论。 |
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 

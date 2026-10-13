@@ -142,6 +142,53 @@ export function crossSectionIC(
   return points
 }
 
+/** Hard bounds for the windowed (regime) split of a cross-IC series. */
+export const IC_WINDOWS_LIMITS = { min: 2, max: 6 } as const
+
+/** One contiguous slice of a cross-IC series with its own aggregate. */
+export interface ICWindowSummary {
+  /** Zero-based window order, chronological. */
+  readonly index: number
+  /** The window's date span (first and last observation dates). */
+  readonly span: readonly [string, string]
+  /** The window's aggregate, or null when fewer than two valid readings fall inside. */
+  readonly summary: CrossICSummary | null
+}
+
+/**
+ * Split one cross-IC series into `windows` contiguous equal-count windows
+ * (remainder readings drop from the tail) and aggregate each. Regime
+ * stability is the read: a factor whose window ICIRs flip sign across
+ * windows is regime-bound, not robust.
+ * @param points - the full IC series, oldest first.
+ * @param windows - the window count, in `IC_WINDOWS_LIMITS`.
+ * @returns one summary per window, chronological.
+ * @throws {@link QuantError} code `DATA` on an out-of-bounds window count.
+ */
+export function windowedIC(
+  points: readonly CrossICPoint[],
+  windows: number,
+): ICWindowSummary[] {
+  if (!Number.isSafeInteger(windows) || windows < IC_WINDOWS_LIMITS.min || windows > IC_WINDOWS_LIMITS.max) {
+    throw new QuantError('DATA', `ic_windows 必须是 ${String(IC_WINDOWS_LIMITS.min)}-${String(IC_WINDOWS_LIMITS.max)} 的整数`)
+  }
+  const perWindow = Math.floor(points.length / windows)
+  const out: ICWindowSummary[] = []
+  for (let index = 0; index < windows; index += 1) {
+    const slice = points.slice(index * perWindow, (index + 1) * perWindow)
+    if (slice.length === 0) {
+      out.push({ index, span: ['-', '-'], summary: null })
+      continue
+    }
+    out.push({
+      index,
+      span: [slice[0]?.date ?? '-', slice.at(-1)?.date ?? '-'],
+      summary: summarizeIC(slice),
+    })
+  }
+  return out
+}
+
 /**
  * Aggregate one IC series into the factor-evaluation summary.
  * @param points - the IC series, oldest first.
@@ -154,13 +201,17 @@ export function summarizeIC(points: readonly CrossICPoint[]): CrossICSummary | n
   const variance = valid.reduce((sum, ic) => sum + (ic - mean) ** 2, 0) / (valid.length - 1)
   const std = Math.sqrt(variance)
   const positive = valid.filter(ic => ic > 0).length
+  // A degenerate (near-zero-dispersion) IC series is noise, not infinite
+  // conviction: clamp tiny std below one basis point to zero so the ratios
+  // report 0 rather than 1e16.
+  const safeStd = std < 1e-4 ? 0 : std
   return {
     observations: valid.length,
     meanIC: mean,
     stdIC: std,
-    icir: std === 0 ? 0 : mean / std,
+    icir: safeStd === 0 ? 0 : mean / safeStd,
     positiveShare: positive / valid.length,
-    tStat: std === 0 ? 0 : (mean / std) * Math.sqrt(valid.length),
+    tStat: safeStd === 0 ? 0 : (mean / safeStd) * Math.sqrt(valid.length),
   }
 }
 
@@ -185,6 +236,7 @@ export function formatCrossICSummary(
   bars: number,
   points: readonly CrossICPoint[],
   summary: CrossICSummary | null,
+  windows?: readonly ICWindowSummary[],
 ): string {
   const pct = (v: number): string => `${(v * 100).toFixed(1)}%`
   const tail = points.slice(-6)
@@ -210,6 +262,26 @@ export function formatCrossICSummary(
       `- ICIR：${summary.icir.toFixed(4)}`,
       `- IC 为正的截面占比：${pct(summary.positiveShare)}`,
       `- t 统计：${summary.tStat.toFixed(3)}`,
+    ]),
+    ...(windows === undefined ? [] : [
+      '## 分窗稳定性（每窗独立聚合）',
+      '',
+      '窗口 | 区间 | 有效截面 | 平均 IC | ICIR',
+      '--- | --- | --- | --- | ---',
+      ...windows.map(win => [
+        `W${String(win.index + 1)}`,
+        `${win.span[0]} ~ ${win.span[1]}`,
+        win.summary === null ? '不足' : String(win.summary.observations),
+        win.summary === null ? '-' : win.summary.meanIC.toFixed(4),
+        win.summary === null ? '-' : win.summary.icir.toFixed(3),
+      ].join(' | ')),
+      '',
+      ...(windows.every(win => win.summary === null || win.summary.icir >= 0)
+        ? ['- 分窗结论：各窗 ICIR 未翻转符号——因子区分力在该面板上跨窗口方向稳定']
+        : windows.every(win => win.summary === null || win.summary.icir < 0)
+          ? ['- 分窗结论：各窗 ICIR 全为负——方向稳定为反向因子（值越高收益越低）']
+          : ['- 分窗结论：存在符号翻转——因子区分力受状态（regime）影响，谨慎对待全样本结论']),
+      '',
     ]),
     '',
     '## 结论',

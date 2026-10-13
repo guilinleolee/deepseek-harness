@@ -51,6 +51,8 @@ export const ANCHOR_LIMITS = { min: 30, max: 1000 } as const
 /** Hard bounds for the cross-sectional panel size and forward-return horizon. */
 export const PANEL_SIZE_LIMITS = { min: 2, max: 10 } as const
 export const HORIZON_LIMITS = { min: 1, max: 20, default: 5 } as const
+/** Hard bounds for the windowed (regime) split of a cross-IC series. */
+export const IC_WINDOWS_LIMITS = { min: 2, max: 6 } as const
 /** One inclusive integer range walked by a step. */
 export interface GridAxisSpec {
   /** First window in the axis (inclusive). */
@@ -257,12 +259,21 @@ export function inspectCrossPanelCaps(args: RawArgs): ComplianceVerdict {
     return { kind: 'deny', reason: 'symbols 数组包含重复标的（合规要求去重）' }
   }
   const horizon = record['horizon']
-  if (horizon === undefined) return { kind: 'allow' }
-  if (typeof horizon !== 'number' || !Number.isSafeInteger(horizon)
-    || horizon < HORIZON_LIMITS.min || horizon > HORIZON_LIMITS.max) {
+  if (horizon !== undefined
+    && (typeof horizon !== 'number' || !Number.isSafeInteger(horizon)
+      || horizon < HORIZON_LIMITS.min || horizon > HORIZON_LIMITS.max)) {
     return {
       kind: 'deny',
       reason: `horizon 必须是 ${String(HORIZON_LIMITS.min)}-${String(HORIZON_LIMITS.max)} 的整数（合规硬上限）`,
+    }
+  }
+  const icWindows = record['ic_windows']
+  if (icWindows !== undefined
+    && (typeof icWindows !== 'number' || !Number.isSafeInteger(icWindows)
+      || icWindows < IC_WINDOWS_LIMITS.min || icWindows > IC_WINDOWS_LIMITS.max)) {
+    return {
+      kind: 'deny',
+      reason: `ic_windows 必须是 ${String(IC_WINDOWS_LIMITS.min)}-${String(IC_WINDOWS_LIMITS.max)} 的整数（合规硬上限）`,
     }
   }
   return { kind: 'allow' }

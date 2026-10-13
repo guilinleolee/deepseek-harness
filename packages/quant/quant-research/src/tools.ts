@@ -62,8 +62,9 @@ import {
 } from './pcpt/walk-forward.ts'
 import {
   HORIZON_LIMITS, PANEL_SIZE_LIMITS, alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary,
-  summarizeIC,
+  IC_WINDOWS_LIMITS, summarizeIC, windowedIC,
 } from './paat/cross-ic.ts'
+import type { ICWindowSummary } from './paat/cross-ic.ts'
 
 declare module '@deepseek-ai/dsh-jobs' {
   interface JobKindMap {
@@ -1623,6 +1624,7 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
       window: { type: 'integer', description: `因子回看窗口，默认按因子各自默认值（momentum 为 ${String(DEFAULT_FACTOR_WINDOWS.momentum)}）` },
       horizon: { type: 'integer', description: `前视收益天数（${String(HORIZON_LIMITS.min)}-${String(HORIZON_LIMITS.max)}），默认 ${String(HORIZON_LIMITS.default)}` },
       bars: { type: 'integer', description: `每标的K线根数（上限 ${String(BARS_HARD_LIMIT)}），默认 ${String(DEFAULT_KLINE_BARS)}` },
+      ic_windows: { type: 'integer', description: '分窗数（2-6）：把 IC 序列等分逐窗聚合，评估因子区分力的跨窗口（regime）稳定性；默认不分窗' },
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderCrossIC(value) },
     timeoutMs: deps.config.toolTimeoutMs,
@@ -1657,6 +1659,11 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
         if (!Number.isSafeInteger(window) || window < 2 || window > 250) {
           throw new QuantError('DATA', 'window 必须是 2-250 的整数')
         }
+        const icWindows = args.ic_windows
+        if (icWindows !== undefined
+          && (!Number.isSafeInteger(icWindows) || icWindows < IC_WINDOWS_LIMITS.min || icWindows > IC_WINDOWS_LIMITS.max)) {
+          throw new QuantError('DATA', `ic_windows 必须是 ${String(IC_WINDOWS_LIMITS.min)}-${String(IC_WINDOWS_LIMITS.max)} 的整数`)
+        }
         const label = `${symbols.join('/')} 横截面 IC ${factor}`
         const controller = new AbortController()
         const id = jobs.start({
@@ -1684,7 +1691,8 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
                 }
                 const points = crossSectionIC(panel, factorBySymbol, horizon)
                 const summary = summarizeIC(points)
-                const markdown = formatCrossICSummary(symbols, factor, window, horizon, bars, points, summary)
+                const windows: ICWindowSummary[] | undefined = icWindows === undefined ? undefined : windowedIC(points, icWindows)
+                const markdown = formatCrossICSummary(symbols, factor, window, horizon, bars, points, summary, windows)
                 return {
                   status: 'completed' as const,
                   result: markdown,
@@ -1715,6 +1723,7 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
           bars,
           panel_cap: PANEL_SIZE_LIMITS.max,
           horizon_cap: HORIZON_LIMITS.max,
+          ...(icWindows === undefined ? {} : { ic_windows: icWindows }),
           hint: '后台横截面 IC 已启动：用 job_output(job_id, wait: true) 收取评估报告；不再需要时用 job_kill(job_id) 取消',
         }
       }) as never

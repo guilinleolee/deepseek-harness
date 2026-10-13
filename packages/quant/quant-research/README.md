@@ -58,7 +58,7 @@ Each red line has at least one illegal-path unit test, and the keyless snapshot 
 | `quant_research_report` | Run one backtest and format the structured markdown research report (parameters, metrics, equity, fills). |
 | `quant_optimize_params` | Grid-search the SMA windows as one cancellable background job on the jobs runtime; collect the ranked markdown report with `job_output`. |
 | `quant_walk_forward` | Split the bars into train/test, grid-search on train, run one backtest on test with the train-optimal parameters; report out-of-sample metrics and the overfitting gap as a background job. `windows` (2-10) switches to expanding-window rolling: one grid re-optimization plus one out-of-sample backtest per window, with a per-window table and an aggregate stability verdict. |
-| `quant_factor_cross_ic` | Evaluate one factor's cross-sectional predictive power over a 2-10 symbol panel: align the shared dates, correlate factor ranks with forward returns per date (Spearman), and report mean IC, ICIR, positive share, and the t-statistic as a background job. |
+| `quant_factor_cross_ic` | Evaluate one factor's cross-sectional predictive power over a 2-10 symbol panel: align the shared dates, correlate factor ranks with forward returns per date (Spearman), and report mean IC, ICIR, positive share, and the t-statistic as a background job; `ic_windows` (2-6) additionally aggregates the IC series window-by-window for a regime-stability verdict. |
 
 Every result is the unified `{code, msg, data}` envelope — `code: 0` on success, the error tier's numeric code with `data: null` on failure (`NETWORK`, `DATA`, `KERNEL`, `RISK`, `CONFIG`, `CANCELLED`, `INTERNAL`) — and every rendered output ends with the research-only disclaimer.
 
