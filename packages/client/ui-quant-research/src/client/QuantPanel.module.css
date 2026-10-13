@@ -52,3 +52,148 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+.error {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(220 60 60 / 10%);
+  color: rgb(180 40 40);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.retry {
+  padding: 2px 10px;
+  border: 1px solid rgb(180 40 40 / 40%);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--dsh-text-secondary, #888);
+}
+
+.accountCard {
+  border: 1px solid var(--dsh-border, #e2e2e2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.accountHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.accountName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.accountEquity {
+  font-size: 12px;
+  color: var(--dsh-text-secondary, #555);
+}
+
+.accountMeta {
+  font-size: 12px;
+  color: var(--dsh-text-secondary, #777);
+}
+
+.noteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.noteItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.noteTitle {
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteSymbol {
+  font-size: 11px;
+  color: var(--dsh-text-secondary, #777);
+}
+
+.noteDate {
+  font-size: 11px;
+  color: var(--dsh-text-secondary, #999);
+}
+
+.quant-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quant-bar-row-item {
+  display: grid;
+  grid-template-columns: 72px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.quant-bar-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quant-bar-row-track {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--dsh-border, #eee);
+  overflow: hidden;
+}
+
+.quant-bar-row-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--dsh-accent, #4a7dff);
+}
+
+.quant-bar-row-value {
+  text-align: right;
+  color: var(--dsh-text-secondary, #777);
+  font-variant-numeric: tabular-nums;
+}

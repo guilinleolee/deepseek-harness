@@ -6,7 +6,7 @@ import { apply, inject, name, resolveKernelScriptPath } from '../src/index.ts'
 describe('plugin surface', () => {
   it('declares the plugin identity and service requirements', () => {
     expect(name).toBe('quant-research')
-    expect(inject).toEqual(['storageDomain', 'subprocess'])
+    expect(inject).toEqual(['storageDomain', 'subprocess', 'approval'])
   })
 
   it('locates the shipped kernel script inside the package', () => {
@@ -37,6 +37,7 @@ function preparedContext(): {
   ctx.provide('storageDomain', { open } as never)
   ctx.provide('subprocess', { spawn: vi.fn() } as never)
   ctx.provide('tools', { register } as never)
+  ctx.provide('approval', { request: vi.fn(async () => 'rejected' as const) } as never)
   return { ctx, register, close, open }
 }
 
@@ -44,11 +45,19 @@ describe('apply', () => {
   it('composes the runtime, registers the three tools, and unwinds on dispose', async () => {
     const { ctx, register, close, open } = preparedContext()
     const disposer = await apply(ctx, resolveConfig(undefined, { platform: 'linux', dshHome: '/tmp' }))
-    expect(open).toHaveBeenCalledTimes(1)
+    // One open from the plugin body, one from the QuantResearchService fiber.
+    expect(open).toHaveBeenCalledTimes(2)
     const names = register.mock.calls.map(call => (call[0] as { name: string }).name)
-    expect(names).toEqual(['quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest'])
+    expect(names).toEqual([
+      'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
+      'quant_assess_risk', 'quant_stress_test',
+      'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
+      'quant_compute_factor', 'quant_factor_ic',
+      'quant_save_note', 'quant_list_notes', 'quant_export_report',
+      'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+    ])
     await disposer()
-    expect(close).toHaveBeenCalledTimes(1)
+    expect(close).toHaveBeenCalledTimes(2)
   })
 
   it('fails loud before opening the domain on an invalid config', async () => {
@@ -73,6 +82,7 @@ describe('kernel round trip through apply', () => {
         return () => {}
       }),
     } as never)
+    ctx.provide('approval', { request: vi.fn(async () => 'rejected' as const) } as never)
     ctx.provide('subprocess', {
       spawn: (spec: { argv: string[] }) => {
         spawnedPath = spec.argv[1] ?? ''

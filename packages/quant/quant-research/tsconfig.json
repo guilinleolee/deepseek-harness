@@ -21,6 +21,9 @@
       "path": "../../util/brand"
     },
     {
+      "path": "../../jobs/jobs"
+    },
+    {
       "path": "../../util/home-paths"
     },
     {
@@ -34,6 +37,9 @@
     },
     {
       "path": "../../subprocess/subprocess"
+    },
+    {
+      "path": "../../typert/protocol"
     }
   ]
 }

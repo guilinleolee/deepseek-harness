@@ -1,8 +1,9 @@
 /**
- * Quant research plugin (phase 1): kernel-backed market data, deterministic
- * TypeScript indicators, and a daily SMA-cross backtester for research-only
+ * Quant research plugin: kernel-backed market data, deterministic TypeScript
+ * indicators, the daily SMA-cross backtester with its risk/stress/factor/PET
+ * suite, and jobs-runtime parameter optimization — all for research-only
  * workflows. The plugin opens the `quant_research` storage domain (the
- * compliance-denial audit trail), registers the three `quant_*` tools, and
+ * compliance-denial audit trail), registers the `quant_*` tools, and
  * installs the pre-execute compliance gate enforcing the research-only red
  * lines. No real-broker path exists anywhere in the plugin.
  * @module @deepseek-ai/dsh-quant-research
@@ -19,6 +20,7 @@ import { quantResearchDomainSpec } from './domain/spec.ts'
 import { DataSourceBreaker } from './pdat/datasource.ts'
 import { QuantKernelClient } from './kernel-client/client.ts'
 import { registerQuantTools } from './tools.ts'
+import { QuantResearchService } from './service.ts'
 
 export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
 export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
@@ -27,14 +29,18 @@ export {
   ENVELOPE_CODES, QuantError, errorEnvelope, isQuantError, okEnvelope,
 } from './errors.ts'
 export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
-export { complianceDenialSchema, quantResearchDomainSpec } from './domain/spec.ts'
-export type { ComplianceDenial, ComplianceDenialId } from './domain/spec.ts'
 export {
-  BARS_HARD_LIMIT, BROKER_MARKERS, FEE_RATE_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, TOOL_PREFIX,
+  AccountId, OrderId, accountSchema, complianceDenialSchema, orderSchema, quantResearchDomainSpec,
+} from './domain/spec.ts'
+export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
+export {
+  BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
+  GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
   collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectToolCall, installQuantComplianceGate, recordComplianceDenial,
+  inspectConfidenceCap, inspectGridCaps, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
+  installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
-export type { ComplianceDenialInput, ComplianceVerdict } from './compliance.ts'
+export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
 export {
   KERNEL_PROTOCOL_VERSION, ResponseParser, encodeRequest, kernelErrorToQuantCode, parseResponseLine,
 } from './kernel-client/protocol.ts'
@@ -52,22 +58,67 @@ export type { FetchKlineOptions, KlineBar } from './pdat/datasource.ts'
 export { atr, boll, ema, macd, rsi, sma } from './paat/indicators.ts'
 export type { Series } from './paat/indicators.ts'
 export {
-  FAST_WINDOW_LIMITS, SLOW_WINDOW_LIMITS, runBacktest, validateBacktestParams,
+  DEFAULT_FACTOR_WINDOWS, FACTOR_NAMES, computeFactor, momentum, pricePosition, volumeRatio, volatility,
+} from './paat/factors.ts'
+export type { FactorName, FactorSeries } from './paat/factors.ts'
+export { informationRatio, rollingIC, spearman } from './paat/ic.ts'
+export type { ICPeriod } from './paat/ic.ts'
+export {
+  runBacktest, validateBacktestParams,
 } from './pcpt/backtest.ts'
+export {
+  CONFIDENCE_LIMITS as PRT_CONFIDENCE_LIMITS, DEFAULT_STRESS_SEGMENT, SHOCK_LIMITS as PRT_SHOCK_LIMITS,
+  TRADING_DAYS_PER_YEAR, annualVolatility, concentrationBreaches, dailyReturns, empiricalQuantile,
+  historicalCVar, historicalVar, maxDrawdown, shockBars, validateStressParams,
+} from './prt/risk.ts'
+export type { StressParams, StressScenario } from './prt/risk.ts'
+export {
+  applyTrades, cashDelta, createAccount, listAccounts, requireAccount,
+} from './pet/service.ts'
+export {
+  deleteNote, exportNotesMarkdown, listNotes, renderNoteMarkdown, saveNote,
+} from './pet/notes.ts'
+export type { NoteSaveInput } from './pet/notes.ts'
+export type { ResearchNote } from './domain/spec.ts'
+export type { AccountCreateInput } from './pet/service.ts'
+export type { PetPosition } from './pet/rebalance.ts'
+export {
+  computeRebalanceTrades, latestClose,
+} from './pet/rebalance.ts'
+export type { RebalanceInput, RebalancePlan, RebalanceTarget, RebalanceTrade } from './pet/rebalance.ts'
+export type { ApprovalAsk } from './tools.ts'
 export type {
   BacktestMetrics, BacktestParams, BacktestReport, BacktestTrade, EquityPoint,
 } from './pcpt/backtest.ts'
+export { compareBacktests, formatBacktestReport } from './pcpt/report.ts'
+export {
+  DEFAULT_RANK_METRIC, RANK_METRICS, TOP_N_LIMITS, axisLength, enumerateGrid, formatOptimizationSummary,
+  rankGridResults, runBacktestGrid, validateGridSpec,
+} from './pcpt/optimize.ts'
+export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
+export {
+  TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars,
+  validateWalkForwardParams,
+} from './pcpt/walk-forward.ts'
+export type { WalkForwardSplit } from './pcpt/walk-forward.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
-  computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
+  compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
+  walkForwardTool,
 } from './tools.ts'
-export type { QuantToolDeps } from './tools.ts'
+export type { JobsStartFace, QuantToolDeps } from './tools.ts'
+export { QuantResearchService } from './service.ts'
+export type {
+  AccountListValue, AccountRef, AccountSummaryValue, NoteListValue, NoteSummaryValue,
+} from './types.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
 
-/** Services required before the plugin body runs. */
-export const inject = ['storageDomain', 'subprocess']
+/** Services required before the plugin body runs (`approval` backs the PET review flow). */
+export const inject = ['storageDomain', 'subprocess', 'approval']
 
 /**
  * Locate the kernel entry script shipped inside this package. Resolution goes
@@ -97,9 +148,10 @@ export function resolveKernelScriptPath(
 export async function apply(ctx: Context, config?: Config): Promise<() => Promise<void>> {
   const resolved = resolveConfig(config, { platform: process.platform, dshHome: defaultDshHome() })
   const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
+  const serviceFiber = await ctx.plugin(QuantResearchService).await()
   const runtimeFiber = await ctx.plugin({
     name: 'quant-research:runtime',
-    inject: ['tools'],
+    inject: ['tools', 'approval'],
     apply: (runtimeCtx: Context) => {
       const kernel = new QuantKernelClient({
         // Adapt the subprocess handle onto the kernel process face: the
@@ -119,7 +171,17 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         requestTimeoutMs: resolved.kernelRequestTimeoutMs,
       })
       const breaker = new DataSourceBreaker(resolved.fuseThreshold)
-      const unregisterTools = registerQuantTools(runtimeCtx, { config: resolved, kernel, breaker })
+      const unregisterTools = registerQuantTools(runtimeCtx, {
+        config: resolved,
+        kernel,
+        breaker,
+        accounts: domain.table('accounts'),
+        orders: domain.table('orders'),
+        notes: domain.table('research_notes'),
+        approval: runtimeCtx.approval,
+        // Resolved per call: the jobs service may mount after this plugin.
+        jobs: () => runtimeCtx.get('jobs'),
+      })
       const uninstallGate = installQuantComplianceGate(
         runtimeCtx,
         denialAuditCallback(domain.table('compliance_denials'), runtimeCtx.logger),
@@ -132,6 +194,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
   }).await()
   return async () => {
     await runtimeFiber.dispose()
+    await serviceFiber.dispose()
     await domain.close()
   }
 }

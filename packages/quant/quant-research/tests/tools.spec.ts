@@ -6,7 +6,9 @@ import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
 import type { QuantKernelClient } from '../src/kernel-client/client.ts'
 import {
-  computeIndicatorTool, getKlineTool, registerQuantTools, runBacktestTool,
+  accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
+  executeRebalanceTool, factorICTool, getKlineTool, registerQuantTools, runBacktestTool,
+  stressTestTool,
 } from '../src/tools.ts'
 import type { QuantToolDeps } from '../src/tools.ts'
 
@@ -67,7 +69,15 @@ function textOf(blocks: unknown): string {
 }
 
 function deps(kernel: QuantKernelClient): QuantToolDeps {
-  return { config: CONFIG, kernel, breaker: new DataSourceBreaker(3) }
+  return {
+    config: CONFIG,
+    kernel,
+    breaker: new DataSourceBreaker(3),
+    accounts: new Map() as never,
+    orders: new Map() as never,
+    notes: new Map() as never,
+    approval: { request: vi.fn(async () => 'rejected' as const) },
+  }
 }
 
 describe('quant_get_kline', () => {
@@ -255,6 +265,324 @@ describe('quant_run_backtest', () => {
   })
 })
 
+describe('quant_assess_risk', () => {
+  const tool = (): ToolDefinition => assessRiskTool(deps(syntheticBarsKernel()))
+
+  it('computes the tail-risk metrics and renders them with the disclaimer', async () => {
+    const definition = tool()
+    const value = await definition.execute?.({ symbol: '000001', bars: 30, confidence: 0.9 }, execWith())
+    expect(value).toMatchObject({ code: 0 })
+    const data = (value as { data: { sample_count: number; confidence: number } }).data
+    expect(data.sample_count).toBe(29)
+    expect(data.confidence).toBe(0.9)
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('历史模拟法')
+    expect(rendered).toContain('VaR')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('defaults the confidence when omitted and reports the friendly failure', async () => {
+    const failing = assessRiskTool(deps(kernelByOp(() => {
+      throw new QuantError('NETWORK', '数据源超时')
+    })))
+    const failed = await failing.execute?.({ symbol: '000001' }, execWith())
+    expect(failed).toMatchObject({ code: 1001 })
+    expect(textOf(failing.output.render({}, failed as never))).toContain('请求失败')
+
+    const definition = assessRiskTool(deps(syntheticBarsKernel()))
+    const value = await definition.execute?.({ symbol: '000001' }, execWith())
+    expect((value as { data: { confidence: number } }).data.confidence).toBe(0.95)
+  })
+
+  it('renders placeholder segments when the envelope omits optional fields', () => {
+    const definition = tool()
+    const rendered = textOf(definition.output.render({}, {
+      code: 0,
+      msg: 'ok',
+      data: { symbol: '000001', var: 0.02, cvar: 0.03 },
+    } as never))
+    expect(rendered).toContain('置信度 ?')
+    expect(rendered).toContain('样本 ? 个')
+    expect(rendered).toContain('年化波动率 0.00%')
+  })
+
+  it('renders the empty fallback and the call card', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never)))
+      .toContain('风险评估为空')
+    expect(definition.presentCall?.({ symbol: '600000' } as never))
+      .toEqual({ card: 'generic', title: '风险评估：600000' })
+  })
+})
+
+describe('quant_stress_test', () => {
+  const tool = (): ToolDefinition => stressTestTool(deps(syntheticBarsKernel()))
+
+  it('reruns the backtest on shocked bars and renders the comparison', async () => {
+    const kernel = syntheticBarsKernel()
+    const definition = stressTestTool(deps(kernel))
+    const value = await definition.execute?.(
+      { symbol: '000001', scenario: 'crash', bars: 60, fast: 3, slow: 10, shock: 0.2 },
+      execWith(),
+    )
+    expect(value).toMatchObject({ code: 0 })
+    const calls = (kernel.request as ReturnType<typeof vi.fn>).mock.calls as Array<[string, Record<string, unknown>]>
+    expect(calls.filter(([op]) => op === 'backtest')).toHaveLength(2)
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('crash')
+    expect(rendered).toContain('冲击 20.00%')
+    expect(rendered).toContain('最大回撤')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('renders the failure envelope for stress failures', async () => {
+    const kernel = kernelByOp((op) => {
+      if (op === 'get_kline') return BARS
+      throw new QuantError('KERNEL', '压力回测崩溃')
+    })
+    const definition = stressTestTool(deps(kernel))
+    const value = await definition.execute?.({ symbol: '000001', scenario: 'crash' }, execWith())
+    expect(value).toMatchObject({ code: 1003 })
+    expect(textOf(definition.output.render({}, value as never))).toContain('请求失败')
+  })
+
+  it('defaults the shock magnitude and reports the friendly failure', async () => {
+    const definition = tool()
+    const value = await definition.execute?.({ symbol: '000001', scenario: 'liquidity' }, execWith())
+    expect(value).toMatchObject({ code: 0 })
+    const data = (value as { data: { shock: number; scenario: string } }).data
+    expect(data.scenario).toBe('liquidity')
+    expect(data.shock).toBe(0.1)
+
+    const invalid = stressTestTool(deps(syntheticBarsKernel()))
+    const bad = await invalid.execute?.({ symbol: '000001', scenario: 'crash', shock: 0.9 }, execWith())
+    expect(bad).toMatchObject({ code: 1002 })
+    expect((bad as { msg: string }).msg).toContain('冲击幅度')
+  })
+
+
+  it('renders placeholders when stress metrics omit optional fields', () => {
+    const definition = tool()
+    const rendered = textOf(definition.output.render({}, {
+      code: 0,
+      msg: 'ok',
+      data: {
+        symbol: '000001',
+        baseline: { total_return: 0.05, max_drawdown: 0.1, sharpe: 1.2 },
+        stressed: { total_return: -0.2, max_drawdown: 0.4, sharpe: -0.5 },
+      },
+    } as never))
+    expect(rendered).toContain('压力测试（?')
+    expect(rendered).toContain('冲击 0.00%')
+  })
+
+  it('renders the empty fallback and the call card', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never)))
+      .toContain('压力测试结果为空')
+    expect(definition.presentCall?.({ symbol: '600000', scenario: 'crash' } as never))
+      .toEqual({ card: 'generic', title: '压力测试：600000 crash' })
+  })
+})
+
+describe('PET tool renders', () => {
+  // 内存版 KvTable：put/get/entries 齐全，供 PET 工具落盘。
+  const memTable = (): never => {
+    const store = new Map()
+    return {
+      entries: () => store.entries(),
+      get size() { return store.size },
+      get: (key: unknown) => store.get(key),
+      put: async (key: unknown, value: unknown) => { store.set(key, value) },
+    } as never
+  }
+  const petDepsLocal = (outcome: 'allowed-once' | 'rejected' = 'rejected'): QuantToolDeps => ({
+    ...deps(syntheticBarsKernel()),
+    accounts: memTable(),
+    orders: memTable(),
+    approval: { request: Object.assign(async (req: unknown) => { console.log('P2-APPROVAL-CALLED:', JSON.stringify(req?.constructor?.name)); return outcome }, { _isMockFunction: true }) },
+  })
+
+  it('renders factor/IC failure and optional-field paths', async () => {
+    const factorTool = computeFactorTool(deps(syntheticBarsKernel()))
+    const icTool = factorICTool(deps(syntheticBarsKernel()))
+    // 失败信封 → failureLine
+    const factorFail = await factorTool.execute?.({ symbol: '!!', factor: 'momentum' }, execWith())
+    expect(textOf(factorTool.output.render({}, factorFail as never))).toContain('请求失败')
+    const icFail = await icTool.execute?.({ symbol: '!!', factor: 'momentum' }, execWith())
+    expect(textOf(icTool.output.render({}, icFail as never))).toContain('请求失败')
+    // 空数据 fallback
+    expect(textOf(factorTool.output.render({}, { code: 0, msg: 'ok', data: {} } as never))).toContain('因子数据为空')
+    expect(textOf(icTool.output.render({}, { code: 0, msg: 'ok', data: {} } as never))).toContain('IC 分析结果为空')
+    // optional fields（window 为 null、ic_ir 为 null、缺 factor）
+    const noWindow = textOf(factorTool.output.render({}, {
+      code: 0, msg: 'ok',
+      data: { symbol: 'x', factor: 'momentum', count: 1, values: [{ date: 'd', value: 0.5 }] },
+    } as never))
+    expect(noWindow).not.toContain('窗口')
+    const noIR = textOf(icTool.output.render({}, {
+      code: 0, msg: 'ok',
+      data: { symbol: 'x', factor: 'momentum', mean_ic: 0.05, ic_ir: null, period_count: 0, recent_ics: [] },
+    } as never))
+    expect(noIR).toContain('N/A')
+  })
+
+  it('renders the create/state/rebalance failure and empty paths', () => {
+    const failure = { code: 1002, msg: '未找到账户', data: null }
+    for (const render of [
+      accountCreateTool(petDepsLocal()).output.render,
+      accountStateTool(petDepsLocal()).output.render,
+      executeRebalanceTool(petDepsLocal()).output.render,
+    ]) {
+      expect(textOf(render({}, failure as never))).toContain('请求失败')
+    }
+    const empty = accountCreateTool(petDepsLocal()).output.render({}, { code: 0, msg: 'ok', data: {} } as never)
+    expect(textOf(empty)).toContain('账户信息为空')
+    const emptyRebalance = executeRebalanceTool(petDepsLocal()).output.render(
+      {}, { code: 0, msg: 'ok', data: {} } as never,
+    )
+    expect(textOf(emptyRebalance)).toContain('调仓结果为空')
+
+    // renderAccount 的持仓列表与缺省 equityLine；renderRebalance 的缺省 cash_after
+    const stateRender = accountStateTool(petDepsLocal()).output.render
+    const fullState = {
+      code: 0, msg: 'ok',
+      data: {
+        name: '研究一号', cash: 500,
+        positions: [{ symbol: '000001', shares: 100, market_value: 1000 }],
+        equity: 1500,
+      },
+    }
+    const stateText = textOf(stateRender({}, fullState as never))
+    expect(stateText).toContain('000001')
+    expect(stateText).toContain('总权益 1500')
+
+    const rebalanceRender = executeRebalanceTool(petDepsLocal()).output.render
+    const rebalanceText = textOf(rebalanceRender({}, {
+      code: 0, msg: 'ok',
+      data: {
+        account_name: '研究一号',
+        executed: [
+          { symbol: '000001', side: 'sell', shares: 10, price: 10, fee: 0.3 },
+          { symbol: 'AAPL', side: 'buy', shares: 1, price: 100, fee: 0.03 },
+        ],
+        cash_after: 499.67,
+      },
+    } as never))
+    expect(rebalanceText).toContain('卖出 000001')
+    expect(rebalanceText).toContain('买入 AAPL')
+    expect(rebalanceText).toContain('现金余额 499.67')
+  })
+
+  it('renders account positions and rebalance fills end to end', async () => {
+    const approving = petDepsLocal('allowed-once')
+    console.log('DEBUG approval:', JSON.stringify(approving.approval))
+    await accountCreateTool(approving).execute?.({ name: '研究一号' }, execWith(() => {}))
+    const rebalance = await executeRebalanceTool(approving).execute?.(
+      { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },
+      execWith(() => {}),
+    )
+    console.log('P2-REBALANCE-RESULT:', JSON.stringify(rebalance).slice(0, 200))
+    expect(rebalance).toMatchObject({ code: 0 })
+    const rebalanceText = textOf(executeRebalanceTool(approving).output.render({}, rebalance as never))
+    expect(rebalanceText).toContain('调仓完成')
+    expect(rebalanceText).toContain('现金余额')
+    const state = await accountStateTool(approving).execute?.({ account_name: '研究一号' }, execWith())
+    const stateText = textOf(accountStateTool(approving).output.render({}, state as never))
+    expect(stateText).toContain('总权益')
+    expect(stateText).toContain('000001')
+  })
+
+  it('presents all three PET tools from args alone', () => {
+    expect(accountCreateTool(petDepsLocal()).presentCall?.({ name: 'x' } as never))
+      .toEqual({ card: 'generic', title: '创建虚拟账户：x' })
+    expect(accountStateTool(petDepsLocal()).presentCall?.({ account_name: 'x' } as never))
+      .toEqual({ card: 'generic', title: '查询账户：x' })
+    expect(accountStateTool(petDepsLocal()).presentCall?.({ account_id: 'a-1' } as never))
+      .toEqual({ card: 'generic', title: '查询账户：a-1' })
+    expect(executeRebalanceTool(petDepsLocal()).presentCall?.(
+      { account_name: 'x', targets: [{ symbol: '000001', weight: 0.5 }] } as never,
+    )).toEqual({ card: 'generic', title: '调仓审核：x' })
+  })
+
+  it('presents the state tool without any args (all defaults)', () => {
+    const card = accountStateTool(petDepsLocal()).presentCall?.({} as never)
+    expect(card).toEqual({ card: 'generic', title: '查询账户：?' })
+  })
+
+  it('renders rebalance placeholders when cash_after is omitted', () => {
+    const definition = executeRebalanceTool(petDepsLocal())
+    const rendered = textOf(definition.output.render({}, {
+      code: 0, msg: 'ok',
+      data: {
+        account_name: 'x',
+        executed: [{ symbol: '000001', side: 'sell', shares: 10, price: 10, fee: 0.3 }],
+      },
+    } as never))
+    expect(rendered).toContain('现金余额 ?')
+  })
+
+  it('fails loud without an agent session for the approval flow', async () => {
+    const kernel = syntheticBarsKernel()
+    const d = petDepsLocal('allowed-once')
+    Object.assign(d, { kernel })
+    await accountCreateTool(d).execute?.({ name: '研究一号' }, execWith())
+    const value = await executeRebalanceTool(d).execute?.(
+      { account_name: '研究一号', targets: [{ symbol: '000001', weight: 0.5 }] },
+      { signal: new AbortController().signal, agent: undefined } as never,
+    )
+    expect(value).toMatchObject({ code: 1005 })
+    expect((value as { msg: string }).msg).toContain('agent 会话')
+  })
+
+})
+
+describe('quant_compute_factor', () => {
+  const tool = (): ToolDefinition => computeFactorTool(deps(syntheticBarsKernel()))
+
+  it('computes a factor and renders with the disclaimer', async () => {
+    const definition = tool()
+    const value = await definition.execute?.({ symbol: '000001', factor: 'momentum', bars: 30, window: 5 }, execWith())
+    expect(value).toMatchObject({ code: 0 })
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('momentum')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('renders the empty fallback', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never))).toContain('因子数据为空')
+  })
+
+  it('presents the call card', () => {
+    expect(tool().presentCall?.({ symbol: 'x', factor: 'momentum' } as never))
+      .toEqual({ card: 'generic', title: '计算因子：x momentum' })
+  })
+})
+
+describe('quant_factor_ic', () => {
+  const tool = (): ToolDefinition => factorICTool(deps(syntheticBarsKernel()))
+
+  it('computes IC/IR and renders with the disclaimer', async () => {
+    const definition = tool()
+    const value = await definition.execute?.(
+      { symbol: '000001', factor: 'momentum', bars: 30, forward: 3, window: 10 }, execWith(),
+    )
+    expect(value).toMatchObject({ code: 0 })
+    const rendered = textOf(definition.output.render({}, value as never))
+    expect(rendered).toContain('IC 分析')
+    expect(rendered).toContain('仅供研究参考')
+  })
+
+  it('renders the empty fallback and call card', () => {
+    const definition = tool()
+    expect(textOf(definition.output.render({}, { code: 0, msg: 'ok', data: {} } as never)))
+      .toContain('IC 分析结果为空')
+    expect(definition.presentCall?.({ symbol: 'x', factor: 'momentum' } as never))
+      .toEqual({ card: 'generic', title: 'IC 分析：x momentum' })
+  })
+})
+
 describe('render fallbacks', () => {
   it('treats non-envelope values as empty for every renderer', () => {
     const tools = [
@@ -339,7 +667,7 @@ describe('render fallbacks', () => {
 })
 
 describe('registerQuantTools', () => {
-  it('registers the three tools and disposes them together', () => {
+  it('registers the seventeen tools and disposes them together', () => {
     const disposers: Array<() => void> = []
     const register = vi.fn((tool: { name: string }) => {
       void tool
@@ -349,10 +677,17 @@ describe('registerQuantTools', () => {
     })
     const ctx = { tools: { register } } as unknown as Context
     const dispose = registerQuantTools(ctx, deps(syntheticBarsKernel()))
-    expect(register).toHaveBeenCalledTimes(3)
+    expect(register).toHaveBeenCalledTimes(17)
     const names = register.mock.calls.map(call => call[0].name)
-    expect(names).toEqual(['quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest'])
+    expect(names).toEqual([
+      'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
+      'quant_assess_risk', 'quant_stress_test',
+      'quant_account_create', 'quant_account_state', 'quant_execute_rebalance',
+      'quant_compute_factor', 'quant_factor_ic',
+      'quant_save_note', 'quant_list_notes', 'quant_export_report',
+      'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+    ])
     dispose()
-    expect(disposers).toHaveLength(3)
+    expect(disposers).toHaveLength(17)
   })
 })
