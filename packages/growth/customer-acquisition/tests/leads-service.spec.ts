@@ -32,6 +32,7 @@ describe('P1 lead ledger service', () => {
     expect(await auditActions()).toContain('lead.create')
 
     const audit = [...p1.harness.service.requireAuditTable().entries()].map(([, record]) => record)[0]
+    if (audit === undefined) throw new Error('audit row missing')
     expect(audit.source).toBe('agent')
     expect(audit.operator_user_id).toBe(FULL_OPERATOR.userId)
     expect(audit.object_type).toBe('lead')

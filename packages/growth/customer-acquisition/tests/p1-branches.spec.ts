@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import { selectAuditRecords } from '../src/audit.ts'
 import { inspectToolCall, installComplianceGate } from '../src/compliance.ts'
-import { ContentTemplateId, GeneratedContentId, GeoReportId, GeoScanId } from '../src/domain/ids.ts'
-import type { ScoreRun, ScoreRunItem } from '../src/domain/spec.ts'
+import {
+  AuditLogId, ContentTemplateId, GeneratedContentId, GeoReportId, GeoScanId,
+  IcpProfileId, LeadId, ScoreRunId, ScoreRunItemId, ScoreTemplateId, SopTaskId, UserId,
+} from '../src/domain/ids.ts'
+import type { Lead, ScoreRun, ScoreRunItem } from '../src/domain/spec.ts'
 import { CustomerAcquisitionService } from '../src/service.ts'
 import { complianceDenyAuditor } from '../src/index.ts'
 import { parseExtractOutput } from '../src/leads/extract.ts'
@@ -87,19 +90,19 @@ describe('lead service branches behind the friendly errors', () => {
     await p1.ledger.addDocument(lead.id, '资料', '正文', FULL_OPERATOR, 'agent')
     const domain = p1.harness.service.requireDomain()
     const run: ScoreRun = {
-      id: 'run-1', lead_id: lead.id, icp_profile_id: 'icp-x', template_id: 'tpl-x',
+      id: ScoreRunId('run-1'), lead_id: lead.id, icp_profile_id: IcpProfileId('icp-x'), template_id: ScoreTemplateId('tpl-x'),
       total: 50, reason: 'r', intent_tag: 'mid', created_at: 1,
     }
     const item: ScoreRunItem = {
-      id: 'item-1', run_id: 'run-1', dimension_id: 'd', score: 50, weight: 100, reason: 'r', created_at: 1,
+      id: ScoreRunItemId('item-1'), run_id: ScoreRunId('run-1'), dimension_id: 'd', score: 50, weight: 100, reason: 'r', created_at: 1,
     }
     await domain.table('score_runs').put(run.id, run)
     await domain.table('score_run_items').put(item.id, item)
-    await domain.table('generated_contents').put('gc-1', {
-      id: 'gc-1', lead_id: lead.id, type: 'sms_followup', variant: 'A', content: '文案', created_at: 1,
+    await domain.table('generated_contents').put(GeneratedContentId('gc-1'), {
+      id: GeneratedContentId('gc-1'), lead_id: lead.id, type: 'sms_followup', variant: 'A', content: '文案', created_at: 1,
     })
-    await domain.table('sop_tasks').put('task-1', {
-      id: 'task-1', lead_id: lead.id, title: '任务', status: 'pending', planned_at: 1,
+    await domain.table('sop_tasks').put(SopTaskId('task-1'), {
+      id: SopTaskId('task-1'), lead_id: lead.id, title: '任务', status: 'pending', planned_at: 1,
       created_at: 1, updated_at: 1,
     })
     await p1.ledger.deleteLead(lead.id, FULL_OPERATOR, 'agent')
@@ -127,7 +130,7 @@ describe('scoring service and parser branches behind the friendly errors', () =>
   })
 
   const profile: IcpProfile = {
-    id: 'p', name: '画像', industry: '测试',
+    id: IcpProfileId('p'), name: '画像', industry: '测试',
     dimensions: [{ id: 'a', name: '维度A', description: '说明', weight: 100 }],
     enabled: true, created_at: 1, updated_at: 1,
   }
@@ -222,12 +225,12 @@ describe('scoring service and parser branches behind the friendly errors', () =>
   })
 
   it('history refuses unknown run ids and scope guards scoring directly', async () => {
-    expect(() => p1.scoring.history({ run_id: 'missing' }, FULL_OPERATOR)).toThrow('打分记录不存在')
+    expect(() => p1.scoring.history({ run_id: ScoreRunId('missing') }, FULL_OPERATOR)).toThrow('打分记录不存在')
 
     const poolLead = {
-      id: 'pl1', owner_id: undefined, source: 'manual', company_name: '公海评分', tags: [],
+      id: LeadId('pl1'), owner_id: undefined, source: 'manual', company_name: '公海评分', tags: [],
       opportunity_stage: 'new', status: 'active', created_at: 1, updated_at: 1,
-    } as never
+    } as Lead
     expect(() =>{  assertScoringScope(poolLead, OWN_OPERATOR) }).toThrow('先领取')
     const otherLead = { ...poolLead, owner_id: OWN_OPERATOR_2.userId }
     expect(() =>{  assertScoringScope(otherLead, OWN_OPERATOR) }).toThrow('无权为他人线索打分')
@@ -285,8 +288,8 @@ describe('extract and export boundary branches', () => {
       await p1.ledger.applyIntent(rich.id, 'high')
       const bare = await p1.ledger.createLead({ company_name: '空列公司' }, FULL_OPERATOR, 'agent')
       const markdown = renderLeadExport('markdown', [
-        await p1.ledger.getLead(rich.id, FULL_OPERATOR),
-        await p1.ledger.getLead(bare.id, FULL_OPERATOR),
+        p1.ledger.getLead(rich.id, FULL_OPERATOR),
+        p1.ledger.getLead(bare.id, FULL_OPERATOR),
       ])
       expect(markdown).toContain('| a@b.c |')
       expect(markdown).toContain('decision_maker')
@@ -354,7 +357,7 @@ describe('P0 surfaces the gate had not seen', () => {
 
   it('selectAuditRecords bounds the time window on both ends', () => {
     const record = (created_at: number) => ({
-      id: `a${created_at}`, source: 'agent' as const, operator_user_id: 'u', action: 'a',
+      id: AuditLogId(`a${created_at}`), source: 'agent' as const, operator_user_id: UserId('u'), action: 'a',
       object_type: 't', summary: 's', created_at,
     })
     const windowed = selectAuditRecords([record(1), record(2), record(3)], { from: 2, to: 2 })
@@ -426,12 +429,12 @@ describe('second-round branch fills', () => {
     const doomed = await p1.ledger.createLead({ company_name: '将删公司' }, FULL_OPERATOR, 'agent')
     const survivor = await p1.ledger.createLead({ company_name: '幸存公司' }, FULL_OPERATOR, 'agent')
     const domain = p1.harness.service.requireDomain()
-    await domain.table('score_runs').put('run-s', {
-      id: 'run-s', lead_id: survivor.id, icp_profile_id: 'i', template_id: 't',
+    await domain.table('score_runs').put(ScoreRunId('run-s'), {
+      id: ScoreRunId('run-s'), lead_id: survivor.id, icp_profile_id: IcpProfileId('i'), template_id: ScoreTemplateId('t'),
       total: 1, reason: 'r', intent_tag: 'low', created_at: 1,
     })
-    await domain.table('score_run_items').put('item-s', {
-      id: 'item-s', run_id: 'run-s', dimension_id: 'd', score: 1, weight: 100, reason: 'r', created_at: 1,
+    await domain.table('score_run_items').put(ScoreRunItemId('item-s'), {
+      id: ScoreRunItemId('item-s'), run_id: ScoreRunId('run-s'), dimension_id: 'd', score: 1, weight: 100, reason: 'r', created_at: 1,
     })
     await p1.ledger.deleteLead(doomed.id, FULL_OPERATOR, 'agent')
     await p1.ledger.purgeLead(doomed.id, FULL_OPERATOR, 'agent')
@@ -456,7 +459,7 @@ describe('second-round branch fills', () => {
   it('export renders the empty owner cell of a pool lead', async () => {
     const lead = await p1.ledger.createLead({ company_name: '公海导出公司' }, FULL_OPERATOR, 'agent')
     await p1.ledger.transferLead(lead.id, undefined, FULL_OPERATOR, 'agent')
-    const markdown = renderLeadExport('markdown', [await p1.ledger.getLead(lead.id, FULL_OPERATOR)])
+    const markdown = renderLeadExport('markdown', [p1.ledger.getLead(lead.id, FULL_OPERATOR)])
     const ownerRow = markdown.split('\n').find(line => line.includes('公海导出公司'))
     expect(ownerRow).toBeDefined()
   })
@@ -535,17 +538,17 @@ describe('third-round branch fills', () => {
     const doomed = await p1.ledger.createLead({ company_name: '内容级联公司' }, FULL_OPERATOR, 'agent')
     const survivor = await p1.ledger.createLead({ company_name: '内容幸存公司' }, FULL_OPERATOR, 'agent')
     const domain = p1.harness.service.requireDomain()
-    await domain.table('generated_contents').put('gc-d', {
-      id: 'gc-d', lead_id: doomed.id, type: 'sms_followup', variant: 'A', content: 'x', created_at: 1,
+    await domain.table('generated_contents').put(GeneratedContentId('gc-d'), {
+      id: GeneratedContentId('gc-d'), lead_id: doomed.id, type: 'sms_followup', variant: 'A', content: 'x', created_at: 1,
     })
-    await domain.table('generated_contents').put('gc-s', {
-      id: 'gc-s', lead_id: survivor.id, type: 'sms_followup', variant: 'B', content: 'y', created_at: 1,
+    await domain.table('generated_contents').put(GeneratedContentId('gc-s'), {
+      id: GeneratedContentId('gc-s'), lead_id: survivor.id, type: 'sms_followup', variant: 'B', content: 'y', created_at: 1,
     })
-    await domain.table('sop_tasks').put('task-d', {
-      id: 'task-d', lead_id: doomed.id, title: '删', status: 'pending', planned_at: 1, created_at: 1, updated_at: 1,
+    await domain.table('sop_tasks').put(SopTaskId('task-d'), {
+      id: SopTaskId('task-d'), lead_id: doomed.id, title: '删', status: 'pending', planned_at: 1, created_at: 1, updated_at: 1,
     })
-    await domain.table('sop_tasks').put('task-s', {
-      id: 'task-s', lead_id: survivor.id, title: '留', status: 'pending', planned_at: 1, created_at: 1, updated_at: 1,
+    await domain.table('sop_tasks').put(SopTaskId('task-s'), {
+      id: SopTaskId('task-s'), lead_id: survivor.id, title: '留', status: 'pending', planned_at: 1, created_at: 1, updated_at: 1,
     })
     await p1.ledger.deleteLead(doomed.id, FULL_OPERATOR, 'agent')
     await p1.ledger.purgeLead(doomed.id, FULL_OPERATOR, 'agent')

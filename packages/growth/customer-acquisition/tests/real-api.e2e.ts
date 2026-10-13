@@ -13,7 +13,8 @@ import { CustomerAcquisitionService } from '../src/service.ts'
 import { LeadLedgerService } from '../src/leads/service.ts'
 import { LeadScoringService } from '../src/scoring/service.ts'
 import { seedIndustryTemplates } from '../src/scoring/seed.ts'
-import { EXTRACT_SYSTEM_PROMPT, llmPromptCompletion, resolveAiPolicy } from '../src/llm/oneshot.ts'
+import { EXTRACT_SYSTEM_PROMPT } from '../src/leads/extract.ts'
+import { llmPromptCompletion, resolveAiPolicy } from '../src/llm/oneshot.ts'
 import { FULL_OPERATOR } from './helpers-p1.ts'
 
 // Real-API verification of the plugin's internal model calls (lead field

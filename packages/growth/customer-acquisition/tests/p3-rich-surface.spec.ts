@@ -114,15 +114,15 @@ describe('P3 content tools full-surface sweep', () => {
     expect(value.content.template_id).toBe('t1')
   })
 
-  it('list renders long content with the ellipsis branch', () => {
+  it('list renders long content with the ellipsis branch', async () => {
     const tool = contentListByLeadTool(deps)
     const text = renderText(tool, {
       items: [{ id: 'g1', type: 'sms_followup', variant: 'A', content: '长'.repeat(90), created_at: 0 }],
       total: 1,
     })
     expect(text).toContain('…')
-    const value = tool.execute({ lead_id: 'l1', type: 'sms_followup', limit: 5, offset: 5 }, EXEC) as { items: unknown[] }
-    return value.then((v) =>{  expect(v.items).toHaveLength(1) })
+    const value = await tool.execute({ lead_id: 'l1', type: 'sms_followup', limit: 5, offset: 5 }, EXEC) as { items: unknown[] }
+    expect(value.items).toHaveLength(1)
   })
 
   it('template create renders enabled and disabled states with variable examples', () => {

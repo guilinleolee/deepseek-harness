@@ -33,6 +33,7 @@ describe('customer-acquisition-geo plugin composition', () => {
       ])
 
       // the composed scan path runs end to end through the boundary-gated runtime
+      if (service === undefined) throw new Error('geoDiagnosis not provided')
       const value = await service.runScan({ url: 'https://x.com/' }, await localOperator(harness))
       expect(value.pages_fetched).toBe(1)
       expect(value.report_md).toContain('GEO 诊断报告')
@@ -51,7 +52,7 @@ describe('customer-acquisition-geo plugin composition', () => {
     )
     onDeny('customer_acquisition_geo_scan', '仅允许 http/https 网址', 'agent-1')
     onDeny('customer_acquisition_geo_scan', 'urls 批量收集被拒绝')
-    await vi.waitFor(() => expect(recordComplianceDeny).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => { expect(recordComplianceDeny).toHaveBeenCalledTimes(2) })
     expect(recordComplianceDeny).toHaveBeenCalledWith('customer_acquisition_geo_scan', '仅允许 http/https 网址', { via: 'agent', agentId: 'agent-1' })
     expect(recordComplianceDeny).toHaveBeenLastCalledWith('customer_acquisition_geo_scan', 'urls 批量收集被拒绝', { via: 'agent' })
   })
@@ -63,6 +64,6 @@ describe('customer-acquisition-geo plugin composition', () => {
       { logger: { warn } } as never as Context,
     )
     onDeny('customer_acquisition_geo_scan', 'url 为空', 'agent-1')
-    await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('介质只读')))
+    await vi.waitFor(() => { expect(warn).toHaveBeenCalledWith(expect.stringContaining('介质只读')) })
   })
 })

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Lead } from '../src/domain/spec.ts'
 import { completionReturning, mockClock, setupP1, FULL_OPERATOR, OWN_OPERATOR, OWN_OPERATOR_2 } from './helpers-p1.ts'
 import type { P1Harness } from './helpers-p1.ts'
 import { NurtureContentService, assertCopyScope } from '../src/content/service.ts'
@@ -166,7 +167,7 @@ describe('P3 SOP service', () => {
     expect(outcome.todoList[0]?.content).toContain('已打分公司')
 
     const planned = outcome.tasks.map(({ task }) => task.planned_at)
-    expect(planned[0]).toBeLessThan(planned[1] ?? planned[0] + 1)
+    expect(planned[0] ?? Number.NaN).toBeLessThan(planned[1] ?? planned[0]! + 1)
     const audit = [...p1.harness.service.requireAuditTable().entries()].map(([, record]) => record)
     expect(audit.find(record => record.action === 'sop.tasks.generate')?.summary).toContain('high')
   })
@@ -230,9 +231,9 @@ describe('P3 SOP service', () => {
   })
 
   it('scope-blocks pool and other-owned leads for task generation', () => {
-    const pooled = { id: 'l1', owner_id: undefined, company_name: '公海公司' } as never
+    const pooled = { id: 'l1', owner_id: undefined, company_name: '公海公司' } as Lead
     expect(() =>{  assertSopScope(pooled, OWN_OPERATOR) }).toThrow('先领取')
-    expect(() =>{  assertSopScope({ ...pooled, owner_id: OWN_OPERATOR_2.userId } as never, OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
+    expect(() =>{  assertSopScope({ ...pooled, owner_id: OWN_OPERATOR_2.userId }, OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
   })
 })
 

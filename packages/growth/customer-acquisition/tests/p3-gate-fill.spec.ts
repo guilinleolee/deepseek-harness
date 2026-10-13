@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Lead } from '../src/domain/spec.ts'
 import { NurtureContentService, assertCopyScope, CONTENT_SYSTEM_PROMPT } from '../src/content/service.ts'
 import { SopService, cadenceOffsets, assertSopScope } from '../src/sop/service.ts'
 import { setupP1, FULL_OPERATOR, OWN_OPERATOR, OWN_OPERATOR_2, completionReturning } from './helpers-p1.ts'
@@ -190,11 +191,11 @@ describe('P3 SOP service remaining branches', () => {
 
 describe('P3 scope guards', () => {
   it('assertCopyScope and assertSopScope mirror each other', () => {
-    const lead = { owner_id: undefined, company_name: '公海' } as never
+    const lead = { owner_id: undefined, company_name: '公海' } as Lead
     expect(() =>{  assertCopyScope(lead, OWN_OPERATOR) }).toThrow('先领取')
     expect(() =>{  assertSopScope(lead, OWN_OPERATOR) }).toThrow('先领取')
-    expect(() =>{  assertCopyScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as never, OWN_OPERATOR) }).toThrow('无权为他人线索生成文案')
-    expect(() =>{  assertSopScope({ ...lead, owner_id: OWN_OPERATOR_2.userId } as never, OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
+    expect(() =>{  assertCopyScope({ ...lead, owner_id: OWN_OPERATOR_2.userId }, OWN_OPERATOR) }).toThrow('无权为他人线索生成文案')
+    expect(() =>{  assertSopScope({ ...lead, owner_id: OWN_OPERATOR_2.userId }, OWN_OPERATOR) }).toThrow('无权为他人线索生成跟进任务')
   })
 
   it('cadenceOffsets tolerates offset-free cadences and preserves order', () => {

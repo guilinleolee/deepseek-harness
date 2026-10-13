@@ -16,6 +16,8 @@ import type { LeadLedgerService } from '../src/leads/service.ts'
 import type { LeadScoringService } from '../src/scoring/service.ts'
 import type { LeadRefValue } from '../src/leads/types.ts'
 import type { PromptCompletion } from '../src/llm/oneshot.ts'
+import { LeadId, UserId } from '../src/domain/ids.ts'
+import type { Lead } from '../src/domain/spec.ts'
 import type { PermissionContextService, ResolvedOperator } from '../src/permission/types.ts'
 import { FULL_OPERATOR } from './helpers-p1.ts'
 
@@ -58,13 +60,13 @@ function scoringOf(overrides: Record<string, unknown> = {}): LeadScoringService 
   } as never as LeadScoringService
 }
 
-function storedLead() {
+function storedLead(): Lead {
   return {
-    id: 'l1', owner_id: 'u1', source: 'form', company_name: '公司甲', contact_name: '联系人',
+    id: LeadId('l1'), owner_id: UserId('u1'), source: 'form', company_name: '公司甲', contact_name: '联系人',
     phone: '138', email: 'a@b.c', industry: '餐饮', company_size: '1-10', demand_desc: '要获客',
     budget_range: '5万', decision_role: 'decision_maker', intent_level: 'high', tags: ['重点'],
     opportunity_stage: 'qualified', next_followup_at: 9, status: 'active', created_at: 1, updated_at: 2,
-  } as never
+  }
 }
 
 function storedProfile() {

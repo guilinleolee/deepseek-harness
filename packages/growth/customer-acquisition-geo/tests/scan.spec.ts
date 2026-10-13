@@ -27,8 +27,14 @@ function routes(home: string): Record<string, string> {
   }
 }
 
+/** The mounted service handle; tests always run with the service premounted. */
+function service(harness: Harness): GeoDiagnosisService {
+  if (harness.service === undefined) throw new Error('service not premounted')
+  return harness.service
+}
+
 async function scan(harness: Harness, url = 'https://x.com/') {
-  return harness.service.runScan({ url }, await localOperator(harness))
+  return service(harness).runScan({ url }, await localOperator(harness))
 }
 
 describe('geo scan end-to-end over the composed stack', () => {
@@ -84,16 +90,16 @@ describe('geo scan end-to-end over the composed stack', () => {
       expect(second.robots_skipped_paths).toEqual(['/private/x'])
       expect(harness.web.calls).not.toContain('https://x.com/private/x')
 
-      const history = harness.service.listHistory({ url_filter: 'https://x.com' })
+      const history = service(harness).listHistory({ url_filter: 'https://x.com' })
       expect(history.total).toBe(2)
       expect(history.items).toHaveLength(2)
       expect(history.items[0]!.report_id).not.toBe('')
 
-      const reportA = harness.service.getReport(history.items[1]!.report_id)
-      const reportB = harness.service.getReport(history.items[0]!.report_id)
+      const reportA = service(harness).getReport(history.items[1]!.report_id)
+      const reportB = service(harness).getReport(history.items[0]!.report_id)
       expect(reportA.report.findings.length).toBeGreaterThan(reportB.report.findings.length)
 
-      const comparison = harness.service.compareReports(history.items[1]!.report_id, history.items[0]!.report_id)
+      const comparison = service(harness).compareReports(history.items[1]!.report_id, history.items[0]!.report_id)
       expect(comparison.score_delta).toBe(second.score - first.score)
       expect(comparison.resolved.length).toBeGreaterThan(0)
       // the only acceptable new finding: round 2 links a robots-blocked path,
@@ -112,21 +118,21 @@ describe('geo scan end-to-end over the composed stack', () => {
       const value = await scan(harness)
       const after = Date.now() + 1
 
-      expect(harness.service.listHistory({ from: before, to: after }).total).toBe(1)
-      expect(harness.service.listHistory({ from: after + 10_000 }).total).toBe(0)
-      expect(harness.service.listHistory({ to: before - 1_000 }).total).toBe(0)
-      expect(harness.service.listHistory({ url_filter: 'https://other.com' }).total).toBe(0)
-      expect(() => harness.service.getReport('no-such-report')).toThrow(/不存在/)
+      expect(service(harness).listHistory({ from: before, to: after }).total).toBe(1)
+      expect(service(harness).listHistory({ from: after + 10_000 }).total).toBe(0)
+      expect(service(harness).listHistory({ to: before - 1_000 }).total).toBe(0)
+      expect(service(harness).listHistory({ url_filter: 'https://other.com' }).total).toBe(0)
+      expect(() => service(harness).getReport('no-such-report')).toThrow(/不存在/)
 
       // a report from another site: reuse ids by scanning a second origin
       harness.web.setRoute('https://y.com/robots.txt', '')
       harness.web.setRoute('https://y.com/', ROUND1_HOME)
       const other = await scan(harness, 'https://y.com/')
       expect(other.pages_fetched).toBe(1)
-      const rows = harness.service.listHistory({ url_filter: 'https://' }).items
+      const rows = service(harness).listHistory({ url_filter: 'https://' }).items
       const otherReportId = rows.find(item => item.scan_id === other.scan_id)!.report_id
       const thisReportId = rows.find(item => item.scan_id === value.scan_id)!.report_id
-      expect(() => harness.service.compareReports(thisReportId, otherReportId)).toThrow(/同一站点/)
+      expect(() => service(harness).compareReports(thisReportId, otherReportId)).toThrow(/同一站点/)
     } finally {
       await harness.dispose()
     }
@@ -135,11 +141,13 @@ describe('geo scan end-to-end over the composed stack', () => {
   it('the scan tool executes the same path and renders the report markdown', async () => {
     const harness = await setupHarness(routes(ROUND1_HOME))
     try {
-      const tool = geoScanTool(harness.service, harness.ctx.permissionContext)
-      const value = await tool.execute({ url: 'https://x.com/', max_pages: 2 }, {} as never)
+      const tool = geoScanTool(service(harness), harness.ctx.permissionContext)
+      const value = await tool.execute({ url: 'https://x.com/', max_pages: 2 }, {} as never) as {
+        scan_id: string
+      }
       expect(value.scan_id).toBeTruthy()
       const rendered = tool.output.render({ url: 'https://x.com/' }, value)
-      expect(rendered[0]!.text).toContain('GEO 诊断报告')
+      expect(rendered[0]!.type === 'text' && rendered[0]!.text.includes('GEO 诊断报告')).toBe(true)
     } finally {
       await harness.dispose()
     }
@@ -151,18 +159,22 @@ describe('geo scan end-to-end over the composed stack', () => {
       const first = await scan(harness)
       harness.web.setRoute('https://x.com/', ROUND2_HOME)
       const second = await scan(harness)
-      const page = await geoHistoryTool(harness.service).execute({})
+      const page = await geoHistoryTool(service(harness)).execute({}, {} as never) as {
+        items: { scan_id: string; report_id: string }[]
+      }
       const baselineId = page.items.find(item => item.scan_id === first.scan_id)!.report_id
       const improvedId = page.items.find(item => item.scan_id === second.scan_id)!.report_id
 
-      const detail = await geoReportGetTool(harness.service).execute({ report_id: improvedId }, {} as never)
+      const detail = await geoReportGetTool(service(harness)).execute({ report_id: improvedId }, {} as never) as {
+        report: { score: number; findings: unknown[] }
+      }
       expect(detail.report.score).toBe(second.score)
-      expect(detail.report.findings[0]).toMatchObject({ id: expect.any(String), severity: expect.any(String) })
+      expect(detail.report.findings[0]).toMatchObject({ id: expect.any(String) as string, severity: expect.any(String) as string })
 
-      const compared = await geoCompareTool(harness.service).execute(
+      const compared = await geoCompareTool(service(harness)).execute(
         { report_a_id: baselineId, report_b_id: improvedId },
         {} as never,
-      )
+      ) as { score_delta: number }
       expect(compared.score_delta).toBeGreaterThan(0)
     } finally {
       await harness.dispose()
@@ -173,7 +185,7 @@ describe('geo scan end-to-end over the composed stack', () => {
     const harness = await setupHarness(routes(ROUND1_HOME))
     try {
       await expect(scan(harness, '不是网址')).rejects.toThrow()
-      const failedRow = harness.service.listHistory({}).items.find(row => row.status === 'failed')
+      const failedRow = service(harness).listHistory({}).items.find(row => row.status === 'failed')
       expect(failedRow).toBeDefined()
       // a failed scan has no report: history degrades the joined fields
       expect(failedRow!.report_id).toBe('')
@@ -197,9 +209,9 @@ describe('geo scan end-to-end over the composed stack', () => {
         report_md: '', pages_fetched: 0, robots_skipped_paths: [], created_at: 1,
       }
       await reports.put('r-orphan' as never, orphan as never)
-      expect(harness.service.getReport('r-orphan').report.url).toBe('')
-      expect(harness.service.getReport('r-orphan').report.llms_txt).toBe('')
-      expect(() => harness.service.compareReports('r-orphan', 'r-orphan')).toThrow(/扫描记录不存在/)
+      expect(service(harness).getReport('r-orphan').report.url).toBe('')
+      expect(service(harness).getReport('r-orphan').report.llms_txt).toBe('')
+      expect(() => service(harness).compareReports('r-orphan', 'r-orphan')).toThrow(/扫描记录不存在/)
     } finally {
       await harness.dispose()
     }
@@ -222,9 +234,9 @@ describe('geo scan end-to-end over the composed stack', () => {
       await reports.put('r-a' as never, { ...base, id: 'r-a', scan_id: 's-a', score: 50 } as never)
       await reports.put('r-b' as never, { ...base, id: 'r-b', scan_id: 's-b', score: 10 } as never)
 
-      expect(() => harness.service.compareReports('no-such-a', 'r-b')).toThrow(/报告不存在/)
-      expect(() => harness.service.compareReports('r-a', 'no-such-b')).toThrow(/报告不存在/)
-      const compared = harness.service.compareReports('r-a', 'r-b')
+      expect(() => service(harness).compareReports('no-such-a', 'r-b')).toThrow(/报告不存在/)
+      expect(() => service(harness).compareReports('r-a', 'no-such-b')).toThrow(/报告不存在/)
+      const compared = service(harness).compareReports('r-a', 'r-b')
       expect(compared.score_delta).toBe(-40)
       expect(compared.resolved).toEqual([])
       expect(compared.introduced).toEqual([])

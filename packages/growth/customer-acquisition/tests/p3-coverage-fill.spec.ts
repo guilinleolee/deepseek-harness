@@ -97,7 +97,7 @@ describe('P3 content tools every-branch fill', () => {
       leadName: '公司乙',
     }))
     const explicit = contentGenerateTool({ ...contentDeps, content: contentOf({ generate }) })
-    const value = await explicit.execute({ lead_id: 'l1', type: 'sms_followup', variant: 'A', template_id: 't9' }, EXEC)
+    const value = await explicit.execute({ lead_id: 'l1', type: 'sms_followup', variant: 'A', template_id: 't9' }, EXEC) as { content: { template_id: string } }
     expect(value.content.template_id).toBe('t9')
   })
 
@@ -112,10 +112,10 @@ describe('P3 content tools every-branch fill', () => {
       }),
     })
     const tool = contentListByLeadTool({ ...contentDeps, content: listed })
-    const page = await tool.execute({ lead_id: 'l1' }, EXEC)
+    const page = await tool.execute({ lead_id: 'l1' }, EXEC) as { items: unknown[] }
     expect(page.items).toHaveLength(2)
     expect(page.items[0]).not.toHaveProperty('template_id')
-    expect(page.items[1]!.template_id).toBe('t1')
+    expect(page.items[1]).toMatchObject({ template_id: 't1' })
     expect(renderText(tool, page)).toContain('有模板')
   })
 
@@ -150,7 +150,7 @@ describe('P3 content tools every-branch fill', () => {
     const list = vi.fn(() => [])
     const tool = contentTemplateListTool({ ...contentDeps, content: contentOf({ listTemplates: list }) })
     expect(renderText(tool, { items: [] })).toContain('尚无文案模板')
-    const emptyPage = await tool.execute({ type: 'sms_followup', enabled_only: true }, EXEC)
+    const emptyPage = await tool.execute({ type: 'sms_followup', enabled_only: true }, EXEC) as { items: unknown[] }
     expect(emptyPage.items).toEqual([])
     expect(list).toHaveBeenLastCalledWith({ type: 'sms_followup', enabledOnly: true })
 
@@ -163,11 +163,12 @@ describe('P3 content tools every-branch fill', () => {
         ],
       }),
     })
-    const page = await populated.execute({}, EXEC)
+    const page = await populated.execute({}, EXEC) as { items: unknown[] }
     expect(page.items).toHaveLength(2)
     expect(page.items[0]).not.toHaveProperty('industry')
-    expect(page.items[0]!.variables[0]).not.toHaveProperty('example')
-    expect(page.items[1]!.variables[0]!.example).toBe('e')
+    expect(page.items[0]).toMatchObject({ variables: [expect.objectContaining({ name: 'v', description: 'd' })] })
+    expect(page.items[0]).not.toHaveProperty('example')
+    expect(page.items[1]).toMatchObject({ variables: [expect.objectContaining({ example: 'e' })] })
     const rendered = renderText(populated, {
       items: [
         { id: 't1', name: '通用甲', type: 'sms_followup', enabled: true },
@@ -216,17 +217,17 @@ describe('P3 sop tools every-branch fill', () => {
       total: 2,
     }))
     const tool = sopTaskListTool({ ...sopDeps, sop: sopOf({ listTasks: list }) })
-    const empty = await tool.execute({}, EXEC)
+    const empty = await tool.execute({}, EXEC) as { items: unknown[] }
     expect(list).toHaveBeenLastCalledWith({}, FULL_OPERATOR)
     expect(empty.items[0]).not.toHaveProperty('note')
-    const full = await tool.execute({ lead_id: 'l1', status: 'done', limit: 5, offset: 1 }, EXEC)
+    const full = await tool.execute({ lead_id: 'l1', status: 'done', limit: 5, offset: 1 }, EXEC) as { items: unknown[] }
     expect(list).toHaveBeenLastCalledWith({ lead_id: 'l1', status: 'done', limit: 5, offset: 1 }, FULL_OPERATOR)
-    expect(full.items[1]!.note).toBe('已完成')
+    expect(full.items[1]).toMatchObject({ note: '已完成' })
   })
 
   it('task update resolves through the stub and renders the transition', async () => {
     const tool = sopTaskUpdateTool(sopDeps)
-    const value = await tool.execute({ task_id: 'k1', status: 'done', note: 'ok' }, EXEC)
+    const value = await tool.execute({ task_id: 'k1', status: 'done', note: 'ok' }, EXEC) as { task: unknown }
     expect(value.task).toMatchObject({ id: 'k1', status: 'done' })
     expect(renderText(tool, value)).toContain('任务已流转')
   })
@@ -308,7 +309,7 @@ describe('P3 sop tools every-branch fill', () => {
       },
     ])
     const populated = sopTemplateListTool({ ...sopDeps, sop: sopOf({ listTemplates: list }) })
-    const page = await populated.execute({ enabled_only: true }, EXEC)
+    const page = await populated.execute({ enabled_only: true }, EXEC) as { items: unknown[] }
     expect(list).toHaveBeenLastCalledWith(true)
     expect(page.items[0]).not.toHaveProperty('industry')
   })

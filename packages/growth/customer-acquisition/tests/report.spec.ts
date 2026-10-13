@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { completionReturning, mockClock, setupP1, FULL_OPERATOR, OWN_OPERATOR } from './helpers-p1.ts'
 import type { P1Harness } from './helpers-p1.ts'
 import { ReportService } from '../src/report/service.ts'
-import type { GeoScanListValue } from '../src/types.ts'
 import { renderOverviewMd, reportOverviewTool } from '../src/tools/report.ts'
 import { P4_TOOL_NAMES, registerP4Tools } from '../src/tools/register-p4.ts'
 import type { PermissionContextService } from '../src/permission/types.ts'
@@ -74,7 +73,7 @@ describe('P4 dashboard aggregation', () => {
     const pooled = await p1.ledger.createLead({ company_name: '公海二', source: 'chat' }, FULL_OPERATOR, 'agent')
     const domain = p1.harness.service.requireDomain()
     // a pool lead, an old lead outside every preset window, and an invalid intent
-    await domain.table('leads').put(pooled.id as never, { ...pooled, owner_id: undefined } as never)
+    await domain.table('leads').put(pooled.id, { ...pooled, owner_id: undefined })
     await p1.ledger.applyIntent(owned.id, 'high')
     await p1.ledger.applyIntent(pooled.id, 'low')
     await domain.table('leads').put('lead-old' as never, {
@@ -118,7 +117,7 @@ describe('P4 dashboard aggregation', () => {
     const pooled = await p1.ledger.createLead({ company_name: '公海二', source: 'chat' }, OWN_OPERATOR, 'agent')
     const other = await p1.ledger.createLead({ company_name: '他人三', source: 'email' }, FULL_OPERATOR, 'agent')
     const domain = p1.harness.service.requireDomain()
-    await domain.table('leads').put(pooled.id as never, { ...pooled, owner_id: undefined } as never)
+    await domain.table('leads').put(pooled.id, { ...pooled, owner_id: undefined })
     await domain.table('score_runs').put('run-x' as never, scoreRunRow('run-x', other.id, 70, NOW) as never)
     await domain.table('sop_tasks').put('k1' as never, sopTaskRow('k1', owned.id, 'done', NOW) as never)
     await domain.table('sop_tasks').put('k2' as never, sopTaskRow('k2', other.id, 'done', NOW) as never)
@@ -208,12 +207,12 @@ describe('P4 overview tool and render', () => {
       report: { overview } as never,
       permission: permissionOf(),
     })
-    const value = await tool.execute({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, { agent: { id: 'a1' } } as never)
+    const value = await tool.execute({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, { agent: { id: 'a1' } } as never) as { totals: { lead_count: number } }
     expect(overview).toHaveBeenLastCalledWith({ period: 'custom', from: 1, to: 2, group_by: 'industry' }, FULL_OPERATOR)
     await tool.execute({ period: 'week' }, { agent: { id: 'a1' } } as never)
     expect(overview).toHaveBeenLastCalledWith({ period: 'week' }, FULL_OPERATOR)
     expect(value.totals.lead_count).toBe(3)
-    const blocks = tool.output.render({}, value as never)
+    const blocks = tool.output.render({}, value)
     expect((blocks[0] as { text: string }).text).toContain('获客数据看板')
     const call = tool.presentCall?.({ period: 'week', group_by: 'industry' })
     expect((call as { title?: string }).title).toBe('获客数据看板')
@@ -281,7 +280,7 @@ describe('P4 panel Remote read faces', () => {
     // an older report for the same scan arriving last never replaces the latest
     await domain.table('geo_reports').put('r3' as never, geoReportRow('r3', 's1', 70, NOW - 1) as never)
     // the panel resolves the web operator per call; this employee sees only emp-1 leads + pool
-    vi.spyOn(service.ctx.permissionContext, 'resolve').mockImplementation(async () => OWN_OPERATOR)
+    vi.spyOn(p1.harness.ctx.permissionContext, 'resolve').mockImplementation(async () => OWN_OPERATOR)
 
     const leads = await service.listLeadsRemote({ owner: 'me' })
     expect(leads.items.map(lead => lead.company_name)).toEqual(['自有一'])
@@ -300,7 +299,7 @@ describe('P4 panel Remote read faces', () => {
     expect(icp.length).toBeGreaterThan(0)
     expect(templates.length).toBeGreaterThan(0)
 
-    const geo = await service.listGeoScansRemote() as GeoScanListValue
+    const geo = await service.listGeoScansRemote()
     expect(geo.total).toBe(3)
     expect(geo.items.map(row => row.scan_id)).toEqual(['s3', 's2', 's1'])
     expect(geo.items[2]).toMatchObject({ score: 92, report_id: 'r2', finished_at: NOW + 1 })
