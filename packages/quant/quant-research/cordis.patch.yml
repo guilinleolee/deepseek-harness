@@ -1,0 +1,8 @@
+# dsh bundle patch: one command installs the whole quant-research feature —
+# this plugin (kernel client, compliance gate, research tools) plus its web
+# panel surface (`dsh plugin add` consumes this via dsh.bundle.patch).
+- insert:
+    - id: quant-research
+      name: '@deepseek-ai/dsh-quant-research'
+    - id: ui-quant-research
+      name: '@deepseek-ai/dsh-client-ui-quant-research'

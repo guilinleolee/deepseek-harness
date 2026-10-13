@@ -1,0 +1,23 @@
+2026-09-02T08:38:21.467Z INFO [CustomerServicePlugin] Initializing Customer Service Plugin (v2.0) {"knowledgeBasePath":"./knowledge","ticketOutputPath":"./tickets","logLevel":"info","similarityThreshold":0.6,"notifications":{"enabled":true,"dingtalk":{"enabled":true,"webhookUrl":"https://oapi.dingtalk.com/robot/send?access_token=3e3d2f8007fba5f0a7ac365276295f5ea5d67f7189693f5890f9e469a94eb7dd","keyword":"工单"},"email":{"enabled":false,"host":"smtp.example.com","port":587,"user":"${SMTP_USER}","password":"${SMTP_PASSWORD}","from":"noreply@example.com"}},"embedding":{"enabled":true,"provider":"custom","model":"BAAI/bge-large-zh-v1.5","apiKey":"sk-dtittsjudpimnnftcdwlqyyghueanhkfebyhuxqufwlohpgp","baseUrl":"https://api.siliconflow.cn/v1"},"scheduler":{"enabled":false,"knowledgeSync":{"enabled":false,"intervalMs":3600000}}}
+2026-09-02T08:38:21.470Z INFO [CustomerServicePlugin:SessionManager] Session cleanup timer started {"intervalMs":300000}
+2026-09-02T08:38:21.471Z INFO [CustomerServicePlugin] Core services initialized
+2026-09-02T08:38:21.472Z INFO [CustomerServicePlugin] Event bus initialized
+2026-09-02T08:38:21.473Z INFO [CustomerServicePlugin:NotificationManager] 通道已注册: 钉钉通知 {"id":"dingtalk"}
+2026-09-02T08:38:21.473Z INFO [CustomerServicePlugin] Notification system initialized
+2026-09-02T08:38:21.474Z INFO [CustomerServicePlugin] Embedding service initialized {"provider":"custom"}
+2026-09-02T08:47:09.232Z INFO [CustomerServicePlugin] Initializing Customer Service Plugin (v2.0) {"knowledgeBasePath":"./knowledge","ticketOutputPath":"./tickets","logLevel":"info","similarityThreshold":0.6,"notifications":{"enabled":true,"dingtalk":{"enabled":true,"webhookUrl":"https://oapi.dingtalk.com/robot/send?access_token=3e3d2f8007fba5f0a7ac365276295f5ea5d67f7189693f5890f9e469a94eb7dd","keyword":"工单"},"email":{"enabled":false,"host":"smtp.example.com","port":587,"user":"${SMTP_USER}","password":"${SMTP_PASSWORD}","from":"noreply@example.com"}},"embedding":{"enabled":true,"provider":"custom","model":"BAAI/bge-large-zh-v1.5","apiKey":"sk-dtittsjudpimnnftcdwlqyyghueanhkfebyhuxqufwlohpgp","baseUrl":"https://api.siliconflow.cn/v1"},"scheduler":{"enabled":false,"knowledgeSync":{"enabled":false,"intervalMs":3600000}}}
+2026-09-02T08:47:09.235Z INFO [CustomerServicePlugin:SessionManager] Session cleanup timer started {"intervalMs":300000}
+2026-09-02T08:47:09.236Z INFO [CustomerServicePlugin] Core services initialized
+2026-09-02T08:47:09.237Z INFO [CustomerServicePlugin] Event bus initialized
+2026-09-02T08:47:09.238Z INFO [CustomerServicePlugin:NotificationManager] 通道已注册: 钉钉通知 {"id":"dingtalk"}
+2026-09-02T08:47:09.239Z INFO [CustomerServicePlugin] Notification system initialized
+2026-09-02T08:47:09.239Z INFO [CustomerServicePlugin] Embedding service initialized {"provider":"custom"}
+2026-09-02T10:02:59.550Z INFO [CustomerServicePlugin] Initializing Customer Service Plugin (v2.0) {"knowledgeBasePath":"./knowledge","ticketOutputPath":"./tickets","logLevel":"info","similarityThreshold":0.6,"notifications":{"enabled":true,"dingtalk":{"enabled":true,"webhookUrl":"https://oapi.dingtalk.com/robot/send?access_token=3e3d2f8007fba5f0a7ac365276295f5ea5d67f7189693f5890f9e469a94eb7dd","keyword":"工单"},"email":{"enabled":false,"host":"smtp.example.com","port":587,"user":"${SMTP_USER}","password":"${SMTP_PASSWORD}","from":"noreply@example.com"}},"embedding":{"enabled":true,"provider":"custom","model":"BAAI/bge-large-zh-v1.5","apiKey":"sk-dtittsjudpimnnftcdwlqyyghueanhkfebyhuxqufwlohpgp","baseUrl":"https://api.siliconflow.cn/v1"},"scheduler":{"enabled":false,"knowledgeSync":{"enabled":false,"intervalMs":3600000}}}
+2026-09-02T10:02:59.554Z INFO [CustomerServicePlugin:SessionManager] Session cleanup timer started {"intervalMs":300000}
+2026-09-02T10:02:59.555Z INFO [CustomerServicePlugin] Core services initialized
+2026-09-02T10:02:59.556Z INFO [CustomerServicePlugin] Event bus initialized
+2026-09-02T10:02:59.558Z INFO [CustomerServicePlugin:NotificationManager] 通道已注册: 钉钉通知 {"id":"dingtalk"}
+2026-09-02T10:02:59.558Z INFO [CustomerServicePlugin] Notification system initialized
+2026-09-02T10:02:59.559Z INFO [CustomerServicePlugin] Embedding service initialized {"provider":"custom"}
+2026-09-02T10:02:59.565Z INFO [CustomerServicePlugin] Registered 7 tools
+2026-09-02T10:02:59.566Z INFO [CustomerServicePlugin] Customer Service Plugin v2.0 initialized successfully

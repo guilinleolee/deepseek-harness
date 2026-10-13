@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-experimental-skill-index",
   "description": "Dragon Engine asset index reader for the DeepSeek Harness — exposes dragon-assets/index/*.jsonl as a Cordis Service",
-  "version": "0.1.0",
+  "version": "0.1.1-rc.2",
   "private": true,
   "repository": {
     "type": "git",

@@ -125,12 +125,15 @@
 }
 
 /* Mark and name are independent slots; the shell owns their shared baseline,
-   spacing, and height so either occupant can vary in width. */
+   spacing, and height so either occupant can vary in width. The Dragon
+   Engine build scales the brand row two steps up from the legacy 24px
+   rail spec (mark 32, name 28) so the wordmark reads at the same visual
+   weight as the navigation labels below. */
 .brandIdentity {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 24px;
+  height: 32px;
   min-width: 0;
 }
 
@@ -146,15 +149,15 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  height: 24px;
-  font-size: 18px;
+  height: 28px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 28px;
   letter-spacing: 0.04em;
 }
 
 .fallbackBrandName {
-  font-size: 17px;
+  font-size: 21px;
   letter-spacing: 0px;
   white-space: nowrap;
 }
@@ -313,6 +316,8 @@
 
 .footerActions {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .collapsed .footArea {

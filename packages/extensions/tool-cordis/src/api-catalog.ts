@@ -210,6 +210,37 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'agentRoster',
+    summary: 'Read-only registry over the `dragon-assets/agents/` source markdowns.',
+    description: 'Read-only registry over the `dragon-assets/agents/` source markdowns.\n\nOne service instance owns one snapshot; call `loadAll()` after upstream mirror changes to refresh.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<readonly AgentRole[]>',
+        description: 'Walk the `agents/` mirror and parse every markdown file into a role.',
+        parameters: [],
+        returns: 'the loaded roster, sorted by numeric prefix then id.',
+      },
+      {
+        signature: 'search(query: RoleSearchQuery = {}): readonly AgentRole[]',
+        description: 'Filter the cached roster.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching roles, sorted as the source roster declared them.',
+      },
+      {
+        signature: 'get(id: AgentId): AgentRole | undefined',
+        description: 'Exact-id lookup against the cached roster.',
+        parameters: [{ name: 'id', description: 'the role identifier (without `.md`).' }],
+        returns: 'the matching role, or `undefined` if none.',
+      },
+      {
+        signature: 'byFamily(family: AgentFamily): readonly AgentRole[]',
+        description: 'Return every role belonging to one family bucket.',
+        parameters: [{ name: 'family', description: 'the family bucket to filter by.' }],
+        returns: 'the roles in that family, in roster order.',
+      },
+    ],
+  },
+  {
     key: 'agents',
     summary: 'Agent service (`ctx.agents`): tracks live agents and carries the initiating Agent through one process-local asynchronous driver chain.',
     description: 'Agent service (`ctx.agents`): tracks live agents and carries the initiating Agent through one process-local asynchronous driver chain. Agent *creation* is provided by whichever plugin implements the AgentFactory (`@deepseek-ai/dsh-agent-loop`), registered via setFactory.\n\nInitiator methods provide same-process causal attribution only. Ambient presence is neither liveness proof nor authorization; subjects and owners remain explicit, as does identity at worker, process, persistence, and wire boundaries. Returned Promise boundaries drain during teardown, except a nested lineage that starts an owning-fiber unload is excluded from its own drain.',
@@ -691,6 +722,74 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'dragonBridge',
+    summary: 'Facade that joins the index, roster, and policy services.',
+    description: 'Facade that joins the index, roster, and policy services.\n\nThe bridge does not own disk state; it depends on its sibling packages for I/O and classification. Its only state is a cached asset list rebuilt by `loadAll()`.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<readonly DragonAsset[]>',
+        description: 'Refresh every upstream service and rebuild the cross-kind asset list.\n\nSkill and command / hook / plugin assets come from `ctx.dragonIndex`; agent assets come from `ctx.agentRoster`. Each entry is classified by `ctx.licensePolicy`.',
+        parameters: [],
+        returns: 'the rebuilt asset list, in load order.',
+      },
+      {
+        signature: 'search(query: BridgeSearchQuery = {}): readonly DragonAsset[]',
+        description: 'Filter the cached asset list.\n\n`safeOnly` (constructor flag) drops `artifact-only` and `reject` entries from the default result set; explicit `decision` overrides it.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching assets, in the source-declared order.',
+      },
+      {
+        signature: 'allowed(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `allow`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'attributed(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `attribute`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'artifactOnly(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `artifact-only`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'rejected(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `reject`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+    ],
+  },
+  {
+    key: 'dragonIndex',
+    summary: 'Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.',
+    description: 'Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.\n\nOne service instance owns one snapshot. Callers can refresh the snapshot by calling `loadAll()` again; the registry exposes the current snapshot via the `snapshot` accessor.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<IndexSnapshot>',
+        description: 'Read every jsonl file into one snapshot and cache it.',
+        parameters: [],
+        returns: 'the loaded snapshot.',
+      },
+      {
+        signature: 'search(query: SearchQuery = {}): readonly AssetIndexEntry[]',
+        description: 'Filter the cached snapshot.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching entries, ordered as the source jsonl declared them.',
+      },
+      {
+        signature: 'get(id: string, kind?: AssetKind): AssetIndexEntry | undefined',
+        description: 'Exact-id lookup against the cached snapshot.',
+        parameters: [{ name: 'id', description: 'the asset identifier to resolve.' }, { name: 'kind', description: 'optional kind disambiguator; omitted matches the first entry of any kind.' }],
+        returns: 'the matching entry, or `undefined` if none.',
+      },
+    ],
+  },
+  {
     key: 'e2b',
     summary: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal.',
     description: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal. Creation begins at plugin construction; adapters await getSandbox before their first operation.',
@@ -951,6 +1050,37 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Attach an effect-scoped controller that can read and stop jobs. It serves the owners its registering context\'s scope covers, and start refuses an owner no attached controller serves.',
         parameters: [{ name: 'name', description: 'diagnostic label; duplicate names remain independent.' }],
         returns: 'disposer that detaches this controller.',
+      },
+    ],
+  },
+  {
+    key: 'licensePolicy',
+    summary: 'Singleton license policy evaluator.',
+    description: 'Singleton license policy evaluator.\n\nOne Service instance owns the tier-to-decision table and (optional) AGPL attribution text. Pure: no I/O, no filesystem, no event subscription.',
+    methods: [
+      {
+        signature: 'normalize(raw: string | null | undefined): LicenseTier',
+        description: 'Normalize an arbitrary license string to a LicenseTier.\n\nAccepts values lifted directly from frontmatter, package.json, or upstream registry metadata. Matching is case-insensitive; whitespace and surrounding `()` are stripped. `NOASSERTION`, `UNKNOWN`, and absent values each map to a distinct tier rather than collapsing into `unknown`.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }],
+        returns: 'the normalized tier.',
+      },
+      {
+        signature: 'evaluate(raw: string | null | undefined): LicenseEvaluation',
+        description: 'Evaluate one license tier and return the typed decision.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }],
+        returns: 'the evaluation result.',
+      },
+      {
+        signature: 'evaluateTier(tier: LicenseTier): LicenseEvaluation',
+        description: 'Evaluate an already-normalized tier.',
+        parameters: [{ name: 'tier', description: 'the normalized license tier.' }],
+        returns: 'the evaluation result.',
+      },
+      {
+        signature: 'assertAllowed(raw: string | null | undefined, allowed: readonly LicenseDecision[]): LicenseEvaluation',
+        description: 'Convenience: assert the evaluation result is one of the allowed decisions.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }, { name: 'allowed', description: 'the set of decisions the caller accepts.' }],
+        returns: 'the evaluation result, throwing if it falls outside `allowed`.',
       },
     ],
   },
@@ -2858,8 +2988,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AgentFactory {\n    createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>;\n    resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandle>;\n}',
   },
   {
+    name: 'AgentFamily',
+    declaration: 'export type AgentFamily = \'core\' | \'platform\' | \'data\' | \'business\' | \'finance\' | \'social\' | \'sales\' | \'commerce\' | \'finance-2\' | \'hr\' | \'unknown\';',
+  },
+  {
     name: 'AgentHandle',
     declaration: 'export interface AgentHandle {\n    agent: Agent;\n    dispose(): Promise<void>;\n}',
+  },
+  {
+    name: 'AgentId',
+    declaration: 'export type AgentId = string;',
   },
   {
     name: 'AgentOptions',
@@ -2868,6 +3006,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AgentPreset',
     declaration: 'export interface AgentPreset {\n    readonly id: string;\n    readonly trust: PresetTrust;\n    readonly path: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly broken?: string;\n}',
+  },
+  {
+    name: 'AgentRole',
+    declaration: 'export interface AgentRole {\n    readonly id: AgentId;\n    readonly family: AgentFamily;\n    readonly numericPrefix: string;\n    readonly displayName: string;\n    readonly displayNameZh?: string;\n    readonly description: string;\n    readonly capabilities: readonly string[];\n    readonly license?: string;\n    readonly path: string;\n}',
   },
   {
     name: 'AgentSetup',
@@ -2936,6 +3078,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AssembledSection',
     declaration: 'export interface AssembledSection {\n    name: string;\n    text: string;\n}',
+  },
+  {
+    name: 'AssetIndexEntry',
+    declaration: 'export interface AssetIndexEntry {\n    id: string;\n    kind: AssetKind;\n    version?: string;\n    status?: AssetStatus;\n    license?: LicenseTier;\n    upstream?: string;\n    path: string;\n    description?: string;\n    triggers?: string[];\n    tags?: string[];\n    mtime?: string;\n    hash?: string;\n    [extra: string]: unknown;\n}',
+  },
+  {
+    name: 'AssetKind',
+    declaration: 'export type AssetKind = \'skill\' | \'agent\' | \'hook\' | \'command\' | \'plugin\';',
+  },
+  {
+    name: 'AssetStatus',
+    declaration: 'export type AssetStatus = \'active\' | \'deprecated\' | \'experimental\' | \'archived\' | \'unknown\';',
   },
   {
     name: 'AssistantMessage',
@@ -3016,6 +3170,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'Branded',
     declaration: 'export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};',
+  },
+  {
+    name: 'BridgeSearchQuery',
+    declaration: 'export interface BridgeSearchQuery {\n    kind?: \'skill\' | \'agent\' | \'command\' | \'hook\' | \'plugin\';\n    text?: string;\n    license?: LicenseTier;\n    decision?: LicenseDecision;\n    limit?: number;\n}',
   },
   {
     name: 'CancelOptions',
@@ -3302,6 +3460,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}',
   },
   {
+    name: 'DragonAsset',
+    declaration: 'export interface DragonAsset {\n    readonly source: AssetIndexEntry | AgentRole;\n    readonly kind: \'skill\' | \'agent\' | \'command\' | \'hook\' | \'plugin\';\n    readonly licenseTier: LicenseTier;\n    readonly licenseEvaluation: LicenseEvaluation;\n    readonly decision: LicenseDecision;\n}',
+  },
+  {
     name: 'DshEnvironment',
     declaration: 'export type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>;',
   },
@@ -3490,6 +3652,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type IndexInjectionPlacement = \'head\' | \'body\';',
   },
   {
+    name: 'IndexSnapshot',
+    declaration: 'export interface IndexSnapshot {\n    readonly skills: readonly AssetIndexEntry[];\n    readonly agents: readonly AssetIndexEntry[];\n    readonly hooks: readonly AssetIndexEntry[];\n    readonly commands: readonly AssetIndexEntry[];\n    readonly plugins: readonly AssetIndexEntry[];\n    readonly all: readonly AssetIndexEntry[];\n}',
+  },
+  {
     name: 'InvariantFailure',
     declaration: 'export type InvariantFailure = (message: string) => never;',
   },
@@ -3592,6 +3758,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'KvUnitDescriptor',
     declaration: 'export interface KvUnitDescriptor {\n    readonly name: string;\n    readonly version: number;\n    readonly tables: readonly string[];\n    readonly hasGlobal: boolean;\n}',
+  },
+  {
+    name: 'LicenseDecision',
+    declaration: 'export type LicenseDecision = \'allow\' | \'attribute\' | \'artifact-only\' | \'reject\';',
+  },
+  {
+    name: 'LicenseEvaluation',
+    declaration: 'export interface LicenseEvaluation {\n    readonly tier: LicenseTier;\n    readonly severity: LicenseSeverity;\n    readonly decision: LicenseDecision;\n    readonly attribution?: string;\n    readonly reason?: string;\n}',
+  },
+  {
+    name: 'LicenseSeverity',
+    declaration: 'export type LicenseSeverity = \'green\' | \'amber\' | \'red\' | \'black\';',
   },
   {
     name: 'LlmAdapter',
@@ -3970,6 +4148,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'RoleSearchQuery',
+    declaration: 'export interface RoleSearchQuery {\n    family?: AgentFamily;\n    text?: string;\n    license?: string;\n    limit?: number;\n}',
+  },
+  {
     name: 'RpcError',
     declaration: 'export type RpcError = {\n    [C in RpcErrorCode]: {\n        code: C;\n        message: string;\n        details: RpcErrorDetailsMap[C];\n    };\n}[RpcErrorCode];',
   },
@@ -4056,6 +4238,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SearchPathsResultView',
     declaration: 'export interface SearchPathsResultView {\n    card: \'search\';\n    shape: \'paths\';\n    title?: string;\n    paths: string[];\n    truncated: boolean;\n    total: number;\n}',
+  },
+  {
+    name: 'SearchQuery',
+    declaration: 'export interface SearchQuery {\n    kind?: AssetKind;\n    text?: string;\n    license?: LicenseTier;\n    limit?: number;\n}',
   },
   {
     name: 'SearchResultView',

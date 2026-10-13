@@ -42,8 +42,14 @@ it('boots the built plugin graph and renders a fixture session end to end', asyn
 
   // The sidebar renders from the boot graph: every inject layer activated.
   const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
-  expect(document.querySelector('svg[viewBox="26 0 156 24"]')).not.toBeNull()
-  expect(screen.queryByText('DSH Local Build')).toBeNull()
+  // ui-brand-official fills sidebar.brand.name with a wordmark span; assert
+  // the wordmark is present (so the slot was actually filled, not the shell
+  // fallback) by checking its content rather than the previous SVG viewBox.
+  expect(screen.queryByText('卡巴格AI')).not.toBeNull()
+  // The official mark occupant now serves an <img> at /dragon-icon.png; the
+  // shell fallback would also serve the same image, so this only proves the
+  // asset is reachable, not which occupant filled the slot.
+  expect(document.querySelector('img[src="/dragon-icon.png"]')).not.toBeNull()
   // The compact layout dropped group session counts; the fixture workspace
   // group row renders immediately with its sessions beneath it.
   const fixtureGroup = (await within(tree).findAllByText('fixture'))

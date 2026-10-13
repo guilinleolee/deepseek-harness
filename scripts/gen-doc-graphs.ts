@@ -589,6 +589,38 @@ const SERVICE_ROLES: ServiceRole[] = [
     consumers: ['tool-cordis'],
     note: 'Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport.',
   },
+  {
+    key: 'agentRoster',
+    pkg: 'agent-roster',
+    title: 'Dragon agent role registry',
+    mode: 'core',
+    consumers: ['dragon-bridge'],
+    note: 'Reads the dragon-assets agent markdowns into a searchable role registry; consumers own any model-facing projection.',
+  },
+  {
+    key: 'dragonIndex',
+    pkg: 'skill-index',
+    title: 'Dragon asset index reader',
+    mode: 'core',
+    consumers: ['dragon-bridge'],
+    note: 'Reads the dragon-assets index snapshots into a searchable asset registry; consumers own any model-facing projection.',
+  },
+  {
+    key: 'dragonBridge',
+    pkg: 'dragon-bridge',
+    title: 'Dragon asset cross-kind bridge',
+    mode: 'core',
+    consumers: ['host-runtime'],
+    note: 'Joins the roster, index, and license-policy services into one classified, searchable asset list.',
+  },
+  {
+    key: 'licensePolicy',
+    pkg: 'license-policy',
+    title: 'License red-line decision table',
+    mode: 'core',
+    consumers: ['dragon-bridge'],
+    note: 'Classifies each asset as allow, attribute, artifact-only, or reject; consumers surface the decision text if at all.',
+  },
 ]
 
 function generatedHeader(title: string): string[] {

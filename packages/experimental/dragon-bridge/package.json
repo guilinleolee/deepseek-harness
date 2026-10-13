@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-experimental-dragon-bridge",
   "description": "Dragon Engine facade for the DeepSeek Harness — unifies skill-index + agent-roster + license-policy into one bridge API",
-  "version": "0.1.0",
+  "version": "0.1.1-rc.2",
   "private": true,
   "repository": {
     "type": "git",

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-experimental-license-policy",
   "description": "Dragon Engine license governance for the DeepSeek Harness — classifies dragon-assets by license tier and enforces the AGPL-3.0 red line",
-  "version": "0.1.0",
+  "version": "0.1.1-rc.2",
   "private": true,
   "repository": {
     "type": "git",

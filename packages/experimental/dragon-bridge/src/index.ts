@@ -20,7 +20,7 @@ import type {
   AssetKind as IndexKind,
 } from '@deepseek-ai/dsh-experimental-skill-index'
 import type { AgentRole } from '@deepseek-ai/dsh-experimental-agent-roster'
-import type { BridgeSearchQuery, Config, DragonAsset } from './types'
+import type { BridgeSearchQuery, Config, DragonAsset } from './types.ts'
 
 const SKILL_INDEX_KINDS: ReadonlyArray<IndexKind> = ['skill', 'agent', 'hook', 'command', 'plugin']
 const AGENT_ROLE_KIND = 'agent' as const
@@ -43,7 +43,7 @@ export class DragonBridge extends Service {
   private readonly safeOnly: boolean
   private assets: readonly DragonAsset[] = []
 
-  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Partial<Config> = {}) {
+  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Config = {}) {
     super(ctx, 'dragonBridge')
     this.safeOnly = config.safeOnly ?? false
   }
@@ -53,7 +53,8 @@ export class DragonBridge extends Service {
    *
    * Skill and command / hook / plugin assets come from `ctx.dragonIndex`;
    * agent assets come from `ctx.agentRoster`. Each entry is classified by
-   * `ctx.licensePolicy`. Returns the rebuilt list.
+   * `ctx.licensePolicy`.
+   * @returns the rebuilt asset list, in load order.
    */
   async loadAll(): Promise<readonly DragonAsset[]> {
     const skillIndex = this.ctx.dragonIndex
@@ -104,22 +105,34 @@ export class DragonBridge extends Service {
     return typeof query.limit === 'number' ? matched.slice(0, query.limit) : matched
   }
 
-  /** Return every asset the policy resolves to `allow`. */
+  /**
+   * Return every asset the policy resolves to `allow`.
+   * @returns the matching assets, in load order.
+   */
   allowed(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'allow')
   }
 
-  /** Return every asset the policy resolves to `attribute`. */
+  /**
+   * Return every asset the policy resolves to `attribute`.
+   * @returns the matching assets, in load order.
+   */
   attributed(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'attribute')
   }
 
-  /** Return every asset the policy resolves to `artifact-only`. */
+  /**
+   * Return every asset the policy resolves to `artifact-only`.
+   * @returns the matching assets, in load order.
+   */
   artifactOnly(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'artifact-only')
   }
 
-  /** Return every asset the policy resolves to `reject`. */
+  /**
+   * Return every asset the policy resolves to `reject`.
+   * @returns the matching assets, in load order.
+   */
   rejected(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'reject')
   }
@@ -171,4 +184,4 @@ function describeSource(source: AssetIndexEntry | AgentRole): string {
 }
 
 export default DragonBridge
-export type { BridgeSearchQuery, Config, DragonAsset } from './types'
+export type { BridgeSearchQuery, Config, DragonAsset } from './types.ts'

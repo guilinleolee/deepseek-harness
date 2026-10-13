@@ -21,7 +21,7 @@ The matrix is the source of truth for `dragon-assets/LICENSE-ATTRIBUTION.md` §�
 
 ## Service API
 
-```ts
+```
 import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
 
 const fiber = await ctx.plugin(LicensePolicy, { rejectUnknown: true })
@@ -47,15 +47,9 @@ ctx.licensePolicy.assertAllowed('MIT', ['allow', 'attribute'])
 
 ## Model Experience
 
-### What the model sees
+None, as the policy is a pure decision table; consumers own any surfaced decision text.
 
-Nothing — the policy is a pure decision table. Consumers (loaders, publishers) may surface the decision text in a tool description but no model prompt contains the raw policy.
-
-### Token effect
-
-None.
-
-### KV Cache effect
+#### KV Cache effect
 
 None.
 

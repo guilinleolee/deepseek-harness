@@ -92,7 +92,11 @@ export async function serveStatic(
     res.end()
     return
   }
-  res.writeHead(200, { 'content-type': type })
+  // The rendered index carries the boot rev table; no-cache keeps the browser
+  // from heuristically caching it and loading stale bundles after a rebuild.
+  const headers: Record<string, string> = { 'content-type': type }
+  if (target === distRoot || target === distIndex) headers['cache-control'] = 'no-cache'
+  res.writeHead(200, headers)
   res.end(body)
 }
 

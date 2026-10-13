@@ -1,0 +1,19 @@
+$ node --import tsx/esm apps/cli/src/bin.ts "web"
+{"ts":"2026-09-21T02:58:59.972Z","level":"info","msg":"config-manager 已挂载","meta":{"homeDir":"C:\\Users\\li\\.dsh","dataDir":"C:\\Users\\li\\.dsh\\dsh-config-manager","dshVersion":"0.1.1-rc.2","adapters":["settings","ui","providers","plugins","mcp","prompts","skills","agentPresets","agentInstructions","workspaces","credentialsStatus","pluginFiles","self","sessions"]}}
+[dsh-task-board] DSH runtime session endpoint unavailable (requires DSH >= 0.1.2-alpha.2); task board roster auto-discovery is disabled TypertGatewayError: typert gateway: session/list: no active Remote method exports this endpoint
+    at Proxy.resolveSrcDescriptor (D:\deepseek-harness\packages\api\gateway\src\index.ts:253:13)
+    at Object.apply (D:\deepseek-harness\vendor\cordis\src\utils.ts:160:40)
+    at Proxy.resolveDescriptor (D:\deepseek-harness\packages\api\gateway\src\index.ts:234:17)
+    at Object.apply (D:\deepseek-harness\vendor\cordis\src\utils.ts:160:40)
+    at Proxy.invoke (D:\deepseek-harness\packages\api\gateway\src\index.ts:147:29)
+    at Object.apply (D:\deepseek-harness\vendor\cordis\src\utils.ts:160:40)
+    at HostExecutionRunner.invoke (file:///C:/Users/li/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-task-board/lib/index.js:2109:23)
+    at HostExecutionRunner.listRunning (file:///C:/Users/li/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-task-board/lib/index.js:2168:32)
+    at TaskBoardHostService.pollSessions (file:///C:/Users/li/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-task-board/lib/index.js:2706:37)
+    at TaskBoardHostService.schedulePoll (file:///C:/Users/li/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-task-board/lib/index.js:2762:8) {
+  code: 'invocation-unavailable',
+  endpoint: 'session/list',
+  field: undefined
+}
+dsh web: http://127.0.0.1:3080
+dsh web: opening the default browser; pass --no-open to disable

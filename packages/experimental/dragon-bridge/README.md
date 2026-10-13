@@ -10,7 +10,7 @@ This is an experimental package. It only mounts when its owning composition asks
 
 The bridge is a pure facade. The three upstream packages must be registered first; `loadAll()` triggers each sibling's refresh and reuses the results. A typical composition:
 
-```ts
+```
 import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
 import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
 import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
@@ -24,7 +24,7 @@ await ctx.plugin(DragonBridge)
 
 ## Service API
 
-```ts
+```
 const assets = await ctx.dragonBridge.loadAll()
 
 // Cross-kind filtering
@@ -70,15 +70,9 @@ The bridge depends on the three services through Cordis injection; `ctx.dragonIn
 
 ## Model Experience
 
-### What the model sees
+None, as the bridge is a service and not a tool; consumers own any model-facing projection of its results.
 
-Nothing directly. Consumers may choose to surface `search()` results to the model through their own tools; the bridge is a service, not a tool.
-
-### Token effect
-
-None.
-
-### KV Cache effect
+#### KV Cache effect
 
 None.
 

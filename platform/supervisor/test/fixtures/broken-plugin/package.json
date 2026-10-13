@@ -1,0 +1,10 @@
+{
+  "name": "@luoyunzong-test/broken-plugin",
+  "version": "0.0.1",
+  "description": "必然解析失败的夹具：bundle patch 是非法 YAML，用于验证真启动预检拦截。",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "daemon": {
+    "pid": 14564,
+    "startedAt": 1790281040930
+  },
+  "instances": {
+    "e01": {
+      "id": "e01",
+      "account": "admin@dreamspace.work",
+      "uid": 30000,
+      "port": 3181,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      },
+      "home": "D:\\deepseek-harness\\platform\\supervisor\\data\\homes\\e01",
+      "desired": "up",
+      "pid": 23904,
+      "state": "running",
+      "startedAt": 1790281041215,
+      "restarts": 0,
+      "lastExit": null,
+      "health": {
+        "lastOkAt": 1790361371389,
+        "latencyMs": 3
+      },
+      "memoryKB": 156812,
+      "diskBytes": 153850222,
+      "startTimeoutAt": null
+    },
+    "e02": {
+      "id": "e02",
+      "account": "member-a@dreamspace.work",
+      "uid": 30001,
+      "port": 3182,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      },
+      "home": "D:\\deepseek-harness\\platform\\supervisor\\data\\homes\\e02",
+      "desired": "up",
+      "pid": 22248,
+      "state": "running",
+      "startedAt": 1790281041284,
+      "restarts": 0,
+      "lastExit": null,
+      "health": {
+        "lastOkAt": 1790361371392,
+        "latencyMs": 3
+      },
+      "memoryKB": 148484,
+      "diskBytes": 153667151,
+      "startTimeoutAt": null
+    },
+    "e03": {
+      "id": "e03",
+      "account": "member-b@dreamspace.work",
+      "uid": 30002,
+      "port": 3183,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+      },
+      "home": "D:\\deepseek-harness\\platform\\supervisor\\data\\homes\\e03",
+      "desired": "up",
+      "pid": 680,
+      "state": "running",
+      "startedAt": 1790281041360,
+      "restarts": 0,
+      "lastExit": null,
+      "health": {
+        "lastOkAt": 1790361371394,
+        "latencyMs": 2
+      },
+      "memoryKB": 153992,
+      "diskBytes": 153574125,
+      "startTimeoutAt": null
+    }
+  }
+}

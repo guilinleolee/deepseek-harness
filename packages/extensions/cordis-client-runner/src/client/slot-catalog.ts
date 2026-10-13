@@ -1585,6 +1585,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
       'client-ui-content-studio ContentStudio id \'content-studio\'',
+      'client-ui-customer-acquisition AcquisitionPanel id \'customer-acquisition\'',
+      'client-ui-quant-research QuantPanel id \'quant-research\'',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.overlay\', () => ctx.slots.register(\n      { name: \'shell.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1708,6 +1710,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
       'client-ui-content-studio StudioEntry id \'content-studio-entry\'',
+      'client-ui-customer-acquisition AcquisitionEntry id \'customer-acquisition-entry\'',
+      'client-ui-quant-research QuantEntry id \'quant-research-entry\'',
       'client-ui-cordis CordisPanel id \'cordis-panel\'',
     ],
     replaceRisk: 'none',

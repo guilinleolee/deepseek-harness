@@ -552,6 +552,12 @@ export interface Config extends GatherAiConfig, CreateQuotaConfig {
   root?: string
   /** Home the global template library resolves under (`<templatesRoot>/templates`). Defaults to the dsh home. */
   templatesRoot?: string
+  /**
+   * Gather feed-host allowlist: an entry admits itself and its subdomains.
+   * Absent = unrestricted (the `GATHER_ALLOWED_FEED_HOSTS` env applies as the
+   * fallback channel); empty = deny every host. Config wins over the env.
+   */
+  allowedFeedHosts?: string[]
 }
 
 /** Deployment policy for the AI processing face; every default lives in {@link GatherAiProcessor}. */
@@ -579,7 +585,7 @@ export interface CreateQuotaConfig {
 }
 ```
 
-Source: [`packages/creation/content-outputs/src/index.ts:153`](../packages/creation/content-outputs/src/index.ts)
+Source: [`packages/creation/content-outputs/src/index.ts:158`](../packages/creation/content-outputs/src/index.ts)
 
 <a id="deepseek-aidsh-content-schedule"></a>
 
@@ -644,6 +650,34 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:64`](../packages/credentials/credentials-local/src/index.ts)
+
+<a id="deepseek-aidsh-customer-acquisition"></a>
+
+## `@deepseek-ai/dsh-customer-acquisition`
+
+Requires: `storageDomain` · `tools`
+
+```ts config-catalog
+/** Bundle-row config of the plugin (`config:` on the `customer-acquisition` row). */
+export interface CustomerAcquisitionPluginConfig {
+  /** Policy for the plugin's internal model calls (lead extraction, AI scoring). */
+  readonly ai?: AiPolicyConfig
+}
+
+/** Deployment policy for the plugin's internal model calls (row config `ai`). */
+export interface AiPolicyConfig {
+  /** Registered LLM provider route; defaults to `deepseek`. */
+  readonly provider?: string
+  /** Model id within the provider route; defaults to `deepseek-chat`. */
+  readonly model?: string
+  /** End-to-end call deadline in milliseconds (1000–300000); defaults to 120000. */
+  readonly timeoutMs?: number
+  /** Model-output token cap for one call (256–32000); defaults to 2000. */
+  readonly maxOutputTokens?: number
+}
+```
+
+Source: [`packages/growth/customer-acquisition/src/index.ts:105`](../packages/growth/customer-acquisition/src/index.ts)
 
 <a id="deepseek-aidsh-e2b"></a>
 
@@ -1736,6 +1770,41 @@ export type Config = LocalConfig
 Depends on: [`LocalConfig`](#deepseek-aidsh-pwsh-local)
 
 Source: [`packages/shell/pwsh-sandbox/src/index.ts:40`](../packages/shell/pwsh-sandbox/src/index.ts)
+
+<a id="deepseek-aidsh-quant-research"></a>
+
+## `@deepseek-ai/dsh-quant-research`
+
+Requires: `storageDomain` · `subprocess`
+
+```ts config-catalog
+/** Deployment tunables for the plugin; every field is optional with a resolved default. */
+export interface Config {
+  /** Market-data source; omit for the deterministic offline walk. */
+  dataSource?: QuantDataSource
+  /** Python interpreter used to run the kernel; omit for the platform default. */
+  kernelCommand?: string
+  /** Directory the kernel uses for its kline cache; omit for `<dshHome>/quant-research/cache`. */
+  cacheDir?: string
+  /** Model-facing tool-call budget in milliseconds. */
+  toolTimeoutMs?: number
+  /** Per-request kernel deadline in milliseconds; must stay below `toolTimeoutMs`. */
+  kernelRequestTimeoutMs?: number
+  /** Kernel-side retries for one flaky data-source fetch. */
+  sourceMaxRetries?: number
+  /** Consecutive data-source failures that trip the circuit breaker. */
+  fuseThreshold?: number
+  /** Backtest starting cash when a call omits it. */
+  defaultCash?: number
+  /** Backtest per-trade fee rate when a call omits it. */
+  feeRate?: number
+}
+
+/** Market-data source selection; `synthetic` is the deterministic offline walk. */
+export type QuantDataSource = 'synthetic' | 'akshare'
+```
+
+Source: [`packages/quant/quant-research/src/config.ts:44`](../packages/quant/quant-research/src/config.ts)
 
 <a id="deepseek-aidsh-repeat-tool-reminder"></a>
 
@@ -3384,6 +3453,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-content-studio` ([`packages/client/ui-content-studio/src/index.ts`](../packages/client/ui-content-studio/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-customer-acquisition` ([`packages/client/ui-customer-acquisition/src/index.ts`](../packages/client/ui-customer-acquisition/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts))
@@ -3395,6 +3465,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-quant-research` ([`packages/client/ui-quant-research/src/index.ts`](../packages/client/ui-quant-research/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))

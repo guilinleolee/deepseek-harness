@@ -103,9 +103,11 @@ describe('SidebarRoot shell', () => {
         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
     />)
 
-    expect(screen.getByText('DSH Local Build')).toBeTruthy()
+    expect(screen.getByText('卡巴格AI')).toBeTruthy()
     expect(screen.getByText('0123456')).toBeTruthy()
-    expect(container.querySelector('svg')).not.toBeNull()
+    // The fallback brand mark is an <img> served from the shell's public
+    // assets; a package that fills the slot replaces it with whatever it likes.
+    expect(container.querySelector('img[src="/dragon-icon.png"]')).not.toBeNull()
   })
 
   it('hands the region its wide flag and clamps expandSidebar to the collapsed state', () => {
