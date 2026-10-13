@@ -16,7 +16,7 @@ import { QuantError } from '../errors.ts'
 export const KERNEL_PROTOCOL_VERSION = 1
 
 /** Operations the kernel serves. */
-export type KernelOp = 'ping' | 'get_kline' | 'backtest' | 'backtest_grid'
+export type KernelOp = 'ping' | 'get_kline' | 'backtest' | 'backtest_grid' | 'cross_section_ic'
 
 /** One kernel request line. */
 export interface KernelRequest {

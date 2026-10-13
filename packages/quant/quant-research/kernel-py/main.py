@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pdat.datasource import ConfigError, fetch_kline  # noqa: E402
 from pcpt.backtest import run_backtest, run_backtest_grid  # noqa: E402
+from pcpt.cross_ic import run_cross_section_ic  # noqa: E402
 from utils.python_logger import log_debug, log_error  # noqa: E402
 
 PROTOCOL_VERSION = 1
@@ -81,11 +82,25 @@ def _handle_backtest_grid(params: dict) -> dict:
     )
 
 
+def _handle_cross_section_ic(params: dict) -> dict:
+    """Correlate the factor cross-section with forward returns per shared date."""
+    for field in ("panel", "factor", "horizon"):
+        if field not in params:
+            raise ValueError(f"cross_section_ic 缺少参数 {field}")
+    return run_cross_section_ic(
+        panel=params["panel"],
+        factor=params["factor"],
+        horizon=params["horizon"],
+        window=params.get("window"),
+    )
+
+
 HANDLERS = {
     "ping": _handle_ping,
     "get_kline": _handle_get_kline,
     "backtest": _handle_backtest,
     "backtest_grid": _handle_backtest_grid,
+    "cross_section_ic": _handle_cross_section_ic,
 }
 
 

@@ -9,6 +9,7 @@
 
 import { QuantError } from '../errors.ts'
 import type { KlineBar } from '../pdat/datasource.ts'
+import type { QuantKernelClient } from '../kernel-client/client.ts'
 import { computeFactor } from './factors.ts'
 import type { FactorName, FactorSeries } from './factors.ts'
 import { spearman } from './ic.ts'
@@ -292,4 +293,75 @@ export function formatCrossICSummary(
     '',
   ]
   return lines.join('\n')
+}
+
+/**
+ * Run the cross-sectional IC pipeline as one kernel request (`cross_section_ic`
+ * op): the kernel aligns the shared dates, computes each symbol's factor, and
+ * correlates every date's factor cross-section with its horizon-day forward
+ * returns. One subprocess for the whole panel instead of one per symbol.
+ * @param kernel - the kernel client.
+ * @param seriesBySymbol - each symbol's full fetched bars, oldest first.
+ * @param factor - the factor to evaluate.
+ * @param horizon - the forward-return horizon in bars.
+ * @param window - the factor look-back window (factor-specific default when omitted).
+ * @param signal - the caller's cancellation signal.
+ * @returns the raw kernel payload: per-date points and the aggregate summary.
+ * @throws {@link QuantError} on kernel or wire-shape failure.
+ */
+export async function runCrossSectionICKernel(
+  kernel: QuantKernelClient,
+  seriesBySymbol: Readonly<Record<string, readonly KlineBar[]>>,
+  factor: FactorName,
+  horizon: number,
+  window?: number,
+  signal?: AbortSignal,
+): Promise<{
+  readonly factor: string
+  readonly horizon: number
+  readonly symbols: string[]
+  readonly shared_dates: number
+  readonly points: CrossICPoint[]
+  readonly summary: {
+    observations: number
+    mean_ic: number
+    std_ic: number
+    icir: number
+    positive_share: number
+    t_stat: number
+  } | null
+}> {
+  const payload = await kernel.request('cross_section_ic', {
+    panel: seriesBySymbol,
+    factor,
+    horizon,
+    ...(window === undefined ? {} : { window }),
+  }, signal)
+  if (payload === null || typeof payload !== 'object' || !('points' in payload) || !Array.isArray((payload as { points: unknown }).points)) {
+    throw new QuantError('DATA', 'cross_section_ic 返回的数据形状不正确')
+  }
+  return payload as never
+}
+
+/**
+ * Project the kernel payload onto the wire summary the TS pipeline produces,
+ * so both paths feed one report shape.
+ * @param payload - the kernel response from {@link runCrossSectionICKernel}.
+ * @returns the IC points and the aggregate in the TS vocabulary.
+ */
+export function projectKernelIC(payload: Awaited<ReturnType<typeof runCrossSectionICKernel>>): {
+  points: CrossICPoint[]
+  summary: CrossICSummary | null
+} {
+  const points: CrossICPoint[] = payload.points.map(point => ({ date: point.date, ic: point.ic }))
+  const raw = payload.summary
+  const summary = raw === null ? null : {
+    observations: raw.observations,
+    meanIC: raw.mean_ic,
+    stdIC: raw.std_ic,
+    icir: raw.icir,
+    positiveShare: raw.positive_share,
+    tStat: raw.t_stat,
+  }
+  return { points, summary }
 }

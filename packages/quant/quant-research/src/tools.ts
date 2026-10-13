@@ -61,8 +61,9 @@ import {
   splitRollingWindows, validateAnchoredParams, validateRollingParams, validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
 import {
-  HORIZON_LIMITS, PANEL_SIZE_LIMITS, alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary,
-  IC_WINDOWS_LIMITS, summarizeIC, windowedIC,
+  HORIZON_LIMITS, PANEL_SIZE_LIMITS, formatCrossICSummary, projectKernelIC,
+  runCrossSectionICKernel,
+  IC_WINDOWS_LIMITS, windowedIC,
 } from './paat/cross-ic.ts'
 import type { ICWindowSummary } from './paat/cross-ic.ts'
 
@@ -1684,13 +1685,13 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
                     signal: controller.signal,
                   })
                 }
-                const panel = alignPanel(seriesBySymbol)
-                const factorBySymbol: Record<string, (number | null)[]> = {}
-                for (const symbol of symbols) {
-                  factorBySymbol[symbol] = factorOnDates(factor, seriesBySymbol[symbol] as never, panel.dates, window)
-                }
-                const points = crossSectionIC(panel, factorBySymbol, horizon)
-                const summary = summarizeIC(points)
+                // One kernel request computes the whole panel (alignment,
+                // factors, per-date correlations) — one subprocess per run
+                // instead of one per symbol.
+                const payload = await runCrossSectionICKernel(
+                  deps.kernel, seriesBySymbol, factor, horizon, window, controller.signal,
+                )
+                const { points, summary } = projectKernelIC(payload)
                 const windows: ICWindowSummary[] | undefined = icWindows === undefined ? undefined : windowedIC(points, icWindows)
                 const markdown = formatCrossICSummary(symbols, factor, window, horizon, bars, points, summary, windows)
                 return {

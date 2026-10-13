@@ -174,10 +174,30 @@ function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDep
   }
 }
 
-/** Kernel serving every panel symbol's bars from one date map. */
-function panelKernel(seriesBySymbol: Record<string, KlineBar[]>): QuantKernelClient {
+/** Kernel serving get_kline per symbol and one aggregated cross_section_ic payload. */
+function panelKernel(seriesBySymbol: Record<string, KlineBar[]>, summaryOverride?: Record<string, unknown>): QuantKernelClient {
   return {
-    request: vi.fn(async (_op: string, params: Record<string, unknown>) => seriesBySymbol[params.symbol as string] ?? []),
+    request: vi.fn(async (op: string, params: Record<string, unknown>) => {
+      if (op === 'get_kline') return seriesBySymbol[params.symbol as string] ?? []
+      if (op === 'cross_section_ic') {
+        return {
+          factor: params['factor'],
+          horizon: params['horizon'],
+          symbols: Object.keys(seriesBySymbol).sort(),
+          shared_dates: seriesBySymbol[Object.keys(seriesBySymbol)[0] ?? '']?.length ?? 0,
+          points: [{ date: '2024-01-01', ic: 0.9 }, { date: '2024-01-02', ic: 1.0 }],
+          summary: summaryOverride ?? {
+            observations: 2,
+            mean_ic: 0.95,
+            std_ic: 0.05,
+            icir: 19,
+            positive_share: 1,
+            t_stat: 26.87,
+          },
+        }
+      }
+      return {}
+    }),
   } as unknown as QuantKernelClient
 }
 
@@ -238,9 +258,13 @@ describe('quant_factor_cross_ic', () => {
     const outcome = await jobs.hooksOf(jobs.specs[0] as JobSpec).done
     expect(outcome.status).toBe('completed')
     expect(outcome.result).toContain('# 横截面 IC 评估：momentum')
+    expect(outcome.result).toContain('2024-01-01')
     expect(outcome.detail).toContain('ICIR')
-    const ops = (kernel.request as ReturnType<typeof vi.fn>).mock.calls.map(call => call[1]?.symbol)
-    expect(ops).toEqual(['AAA', 'BBB', 'CCC'])
+    const calls = (kernel.request as ReturnType<typeof vi.fn>).mock.calls as Array<[string, Record<string, unknown>]>
+    // Three per-symbol kline fetches, then ONE panel request.
+    expect(calls.map(call => call[0])).toEqual(['get_kline', 'get_kline', 'get_kline', 'cross_section_ic'])
+    expect(calls[3]?.[1]).toMatchObject({ factor: 'momentum', horizon: 3 })
+    expect(Object.keys(calls[3]?.[1]['panel'] as Record<string, unknown>).sort()).toEqual(['AAA', 'BBB', 'CCC'])
   })
 
   it('accepts ic_windows and renders the regime table in the settled report', async () => {
