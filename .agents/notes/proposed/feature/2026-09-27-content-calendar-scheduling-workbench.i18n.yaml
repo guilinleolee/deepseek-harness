@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-27-content-calendar-scheduling-workbench.md
+2026-09-27-content-calendar-scheduling-workbench.md: 8e496bc318fe42e12623f0b85801b43fc2971380
+2026-09-27-content-calendar-scheduling-workbench.zh.md: 45c531cc5a61b88239523c4e4e7ff8261ced9967

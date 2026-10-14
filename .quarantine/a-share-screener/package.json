@@ -1,0 +1,31 @@
+{
+  "name": "@deepseek-ai/dsh-a-share-screener",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A-share quant screener DSH plugin: model-facing screen tool, stock-screener skill, local SQLite cache, Tushare provider with Eastmoney fallback.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./invariant": "./src/invariant.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:*",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-invariants": "workspace:*",
+    "@deepseek-ai/dsh-jobs": "workspace:*",
+    "@deepseek-ai/dsh-skill": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

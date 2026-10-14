@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-DSH 对天龙引擎 V2.5 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析最小 frontmatter + 一级标题 + 首段 + 能力清单，按天龙 00-99 数字编号暴露为强类型花名册。
+DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析最小 frontmatter + 一级标题 + 首段 + 能力清单，按天龙 00-99 数字编号暴露为强类型花名册。
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -37,7 +37,7 @@ DSH 对天龙引擎 V2.5 镜像角色花名册的只读访问层。本包注册�
 
 ## Service API
 
-```ts
+```
 import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
 
 const fiber = await ctx.plugin(AgentRoster, { dragonAssetsRoot: '...' })
@@ -52,15 +52,9 @@ const analyst = ctx.agentRoster.get('00-analyst')
 
 ## 模型体验
 
-### 模型能看到什么
+无，因为本 Service 是 DSH 内部组件；任何搜索结果对模型的暴露都由调用方拥有。
 
-**无任何内容**——本 Service 是 DSH 内部组件，永远不会直接暴露给模型。调用方可以通过自己的工具选择性地把搜索结果暴露给模型。
-
-### Token 影响
-
-无。
-
-### KV Cache 影响
+#### KV Cache 影响
 
 无。
 

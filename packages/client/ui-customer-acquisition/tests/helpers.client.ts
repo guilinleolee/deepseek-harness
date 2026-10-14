@@ -1,5 +1,4 @@
 import { Context } from '@deepseek-ai/cordis'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 
 /** Minimal client-lane context for companion-plugin tests. */
 export interface PanelBench {
@@ -17,5 +16,3 @@ export async function setupPanelBench(): Promise<PanelBench> {
     },
   }
 }
-
-export { InvariantRegistry }

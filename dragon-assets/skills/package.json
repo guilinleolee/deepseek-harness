@@ -1,0 +1,44 @@
+{
+  "name": "git-commit-standard",
+  "version": "1.0.0",
+  "description": "Git提交信息标准化工具和规范",
+  "main": "git-commit-validator.js",
+  "bin": {
+    "git-commit-standard": "git-commit-validator.js",
+    "git-hooks-installer": "git-hooks-installer.js"
+  },
+  "scripts": {
+    "test": "node git-commit-validator.js \"feat(auth): 测试提交信息\"",
+    "install-hooks": "node git-hooks-installer.js install",
+    "uninstall-hooks": "node git-hooks-installer.js uninstall",
+    "check-hooks": "node git-hooks-installer.js status",
+    "validate": "node git-commit-validator.js",
+    "interactive": "node git-commit-validator.js --interactive"
+  },
+  "keywords": [
+    "git",
+    "commit",
+    "standard",
+    "conventional-commits",
+    "validation",
+    "hooks"
+  ],
+  "author": "Claude Code",
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/git-commit-standard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/git-commit-standard/issues"
+  },
+  "homepage": "https://github.com/your-org/git-commit-standard#readme",
+  "dependencies": {
+    "playwright": "^1.59.0",
+    "playwright-core": "^1.58.2",
+    "pptxgenjs": "^4.0.1"
+  }
+}

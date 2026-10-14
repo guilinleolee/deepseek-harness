@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
-import { apply as applyPiAi, type Config as PiAiConfig } from '@deepseek-ai/dsh-llm-pi-ai'
+import { apply as applyPiAi } from '@deepseek-ai/dsh-llm-pi-ai'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
@@ -13,8 +13,8 @@ import { CustomerAcquisitionService } from '../src/service.ts'
 import { LeadLedgerService } from '../src/leads/service.ts'
 import { LeadScoringService } from '../src/scoring/service.ts'
 import { seedIndustryTemplates } from '../src/scoring/seed.ts'
-import { EXTRACT_SYSTEM_PROMPT } from '../src/leads/extract.ts'
 import { llmPromptCompletion, resolveAiPolicy } from '../src/llm/oneshot.ts'
+import { EXTRACT_SYSTEM_PROMPT } from '../src/leads/extract.ts'
 import { FULL_OPERATOR } from './helpers-p1.ts'
 
 // Real-API verification of the plugin's internal model calls (lead field
@@ -24,7 +24,7 @@ import { FULL_OPERATOR } from './helpers-p1.ts'
 
 const KEY = process.env.ZHIPU_CODING_API_KEY
 
-const PI_CONFIG: PiAiConfig = {
+const PI_CONFIG = {
   providers: {
     'zhipu-coding': {
       apiKeyEnv: 'ZHIPU_CODING_API_KEY',
@@ -66,7 +66,7 @@ async function bootReal(): Promise<RealHarness> {
   // llm-pi-ai is a function plugin whose `inject` rides as a module export;
   // manual mounting must carry it so the scoped fiber can reach `ctx.llm`.
   const piAiPlugin = Object.assign(applyPiAi, { inject: ['llm'] })
-  await ctx.plugin(piAiPlugin, PI_CONFIG).await()
+  await ctx.plugin(piAiPlugin, PI_CONFIG as never).await()
   const service = ctx.customerAcquisition
   await seedIndustryTemplates(service.requireDomain())
 

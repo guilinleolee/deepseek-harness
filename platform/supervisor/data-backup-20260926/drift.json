@@ -1,0 +1,74 @@
+{
+  "checks": {
+    "e01": {
+      "checkedAt": "2026-09-21T01:43:24.328Z",
+      "grantedSet": {
+        "models": [
+          "glm-5.3",
+          "glm-5.2",
+          "glm-4.7",
+          "glm-5-turbo",
+          "glm-4.5-air",
+          "glm-5.3-flash"
+        ],
+        "plugins": []
+      },
+      "effectiveSet": {
+        "models": [
+          "glm-5.3",
+          "glm-5.3-flash",
+          "glm-5.2",
+          "glm-4.7",
+          "glm-5-turbo",
+          "glm-4.5-air"
+        ],
+        "plugins": []
+      },
+      "diffs": []
+    },
+    "e02": {
+      "checkedAt": "2026-09-21T01:43:24.328Z",
+      "grantedSet": {
+        "models": [
+          "glm-5.3-flash",
+          "glm-5.2"
+        ],
+        "plugins": []
+      },
+      "effectiveSet": {
+        "models": [
+          "glm-5.3-flash",
+          "glm-5.2"
+        ],
+        "plugins": []
+      },
+      "diffs": []
+    },
+    "e03": {
+      "checkedAt": "2026-09-21T01:43:24.328Z",
+      "grantedSet": {
+        "models": [
+          "glm-5.3",
+          "glm-5.2",
+          "glm-4.7",
+          "glm-5-turbo",
+          "glm-4.5-air",
+          "glm-5.3-flash"
+        ],
+        "plugins": []
+      },
+      "effectiveSet": {
+        "models": [
+          "glm-5.3",
+          "glm-5.3-flash",
+          "glm-5.2",
+          "glm-4.7",
+          "glm-5-turbo",
+          "glm-4.5-air"
+        ],
+        "plugins": []
+      },
+      "diffs": []
+    }
+  }
+}

@@ -23,7 +23,7 @@ describe('customer-acquisition-geo plugin composition', () => {
       })
 
       const dispose = await apply(harness.ctx)
-      const service = harness.ctx.get('geoDiagnosis')
+      const service = harness.ctx.get('geoDiagnosis')!
       expect(service).toBeDefined()
       expect(registered).toEqual([
         'customer_acquisition_geo_scan',

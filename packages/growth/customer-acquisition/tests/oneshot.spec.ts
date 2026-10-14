@@ -57,7 +57,7 @@ describe('the prompt-completion port over the llm Service Definition', () => {
     const cases: [FinishReason, string][] = [
       [{ kind: 'max-tokens' }, 'token 上限'],
       [{ kind: 'tool-calls' }, '工具调用'],
-      [{ kind: 'aborted', failure: { code: 'ABORTED', message: '取消' } }, '已取消'],
+      [{ kind: 'aborted' } as unknown as FinishReason, '已取消'],
       [{ kind: 'error', failure: { code: 'RATE_LIMIT', message: '限流' } }, '限流'],
       [{ kind: 'weird' } as unknown as FinishReason, '不支持的结果'],
     ]
@@ -71,7 +71,7 @@ describe('the prompt-completion port over the llm Service Definition', () => {
     expect(finishFailure({ kind: 'stop' })).toBeUndefined()
     expect(finishFailure({ kind: 'max-tokens' })?.message).toContain('maxOutputTokens')
     expect(finishFailure({ kind: 'tool-calls' })?.message).toContain('工具')
-    expect(finishFailure({ kind: 'aborted', failure: { code: 'ABORTED', message: '取消' } })?.message).toContain('取消')
+    expect(finishFailure({ kind: 'aborted' } as unknown as FinishReason)?.message).toContain('取消')
     expect(finishFailure({ kind: 'error', failure: { code: 'X', message: '上游错误' } })?.message).toContain('上游错误')
     expect(finishFailure({ kind: 'mystery' } as unknown as FinishReason)?.message).toContain('mystery')
   })

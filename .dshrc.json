@@ -1,0 +1,6 @@
+{
+  "plugins": {
+    "@nanmicoder/dsh-agent-teams": false,
+    "@deepseek-ai/dsh-creation-workbench": true
+  }
+}

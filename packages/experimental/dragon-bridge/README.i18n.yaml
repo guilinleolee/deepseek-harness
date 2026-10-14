@@ -1,3 +1,6 @@
-source: README.md
-translations:
-  zh: README.zh.md
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/dragon-bridge/README.md
+README.md: d111c9893119d7986f66d676a5928263f7340c71
+README.zh.md: 43b695d1e63edb54a34cec33827ae233cca18a26

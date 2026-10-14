@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+
+# Mirror the host repo's policy: deny build scripts by default, opt in to those
+# we need. esbuild ships a native binary used by vitest's transform pipeline.
+allowBuilds:
+  esbuild: true

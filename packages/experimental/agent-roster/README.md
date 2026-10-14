@@ -37,7 +37,7 @@ The parser extracts, per file:
 
 ## Service API
 
-```ts
+```
 import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
 
 const fiber = await ctx.plugin(AgentRoster, { dragonAssetsRoot: '...' })
@@ -52,15 +52,9 @@ const analyst = ctx.agentRoster.get('00-analyst')
 
 ## Model Experience
 
-### What the model sees
+None, as the service is internal to the harness; consumers own any model-facing projection of its results.
 
-Nothing — the service is internal to DSH and never reaches the model directly. Consumers may choose to surface search results through their own tools.
-
-### Token effect
-
-None.
-
-### KV Cache effect
+#### KV Cache effect
 
 None.
 

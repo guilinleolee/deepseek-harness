@@ -18,7 +18,7 @@
 import { existsSync, promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
-import type { AssetIndexEntry, AssetKind, Config, IndexSnapshot, SearchQuery } from './types'
+import type { AssetIndexEntry, AssetKind, Config, IndexSnapshot, SearchQuery } from './types.ts'
 
 const DEFAULT_RELATIVE_ROOT = 'dragon-assets'
 const INDEX_DIRECTORY = 'index'
@@ -48,7 +48,7 @@ export class DragonAssetIndex extends Service {
   private readonly root: string
   private current: IndexSnapshot = EMPTY_SNAPSHOT
 
-  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Partial<Config> = {}) {
+  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Config = {}) {
     super(ctx, 'dragonIndex')
     this.root = resolveRoot(config.dragonAssetsRoot)
   }
@@ -220,4 +220,4 @@ function matchesQuery(entry: AssetIndexEntry, needle: string | undefined, licens
 }
 
 export default DragonAssetIndex
-export type { AssetIndexEntry, AssetKind, Config, IndexSnapshot, LicenseTier, SearchQuery } from './types'
+export type { AssetIndexEntry, AssetKind, Config, IndexSnapshot, LicenseTier, SearchQuery } from './types.ts'

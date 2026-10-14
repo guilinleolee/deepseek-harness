@@ -1,0 +1,55 @@
+{
+  "portalPort": 8460,
+  "gatewayHost": "localhost",
+  "gatewayBindHost": "0.0.0.0",
+  "relayPort": 9400,
+  "repoRoot": "../..",
+  "driftStaleHours": 24,
+  "launch": {
+    "command": "pnpm",
+    "args": [
+      "dsh",
+      "web",
+      "--no-open",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}",
+      "--trusted-host",
+      "{gatewayAuthority}"
+    ]
+  },
+  "instances": [
+    {
+      "id": "e01",
+      "account": "admin@dreamspace.work",
+      "uid": 30000,
+      "port": 3181,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills",
+        "KABAGE_SERVICE_TOKEN": "kbsvc-Je_sR0w38a_QLAk1fdFGd5i_v_lJ5smEKkdW5x-E9RA"
+      }
+    },
+    {
+      "id": "e02",
+      "account": "wang@dreamspace.work",
+      "uid": 30001,
+      "port": 3182,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills",
+        "GATHER_ALLOWED_FEED_HOSTS": ""
+      }
+    },
+    {
+      "id": "e03",
+      "account": "member-b@dreamspace.work",
+      "uid": 30002,
+      "port": 3183,
+      "env": {
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills",
+        "GATHER_ALLOWED_FEED_HOSTS": ""
+      }
+    }
+  ],
+  "precheckTimeoutSeconds": 600
+}

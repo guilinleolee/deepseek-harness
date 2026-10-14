@@ -3,10 +3,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import { selectAuditRecords } from '../src/audit.ts'
 import { inspectToolCall, installComplianceGate } from '../src/compliance.ts'
 import {
-  AuditLogId, ContentTemplateId, GeneratedContentId, GeoReportId, GeoScanId,
-  IcpProfileId, LeadId, ScoreRunId, ScoreRunItemId, ScoreTemplateId, SopTaskId, UserId,
+  ContentTemplateId, GeneratedContentId, GeoReportId, GeoScanId, IcpProfileId,
+  ScoreRunId, ScoreRunItemId, ScoreTemplateId, SopTaskId, AuditLogId, UserId, LeadId,
 } from '../src/domain/ids.ts'
-import type { Lead, ScoreRun, ScoreRunItem } from '../src/domain/spec.ts'
+import type { ScoreRun, ScoreRunItem } from '../src/domain/spec.ts'
 import { CustomerAcquisitionService } from '../src/service.ts'
 import { complianceDenyAuditor } from '../src/index.ts'
 import { parseExtractOutput } from '../src/leads/extract.ts'
@@ -225,12 +225,12 @@ describe('scoring service and parser branches behind the friendly errors', () =>
   })
 
   it('history refuses unknown run ids and scope guards scoring directly', async () => {
-    expect(() => p1.scoring.history({ run_id: ScoreRunId('missing') }, FULL_OPERATOR)).toThrow('打分记录不存在')
+    expect(() => p1.scoring.history({ run_id: 'missing' }, FULL_OPERATOR)).toThrow('打分记录不存在')
 
     const poolLead = {
       id: LeadId('pl1'), owner_id: undefined, source: 'manual', company_name: '公海评分', tags: [],
       opportunity_stage: 'new', status: 'active', created_at: 1, updated_at: 1,
-    } as Lead
+    } as unknown as Parameters<typeof assertScoringScope>[0]
     expect(() =>{  assertScoringScope(poolLead, OWN_OPERATOR) }).toThrow('先领取')
     const otherLead = { ...poolLead, owner_id: OWN_OPERATOR_2.userId }
     expect(() =>{  assertScoringScope(otherLead, OWN_OPERATOR) }).toThrow('无权为他人线索打分')
@@ -288,8 +288,8 @@ describe('extract and export boundary branches', () => {
       await p1.ledger.applyIntent(rich.id, 'high')
       const bare = await p1.ledger.createLead({ company_name: '空列公司' }, FULL_OPERATOR, 'agent')
       const markdown = renderLeadExport('markdown', [
-        p1.ledger.getLead(rich.id, FULL_OPERATOR),
-        p1.ledger.getLead(bare.id, FULL_OPERATOR),
+        await p1.ledger.getLead(rich.id, FULL_OPERATOR),
+        await p1.ledger.getLead(bare.id, FULL_OPERATOR),
       ])
       expect(markdown).toContain('| a@b.c |')
       expect(markdown).toContain('decision_maker')
@@ -459,7 +459,7 @@ describe('second-round branch fills', () => {
   it('export renders the empty owner cell of a pool lead', async () => {
     const lead = await p1.ledger.createLead({ company_name: '公海导出公司' }, FULL_OPERATOR, 'agent')
     await p1.ledger.transferLead(lead.id, undefined, FULL_OPERATOR, 'agent')
-    const markdown = renderLeadExport('markdown', [p1.ledger.getLead(lead.id, FULL_OPERATOR)])
+    const markdown = renderLeadExport('markdown', [await p1.ledger.getLead(lead.id, FULL_OPERATOR)])
     const ownerRow = markdown.split('\n').find(line => line.includes('公海导出公司'))
     expect(ownerRow).toBeDefined()
   })

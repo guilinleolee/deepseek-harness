@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { Lead } from '../src/domain/spec.ts'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { auditListTool, auditExportTool } from '../src/tools/audit.ts'
 import { settingsGetTool, settingsSetTool } from '../src/tools/settings.ts'
@@ -16,8 +17,6 @@ import type { LeadLedgerService } from '../src/leads/service.ts'
 import type { LeadScoringService } from '../src/scoring/service.ts'
 import type { LeadRefValue } from '../src/leads/types.ts'
 import type { PromptCompletion } from '../src/llm/oneshot.ts'
-import { LeadId, UserId } from '../src/domain/ids.ts'
-import type { Lead } from '../src/domain/spec.ts'
 import type { PermissionContextService, ResolvedOperator } from '../src/permission/types.ts'
 import { FULL_OPERATOR } from './helpers-p1.ts'
 
@@ -44,7 +43,7 @@ function ledgerOf(overrides: Record<string, unknown> = {}): LeadLedgerService {
     addFollowup: async () => ({ id: 'f1', lead_id: 'l1', content: '跟进', created_at: 3 }),
     listFollowups: () => ({ items: [{ id: 'f1', content: '跟进', created_at: 3 }], total: 1 }),
     ...overrides,
-  } as never
+  } as unknown as LeadLedgerService
 }
 
 function scoringOf(overrides: Record<string, unknown> = {}): LeadScoringService {
@@ -60,13 +59,13 @@ function scoringOf(overrides: Record<string, unknown> = {}): LeadScoringService 
   } as never as LeadScoringService
 }
 
-function storedLead(): Lead {
+function storedLead() {
   return {
-    id: LeadId('l1'), owner_id: UserId('u1'), source: 'form', company_name: '公司甲', contact_name: '联系人',
+    id: 'l1', owner_id: 'u1', source: 'form', company_name: '公司甲', contact_name: '联系人',
     phone: '138', email: 'a@b.c', industry: '餐饮', company_size: '1-10', demand_desc: '要获客',
     budget_range: '5万', decision_role: 'decision_maker', intent_level: 'high', tags: ['重点'],
     opportunity_stage: 'qualified', next_followup_at: 9, status: 'active', created_at: 1, updated_at: 2,
-  }
+  } as unknown as Lead
 }
 
 function storedProfile() {

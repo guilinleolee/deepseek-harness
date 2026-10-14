@@ -1,0 +1,83 @@
+function pluginsPage({ dataDir, manifest, getState, runner }) {
+  const desired = readJson(dataDir, 'plugins.json', { instances: {} })
+  const state = getState()
+  const names = new Set()
+  let staged = 0
+  for (const list of Object.values(desired.instances)) {
+    for (const p of list) {
+      if (p.state !== 'removed') names.add(p.name)
+      if (p.state === 'staged') staged += 1
+    }
+  }
+  const profileBundles = (() => {
+    for (const spec of manifest.instances) {
+      const file = join(dataDir, 'homes', spec.id, 'profiles', 'web', 'package.json')
+      try {
+        return JSON.parse(readFileSync(file, 'utf8')).dsh?.profile?.bundles ?? []
+      } catch { /* 取第一个可用 profile */ }
+    }
+    return []
+  })()
+  const stats = `<div class="statgrid">
+<div class="stat"><div class="k">已接入插件</div><div class="v">${names.size} 个</div><div class="n">第三方插件与平台共享一个进程树</div></div>
+<div class="stat"><div class="k">待生效实例</div><div class="v">${staged}</div><div class="n">暂存后等待重启的改动</div></div>
+<div class="stat"><div class="k">投放方式</div><div class="v" style="font-size:1rem">页面 / CLI</div><div class="n">真启动预检强制 · 装坏自动拦截</div></div>
+<div class="stat"><div class="k">执行模型</div><div class="v" style="font-size:1rem">串行队列</div><div class="n">任务落盘，页面轮询取状态</div></div>
+</div>`
+  const rows = manifest.instances.map((spec) => {
+    const list = desired.instances[spec.id] ?? []
+    const items = list.length === 0
+      ? '<td colspan="2">—</td>'
+      : list.map((p) => `<td>${esc(p.name)}</td><td>${esc(p.spec === p.name ? '(最新)' : p.spec)} · ${p.state === 'removed' ? '<span class="chip gray">已移除</span>' : p.state === 'staged' ? '<span class="chip yellow">暂存（重启生效）</span>' : `<span class="chip green">${esc(p.state)}</span>`}</td>`).join('')
+    const running = state.instances[spec.id]?.state === 'running'
+    return `<tr><td>${spec.id}</td><td>${running ? '<span class="chip green">运行中</span>' : stateChip(state.instances[spec.id]?.state)}</td>${items}</tr>`
+  }).join('')
+  const bundles = profileBundles.map((b) => `<span class="chip blue">${esc(b)}</span>`).join(' ')
+  const instanceChecks = manifest.instances.map((s) => `<label style="margin-right:.8rem"><input type="checkbox" name="id-${s.id}" checked> ${s.id}</label>`).join('')
+  const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}</option>`).join('')
+  return `
+${stats}
+<h2 class="sect">投放插件（npm / Git / 本地路径）</h2>
+<form class="panel" onsubmit="pushPlugin(event)">
+<div style="margin-bottom:.5rem">插件 <input name="spec" size="44" placeholder="@weibaohui/dsh-file-share 或本地路径" required></div>
+<div style="margin-bottom:.5rem">目标实例 ${instanceChecks} ｜ <label><input type="checkbox" name="skip-precheck"> 跳过预检（不推荐）</label></div>
+<button class="primary">预检并暂存（异步执行）</button>
+</form>
+<form class="panel" onsubmit="removePlugin(event)">
+卸载插件 <input name="spec" size="30" placeholder="插件名"> 实例 <select name="ids"><option value="all">全部</option>${instanceOptions}</select>
+<button class="warn">卸载并重启</button>
+</form>
+<h2 class="sect">投放任务（每 4 秒自动刷新）</h2>
+<table><tr><th>任务</th><th>类型</th><th>目标</th><th>状态</th><th>输出</th><th>更新时间</th></tr><tbody id="jobsbody"><tr><td colspan="6">加载中…</td></tr></tbody></table>
+<h2 class="sect">平台默认插件集</h2>
+<p class="mut" style="font-size:.85rem">每个实例 profile 在此集合之上叠加第三方插件。<span style="font-size:.85rem">${bundles || '—'}</span></p>
+<h2 class="sect">插件 × 实例（期望态）</h2>
+<table><tr><th>实例</th><th>实例状态</th><th>插件</th><th>版本 / 状态</th></tr>${rows}</table>
+<p class="mut" style="font-size:.82rem">投放为异步任务（串行执行）：预检失败自动拦截、任何实例均不安装；暂存后在实例管理页重启生效；卸载自带重启。</p>
+<pre id="out2" class="mut"></pre>
+<script>
+const STATE_CHIP={queued:['排队中','gray'],running:['执行中','yellow'],done:['完成','green'],failed:['失败','red']}
+function escJs(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function chipJs(s){const pair=STATE_CHIP[s]||[s,'gray'];return '<span class="chip '+pair[1]+'">'+pair[0]+'</span>'}
+async function refreshJobs(){
+ try{const r=await fetch('/console/api/plugin/jobs');if(!r.ok)return;
+  const jobs=(await r.json()).jobs||[];const tb=document.getElementById('jobsbody');if(!tb)return;
+  tb.innerHTML=jobs.length===0?'<tr><td colspan="6">暂无任务</td></tr>':jobs.map(function(j){
+   const out=escJs((j.error?('[失败] '+j.error+'\\n'):'')+(j.output||'').slice(-280))
+   return '<tr><td>'+escJs(j.id)+'</td><td>'+escJs(j.type)+'</td><td>'+escJs((j.spec||'')+(j.ids?' → '+j.ids:''))+'</td><td>'+chipJs(j.state)+'</td>'+
+    '<td style="max-width:380px;white-space:pre-wrap;font-size:.74rem">'+out+'</td><td style="font-size:.74rem">'+escJs(j.updatedAt||'')+'</td></tr>'
+  }).join('')
+ }catch{}
+}
+async function postJob(payload){const r=await fetch('/console/api/plugin/job',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const t=await r.text();document.getElementById('out2').textContent='HTTP '+r.status+' '+t;
+ if(r.ok){refreshJobs();setInterval(refreshJobs,4000)}else{refreshJobs()}}
+async function pushPlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ const ids=${'${'}manifest.instances.map(function(x){return x.id}).filter(function(id){return f.get('id-'+id)==='on'})${'}'};
+ if(ids.length===0){document.getElementById('out2').textContent='至少选择一个目标实例';return}
+ await postJob({type:'push',spec:f.get('spec'),ids:ids,skipPrecheck:f.get('skip-precheck')==='on'})}
+async function removePlugin(ev){ev.preventDefault();const f=new FormData(ev.target);
+ await postJob({type:'remove',spec:f.get('spec'),ids:f.get('ids')})}
+setInterval(refreshJobs,4000);refreshJobs()
+</script>`
+}

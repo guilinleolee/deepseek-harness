@@ -28,7 +28,7 @@ The package reads all five files concurrently, freezes the snapshot, and serves 
 
 ## Service API
 
-```ts
+```
 import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
 
 const fiber = await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot: '...' })
@@ -42,15 +42,9 @@ const skill = ctx.dragonIndex.get('async-task-pattern', 'skill')
 
 ## Model Experience
 
-### What the model sees
+None, as the package owns only the read path; consumers own any model-facing projection of its results.
 
-Nothing — the service is internal to DSH and never reaches the model directly. Consumers may choose to surface search results to the model through their own tools; this package only owns the read path.
-
-### Token effect
-
-None.
-
-### KV Cache effect
+#### KV Cache effect
 
 None.
 

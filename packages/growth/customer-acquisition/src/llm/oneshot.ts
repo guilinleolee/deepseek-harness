@@ -9,7 +9,8 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { BlockAssembler, createUserMessage, deepFreeze, LlmError } from '@deepseek-ai/dsh-llm'
+import { BlockAssembler, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
+import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { FinishReason, GenerateOptions } from '@deepseek-ai/dsh-llm'
 import { deadline } from '@deepseek-ai/dsh-timeout'
 
@@ -119,7 +120,7 @@ export function llmPromptCompletion(
     async complete(prompt: string, signal?: AbortSignal): Promise<string> {
       const messages = [createUserMessage({
         content: [{ type: 'text', text: prompt }],
-        source: { kind: 'plugin', plugin: 'dsh-customer-acquisition' },
+        source: { kind: 'user' },
       })]
       using callDeadline = deadline(signal, policy.timeoutMs, AI_TIMEOUT_CODE)
       const options: GenerateOptions = deepFreeze({

@@ -10,26 +10,25 @@
   name: '@deepseek-ai/dsh-settings-file'
 
 # Credential store: the live process environment over `$DSH_HOME/.credentials.yaml`
-# (owner-only file, hot-reloaded). The adapter resolves `DEEPSEEK_API_KEY`
+# (owner-only file, hot-reloaded). The adapter resolves `MINIMAX_API_KEY`
 # through it at each request, so no key is inlined in this file.
 - id: credentials
   name: '@deepseek-ai/dsh-credentials-local'
 
-# The DeepSeek adapter. Swap to '@deepseek-ai/dsh-llm-pi-ai' for the pi-ai-backed
-# twin (a `providers` dict keyed by route; `reasoning: high` replaces
-# thinking/reasoningEffort). Shipped default: full thinking at max effort on
-# every request. Exact-model resolution materializes request defaults before
-# the request header is logged.
-- id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+# Override the base bundle default to use MiniMax
+- id: agent-default-model
   config:
-    thinking: enabled
-    reasoningEffort: max
-    models:
-      - id: deepseek-v4-pro
-        contextWindow: 128000
-      - id: deepseek-v4-flash
-        contextWindow: 128000
+    provider: minimax-cn
+    model: MiniMax-M2.7
+
+# The MINMAX adapter via pi-ai. Swap to '@deepseek-ai/dsh-llm-deepseek' for DeepSeek.
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      minimax-cn:
+        apiKeyEnv: MINIMAX_API_KEY
+        reasoning: high
 
 # Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
@@ -46,16 +45,13 @@
   config:
     agents:
       - id: main
-        provider: deepseek-official
-        # Stays on flash: the goal/ralph replay corpora were recorded on it, and
-        # their nested-include overlays cannot re-pin the app config (a config
-        # patch cannot target an entry behind a nested include).
-        model: deepseek-v4-flash
+        provider: minimax-cn
+        model: MiniMax-M2.7
         cwd: !!js process.cwd()
     workspaceContext:
       maxBytes: 65536
     persona: |
-      You are headless-agent, a coding assistant powered by the {{model}} model.
+      You are headless-agent, a coding assistant.
 
       Verify your work by running the code or tests. Keep answers brief and
       factual.

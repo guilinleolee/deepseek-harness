@@ -5,11 +5,11 @@ import {
 import type { P1Harness } from './helpers-p1.ts'
 import { SEED_IDS } from '../src/scoring/seed.ts'
 import { LeadScoringService } from '../src/scoring/service.ts'
+import type { IcpProfileValue } from '../src/scoring/types.ts'
 import { intentTagFor, parseScoreOutput, SCORE_INTENT_HIGH_MIN, SCORE_INTENT_LOW_MIN, SCORE_INTENT_MID_MIN } from '../src/scoring/evaluate.ts'
 import { aggregateKnowledge, renderScorePrompt, KNOWLEDGE_INJECT_MAX_CHARS } from '../src/scoring/prompt.ts'
 import { resolveAiPolicy } from '../src/llm/oneshot.ts'
 import type { IcpProfile, Lead, LeadDocument } from '../src/domain/spec.ts'
-import type { IcpProfileValue } from '../src/scoring/types.ts'
 import { DocumentId, IcpProfileId, LeadId, UserId } from '../src/domain/ids.ts'
 
 async function seedFor(p1: P1Harness): Promise<void> {
@@ -170,8 +170,7 @@ describe('P1 ICP profile and template CRUD', () => {
   it('delete protection: referenced profiles and templates are rejected', async () => {
     const { runId } = await makeScoredLead(p1)
     expect(runId).toBeTruthy()
-    const run = [...p1.harness.service.requireDomain().table('score_runs').entries()].map(([, value]) => value)[0]
-    if (run === undefined) throw new Error('score run row missing')
+    const run = [...p1.harness.service.requireDomain().table('score_runs').entries()].map(([, value]) => value)[0]!
     await expect(p1.scoring.deleteIcpProfile(run.icp_profile_id, FULL_OPERATOR, 'agent')).rejects.toThrow('已被打分历史引用')
     await expect(p1.scoring.deleteScoreTemplate(run.template_id, FULL_OPERATOR, 'agent')).rejects.toThrow('已被打分历史引用')
 
@@ -325,7 +324,7 @@ describe('P1 scoring flows', () => {
 
   it('history retains runs with weight snapshots and respects scope', async () => {
     const { lead, runId } = await makeScoredLead(p1, '历史线索')
-    const before = p1.scoring.history({ lead_id: lead.id }, FULL_OPERATOR).items[0]
+    const before = (await p1.scoring.history({ lead_id: lead.id }, FULL_OPERATOR)).items[0]
     expect(before?.run.id).toBe(runId)
     expect(before?.items).toHaveLength(5)
 
@@ -338,19 +337,19 @@ describe('P1 scoring flows', () => {
     })))
     await p1.scoring.scoreOne({ lead_id: lead.id }, FULL_OPERATOR, 'agent')
 
-    const history = p1.scoring.history({ lead_id: lead.id }, FULL_OPERATOR)
+    const history = await p1.scoring.history({ lead_id: lead.id }, FULL_OPERATOR)
     expect(history.total).toBe(2)
     expect(history.items[0]?.run.created_at).toBeGreaterThan(history.items[1]?.run.created_at ?? 0)
 
-    const single = p1.scoring.history({ run_id: runId }, FULL_OPERATOR)
+    const single = await p1.scoring.history({ run_id: runId }, FULL_OPERATOR)
     expect(single.total).toBe(1)
 
     const ownLead = await p1.ledger.createLead({ company_name: '员工线索' }, OWN_OPERATOR, 'agent')
     await p1.scoring.scoreOne({ lead_id: ownLead.id }, OWN_OPERATOR, 'agent')
-    const ownView = p1.scoring.history({}, OWN_OPERATOR)
+    const ownView = await p1.scoring.history({}, OWN_OPERATOR)
     expect(ownView.items.map(entry => entry.run.lead_id)).toEqual([ownLead.id])
 
-    const poolView = p1.scoring.history({}, OWN_OPERATOR_2)
+    const poolView = await p1.scoring.history({}, OWN_OPERATOR_2)
     expect(poolView.total).toBe(0)
   })
 })
@@ -397,7 +396,7 @@ describe('P1 scoring prompt and evaluation pure functions', () => {
   it('aggregates knowledge with the truncation mark', () => {
     const documents: LeadDocument[] = [
       { id: DocumentId('d1'), lead_id: LeadId('l1'), title: '资料一', content: '内容一', created_at: 2, updated_at: 2 },
-      { id: DocumentId('d2'), lead_id: LeadId('l1'), title: '资料二', content: '内容二', created_at: 1, updated_at: 1 },
+      { id: DocumentId('d2'), lead_id: LeadId('l2'), title: '资料二', content: '内容二', created_at: 1, updated_at: 1 },
     ]
     const block = aggregateKnowledge(documents)
     expect(block.indexOf('资料二')).toBeLessThan(block.indexOf('资料一'))

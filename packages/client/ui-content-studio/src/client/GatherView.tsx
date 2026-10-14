@@ -13,7 +13,7 @@
  */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { clsx } from 'clsx'
-import { IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GatherMaterial } from '@deepseek-ai/dsh-content-outputs/types'
 import type { GatherSource, GatherTaskView } from './gather/types.ts'
@@ -67,14 +67,14 @@ export function GatherView({ gather, onPushToCreate, addToTopicBank, t }: Gather
         </div>
         {state.notice !== null && (
           <button type="button" className={gatherCss.gatherNotice} onClick={() => { gather.dismissNotice() }}>
-            <IconWarningOutline16 size={14} />
+            <IconWarningOutlineRegular size={14} />
             <span>{noticeText(state.notice, t)}</span>
           </button>
         )}
       </header>
       {!state.storagePersistent && (
         <div className={gatherCss.gatherWarn} role="alert">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('gather.storage.memory')}</span>
         </div>
       )}

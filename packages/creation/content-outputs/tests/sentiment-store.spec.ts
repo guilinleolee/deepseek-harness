@@ -143,8 +143,8 @@ describe('lexicon and matching', () => {
 describe('aggregateAlerts', () => {
   const settings: SentimentSettings = {
     negativeHeatThreshold: 500, negativeSurgePercent: 200, domainBlacklist: [], accountBlacklist: [],
-    retentionDays: 90, notifyEnabled: true, dingtalkWebhook: null, wecomWebhook: null, email: null,
-    smtpHost: null, smtpPort: 465, smtpUser: null, smtpPassword: null, smtpFrom: null,
+    retentionDays: 90, notifyEnabled: false, dingtalkWebhook: null, wecomWebhook: null,
+    smtpHost: null, smtpPort: 465, smtpUser: null, smtpPassword: null, smtpFrom: null, email: null,
   }
 
   it('clusters negatives per task+day and levels by heat', () => {

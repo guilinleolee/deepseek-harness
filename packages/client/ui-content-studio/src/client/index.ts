@@ -11,11 +11,12 @@
  * registration waits on its declaration through `slots.inject()`.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { TypertClientRemote } from '@deepseek-ai/dsh-typert-protocol'
 import type { PersonaAiRequest, PersonaAiResult } from '@deepseek-ai/dsh-content-outputs/types'
 import contentOutputsRemote from '@deepseek-ai/dsh-content-outputs/remote'
 import contentScheduleRemote from '@deepseek-ai/dsh-content-schedule/remote'
 import contentTopicsRemote from '@deepseek-ai/dsh-content-topics/remote'
+// Type-only: pulls ui-renderer's SlotRegistry service merge (ctx.slots) in.
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay') into this
 // program so the surface registration below typechecks.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -56,14 +57,6 @@ export {
 } from './topic-bank.ts'
 export type { ParsedTopicMarkdown, TopicBankConfig, TopicBankPlanWindow, TopicBankViewKind } from './topic-bank.ts'
 export type { StudioKey } from './locales.ts'
-
-declare module '@deepseek-ai/cordis' {
-  interface Context {
-    /** Same carrier face api-remotes declares; identical merge is additive. */
-    remote: TypertClientRemote
-  }
-}
-
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Content Studio copy: entry, workbench chrome, catalog labels. */

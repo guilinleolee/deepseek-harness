@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-天龙引擎 V2.5 镜像的纯 License 治理层。本包持有"tier → decision"判定表，供下游（skill 加载器、工具发布器、dragon-bridge）在边界处强制执行。
+[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的纯 License 治理层。本包持有"tier → decision"判定表，供下游（skill 加载器、工具发布器、dragon-bridge）在边界处强制执行。
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -21,21 +21,21 @@
 
 ## Service API
 
-```ts
+```
 import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
 
 const fiber = await ctx.plugin(LicensePolicy, { rejectUnknown: true })
 
-// 分类
+// Classify
 const tier = ctx.licensePolicy.normalize('Apache-2.0')   // → 'apache-2.0'
 
-// 评估
+// Evaluate
 const evaluation = ctx.licensePolicy.evaluate('AGPL-3.0')
 // → { tier: 'agpl-3.0', severity: 'red', decision: 'artifact-only', reason: '...' }
 
-// 边界断言
+// Boundary assertion
 ctx.licensePolicy.assertAllowed('MIT', ['allow', 'attribute'])
-// 当 decision 不在 allowed 集合时抛错
+// throws when the decision is outside the allowed set
 ```
 
 ## 配置
@@ -47,15 +47,9 @@ ctx.licensePolicy.assertAllowed('MIT', ['allow', 'attribute'])
 
 ## 模型体验
 
-### 模型能看到什么
+无，因为本策略是纯判定表；任何 decision 文本的暴露都由调用方拥有。
 
-**无任何内容**——本策略是纯判定表。消费者（加载器、发布器）可在工具描述里暴露 decision 文本，但模型 prompt 不会包含原始策略。
-
-### Token 影响
-
-无。
-
-### KV Cache 影响
+#### KV Cache 影响
 
 无。
 
