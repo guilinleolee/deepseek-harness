@@ -6,7 +6,7 @@ import { DataSourceBreaker } from '../src/pdat/datasource.ts'
 import { DEFAULT_GRID_SPEC } from '../src/compliance.ts'
 import { inspectTrainRatioCap } from '../src/compliance.ts'
 import {
-  ANCHOR_LIMITS, ROLLING_WINDOWS_LIMITS, formatRollingWalkForwardSummary, formatWalkForwardSummary,
+  ROLLING_WINDOWS_LIMITS, formatRollingWalkForwardSummary, formatWalkForwardSummary,
   runRollingWalkForward, runWalkForward, splitAnchoredWindows, splitBars, splitRollingWindows,
   validateAnchoredParams, validateRollingParams,
   validateWalkForwardParams,
@@ -215,7 +215,7 @@ function fakeJobs(): {
       start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
-        const hooks = spec.run()
+        const hooks = spec.run({ id: JobId(`quant-walk-forward-${String(counter)}`), append() {}, updateProgress() {} })
         hooksByIndex.set(spec, hooks)
         return JobId(`quant-walk-forward-${String(counter)}`)
       },
@@ -225,7 +225,7 @@ function fakeJobs(): {
   }
 }
 
-function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDeps {
+function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDeps & { store: Map<string, unknown> } {
   const store = new Map<string, unknown>()
   const base: QuantToolDeps = {
     config: CONFIG,
@@ -242,7 +242,7 @@ function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDep
       delete: async (key: string) => { store.delete(key) },
     } as never,
   }
-  return { ...(jobs === undefined ? base : { ...base, jobs: jobs as QuantToolDeps['jobs'] }), store } as ReturnType<typeof depsWith>
+  return { ...(jobs === undefined ? base : { ...base, jobs: jobs as QuantToolDeps['jobs'] }), store }
 }
 
 describe('quant_walk_forward rolling', () => {

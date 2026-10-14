@@ -195,7 +195,7 @@ function fakeJobs(): {
       start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
-        const hooks = spec.run()
+        const hooks = spec.run({ id: JobId(`quant-optimize-${String(counter)}`), append() {}, updateProgress() {} })
         hooksByIndex.set(spec, hooks)
         return JobId(`quant-optimize-${String(counter)}`)
       },

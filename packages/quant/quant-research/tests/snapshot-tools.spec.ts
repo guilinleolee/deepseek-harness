@@ -107,7 +107,8 @@ describe('quant_delete_snapshot', () => {
     expect(value).toMatchObject({ code: 0, data: { result_id: 'r-1', symbol: '600519', deleted: true } })
     expect(table.size).toBe(1)
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ toolName: 'quant_delete_snapshot' }))
-    const reason = (request.mock.calls[0]?.[0] as { reason: string }).reason
+    const ask = (request.mock.calls[0] as unknown[])[0] as { reason: string }
+    const reason = ask.reason
     expect(reason).toContain('600519')
     expect(reason).toContain('清理过期运行')
     const rendered = textOf(tool.output?.render({}, value as never))
