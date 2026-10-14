@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-13-quant-windowed-ic.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-quant-windowed-ic.md
+/agent-note-windowed-cross-sectional-ic-reads-regime-stability:
+  en: 6ea6629f049bee41
+  zh: 1118014755280a8f
+/agent-note-windowed-cross-sectional-ic-reads-regime-stability/problem:
+  en: 1ca2529bc76a0bd8
+  zh: 7f099bb76d2fcc4e
+/agent-note-windowed-cross-sectional-ic-reads-regime-stability/decision:
+  en: a9240f7840df9c24
+  zh: 41380b148aa6845b
+/agent-note-windowed-cross-sectional-ic-reads-regime-stability/alternatives-considered:
+  en: 224342ff66a43cfa
+  zh: b2ab2e787ad9cf23
+/agent-note-windowed-cross-sectional-ic-reads-regime-stability/consequences:
+  en: f1f9f06546f2b6b5
+  zh: 4fb420df71351a43

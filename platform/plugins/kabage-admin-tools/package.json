@@ -1,0 +1,25 @@
+{
+  "name": "kabage-admin-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "卡巴格企业平台 · 管理类 DSH 工具：经服务令牌调用平台 console API 的 7 个管理工具（成员/配额/审计查询与变更）",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*"
+  }
+}

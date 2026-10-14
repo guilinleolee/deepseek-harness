@@ -27,9 +27,6 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../runtime"
-    },
-    {
       "path": "../ui-slots"
     },
     {
@@ -40,9 +37,6 @@
     },
     {
       "path": "../ui-primitives"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     }
   ]
 }
