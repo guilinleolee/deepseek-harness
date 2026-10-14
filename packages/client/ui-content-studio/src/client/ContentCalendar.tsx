@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
-import { IconPlusOutline16, IconTrashOutline16, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlusOutlineRegular, IconTrashOutlineRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CalendarNotesSnapshot, ContentScheduleSnapshot, ScheduleItem, ScheduleItemInput,
@@ -432,7 +432,7 @@ export function ContentCalendar({
               aria-label={t('calendar.remove.aria')}
               onClick={(event) => { event.stopPropagation(); void removeItem(item, false) }}
             >
-              <IconTrashOutline16 size={11} />
+              <IconTrashOutlineRegular size={11} />
             </button>
           </span>
         ))}
@@ -484,7 +484,7 @@ export function ContentCalendar({
             </div>
             <div className={css.calendarFormRow}>
               <button type="button" className={css.calendarSubmit} disabled={submitting} onClick={() => { void submit() }}>
-                <IconPlusOutline16 size={12} />
+                <IconPlusOutlineRegular size={12} />
                 {t('calendar.add')}
               </button>
               <button type="button" className={css.calendarChipAction} aria-label={t('calendar.cancel')} onClick={() => { setForm(undefined) }}>
@@ -621,7 +621,7 @@ export function ContentCalendar({
 
       {conflictItems.length > 0 && (
         <div className={cal.conflicts} role="status">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('calendar.conflicts')}（{conflictItems.length}）</span>
           {conflictItems.map(item => (
             <button key={item.id} type="button" className={cal.chip} onClick={() => { setDetailId(item.id) }}>
@@ -748,7 +748,7 @@ export function ContentCalendar({
               {t('calendar.jump.topicBank')}
             </button>
             <button type="button" className={cal.toolButtonDanger} onClick={() => { void removeItem(detail, false) }}>
-              <IconTrashOutline16 size={12} />
+              <IconTrashOutlineRegular size={12} />
               {t('calendar.delete')}
             </button>
             {detail.kind === 'content' && (

@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { clsx } from 'clsx'
-import { IconRefreshOutline14, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconRefreshOutlineRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContentOutputsSnapshot, OutputProject, OutputStatus } from '@deepseek-ai/dsh-content-outputs/types'
 import css from './ContentStudio.module.css'
@@ -49,10 +49,10 @@ export function ContentLibrary({ listOutputs, t }: ContentLibraryProps) {
   if (failed) {
     return (
       <div className={css.libraryState}>
-        <IconWarningOutline16 size={16} />
+        <IconWarningOutlineRegular size={16} />
         <span>{t('library.error')}: {failed}</span>
         <button type="button" className={css.retry} onClick={() => { void load() }}>
-          <IconRefreshOutline14 size={14} />
+          <IconRefreshOutlineRegular size={14} />
           {t('library.retry')}
         </button>
       </div>
@@ -73,7 +73,7 @@ export function ContentLibrary({ listOutputs, t }: ContentLibraryProps) {
     <div className={css.library}>
       {snapshot.problems.length > 0 && (
         <div className={css.libraryProblems} role="alert">
-          <IconWarningOutline16 size={14} />
+          <IconWarningOutlineRegular size={14} />
           <span>{t('library.problems', { n: snapshot.problems.length })}</span>
         </div>
       )}

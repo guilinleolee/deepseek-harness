@@ -15,7 +15,7 @@
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { clsx } from 'clsx'
-import { IconCloseOutline16, IconSparkle16, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutlineRegular, IconSparkleRegular, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   ContentOutputsSnapshot, InteractionsManifestRead, ReviewManifestRead,
 } from '@deepseek-ai/dsh-content-outputs/types'
@@ -287,7 +287,7 @@ export function ContentStudio({
       <div className={css.shell}>
         <aside className={css.side}>
           <div className={css.sideBrand}>
-            <IconSparkle16 size={16} />
+            <IconSparkleRegular size={16} />
             <span>{t('studio.title')}</span>
           </div>
           <AccountSelect
@@ -335,7 +335,7 @@ export function ContentStudio({
             aria-label={t('studio.close')}
             onClick={() => { studio.close() }}
           >
-            <IconCloseOutline16 size={16} />
+            <IconCloseOutlineRegular size={16} />
           </button>
 
           <div className={css.frame}>

@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
 import {
-  IconCheckOutline16, IconChecklistOutline14, IconEditOutline16, IconFolderOpenOutline16,
-  IconGoalOutline16, IconNewChatOutline16, IconSparkle16, writeClipboard,
+  IconCheckOutlineRegular, IconChecklistOutlineRegular, IconEditOutlineRegular, IconFolderOpenOutlineRegular,
+  IconGoalOutlineRegular, IconNewChatOutlineRegular, IconSparkleRegular, writeClipboard,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -328,15 +328,15 @@ ${item.prompt}` : item.prompt
 
       <div className={css.quickRow}>
         <button type="button" className={css.chip} onClick={onChat}>
-          <IconNewChatOutline16 size={14} />
+          <IconNewChatOutlineRegular size={14} />
           {t('action.chat')}
         </button>
         <button type="button" className={css.chip} onClick={() => { onNavigate('create') }}>
-          <IconSparkle16 size={14} />
+          <IconSparkleRegular size={14} />
           {t('nav.create')}
         </button>
         <button type="button" className={css.chip} onClick={() => { onNavigate('calendar') }}>
-          <IconChecklistOutline14 size={14} />
+          <IconChecklistOutlineRegular size={14} />
           {t('action.schedule')}
         </button>
         <button
@@ -344,7 +344,7 @@ ${item.prompt}` : item.prompt
           className={clsx(css.chip, copiedId === 'social-card' && css.chipCopied)}
           onClick={() => { void pick(cap('social-card')) }}
         >
-          <IconEditOutline16 size={14} />
+          <IconEditOutlineRegular size={14} />
           {copiedId === 'social-card' ? t('card.copied') : t('cap.social-card.title')}
         </button>
         <button
@@ -352,7 +352,7 @@ ${item.prompt}` : item.prompt
           className={clsx(css.chip, copiedId === 'pre-publish' && css.chipCopied)}
           onClick={() => { void pick(cap('pre-publish')) }}
         >
-          <IconCheckOutline16 size={14} />
+          <IconCheckOutlineRegular size={14} />
           {copiedId === 'pre-publish' ? t('card.copied') : t('cap.pre-publish.title')}
         </button>
       </div>
@@ -367,22 +367,22 @@ ${item.prompt}` : item.prompt
       </div>
 
       <div className={css.statRow}>
-        <StatCard icon={<IconChecklistOutline14 size={16} />} value={topics.state === 'ok' ? topicItems.length : undefined} label={t('stat.topicTotal')} />
-        <StatCard icon={<IconEditOutline16 size={16} />} value={topics.state === 'ok' ? topicTodo : undefined} label={t('stat.topicTodo')} />
-        <StatCard icon={<IconCheckOutline16 size={16} />} value={topics.state === 'ok' ? topicDone : undefined} label={t('stat.topicDone')} />
-        <StatCard icon={<IconFolderOpenOutline16 size={16} />} value={outputs.state === 'ok' ? ready : undefined} label={t('stat.ready')} />
+        <StatCard icon={<IconChecklistOutlineRegular size={16} />} value={topics.state === 'ok' ? topicItems.length : undefined} label={t('stat.topicTotal')} />
+        <StatCard icon={<IconEditOutlineRegular size={16} />} value={topics.state === 'ok' ? topicTodo : undefined} label={t('stat.topicTodo')} />
+        <StatCard icon={<IconCheckOutlineRegular size={16} />} value={topics.state === 'ok' ? topicDone : undefined} label={t('stat.topicDone')} />
+        <StatCard icon={<IconFolderOpenOutlineRegular size={16} />} value={outputs.state === 'ok' ? ready : undefined} label={t('stat.ready')} />
       </div>
       <div className={css.statRow}>
-        <StatCard icon={<IconGoalOutline16 size={16} />} value={outputs.state === 'ok' ? publishedProjects : undefined} label={t('stat.published')} />
-        <StatCard icon={<IconChecklistOutline14 size={16} />} value={schedule.state === 'ok' ? todayDue : undefined} label={t('stat.todayDue')} />
-        <StatCard icon={<IconNewChatOutline16 size={16} />} value={summary === null ? undefined : summary.unread + summary.pendingReply} label={t('stat.pendingReply')} />
-        <StatCard icon={<IconSparkle16 size={16} />} value={schedule.state === 'ok' ? scheduledTasks : undefined} label={t('stat.scheduledTasks')} />
+        <StatCard icon={<IconGoalOutlineRegular size={16} />} value={outputs.state === 'ok' ? publishedProjects : undefined} label={t('stat.published')} />
+        <StatCard icon={<IconChecklistOutlineRegular size={16} />} value={schedule.state === 'ok' ? todayDue : undefined} label={t('stat.todayDue')} />
+        <StatCard icon={<IconNewChatOutlineRegular size={16} />} value={summary === null ? undefined : summary.unread + summary.pendingReply} label={t('stat.pendingReply')} />
+        <StatCard icon={<IconSparkleRegular size={16} />} value={schedule.state === 'ok' ? scheduledTasks : undefined} label={t('stat.scheduledTasks')} />
       </div>
 
       <div className={css.panelRowThree}>
         <section className={css.panel}>
           <header className={css.panelHead}>
-            <h2 className={css.panelTitle}><IconSparkle16 size={13} />{t('panel.quickCreate')}</h2>
+            <h2 className={css.panelTitle}><IconSparkleRegular size={13} />{t('panel.quickCreate')}</h2>
             <button type="button" className={css.panelMore} onClick={() => { onNavigate('create') }}>
               {t('nav.create')} →
             </button>
@@ -401,7 +401,7 @@ ${item.prompt}` : item.prompt
         </section>
         <section className={css.panel}>
           <header className={css.panelHead}>
-            <h2 className={css.panelTitle}><IconChecklistOutline14 size={13} />{t('panel.recentTopics')}</h2>
+            <h2 className={css.panelTitle}><IconChecklistOutlineRegular size={13} />{t('panel.recentTopics')}</h2>
             <button type="button" className={css.panelMore} onClick={() => { onNavigate('topicBank') }}>
               {t('nav.topicBank')} →
             </button>
@@ -423,7 +423,7 @@ ${item.prompt}` : item.prompt
         </section>
         <section className={css.panel}>
           <header className={css.panelHead}>
-            <h2 className={css.panelTitle}><IconFolderOpenOutline16 size={13} />{t('panel.recentFinals')}</h2>
+            <h2 className={css.panelTitle}><IconFolderOpenOutlineRegular size={13} />{t('panel.recentFinals')}</h2>
             <button type="button" className={css.panelMore} onClick={() => { onNavigate('library') }}>
               {t('nav.library')} →
             </button>
@@ -448,7 +448,7 @@ ${item.prompt}` : item.prompt
       <div className={css.panelRowTwo}>
         <section className={css.panel}>
           <header className={css.panelHead}>
-            <h2 className={css.panelTitle}><IconGoalOutline16 size={13} />{t('panel.timeline')}</h2>
+            <h2 className={css.panelTitle}><IconGoalOutlineRegular size={13} />{t('panel.timeline')}</h2>
             <button type="button" className={css.panelMore} onClick={() => { onNavigate('review') }}>
               {t('nav.review')} →
             </button>
@@ -469,7 +469,7 @@ ${item.prompt}` : item.prompt
         </section>
         <section className={css.panel}>
           <header className={css.panelHead}>
-            <h2 className={css.panelTitle}><IconSparkle16 size={13} />{t('panel.dataPreview')}</h2>
+            <h2 className={css.panelTitle}><IconSparkleRegular size={13} />{t('panel.dataPreview')}</h2>
             <button type="button" className={css.panelMore} onClick={() => { onNavigate('review') }}>
               {t('nav.review')} →
             </button>
