@@ -55,7 +55,8 @@ async function bench() {
   ctx.provide('remote', {
     $mount,
     // The test context has no typert type merge, so these traced reads are
-    // untyped by construction. oxlint-disable typescript/no-unsafe-return
+    // untyped by construction.
+    // oxlint-disable-next-line typescript/no-unsafe-return
     get contentOutputs() { return ctx.get('remote.contentOutputs') },
     // oxlint-disable-next-line typescript/no-unsafe-return
     get contentSchedule() { return ctx.get('remote.contentSchedule') },

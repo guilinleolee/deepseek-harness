@@ -6,6 +6,14 @@
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { OutputCreateState } from './create/types.ts'
+export { SOCIAL_PLATFORMS, SOCIAL_PLATFORM_LABELS } from './persona/types.ts'
+export type { SocialCaptureResult, SocialPlatform, SocialStatuses, SocialStatusRow, SocialVerifyResult } from './persona/types.ts'
+export type {
+  SentimentAlert, SentimentAlertId, SentimentMention, SentimentMentionId, SentimentPolarity,
+  SentimentReport, SentimentScanResult, SentimentSettings, SentimentSnapshot, SentimentSource,
+  SentimentStats, SentimentTask, SentimentTaskId, SentimentTaskInput, SentimentManifest,
+} from './sentiment/types.ts'
+export { SENTIMENT_SOURCES, SENTIMENT_SOURCE_LABELS, SENTIMENT_TASK_GROUPS, SENTIMENT_GROUP_LABELS } from './sentiment/types.ts'
 
 export type {
   CreateAiResult,

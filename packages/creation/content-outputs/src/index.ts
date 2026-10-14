@@ -31,6 +31,10 @@ import type {
   InteractionsManifestRead, PersonaAiRequest,
   PersonaAiResult, PersonaEntry, PersonaInput, PersonasSnapshot, PersonaId, PersonaReport,
   PublishAdaptRequest, PublishAdaptResult, PublishIndexRead, PublishManifest, PublishManifestRead,
+  SentimentSnapshot, SentimentStats, SentimentTask, SentimentTaskId, SentimentTaskInput,
+  SentimentSettings, SentimentScanResult,
+  SocialCaptureResult, SocialPlatform, SocialStatuses, SocialVerifyResult,
+  SentimentAlertId,
   PublishPackage, PublishProfilesRead, PublishProfilesDoc,
   ReviewAiResult, ReviewAnalyzeWorkRequest, ReviewGenerateReportRequest, ReviewImportCommitRequest,
   ReviewImportCommitResult, ReviewImportPreview, ReviewImportPreviewRequest, ReviewIndexRead,
@@ -61,6 +65,16 @@ import {
   PERSONAS_FILENAME, deletePersonaFile, putPersonaFile, putPersonaReportFile, readPersonasFile,
 } from './persona/store.ts'
 import { PersonaAiProcessor } from './persona/ai.ts'
+import { SocialCaptureProcessor } from './social/capture.ts'
+import {
+  deleteSentimentTaskFile, handleSentimentAlertFile, putSentimentSettingsFile,
+  putSentimentReportFile, putSentimentTaskFile, readSentimentFile, SENTIMENT_FILENAME, setSentimentTaskEnabledFile,
+} from './sentiment/store.ts'
+import { appendSentimentScanFile } from './sentiment/store.ts'
+import { computeSentimentStats } from './sentiment/stats.ts'
+import { runSentimentScan } from './sentiment/scan.ts'
+import { generateSentimentReport as generateSentimentReportEngine, type SentimentReport } from './sentiment/report.ts'
+import { pushAlertRound } from './sentiment/push.ts'
 import {
   buildPublishPackageFile, readPublishDerivedFile, readPublishIndexFile,
   readPublishManifestFile, readPublishProfilesFile, readPublishSourceFile, writePublishDerivedFile,
@@ -115,6 +129,10 @@ export {
   fetchSiteText, normalizeSiteUrl, PERSONA_SITE_FETCH_TIMEOUT_MS, PERSONA_SITE_MAX_BYTES,
   PersonaSiteHttpError,
 } from './persona/site.ts'
+export { SocialCaptureProcessor, renderSocialSection } from './social/capture.ts'
+export { SOCIAL_PLATFORM_META } from './social/platforms.ts'
+export { consumeCapture, readCounters } from './social/frequency.ts'
+export { forgetSession, hasSession, readSession, saveSession } from './social/sessions.ts'
 export {
   PUBLISH_DIRNAME, PUBLISH_INDEX_FILENAME, PUBLISH_MANIFEST_FILENAME, PUBLISH_PROFILES_FILENAME,
   assertPublishManifest, buildPublishPackageFile, isPlatformId, isTaskId, parsePublishManifest,
@@ -166,6 +184,10 @@ export interface Config extends GatherAiConfig, CreateQuotaConfig {
    * fallback channel); empty = deny every host. Config wins over the env.
    */
   allowedFeedHosts?: string[]
+  /** Where social-capture browser sessions and counters persist. Defaults to `<dsh home>/social-states`. */
+  socialStatesDir?: string
+  /** Daily per-platform capture cap for the social-capture faces (1–10). Defaults to 3. */
+  maxDailyCaptures?: number
 }
 
 export const Config: Schema<Config> = z.object({
@@ -180,6 +202,8 @@ export const Config: Schema<Config> = z.object({
   freeDailyRewrites: z.number(),
   paidTierEnabled: z.boolean(),
   allowedFeedHosts: z.array(z.string()),
+  socialStatesDir: z.string(),
+  maxDailyCaptures: z.number(),
 })
 
 /**
@@ -230,12 +254,30 @@ export class ContentOutputsGateway extends TypertRemoteService {
   /** Freemium gate over the create AI faces. */
   private readonly createQuota: CreateQuotaGate
 
+  /** Browser-session capture processor behind the persona view's social-login reads. */
+  private readonly social: SocialCaptureProcessor
+
+  /** Absolute path of the sentiment sidecar manifest. */
+  private readonly sentimentFile: string
+
+  /** Single-slot scan state (in-memory; a scan never runs concurrently). */
+  private sentimentScanning = false
+
+  /** The last scan's outcome, kept until the process restarts. */
+  private sentimentLastScan: SentimentSnapshot['lastScan'] = null
+
+  /** The AI route the sentiment scan's refinement stage rides. */
+  private readonly aiPolicy: { provider: string; model: string; timeoutMs: number; maxOutputTokens: number }
+
   /** Gather feed-host allowlist from config; absent value = the env fallback in feed.ts applies. */
   private readonly allowedFeedHosts: readonly string[] | undefined
 
   constructor(ctx: Context, config: Config) {
     super(ctx, 'contentOutputs')
     this.root = join(resolveDshHome(config.root), 'outputs')
+    this.sentimentFile = join(this.root, SENTIMENT_FILENAME)
+    const resolvedAi = resolveAiConfig(config)
+    this.aiPolicy = { provider: resolvedAi.provider, model: resolvedAi.model, timeoutMs: 120_000, maxOutputTokens: 4_000 }
     this.allowedFeedHosts = config.allowedFeedHosts
     this.ai = new GatherAiProcessor(ctx, config)
     this.competitorAi = new CompetitorAiProcessor(ctx, config)
@@ -247,6 +289,10 @@ export class ContentOutputsGateway extends TypertRemoteService {
     this.interactionAi = new InteractionAiProcessor(ctx, resolveAiConfig(config))
     this.createQuota = new CreateQuotaGate(this.root, config)
     this.templatesRoot = join(resolveDshHome(config.templatesRoot), 'templates')
+    this.social = new SocialCaptureProcessor({
+      ...(config.socialStatesDir === undefined ? {} : { socialStatesDir: config.socialStatesDir }),
+      ...(config.maxDailyCaptures === undefined ? {} : { maxDailyCaptures: config.maxDailyCaptures }),
+    })
     // Reclaim atomic-write temp files a crashed process left behind. Best
     // effort: orphan temps are inert, so a sweep failure never blocks start.
     void sweepOrphanTempFiles(this.root).catch(() => undefined)
@@ -646,6 +692,173 @@ export class ContentOutputsGateway extends TypertRemoteService {
   @Remote('processPersonaAi')
   async processPersonaAi(request: PersonaAiRequest): Promise<PersonaAiResult> {
     return this.personaAi.process(request)
+  }
+
+  /**
+   * Per-platform social-capture availability: stored browser session
+   * presence plus today's capture count against the configured cap.
+   * @returns one row per supported platform.
+   */
+  @Remote('socialStatuses')
+  async socialStatuses(): Promise<SocialStatuses> {
+    return this.social.statuses()
+  }
+
+  /**
+   * Start the headed login flow for one platform: launches a visible
+   * browser the user scans/logs into, waits (bounded) for the session
+   * cookie, persists the storage state locally, and returns before the
+   * login completes — callers poll {@link socialStatuses}.
+   * @param platform - the platform to log into.
+   */
+  @Remote('socialStartLogin')
+  socialStartLogin(platform: SocialPlatform): void {
+    this.social.startLogin(platform)
+  }
+
+  /**
+   * Capture one social profile with the stored session: consumes a daily
+   * slot, reads the logged-in profile page, and returns the labeled section
+   * text for the persona social AI face.
+   * @param platform - the platform to read.
+   * @param url - the profile URL from the wizard's step-2 row.
+   * @returns the rendered section.
+   */
+  @Remote('socialCapture')
+  async socialCapture(platform: SocialPlatform, url: string): Promise<SocialCaptureResult> {
+    return this.social.capture(platform, url)
+  }
+
+  /**
+   * Drop the stored browser session for one platform (a logout).
+   * @param platform - the platform to forget.
+   */
+  @Remote('socialForget')
+  async socialForget(platform: SocialPlatform): Promise<void> {
+    return this.social.forget(platform)
+  }
+
+  /**
+   * Verify one stored session against its platform (a headless home read
+   * checking the live session cookie). Not a profile read — no frequency
+   * slot is consumed.
+   * @param platform - the platform to verify.
+   * @returns the verification outcome.
+   */
+  @Remote('socialVerify')
+  async socialVerify(platform: SocialPlatform): Promise<SocialVerifyResult> {
+    return this.social.verify(platform)
+  }
+
+  /**
+   * Read the sentiment projection: tasks, mentions, alerts, settings, and
+   * the scan state flags.
+   */
+  @Remote('getSentiment')
+  async getSentiment(): Promise<SentimentSnapshot> {
+    const snapshot = await readSentimentFile(this.sentimentFile)
+    return { ...snapshot, scanning: this.sentimentScanning, lastScan: this.sentimentLastScan }
+  }
+
+  /**
+   * Upsert one monitor task (revision-free: tasks are last-write-wins).
+   * @param input - the task payload from the wizard.
+   * @returns the stored task.
+   */
+  @Remote('putSentimentTask')
+  async putSentimentTask(input: SentimentTaskInput): Promise<SentimentTask> {
+    return putSentimentTaskFile(this.sentimentFile, input)
+  }
+
+  /**
+   * Remove one monitor task and its mentions/alerts.
+   * @param id - the task id.
+   */
+  @Remote('deleteSentimentTask')
+  async deleteSentimentTask(id: SentimentTaskId): Promise<void> {
+    await deleteSentimentTaskFile(this.sentimentFile, id)
+  }
+
+  /**
+   * Flip one monitor task's enabled flag.
+   * @param id - the task id.
+   * @param enabled - the next state.
+   * @returns the stored task.
+   */
+  @Remote('setSentimentTaskEnabled')
+  async setSentimentTaskEnabled(id: SentimentTaskId, enabled: boolean): Promise<SentimentTask> {
+    return setSentimentTaskEnabledFile(this.sentimentFile, id, enabled)
+  }
+
+  /**
+   * Replace the sentiment settings block.
+   * @param settings - the full settings payload.
+   */
+  @Remote('putSentimentSettings')
+  async putSentimentSettings(settings: SentimentSettings): Promise<void> {
+    await putSentimentSettingsFile(this.sentimentFile, settings)
+  }
+
+  /**
+   * Run one sentiment scan: fetch every enabled task's RSS feeds, classify
+   * matches (lexicon presale → LLM refinement), aggregate negative events
+   * into alerts, and persist the batch. Single-slot: a concurrent call
+   * rejects immediately.
+   * @returns the scan summary.
+   */
+  @Remote('scanSentiment')
+  async scanSentiment(): Promise<SentimentScanResult> {
+    if (this.sentimentScanning) throw new Error('sentiment scan already running; wait for the current scan to finish')
+    this.sentimentScanning = true
+    try {
+      const state = await readSentimentFile(this.sentimentFile)
+      const batch = await runSentimentScan(this.ctx, state.tasks, state.settings, this.aiPolicy)
+      const appended = await appendSentimentScanFile(this.sentimentFile, batch.mentions, batch.alerts)
+      this.sentimentLastScan = { at: batch.result.at, captured: appended.captured, alerts: appended.alerts }
+      // Best-effort IM push: the alerts are persisted, so a webhook failure
+      // only logs and never fails the scan.
+      const push = await pushAlertRound(state.settings, batch.alerts, state.tasks, batch.result.at)
+      for (const failure of [push.dingtalk, push.wecom, push.email]) {
+        if (failure !== null) console.error(`[content-outputs] sentiment push failed: ${failure}`)
+      }
+      return { captured: appended.captured, alerts: appended.alerts, at: batch.result.at }
+    } finally {
+      this.sentimentScanning = false
+    }
+  }
+
+  /**
+   * Mark one alert handled.
+   * @param id - the alert id.
+   */
+  @Remote('handleSentimentAlert')
+  async handleSentimentAlert(id: SentimentAlertId): Promise<void> {
+    await handleSentimentAlertFile(this.sentimentFile, id, new Date().toISOString())
+  }
+
+  /**
+   * Compute the dashboard statistics from the stored mentions.
+   * @returns counts, the 14-day trend, and the per-platform top list.
+   */
+  @Remote('sentimentStats')
+  async sentimentStats(): Promise<SentimentStats> {
+    const state = await readSentimentFile(this.sentimentFile)
+    return computeSentimentStats(state.mentions, state.tasks, new Date())
+  }
+
+  /**
+   * Generate one sentiment report from the stored snapshot: one model call
+   * over the framed data (five fixed sections), degrading to the
+   * deterministic data-only template when the call fails. The manifest
+   * keeps the newest report only.
+   * @returns the stored report.
+   */
+  @Remote('generateSentimentReport')
+  async generateSentimentReport(): Promise<SentimentReport> {
+    const state = await readSentimentFile(this.sentimentFile)
+    const stats = computeSentimentStats(state.mentions, state.tasks, new Date())
+    const report = await generateSentimentReportEngine(this.ctx, this.aiPolicy, state, stats, new Date())
+    return putSentimentReportFile(this.sentimentFile, report)
   }
 
   /**

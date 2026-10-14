@@ -28,22 +28,25 @@ import { fetchSiteText, type PersonaSiteFetchDeps } from './site.ts'
 export const PERSONA_AI_TIMEOUT_CODE = 'PERSONA_AI_TIMEOUT'
 
 /** Prompt version of the blank-field fill face; stamped into adopted fields' provenance. */
-export const PERSONA_FILL_PROMPT_VERSION = 'persona-fill@1'
+export const PERSONA_FILL_PROMPT_VERSION = 'persona-fill@2'
 
 /** Prompt version of the résumé extraction face; stamped into adopted fields' provenance. */
-export const PERSONA_RESUME_PROMPT_VERSION = 'persona-resume@1'
+export const PERSONA_RESUME_PROMPT_VERSION = 'persona-resume@2'
 
 /** Prompt version of the website extraction face; stamped into adopted fields' provenance. */
-export const PERSONA_SITE_PROMPT_VERSION = 'persona-site@1'
+export const PERSONA_SITE_PROMPT_VERSION = 'persona-site@2'
 
 /** Prompt version of the social-profile extraction face; stamped into adopted fields' provenance. */
-export const PERSONA_SOCIAL_PROMPT_VERSION = 'persona-social@1'
+export const PERSONA_SOCIAL_PROMPT_VERSION = 'persona-social@2'
 
 /** Prompt version of the report face; stamped onto the stored report. */
 export const PERSONA_REPORT_PROMPT_VERSION = 'persona-report@1'
 
 /** Longest single extracted field value accepted from the model. */
 const PERSONA_AI_FIELD_CAP = 2_000
+
+/** Short values matching this are no-basis placeholders, not field candidates. */
+const PERSONA_REFUSAL_PATTERN = /无依据|没有依据|无法推断|无从推断|不可推断|无法确定|暂无|未知|不适用/u
 
 /** Character cap of one social homepage's fetched section, so every link gets a fair share of the model input. */
 const PERSONA_SOCIAL_SECTION_CAP = 2_500
@@ -53,6 +56,7 @@ const FILL_SYSTEM_PROMPT = [
   '要求：',
   '- 基于已有信息做行业通用推断，不得编造具体事实（不要虚构具体的公司名、人名、经历）；',
   '- 每个值不超过 200 字，用中文；',
+  '- 字段没有具体依据时直接省略该字段，不要输出「无依据」「无法推断」之类的占位描述；完全没有可推断内容时输出空对象 {}。',
   '- 只输出一个 JSON 对象，键为字段英文名，不要输出其他任何文字。',
 ].join('\n')
 
@@ -62,6 +66,7 @@ const RESUME_SYSTEM_PROMPT = [
   '要求：',
   '- 只提取文本中有依据的内容；没有依据的字段不要出现在输出里；',
   '- 每个值用中文，不超过 500 字；',
+  '- 字段没有具体依据时直接省略该字段，不要输出「无依据」「无法推断」之类的占位描述；完全没有可推断内容时输出空对象 {}。',
   '- 只输出一个 JSON 对象，不要输出其他任何文字。',
 ].join('\n')
 
@@ -71,6 +76,7 @@ const SITE_SYSTEM_PROMPT = [
   '要求：',
   '- 只提取文本中有依据的内容；没有依据的字段不要出现在输出里；',
   '- 每个值用中文，不超过 500 字；',
+  '- 字段没有具体依据时直接省略该字段，不要输出「无依据」「无法推断」之类的占位描述；完全没有可推断内容时输出空对象 {}。',
   '- 只输出一个 JSON 对象，不要输出其他任何文字。',
 ].join('\n')
 
@@ -80,6 +86,7 @@ const SOCIAL_SYSTEM_PROMPT = [
   '要求：',
   '- 主页文本多为碎片信息（昵称、简介、作品标题），只做有依据的保守推断；没有依据的字段不要出现在输出里；',
   '- 每个值用中文，不超过 500 字；',
+  '- 字段没有具体依据时直接省略该字段，不要输出「无依据」「无法推断」之类的占位描述；完全没有可推断内容时输出空对象 {}。',
   '- 只输出一个 JSON 对象，不要输出其他任何文字。',
 ].join('\n')
 
@@ -122,7 +129,8 @@ function extractJsonObject(text: string): Record<string, unknown> {
  * Parse a fill or résumé answer into candidate field values. Keys outside
  * `allowed` are dropped (the fill face can never produce `whoAmI`), values
  * are trimmed and capped, empty values are dropped: the caller previews what
- * survives.
+ * survives. Models drift between the English field keys and their Chinese
+ * labels despite the instruction, so both spellings resolve.
  * @param text - exact model text output.
  * @param allowed - the field keys the caller may receive.
  * @returns the candidate values keyed by field.
@@ -135,10 +143,14 @@ export function parsePersonaFieldsOutput(
   const fields: Partial<Record<PersonaFieldKey, string>> = {}
   for (const key of PERSONA_FIELD_KEYS) {
     if (!allowed.includes(key)) continue
-    const value = record[key]
-    if (typeof value !== 'string') continue
-    const trimmed = value.trim().slice(0, PERSONA_AI_FIELD_CAP)
+    const raw = record[key] ?? record[PERSONA_FIELD_LABELS[key]]
+    if (typeof raw !== 'string') continue
+    const trimmed = raw.trim().slice(0, PERSONA_AI_FIELD_CAP)
     if (trimmed.length === 0) continue
+    // Small models emit "no basis" placeholders despite the contract; a junk
+    // candidate reads as adoptable in the UI, which is worse than a missing
+    // one — drop short no-basis placeholders at this boundary.
+    if (trimmed.length <= 40 && PERSONA_REFUSAL_PATTERN.test(trimmed)) continue
     fields[key] = trimmed
   }
   return fields
@@ -247,17 +259,22 @@ export class PersonaAiProcessor {
     }))
   }
 
-  /** Fill blank fields from the known ones; `whoAmI` is never fillable here. */
+  /** Fill blank fields from the known ones plus the optional raw context; `whoAmI` is never fillable here. */
   private async fill(request: Extract<PersonaAiRequest, { operation: 'fill' }>): Promise<PersonaAiResult> {
     const allowed = request.blanks.filter(key => !PERSONA_FILL_PROHIBITED.includes(key))
     if (allowed.length === 0) throw new Error('persona fill has no fillable blank fields')
     const known = Object.entries(request.known)
       .filter(([, value]) => typeof value === 'string' && value.trim().length > 0)
       .map(([key, value]) => `${PERSONA_FIELD_LABELS[key as PersonaFieldKey]}：${value.trim().slice(0, PERSONA_MAX_FIELD_VALUE)}`)
+    // Raw reference material (fetched site page, résumé excerpt) is the only
+    // grounding a sparse form has; give it at most half of the input budget
+    // so the structured facts keep their share.
+    const context = (request.context?.trim() ?? '').slice(0, Math.floor(this.resolved.maxInputChars / 2))
     const framed = [
       known.length > 0 ? `已有画像信息：\n${known.join('\n')}` : '已有画像信息：无',
+      context.length > 0 ? `参考资料（官网/主页/简历原文节选）：\n${context}` : '',
       `请为以下字段给出推断值：${allowed.map(key => PERSONA_FIELD_LABELS[key]).join('、')}`,
-    ].join('\n')
+    ].filter(part => part.length > 0).join('\n')
     const output = await this.call(FILL_SYSTEM_PROMPT, framed)
     return { operation: 'fill', promptVersion: PERSONA_FILL_PROMPT_VERSION, fields: parsePersonaFieldsOutput(output, allowed) }
   }
@@ -313,11 +330,15 @@ export class PersonaAiProcessor {
    * ephemeral — only the adopted fields reach the form.
    */
   private async social(request: Extract<PersonaAiRequest, { operation: 'social' }>): Promise<PersonaAiResult> {
-    const links = request.links
-      .filter(link => typeof link.url === 'string' && link.url.trim().length > 0)
+    // Captured profiles (browser-session reads, already labeled) are used
+    // as-is; links on the remaining platforms are fetched, and captured
+    // platforms' links are not refetched.
+    const sections: string[] = request.profiles?.map(profile => profile.text.trim()).filter(text => text.length > 0) ?? []
+    const capturedPlatforms = new Set(request.profiles?.map(profile => profile.platform) ?? [])
+    const links = (request.links ?? [])
+      .filter(link => typeof link.url === 'string' && link.url.trim().length > 0 && !capturedPlatforms.has(link.platform))
       .slice(0, PERSONA_MAX_LINKS)
-    if (links.length === 0) throw new Error('persona social analysis has no links to analyze')
-    const sections: string[] = []
+    if (sections.length === 0 && links.length === 0) throw new Error('persona social analysis has no profiles or links to analyze')
     for (const link of links) {
       let text = ''
       try {
@@ -327,7 +348,11 @@ export class PersonaAiProcessor {
       }
       if (text.length > 0) sections.push(`【${PERSONA_PLATFORM_LABELS[link.platform]}】${link.url.trim()}\n${text}`)
     }
-    if (sections.length === 0) throw new Error('persona social analysis has no readable homepage content')
+    if (sections.length === 0) {
+      // Surfaced verbatim as the caller's notice detail — this is the user's
+      // answer to "why nothing came back".
+      throw new Error('所有主页都是登录墙或需要浏览器渲染，未抓到可读正文；建议改用官网/博客，或在第 1 步手动粘贴内容')
+    }
     const output = await this.call(SOCIAL_SYSTEM_PROMPT, sections.join('\n\n').slice(0, this.resolved.maxInputChars))
     return {
       operation: 'social',

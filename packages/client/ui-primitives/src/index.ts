@@ -61,6 +61,7 @@ export type {
 } from './FileTypeIcon.tsx'
 export { projectUserText, type UserTextReferences } from './user-text.tsx'
 export { Tooltip } from './Tooltip.tsx'
+export { SidebarFooterEntry } from './SidebarFooterEntry.tsx'
 export type { TooltipSide } from './Tooltip.tsx'
 export { pointerModality } from './input-modality.ts'
 export { Toast } from './Toast.tsx'

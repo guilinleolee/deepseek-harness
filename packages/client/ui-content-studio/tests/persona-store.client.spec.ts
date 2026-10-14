@@ -48,6 +48,11 @@ function gateway(overrides: Partial<PersonaGateway> = {}): PersonaGateway & { ca
     putPersona: async (input) => { record('put'); return { ...entry(), ...input, id: input.id ?? ('p-new' as PersonaEntry['id']), revision: input.id === undefined ? 1 : 2 } },
     putPersonaReport: async () => { record('report'); return entry() },
     deletePersona: async () => { record('delete') },
+    socialStatuses: async () => ({ rows: [], dailyCap: 3 }),
+    socialStartLogin: async () => undefined,
+    socialCapture: async () => ({ platform: 'xhs', url: '', text: '' }),
+    socialForget: async () => undefined,
+    socialVerify: async () => ({ platform: 'xhs', valid: true, nickname: null }),
     processPersonaAi: (async () => ({ operation: 'fill', promptVersion: 'persona-fill@1', fields: {} })) as PersonaGateway['processPersonaAi'],
     ...overrides,
   }
@@ -133,10 +138,15 @@ describe('the wizard and the draft buffer', () => {
     controller.setAccountStage('existing')
     expect(controller.getState().wizard?.form.accountStage).toBe('existing')
 
-    controller.addLink()
-    controller.updateLink(0, { url: 'https://x.example' })
-    controller.removeLink(0)
-    expect(controller.getState().wizard?.form.links).toHaveLength(0)
+    // The step-2 list: one row per platform, the row exists only while its URL is non-empty.
+    controller.setLinkUrl('xhs', 'https://x.example')
+    expect(controller.getState().wizard?.form.links).toEqual([{ platform: 'xhs', url: 'https://x.example', bio: null, sampleText: null }])
+    controller.setLinkUrl('douyin', 'https://d.example')
+    controller.setLinkUrl('xhs', 'https://x2.example')
+    expect(controller.getState().wizard?.form.links.map(link => link.platform)).toEqual(['douyin', 'xhs'])
+    expect(controller.getState().wizard?.form.links.find(link => link.platform === 'xhs')?.url).toBe('https://x2.example')
+    controller.setLinkUrl('douyin', '   ')
+    expect(controller.getState().wizard?.form.links.map(link => link.platform)).toEqual(['xhs'])
   })
 
   it('saves through put, clears the draft, and reloads; a blank name is refused', async () => {
@@ -243,6 +253,161 @@ describe('the explicit AI flows', () => {
     controller.adoptFillField('whoAmI')
     expect(controller.getState().wizard?.form.fields.whoAmI.source).toBe('ai')
     expect((gw as { calls?: string[] }).calls?.length ?? 0).toBeGreaterThanOrEqual(0)
+  })
+
+  it('analyzes the own site: fetch text lands in the form, candidates await adoption', async () => {
+    // The real gateway returns the fetched text only when a url was fetched.
+    const ai = vi.fn(async (request: { operation: 'site'; url?: string; pastedText?: string }) => ({
+      operation: 'site',
+      promptVersion: 'persona-site@1',
+      fields: { whoAmI: '企业官网主体' },
+      ...(request.url !== undefined ? { text: '抓取到的官网正文' } : {}),
+    }))
+    const controller = createPersonaController({
+      gateway: gateway({ processPersonaAi: ai as unknown as PersonaGateway['processPersonaAi'] }),
+    })
+    await controller.ensureLoaded()
+    controller.openNew()
+
+    void controller.runSite()
+    await flush()
+    expect(controller.getState().notice).toBe('site-empty')
+    expect(ai).not.toHaveBeenCalled()
+
+    controller.updateForm({ siteUrl: ' https://laoli.example ' })
+    void controller.runSite()
+    await flush()
+    expect(ai).toHaveBeenCalledWith({ operation: 'site', url: 'https://laoli.example' })
+    expect(controller.getState().wizard?.form.sitePastedText).toBe('抓取到的官网正文')
+    expect(controller.getState().fillPreview).toMatchObject({ origin: 'site', promptVersion: 'persona-site@1' })
+    controller.adoptFillField('whoAmI')
+    expect(controller.getState().wizard?.form.fields.whoAmI).toMatchObject({ value: '企业官网主体', source: 'ai' })
+
+    // No URL: the pasted text is analyzed as-is, and a fetch without text keeps the pasted content.
+    controller.updateForm({ siteUrl: '', sitePastedText: '手工粘贴的官网内容' })
+    void controller.runSite()
+    await flush()
+    expect(ai).toHaveBeenLastCalledWith({ operation: 'site', pastedText: '手工粘贴的官网内容' })
+    expect(controller.getState().wizard?.form.sitePastedText).toBe('手工粘贴的官网内容')
+
+    ai.mockRejectedValueOnce(new Error('down'))
+    void controller.runSite()
+    await flush()
+    expect(controller.getState().notice).toBe('site-failed')
+  })
+
+  it('reports an empty site extraction without touching the form', async () => {
+    const controller = createPersonaController({
+      gateway: gateway({
+        processPersonaAi: (async () => ({ operation: 'site', promptVersion: 'persona-site@1', fields: {}, text: '只有文本没有字段' })) as unknown as PersonaGateway['processPersonaAi'],
+      }),
+    })
+    await controller.ensureLoaded()
+    controller.openNew()
+    controller.updateForm({ siteUrl: 'https://laoli.example' })
+    void controller.runSite()
+    await flush()
+    expect(controller.getState().notice).toBe('ai-empty')
+    expect(controller.getState().wizard?.form.sitePastedText).toBe('只有文本没有字段')
+    expect(controller.getState().fillPreview).toBeNull()
+  })
+
+  it('analyzes the social homepages at the last step and adopts the candidates', async () => {
+    const ai = vi.fn(async () => ({ operation: 'social', promptVersion: 'persona-social@1', fields: { audience: '宝妈群体' } }))
+    const controller = createPersonaController({
+      gateway: gateway({ processPersonaAi: ai as unknown as PersonaGateway['processPersonaAi'] }),
+    })
+    await controller.ensureLoaded()
+    controller.openNew()
+
+    void controller.runSocial()
+    await flush()
+    expect(controller.getState().notice).toBe('social-empty')
+    expect(ai).not.toHaveBeenCalled()
+
+    controller.setLinkUrl('xhs', ' https://xhs.example/laoli ')
+    controller.setLinkUrl('douyin', 'https://douyin.example/laoli')
+    void controller.runSocial()
+    await flush()
+    expect(ai).toHaveBeenCalledWith({
+      operation: 'social',
+      links: [
+        { platform: 'xhs', url: 'https://xhs.example/laoli' },
+        { platform: 'douyin', url: 'https://douyin.example/laoli' },
+      ],
+    })
+    expect(controller.getState().fillPreview).toMatchObject({ origin: 'social', promptVersion: 'persona-social@1' })
+    controller.adoptFillField('audience')
+    expect(controller.getState().wizard?.form.fields.audience).toMatchObject({ value: '宝妈群体', source: 'ai' })
+
+    ai.mockRejectedValueOnce(new Error('所有主页都是登录墙，未抓到可读正文'))
+    void controller.runSocial()
+    await flush()
+    expect(controller.getState().notice).toBe('social-failed')
+    expect(controller.getState().noticeDetail).toBe('所有主页都是登录墙，未抓到可读正文')
+  })
+
+  it('scopes the fill blanks when the caller passes a scope', async () => {
+    const ai = vi.fn(async () => ({ operation: 'fill', promptVersion: 'persona-fill@1', fields: { goal: '获客留资' } }))
+    const controller = createPersonaController({
+      gateway: gateway({ processPersonaAi: ai as unknown as PersonaGateway['processPersonaAi'] }),
+    })
+    await controller.ensureLoaded()
+    controller.openNew()
+    controller.setField('audience', '已有受众')
+    // The earlier steps' raw evidence rides along as fill context.
+    controller.updateForm({ sitePastedText: '官网抓取正文' })
+
+    // The intent scope: audience is not in it, so it stays out of the blanks.
+    await controller.runFill(['goal', 'monetize', 'contentValue', 'cadence'])
+    expect(ai).toHaveBeenCalledWith(expect.objectContaining({
+      operation: 'fill',
+      known: { audience: '已有受众' },
+      blanks: ['goal', 'monetize', 'contentValue', 'cadence'],
+      context: '官网抓取正文',
+    }))
+    expect(controller.getState().fillPreview).toMatchObject({ origin: 'fill' })
+    controller.adoptFillField('goal')
+    expect(controller.getState().wizard?.form.fields.goal.value).toBe('获客留资')
+
+    // Every scoped field filled: the explicit none-notice, no AI call.
+    controller.setField('monetize', '广告合作')
+    controller.setField('contentValue', '干货')
+    controller.setField('cadence', '每周 3 条')
+    const calls = ai.mock.calls.length
+    await controller.runFill(['goal', 'monetize', 'contentValue', 'cadence'])
+    // A scoped run says "already filled" (the unscoped one says fill-none).
+    expect(controller.getState().notice).toBe('scope-filled')
+    expect(ai.mock.calls.length).toBe(calls)
+  })
+
+  it('verifies a session: invalid drops it with a notice, valid stays silent', async () => {
+    const verify = vi.fn(async (_platform: string) => ({ platform: 'xhs' as const, valid: false, nickname: null as string | null }))
+    const forget = vi.fn(async () => undefined)
+    const controller = createPersonaController({
+      gateway: gateway({
+        socialVerify: verify as unknown as PersonaGateway['socialVerify'],
+        socialForget: forget as unknown as PersonaGateway['socialForget'],
+      }),
+    })
+    await controller.ensureLoaded()
+    await controller.verifySocial('xhs')
+    expect(forget).toHaveBeenCalledWith('xhs')
+    expect(controller.getState().notice).toBe('social-failed')
+
+    verify.mockResolvedValueOnce({ platform: 'xhs' as const, valid: true, nickname: '老李' })
+    await controller.verifySocial('xhs')
+    expect(controller.getState().notice).toBeNull()
+  })
+
+  it('forgets a session and refreshes statuses', async () => {
+    const forget = vi.fn(async () => undefined)
+    const controller = createPersonaController({
+      gateway: gateway({ socialForget: forget as unknown as PersonaGateway['socialForget'] }),
+    })
+    await controller.ensureLoaded()
+    await controller.forgetSocial('xhs')
+    expect(forget).toHaveBeenCalledWith('xhs')
   })
 
   it('generates and edits reports through the dedicated face', async () => {

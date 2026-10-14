@@ -15,7 +15,7 @@
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { clsx } from 'clsx'
-import { IconCloseOutline16, IconSparkle16, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutlineRegular, IconSparkleRegular, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   ContentOutputsSnapshot, InteractionsManifestRead, ReviewManifestRead,
 } from '@deepseek-ai/dsh-content-outputs/types'
@@ -29,6 +29,7 @@ import { ContentCalendar, type ContentCalendarInjected } from './ContentCalendar
 import { ContentWorkbench } from './ContentWorkbench.tsx'
 import { AccountSelect } from './AccountSelect.tsx'
 import { AccountsView } from './AccountsView.tsx'
+import { SentimentView, type SentimentGateway } from './SentimentView.tsx'
 import { PersonaView } from './PersonaView.tsx'
 import { CompetitorsView, type CompetitorsViewInjected } from './CompetitorsView.tsx'
 import { GatherView } from './GatherView.tsx'
@@ -57,11 +58,12 @@ import gatherCss from './GatherView.module.css'
 const COPIED_FEEDBACK_MS = 1600
 
 /** The top-level views; the workbench home is the entry view. 对话 is a verb, not a view. */
-type StudioView = 'workbench' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
+type StudioView = 'sentiment' | 'workbench' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
 
 /** The nav order exactly as specified: 对话 rides between 工作台 and 对标 as a verb. */
 const NAV_ITEMS: readonly { view: StudioView | 'chat'; key: StudioKey }[] = [
   { view: 'workbench', key: 'nav.workbench' },
+  { view: 'sentiment', key: 'nav.sentiment' },
   { view: 'chat', key: 'nav.chat' },
   { view: 'competitors', key: 'nav.competitors' },
   { view: 'topicBank', key: 'nav.topicBank' },
@@ -92,10 +94,14 @@ export interface ContentStudioInjected {
   notes: ContentCalendarInjected['notes']
   /** The competitor write face, served by the content-outputs Remote. */
   competitors: Omit<CompetitorsViewInjected, 'listOutputs'>
+  /** The sentiment read faces the competitor volume-compare block consumes. */
+  sentimentRead: Pick<SentimentGateway, 'getSentiment' | 'sentimentStats'>
   /** The create workbench face, served by the content-outputs Remote. */
   create: CreateGateway
   /** The persona controller: the `_personas.json` manifest plus the wizard draft. */
   personas: PersonaController
+  /** The sentiment faces: tasks, mentions, alerts, settings, and the scan engine. */
+  sentiment: SentimentGateway
   /** Current theme directory names, projected from the outputs library. */
   listThemes: () => Promise<readonly string[]>
   /** The topic-bank Remote face, served by the content-topics Remote. */
@@ -133,8 +139,8 @@ const BADGE_CLASS: Record<CapabilityMaturity, string> = {
  * @returns the surface element tree while open; null while closed.
  */
 export function ContentStudio({
-  studio, listOutputs, gather, schedule, notes, competitors, create, personas, listThemes,
-  topics, writeExport, publish, review, interaction, readInteractions, readReviewManifest, templates, t,
+  studio, listOutputs, gather, schedule, notes, competitors, create, personas, sentiment, listThemes,
+  sentimentRead, topics, writeExport, publish, review, interaction, readInteractions, readReviewManifest, templates, t,
 }: ContentStudioProps) {
   const open = useSyncExternalStore(
     fn => studio.subscribe(fn),
@@ -281,7 +287,7 @@ export function ContentStudio({
       <div className={css.shell}>
         <aside className={css.side}>
           <div className={css.sideBrand}>
-            <IconSparkle16 size={16} />
+            <IconSparkleRegular size={16} />
             <span>{t('studio.title')}</span>
           </div>
           <AccountSelect
@@ -329,7 +335,7 @@ export function ContentStudio({
             aria-label={t('studio.close')}
             onClick={() => { studio.close() }}
           >
-            <IconCloseOutline16 size={16} />
+            <IconCloseOutlineRegular size={16} />
           </button>
 
           <div className={css.frame}>
@@ -348,7 +354,7 @@ export function ContentStudio({
               />
             )}
             {view === 'competitors' && (
-              <CompetitorsView listOutputs={listOutputs} {...competitors} t={t} />
+              <CompetitorsView listOutputs={listOutputs} {...competitors} sentimentRead={sentimentRead} t={t} />
             )}
             {view === 'topicBank' && (
               <TopicBankView
@@ -363,11 +369,13 @@ export function ContentStudio({
                 t={t}
               />
             )}
+            {view === 'sentiment' && <SentimentView sentiment={sentiment} topics={topics} t={t} />}
             {view === 'gather' && (
               <GatherView gather={gather} onPushToCreate={pushToCreate} addToTopicBank={joinTopicBank} t={t} />
             )}
             {view === 'accounts' && (
               <AccountsView
+                personas={personas}
                 account={account}
                 accounts={accounts}
                 onSelect={selectAccount}
