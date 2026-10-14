@@ -3,7 +3,6 @@
  * order, and the missing-id rejection.
  */
 import { describe, expect, it } from 'vitest'
-import type { KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { ResultSnapshotId } from '../src/domain/spec.ts'
 import type { ResultSnapshot } from '../src/domain/spec.ts'
 import type { BacktestReport } from '../src/pcpt/backtest.ts'
