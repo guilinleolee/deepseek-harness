@@ -1,0 +1,17 @@
+# kabage-content-studio 的 patch 层：管理台 plugin-push 安装本包后自动追加到
+# web profile 的 dsh.profile.bundles 栈（package.json 的 dsh.bundle.patch 指向本文件）。
+# 四行自 web-app bundle 收编为平台受管投放（原始行：packages/bundle/web-app/cordis.patch.yml）。
+# content-outputs 的内容 AI 统一走平台 Relay（zai → 127.0.0.1:9400）计量，
+# 不使用旁路供应商（web-app 内建行原配的 minimax-0801 未在实例路由注册，调用必失败）。
+- insert:
+    - id: content-outputs
+      name: '@deepseek-ai/dsh-content-outputs'
+      config:
+        provider: zai
+        model: glm-5.3-flash
+    - id: content-schedule
+      name: '@deepseek-ai/dsh-content-schedule'
+    - id: content-topics
+      name: '@deepseek-ai/dsh-content-topics'
+    - id: ui-content-studio
+      name: '@deepseek-ai/dsh-client-ui-content-studio'

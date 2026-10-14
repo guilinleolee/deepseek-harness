@@ -1,0 +1,41 @@
+.entryWide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 16px);
+  margin: 0 8px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsh-text-secondary, #666);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.entryWide:hover {
+  background: var(--dsh-bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.entryRail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsh-text-secondary, #666);
+  cursor: pointer;
+}
+
+.entryRail:hover {
+  background: var(--dsh-bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.entryLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

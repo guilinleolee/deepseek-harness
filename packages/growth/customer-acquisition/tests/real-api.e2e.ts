@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
 import { apply as applyPiAi, type Config as PiAiConfig } from '@deepseek-ai/dsh-llm-pi-ai'
+import { createVolatile } from '@deepseek-ai/cosmokit'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
@@ -24,8 +25,7 @@ import { FULL_OPERATOR } from './helpers-p1.ts'
 
 const KEY = process.env.ZHIPU_CODING_API_KEY
 
-const PI_CONFIG: PiAiConfig = {
-  providers: {
+const PI_ROUTES: PiAiConfig['providers'] extends import('@deepseek-ai/cordis').Volatile<infer R> ? R : never = {
     'zhipu-coding': {
       apiKeyEnv: 'ZHIPU_CODING_API_KEY',
       api: 'openai-completions',
@@ -34,7 +34,6 @@ const PI_CONFIG: PiAiConfig = {
         { id: 'glm-4.6', name: 'GLM-4.6', contextWindow: 200_000, maxTokens: 131_072 },
       ],
     },
-  },
 }
 
 interface RealHarness {
@@ -66,7 +65,7 @@ async function bootReal(): Promise<RealHarness> {
   // llm-pi-ai is a function plugin whose `inject` rides as a module export;
   // manual mounting must carry it so the scoped fiber can reach `ctx.llm`.
   const piAiPlugin = Object.assign(applyPiAi, { inject: ['llm'] })
-  await ctx.plugin(piAiPlugin, PI_CONFIG).await()
+  await ctx.plugin(piAiPlugin, { providers: createVolatile(PI_ROUTES) }).await()
   const service = ctx.customerAcquisition
   await seedIndustryTemplates(service.requireDomain())
 
