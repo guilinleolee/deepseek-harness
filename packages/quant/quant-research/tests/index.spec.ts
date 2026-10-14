@@ -45,8 +45,9 @@ describe('apply', () => {
   it('composes the runtime, registers the three tools, and unwinds on dispose', async () => {
     const { ctx, register, close, open } = preparedContext()
     const disposer = await apply(ctx, resolveConfig(undefined, { platform: 'linux', dshHome: '/tmp' }))
-    // One open from the plugin body, one from the QuantResearchService fiber.
-    expect(open).toHaveBeenCalledTimes(2)
+    // The plugin body opens the domain once and hands the handle to the
+    // service fiber — the storage-domain facility is single-open per name.
+    expect(open).toHaveBeenCalledTimes(1)
     const names = register.mock.calls.map(call => (call[0] as { name: string }).name)
     expect(names).toEqual([
       'quant_get_kline', 'quant_compute_indicator', 'quant_run_backtest',
@@ -58,7 +59,8 @@ describe('apply', () => {
       'quant_factor_cross_ic', 'quant_list_snapshots', 'quant_delete_snapshot',
     ])
     await disposer()
-    expect(close).toHaveBeenCalledTimes(2)
+    // The single open also means a single close (the service shares it).
+    expect(close).toHaveBeenCalledTimes(1)
   })
 
   it('fails loud before opening the domain on an invalid config', async () => {

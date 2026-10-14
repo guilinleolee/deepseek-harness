@@ -4,8 +4,21 @@
 # offline; switch it to akshare (and install kernel-py/requirements.txt) for
 # live A-share data.
 
-- id: settings
-  name: '@deepseek-ai/dsh-settings-file'
+# The session hub (the `sessions` service) and the agent registry
+# (`agents`) the declarative agent-loop waits on.
+- id: session
+  name: '@deepseek-ai/dsh-session'
+
+# Read-model projections the agent loop awaits (`sessionProjections`).
+- id: session-projection
+  name: '@deepseek-ai/dsh-session-projection'
+
+# The tool registry (`tools`) the loop, tool-jobs, and the quant plugin mount on.
+- id: tools
+  name: '@deepseek-ai/dsh-tools'
+
+- id: agent
+  name: '@deepseek-ai/dsh-agent'
 
 - id: credentials
   name: '@deepseek-ai/dsh-credentials-local'
@@ -30,20 +43,28 @@
   config:
     backend: json
 
+# The adapter registry (`llm`) every provider registers into.
+- id: llm
+  name: '@deepseek-ai/dsh-llm'
+
 - id: llm-deepseek
   name: '@deepseek-ai/dsh-llm-deepseek'
 
-- id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+# The agent loop with one declarative startup agent (the retired spine demo's
+# role): the research persona rides system-prompt's deployment prefix.
+- id: agent-loop
+  name: '@deepseek-ai/dsh-agent-loop'
   config:
     agents:
       - id: main
         provider: deepseek-official
         model: deepseek-v4-flash
         cwd: !!js process.cwd()
-    workspaceContext: false
-    dshHome: './.dsh-home'
-    persona: |
+
+- id: system-prompt
+  name: '@deepseek-ai/dsh-system-prompt'
+  config:
+    personaPrefix: |
       你是量化研究助手：只做投研、技术指标与模拟回测；所有结论仅供研究参考，
       不构成投资建议；插件没有实盘通道，也不要尝试绕过合规拦截。
 

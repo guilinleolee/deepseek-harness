@@ -1067,6 +1067,60 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  examples:
+    dependencies:
+      '@deepseek-ai/dsh-agent-loop':
+        specifier: workspace:*
+        version: link:../packages/core/agent-loop
+      '@deepseek-ai/dsh-app-boot':
+        specifier: workspace:*
+        version: link:../packages/boot/app-boot
+      '@deepseek-ai/dsh-credentials-local':
+        specifier: workspace:*
+        version: link:../packages/credentials/credentials-local
+      '@deepseek-ai/dsh-jobs-local':
+        specifier: workspace:*
+        version: link:../packages/jobs/jobs-local
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:*
+        version: link:../packages/llm/llm
+      '@deepseek-ai/dsh-loader-smoke':
+        specifier: workspace:*
+        version: link:../packages/test-support/loader-smoke
+      '@deepseek-ai/dsh-quant-research':
+        specifier: workspace:*
+        version: link:../packages/quant/quant-research
+      '@deepseek-ai/dsh-session-persistence-jsonl':
+        specifier: workspace:*
+        version: link:../packages/session/session-persistence-jsonl
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:*
+        version: link:../packages/settings/settings
+      '@deepseek-ai/dsh-storage':
+        specifier: workspace:*
+        version: link:../packages/storage/storage
+      '@deepseek-ai/dsh-storage-domain':
+        specifier: workspace:*
+        version: link:../packages/storage/storage-domain
+      '@deepseek-ai/dsh-storage-json':
+        specifier: workspace:*
+        version: link:../packages/storage/storage-json
+      '@deepseek-ai/dsh-subprocess-local':
+        specifier: workspace:*
+        version: link:../packages/subprocess/subprocess-local
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: workspace:*
+        version: link:../packages/core/system-prompt
+      '@deepseek-ai/dsh-tool-jobs':
+        specifier: workspace:*
+        version: link:../packages/jobs/tool-jobs
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:*
+        version: link:../packages/core/tools
+      '@deepseek-ai/dsh-user-approval':
+        specifier: workspace:*
+        version: link:../packages/interaction/user-approval
+
   native/system:
     devDependencies:
       '@deepseek-ai/node-addon-system':

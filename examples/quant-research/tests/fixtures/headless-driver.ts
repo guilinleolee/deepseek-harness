@@ -4,7 +4,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@deepseek-ai/dsh-app-boot'
 import { runFixtureTurn } from '@deepseek-ai/dsh-loader-smoke'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 
 const NAME = 'quant-research-test-driver'
@@ -36,7 +36,7 @@ try {
   // no completion-notice lane is involved (the job has no owner agent).
   const optimize = await ctx.tools.execute({
     signal: new AbortController().signal,
-    callId: CallId('quant-optimize-start'),
+    callId: ToolCallId('quant-optimize-start'),
     name: 'quant_optimize_params',
     arguments: { symbol: '000001', bars: 80, top_n: 5 },
   })
@@ -47,7 +47,7 @@ try {
   while (Date.now() < deadline) {
     const read = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('quant-optimize-read'),
+      callId: ToolCallId('quant-optimize-read'),
       name: 'job_output',
       arguments: { job_id: envelope.data.job_id },
     })
@@ -61,7 +61,7 @@ try {
   try {
     const denied = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('quant-optimize-deny'),
+      callId: ToolCallId('quant-optimize-deny'),
       name: 'quant_optimize_params',
       arguments: { symbol: '000001', bars: 9999 },
     })
@@ -85,7 +85,7 @@ try {
   // one backtest on the test leg — collected through job_output.
   const walkForward = await ctx.tools.execute({
     signal: new AbortController().signal,
-    callId: CallId('quant-walk-forward-start'),
+    callId: ToolCallId('quant-walk-forward-start'),
     name: 'quant_walk_forward',
     arguments: { symbol: '000001', bars: 250, top_n: 5 },
   })
@@ -96,7 +96,7 @@ try {
   while (Date.now() < wfDeadline) {
     const read = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('quant-walk-forward-read'),
+      callId: ToolCallId('quant-walk-forward-read'),
       name: 'job_output',
       arguments: { job_id: wfEnvelope.data.job_id },
     })
@@ -110,7 +110,7 @@ try {
   try {
     const denied = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('quant-walk-forward-deny'),
+      callId: ToolCallId('quant-walk-forward-deny'),
       name: 'quant_walk_forward',
       arguments: { symbol: '000001', train_ratio: 0.3 },
     })
@@ -128,6 +128,66 @@ try {
     startText: wfStartText,
     jobText: wfJobText,
     deniedText: wfDeniedText,
+  })}\n`)
+
+  // Phase-4/5 cross-sectional IC round: one real background job over a
+  // synthetic two-symbol panel through the composed jobs registry and the
+  // cross_section_ic kernel op, collected through job_output.
+  const crossIC = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId('quant-cross-ic-start'),
+    name: 'quant_factor_cross_ic',
+    arguments: { symbols: ['000001', '600519'], bars: 120, horizon: 5, ic_windows: 2 },
+  })
+  const icStartText = textOf(crossIC as never)
+  const icEnvelope = (crossIC as unknown as { value: { code: number; data: { job_id: string; symbols: string[]; horizon: number } } }).value
+  let icJobText = ''
+  const icDeadline = Date.now() + 30_000
+  while (Date.now() < icDeadline) {
+    const read = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('quant-cross-ic-read'),
+      name: 'job_output',
+      arguments: { job_id: icEnvelope.data.job_id },
+    })
+    icJobText = textOf(read as never)
+    if (icJobText.includes('[status: completed')) break
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  // The panel-cap red line on the same tool, through the real gate.
+  let icDeniedText = ''
+  try {
+    const denied = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('quant-cross-ic-deny'),
+      name: 'quant_factor_cross_ic',
+      arguments: { symbols: ['000001'], bars: 120 },
+    })
+    icDeniedText = textOf(denied as never)
+  } catch (error: unknown) {
+    icDeniedText = error instanceof Error ? error.message : String(error)
+  }
+
+  // The snapshot lifecycle read: the persisted results of the rounds above.
+  const snapshotList = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId('quant-snapshot-list'),
+    name: 'quant_list_snapshots',
+    arguments: {},
+  })
+  const snapshotListText = textOf(snapshotList as never)
+
+  process.stdout.write(`${JSON.stringify({
+    type: 'quant-cross-ic-check',
+    code: icEnvelope.code,
+    jobId: icEnvelope.data.job_id,
+    symbols: icEnvelope.data.symbols,
+    horizon: icEnvelope.data.horizon,
+    startText: icStartText,
+    jobText: icJobText,
+    deniedText: icDeniedText,
+    snapshotListText,
   })}\n`)
 } catch (error: unknown) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)

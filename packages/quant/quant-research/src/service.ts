@@ -42,14 +42,26 @@ export class QuantResearchService extends TypertRemoteService {
   private domain: QuantDomain | undefined
 
   /**
-   * @param ctx - host context providing storage.
+   * Share the caller-owned domain when one is handed in; otherwise open the
+   * domain here and own its lifetime. The plugin body (which already opened
+   * the domain for the tool layer) passes its handle, so the Remote face and
+   * the tools read one facility instance — the domain facility is
+   * single-open per name.
+   * @param sharedDomain - an already-open domain handle the caller owns.
    */
-  constructor(ctx: Context) {
+  constructor(ctx: Context, sharedDomain?: QuantDomain) {
     super(ctx, 'quantResearch')
+    this.shared = sharedDomain !== undefined
+    if (this.shared) {
+      this.domain = sharedDomain
+    }
   }
 
-  /** Open the domain and bind its lifetime to this fiber. */
+  private readonly shared: boolean
+
+  /** Open the domain (when not shared) and bind its lifetime to this fiber. */
   protected async [Service.init](): Promise<void> {
+    if (this.shared) return
     const domain = await this.ctx.storageDomain.open(quantResearchDomainSpec)
     this.ctx.effect(() => async () => {
       this.domain = undefined

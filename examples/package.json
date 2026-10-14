@@ -1,0 +1,26 @@
+{
+  "name": "dsh-examples",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Workspace umbrella for example-owned test compositions: declares their cordis.yml packages so plain Node resolves real exports→lib by walking up to examples/node_modules. Not a build target.",
+  "dependencies": {
+    "@deepseek-ai/dsh-agent-loop": "workspace:*",
+    "@deepseek-ai/dsh-app-boot": "workspace:*",
+    "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-jobs-local": "workspace:*",
+    "@deepseek-ai/dsh-loader-smoke": "workspace:*",
+    "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-quant-research": "workspace:*",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "workspace:*",
+    "@deepseek-ai/dsh-settings": "workspace:*",
+    "@deepseek-ai/dsh-storage": "workspace:*",
+    "@deepseek-ai/dsh-storage-domain": "workspace:*",
+    "@deepseek-ai/dsh-storage-json": "workspace:*",
+    "@deepseek-ai/dsh-subprocess-local": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-tool-jobs": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/dsh-user-approval": "workspace:*"
+  }
+}
