@@ -40,9 +40,10 @@ import { computeRebalanceTrades, latestClose } from './pet/rebalance.ts'
 import { exportNotesMarkdown, listNotes as listNoteEntries, saveNote as saveNoteEntry } from './pet/notes.ts'
 import type { NotesTable } from './pet/notes.ts'
 import type { AccountsTable, OrdersTable } from './pet/service.ts'
-import { saveSnapshot } from './pcpt/snapshots.ts'
+import { deleteSnapshot, listSnapshots, saveSnapshot } from './pcpt/snapshots.ts'
 import type { ResultSnapshotsTable } from './pcpt/snapshots.ts'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
+import { ResultSnapshotId } from './domain/spec.ts'
 import type {} from '@deepseek-ai/dsh-jobs'
 import type { JobId, JobOutcome, JobSpec } from '@deepseek-ai/dsh-jobs'
 import type { QuantKernelClient } from './kernel-client/client.ts'
@@ -1608,6 +1609,129 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
 }
 
 /**
+ * Build the snapshot-list tool: the model-visible view of the persisted
+ * backtest result snapshots feeding the panel's equity cards.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function snapshotListTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_list_snapshots',
+    description: '列出已持久化的回测结果快照（面板净值卡片的数据源）：标的、参数、头条指标与创建时间，最新在前。',
+    parameters: {},
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderSnapshotList(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: () => ({ card: 'generic' as const, title: '回测快照列表' }),
+    async execute(_args, exec) {
+      return envelopeFrom('ping', exec, async () => {
+        return { snapshots: listSnapshots(deps.snapshots).map(snapshot => ({
+          result_id: snapshot.id,
+          symbol: snapshot.symbol,
+          params: { ...snapshot.params },
+          metrics: { total_return: snapshot.metrics.total_return, max_drawdown: snapshot.metrics.max_drawdown, trade_count: snapshot.metrics.trade_count },
+          created_at: snapshot.created_at,
+        })) }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the snapshot-list envelope.
+ * @param value - the tool result value.
+ * @returns the rendered text blocks.
+ */
+function renderSnapshotList(value: unknown): { type: 'text'; text: string }[] {
+  const data = successData(value) as { snapshots?: { result_id: string; symbol: string; params: { fast: number; slow: number }; metrics: { total_return: number }; created_at: number }[] } | undefined
+  if (data === undefined) {
+    const failure = failureLine(value) ?? '快照列表读取失败'
+    return [{ type: 'text', text: `${failure}
+
+${DISCLAIMER}` }]
+  }
+  if (data.snapshots === undefined || data.snapshots.length === 0) {
+    return [{ type: 'text', text: `快照列表为空。
+
+${DISCLAIMER}` }]
+  }
+  const lines = data.snapshots.map(snapshot => {
+    const pct = `${(snapshot.metrics.total_return * 100).toFixed(2)}%`
+    return `- ${snapshot.result_id.slice(0, 8)} ${snapshot.symbol} SMA(${String(snapshot.params.fast)}/${String(snapshot.params.slow)}) 总收益 ${pct} · ${new Date(snapshot.created_at).toLocaleString()}`
+  })
+  return [{ type: 'text', text: `共 ${String(data.snapshots.length)} 条快照，最新在前：\n${lines.join('\n')}\n\n${DISCLAIMER}` }]
+}
+
+/**
+ * Build the snapshot-delete tool: removes one persisted backtest result
+ * snapshot after a human approval (the durable domain is append-mostly, so
+ * the removal is a reviewed act, not a silent one). The panel's equity cards
+ * drop the snapshot on their next read.
+ * @param deps - the tool layer dependencies.
+ * @returns the tool definition.
+ */
+export function snapshotDeleteTool(deps: QuantToolDeps): ToolDefinition {
+  return defineTool({
+    name: 'quant_delete_snapshot',
+    description: '删除一条回测结果快照（需人工审核）：面板净值卡片展示的持久记录；删除是不可逆的审查动作，需说明快照内容后获批。',
+    parameters: {
+      result_id: { type: 'string', required: true, description: '快照 id（quant_list_snapshots 可查，面板卡片亦展示）' },
+      reason: { type: 'string', required: true, description: '删除理由（进入人工审核请求）' },
+    },
+    output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderSnapshotDelete(value) },
+    timeoutMs: deps.config.toolTimeoutMs,
+    presentCall: args => ({ card: 'generic' as const, title: `删除快照：${String(args.result_id).slice(0, 8)}` }),
+    async execute(args, exec) {
+      return envelopeFrom('ping', exec, async () => {
+        if (deps.approval === undefined) {
+          throw new QuantError('CONFIG', '删除快照需要人工审核：请在组合中加入 @deepseek-ai/dsh-user-approval 插件')
+        }
+        if (exec.agent === undefined) {
+          throw new QuantError('CONFIG', '快照删除审核需要 agent 会话（approval 以回合为单位记账）')
+        }
+        const existing = deps.snapshots.get(ResultSnapshotId(args.result_id))
+        if (existing === undefined) {
+          throw new QuantError('DATA', `未找到回测快照：${args.result_id}`)
+        }
+        const snapshot = existing
+        const outcome = await deps.approval.request({
+          agent: exec.agent,
+          toolName: 'quant_delete_snapshot',
+          reason: `删除回测快照 ${snapshot.symbol} SMA(${String(snapshot.params.fast)}/${String(snapshot.params.slow)})（${String(snapshot.equity.length)} 点净值曲线，创建于 ${new Date(snapshot.created_at).toISOString()}）：${args.reason}`,
+          signal: exec.signal,
+        })
+        if (outcome !== 'allowed-once') {
+          throw new QuantError('RISK', `快照删除未获批准（${outcome}），记录保持不变`)
+        }
+        const deleted = await deleteSnapshot(deps.snapshots, args.result_id)
+        return {
+          result_id: deleted.id,
+          symbol: deleted.symbol,
+          deleted: true,
+        }
+      }) as never
+    },
+  })
+}
+
+/**
+ * Render the snapshot-delete envelope.
+ * @param value - the tool result value.
+ * @returns the rendered text blocks.
+ */
+function renderSnapshotDelete(value: unknown): { type: 'text'; text: string }[] {
+  const data = successData(value) as { symbol?: string; deleted?: boolean } | undefined
+  if (data === undefined) {
+    const failure = failureLine(value) ?? '快照删除失败'
+    return [{ type: 'text', text: `${failure}
+
+${DISCLAIMER}` }]
+  }
+  return [{ type: 'text', text: `已删除回测快照：${String(data.symbol)}
+
+${DISCLAIMER}` }]
+}
+
+/**
  * Build the cross-sectional factor-IC tool: starts one background job that
  * fetches every panel symbol's bars, aligns the shared dates, computes each
  * date's cross-sectional rank correlation between factor values and forward
@@ -1813,6 +1937,8 @@ export function registerQuantTools(ctx: Context, deps: QuantToolDeps): () => voi
     optimizeParamsTool(deps),
     walkForwardTool(deps),
     crossFactorICTool(deps),
+    snapshotListTool(deps),
+    snapshotDeleteTool(deps),
   ]
   const disposers = tools.map(tool => ctx.tools.register(tool))
   return () => {

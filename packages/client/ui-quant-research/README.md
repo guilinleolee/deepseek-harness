@@ -18,7 +18,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 - A `shell.overlay` surface renders:
   - **Virtual accounts** — one card per account (name, cash, equity) with an inline-SVG bar row of the position weights; expanding a card refetches the full state through `getAccountState` and shows the position count.
   - **Research notes** — the newest-first list (title, symbol, date) read from the `research_notes` table.
-  - **Backtest results** — one card per persisted snapshot (symbol, SMA windows, total return, max drawdown, trade count, date); expanding fetches the stored equity curve through `getEquityCurve` and draws it as an inline-SVG sparkline.
+  - **Backtest results** — one card per persisted snapshot (symbol, SMA windows, total return, max drawdown, trade count, date); expanding fetches the stored equity curve through `getEquityCurve` and draws it as an inline-SVG sparkline. Picking another snapshot from the card's compare select overlays both curves on one shared scale (`CompareLines` — two polylines, a color-keyed legend, pure `compareLinesPoints` geometry).
 
 Both registrations share one open/close controller and install for their declarations' lifetimes. The plugin mounts the core package's Remote contribution before registering the slots and registers the `quant-research` locale namespace (zh/en) for its copy.
 
@@ -42,4 +42,4 @@ Independent of live requests: the panel never touches a request prefix.
 
 - **Read-only by design** — every mutation (account creation, rebalance, note saving) goes through the model-facing tools with their own compliance and approval flows; the Remote face exposes reads only, so the panel cannot bypass the gate.
 - **Equity curves are snapshot-fed** — cards render the curve persisted at `quant_run_backtest` time (downsampled to 240 points, newest 50 runs); live jobs (optimization, walk-forward) do not snapshot, so their runs do not appear.
-- **Panel charts are static SVG** — the bar row and sparkline have no tooltips or zoom; interactive charts stay an explicit review item against bundle size.
+- **Panel charts are static SVG** — the bar row, sparkline, and comparison have no tooltips or zoom; interactive charts stay an explicit review item against bundle size.

@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import type {} from '@deepseek-ai/dsh-client-ui-quant-research/client'
 import { createPanelController } from '../src/client/panel-controller.ts'
 import { apply as nodeApply } from '../src/index.ts'
-import { BarRow, Sparkline, barGeometry, sparklinePoints } from '../src/client/charts.tsx'
+import { BarRow, CompareLines, Sparkline, barGeometry, compareLinesPoints, sparklinePoints } from '../src/client/charts.tsx'
 import { en } from '../src/client/locales.ts'
 import { QuantEntry } from '../src/client/QuantEntry.tsx'
 import { QuantPanel } from '../src/client/QuantPanel.tsx'
@@ -55,6 +55,20 @@ const curveValue: EquityCurveValue = {
   equity: [{ date: '2024-01-01', value: 100_000 }, { date: '2024-01-02', value: 102_000 }, { date: '2024-01-03', value: 105_000 }],
 }
 
+const snapshotOther: ResultSnapshotSummaryValue = {
+  result_id: 'r-2',
+  symbol: '000001',
+  params: { fast: 10, slow: 30, bars: 60, initial_cash: 100_000, fee_rate: 0.0005 },
+  metrics: { total_return: 0.12, annual_return: 0.9, max_drawdown: 0.05, sharpe: 1.5, win_rate: 0.7, trade_count: 6, final_equity: 112_000 },
+  created_at: 1_710_000_000_000,
+}
+
+const curveOther: EquityCurveValue = {
+  result_id: 'r-2',
+  symbol: '000001',
+  equity: [{ date: '2024-01-01', value: 100_000 }, { date: '2024-01-02', value: 101_000 }, { date: '2024-01-03', value: 112_000 }],
+}
+
 /** The panel's injected face with stubbed remote reads. */
 function face(
   listAccounts: () => Promise<AccountListValue>,
@@ -70,7 +84,7 @@ function face(
     listNotes,
     getAccountState: getAccountState ?? (async () => account()),
     listResultSnapshots: listResultSnapshots ?? (async () => ({ snapshots: [] })),
-    getEquityCurve: getEquityCurve ?? (async () => curveValue),
+    getEquityCurve: getEquityCurve ?? (async (ref: { result_id: string }) => ref.result_id === 'r-2' ? curveOther : curveValue),
     t: t as never,
   }
 }
@@ -377,5 +391,79 @@ describe('QuantPanel result snapshots', () => {
     await waitFor(() => expect(getEquityCurve).toHaveBeenCalledWith({ result_id: 'r-1' }))
     const chart = await waitFor(() => dialog.querySelector('svg[aria-label="000001 净值曲线"]'))
     expect(chart?.querySelector('polyline')).not.toBeNull()
+  })
+})
+
+describe('CompareLines', () => {
+  it('maps both series onto one shared scale', () => {
+    const lines = [
+      { label: 'A', values: [0, 10], color: 'blue' },
+      { label: 'B', values: [5, 5], color: 'red' },
+    ]
+    const [a, b] = compareLinesPoints(lines, 100, 50, 5)
+    // Shared y scale: union range [0,10] → A spans the full padded band.
+    expect(a?.[0]?.y).toBe(45)
+    expect(a?.[1]?.y).toBe(5)
+    expect(b?.[0]?.y).toBe(25)
+    // Both series spread over the full width.
+    expect(a?.[1]?.x).toBe(100)
+    expect(b?.[1]?.x).toBe(100)
+  })
+
+  it('renders two polylines with a legend and returns null on empty input', () => {
+    const view = render(
+      <CompareLines
+        lines={[
+          { label: 'primary', values: [1, 2, 3], color: 'blue' },
+          { label: 'other', values: [3, 2, 1], color: 'red' },
+        ]}
+        ariaLabel="comparison"
+      />,
+    )
+    const region = view.getByRole('img', { name: 'comparison' })
+    expect(region.querySelectorAll('polyline')).toHaveLength(2)
+    expect(view.getByText('primary')).toBeDefined()
+    expect(view.getByText('other')).toBeDefined()
+    view.unmount()
+    const empty = render(
+      <CompareLines lines={[{ label: 'a', values: [], color: 'blue' }, { label: 'b', values: [1], color: 'red' }]} ariaLabel="empty" />,
+    )
+    expect(empty.container.firstElementChild).toBeNull()
+    empty.unmount()
+  })
+})
+
+describe('QuantPanel snapshot comparison', () => {
+  it('expands a card, picks another snapshot, and draws both curves', async () => {
+    const props = face(
+      () => Promise.resolve(accountsValue([])),
+      () => Promise.resolve({ notes: [] }),
+      undefined,
+      () => Promise.resolve({ snapshots: [snapshotValue, snapshotOther] }),
+    )
+    const view = render(<QuantPanel {...props} />)
+    act(() => { props.panel.open() })
+    const dialog = await waitFor(() => view.getByRole('dialog'))
+    await waitFor(() => expect(dialog.textContent).toContain('000001 SMA(5/20)'))
+
+    const head = view.getAllByRole('button').find(button => button.textContent?.includes('SMA(5/20)'))
+    expect(head).toBeDefined()
+    fireEvent.click(head!)
+    const select = await waitFor(() => dialog.querySelector('select'))
+    expect(select).not.toBeNull()
+    // Before a pick: only the single sparkline, no comparison.
+    expect(dialog.querySelector('.quant-compare')).toBeNull()
+
+    act(() => { fireEvent.change(select!, { target: { value: 'r-2' } }) })
+    // The second curve fetch resolves outside act's flush; give the microtask
+    // queue one beat before polling.
+    await new Promise(resolve => setTimeout(resolve, 20))
+    const compare = await waitFor(
+      () => dialog.querySelector(`[role="img"][aria-label="000001 ${t('panel.results.compareLabel')}"]`)?.querySelectorAll('polyline'),
+      { timeout: 3000 },
+    )
+    expect(compare).not.toBeNull()
+    expect(compare).toHaveLength(2)
+    expect(dialog.textContent).toContain('SMA(10/30)')
   })
 })

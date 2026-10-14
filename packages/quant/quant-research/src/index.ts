@@ -114,7 +114,8 @@ export type { RollingWindow, RollingWindowResult, WalkForwardSplit } from './pcp
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  compareBacktestsTool, crossFactorICTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  compareBacktestsTool, crossFactorICTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool,
+  listNotesTool, snapshotDeleteTool, snapshotListTool,
   optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
   walkForwardTool,
 } from './tools.ts'

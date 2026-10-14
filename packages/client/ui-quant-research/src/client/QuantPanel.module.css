@@ -197,3 +197,30 @@
   color: var(--dsh-text-secondary, #777);
   font-variant-numeric: tabular-nums;
 }
+
+.quant-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.quant-compare-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--dsh-text-secondary, #777);
+}
+
+.quant-compare-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quant-compare-swatch {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
