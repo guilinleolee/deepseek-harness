@@ -165,7 +165,10 @@ export function resolveKernelScriptPath(
 export async function apply(ctx: Context, config?: Config): Promise<() => Promise<void>> {
   const resolved = resolveConfig(config, { platform: process.platform, dshHome: defaultDshHome() })
   const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
-  const serviceFiber = await ctx.plugin(QuantResearchService).await()
+  // The Remote-face service shares the plugin body's domain handle: the
+  // storage-domain facility is single-open per name, and the tool layer and
+  // the Remote reads must observe one facility instance.
+  const serviceFiber = await ctx.plugin(QuantResearchService, domain).await()
   const runtimeFiber = await ctx.plugin({
     name: 'quant-research:runtime',
     inject: ['tools', 'approval'],

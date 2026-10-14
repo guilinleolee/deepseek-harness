@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import {
-  CallId,
+  ToolCallId,
   LlmAdapter,
   ReasoningEffortId,
   type GenerateOptions,
@@ -38,15 +38,16 @@ class QuantMockAdapter extends LlmAdapter {
 
   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.rounds += 1
-    const toolResult = options.messages.at(-1)?.content.find(block => block.type === 'tool-result')
+    const last = options.messages.at(-1)
+    const toolResult = last?.role === 'tool' ? last : undefined
     const step = toolResult === undefined
       ? SCRIPT[0]
       : SCRIPT[this.rounds - 1]
     if (step !== undefined) {
       const args = JSON.stringify(step.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-      yield { type: 'tool-call-delta', index: 0, id: CallId(`quant-mock-${String(this.rounds)}`), name: step.name, argumentsDelta: args }
-      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId(`quant-mock-${String(this.rounds)}`), name: step.name, arguments: args } }
+      yield { type: 'tool-call-delta', index: 0, id: ToolCallId(`quant-mock-${String(this.rounds)}`), name: step.name, argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: ToolCallId(`quant-mock-${String(this.rounds)}`), name: step.name, arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 11, outputTokens: 3, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return

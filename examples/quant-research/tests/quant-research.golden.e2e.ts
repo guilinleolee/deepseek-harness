@@ -111,5 +111,23 @@ describe('quant-research keyless snapshot', () => {
     expect(String(wfCheck?.jobText)).toContain('过拟合差距')
     expect(String(wfCheck?.jobText)).toContain('仅供研究参考')
     expect(String(wfCheck?.deniedText)).toContain('train_ratio')
+
+    // The driver-phase cross-sectional IC round: one real background job over
+    // a two-symbol panel through the cross_section_ic kernel op, plus one
+    // panel-cap denial and the snapshot lifecycle read.
+    const icCheck = records.find(record => record.type === 'quant-cross-ic-check')
+    expect(icCheck).toBeDefined()
+    expect(icCheck?.code).toBe(0)
+    expect(icCheck?.horizon).toBe(5)
+    expect(String(icCheck?.jobId)).toMatch(/^quant-cross-ic-\d+$/)
+    expect(String(icCheck?.startText)).toContain('面板：000001、600519')
+    expect(String(icCheck?.jobText)).toContain('[status: completed')
+    expect(String(icCheck?.jobText)).toContain('# 横截面 IC 评估：momentum')
+    expect(String(icCheck?.jobText)).toContain('分窗稳定性')
+    expect(String(icCheck?.jobText)).toContain('仅供研究参考')
+    expect(String(icCheck?.deniedText)).toContain('合规硬上限')
+    // The snapshot lifecycle: the list shows the rounds' persisted results.
+    expect(String(icCheck?.snapshotListText)).toContain('000001')
+    expect(String(icCheck?.snapshotListText)).toContain('SMA(')
   }, 180_000)
 })
