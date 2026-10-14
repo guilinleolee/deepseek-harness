@@ -25,6 +25,29 @@ describe('parsePersonaFieldsOutput', () => {
     expect(fields).toEqual({ audience: '25-40 岁职场人群' })
   })
 
+  it('drops short no-basis placeholders the model emitted despite the contract', () => {
+    const fields = parsePersonaFieldsOutput(JSON.stringify({
+      audience: '无依据可推断',
+      niche: '没有依据，无法推断',
+      goal: '帮中小企业把官网流量变成询盘',
+      monetize: '靠课程和咨询服务变现',
+    }), ['audience', 'niche', 'goal', 'monetize'])
+    expect(fields).toEqual({ goal: '帮中小企业把官网流量变成询盘', monetize: '靠课程和咨询服务变现' })
+  })
+
+  it('resolves Chinese-label keys the model emits despite the English-key instruction', () => {
+    const fields = parsePersonaFieldsOutput(JSON.stringify({
+      '核心目标': '帮中小企业把官网流量变成询盘',
+      'monetize': '靠课程和咨询服务变现',
+      '更新节奏': '每周 3 条',
+    }), ['goal', 'monetize', 'cadence'])
+    expect(fields).toEqual({
+      goal: '帮中小企业把官网流量变成询盘',
+      monetize: '靠课程和咨询服务变现',
+      cadence: '每周 3 条',
+    })
+  })
+
   it('caps one value at 2000 characters and rejects non-JSON output', () => {
     const long = parsePersonaFieldsOutput(JSON.stringify({ goal: '长'.repeat(3000) }), ['goal'])
     expect(long.goal).toHaveLength(2000)
@@ -121,6 +144,22 @@ describe('PersonaAiProcessor', () => {
     expect(streamMock).toHaveBeenCalledWith(
       expect.anything(), expect.objectContaining({ provider: 'deepseek' }), expect.stringContaining('画像助手'),
       expect.stringContaining('前大厂工程师'), PERSONA_AI_TIMEOUT_CODE,
+    )
+  })
+
+  it('passes the raw reference material into the fill frame when context is given', async () => {
+    streamMock.mockResolvedValue('{}')
+    const processor = new PersonaAiProcessor({} as never, {})
+    await processor.process({
+      operation: 'fill',
+      known: {},
+      blanks: ['audience'],
+      context: '官网正文：我们是一家做保温杯的工厂',
+    })
+    expect(streamMock).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.anything(),
+      expect.stringContaining('参考资料（官网/主页/简历原文节选）：\n官网正文：我们是一家做保温杯的工厂'),
+      PERSONA_AI_TIMEOUT_CODE,
     )
   })
 
@@ -241,9 +280,9 @@ describe('PersonaAiProcessor', () => {
     const blank = (async () => new Response('<html><body><script>x()</script></body></html>')) as typeof fetch
     const blind = new PersonaAiProcessor({} as never, {}, { fetchImpl: blank })
     await expect(blind.process({ operation: 'social', links: [{ platform: 'xhs', url: 'https://xhs.example' }] }))
-      .rejects.toThrow('no readable homepage content')
-    await expect(processor.process({ operation: 'social', links: [] })).rejects.toThrow('no links to analyze')
-    await expect(processor.process({ operation: 'social', links: [{ platform: 'xhs', url: '   ' }] })).rejects.toThrow('no links to analyze')
+      .rejects.toThrow('未抓到可读正文')
+    await expect(processor.process({ operation: 'social', links: [] })).rejects.toThrow('no profiles or links to analyze')
+    await expect(processor.process({ operation: 'social', links: [{ platform: 'xhs', url: '   ' }] })).rejects.toThrow('no profiles or links to analyze')
   })
 
   it('generates the report markdown with the report prompt version', async () => {

@@ -7203,6 +7203,9 @@ importers:
       feedsmith:
         specifier: ^3.0.0
         version: 3.0.1
+      nodemailer:
+        specifier: ^7.0.0
+        version: 7.0.13
       normalize-url:
         specifier: ^9.0.1
         version: 9.0.1
@@ -7212,6 +7215,9 @@ importers:
       p-retry:
         specifier: ^8.0.1
         version: 8.0.1
+      playwright:
+        specifier: ^1.61.1
+        version: 1.61.1
       sanitize-html:
         specifier: ^2.17.7
         version: 2.18.0
@@ -7237,6 +7243,9 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+      '@types/nodemailer':
+        specifier: ^7.0.0
+        version: 7.0.12
       '@types/sanitize-html':
         specifier: ^2.16.1
         version: 2.16.2
@@ -18885,6 +18894,9 @@ packages:
   '@types/node@26.4.1':
     resolution: {integrity: sha512-k97ENvZWtvA6yqz5/FS6a7duDgOPEeOQOc2iKS/nY6mX6qJUKtLnWzQS+Xj6tXweyj6ZcTAK2Qecetnvi9nCLA==}
 
+  '@types/nodemailer@7.0.12':
+    resolution: {integrity: sha512-80vKwiIsVSyFA1rRovH59jNPLBOuc6dRZIHEu40gXTkBkZnQv8vog1xSGEb9j5q/tdMAs5ivvDR2pLTU0hGHXA==}
+
   '@types/papaparse@5.5.2':
     resolution: {integrity: sha512-gFnFp/JMzLHCwRf7tQHrNnfhN4eYBVYYI897CGX4MY1tzY9l2aLkVyx2IlKZ/SAqDbB3I1AOZW5gTMGGsqWliA==}
 
@@ -21866,6 +21878,10 @@ packages:
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
+
+  nodemailer@7.0.13:
+    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
+    engines: {node: '>=6.0.0'}
 
   non-layered-tidy-tree-layout@2.0.2:
     resolution: {integrity: sha512-gkXMxRzUH+PB0ax9dUN0yYF0S25BqeAYqhgMaLUFmpXLEk7Fcu8f4emJuOAY0V8kjDICxROIKsTAKsV/v355xw==}
@@ -26218,6 +26234,10 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
+  '@types/nodemailer@7.0.12':
+    dependencies:
+      '@types/node': 26.4.1
+
   '@types/papaparse@5.5.2':
     dependencies:
       '@types/node': 22.20.1
@@ -29677,6 +29697,8 @@ snapshots:
       node-addon-api: 7.1.1
 
   node-releases@2.0.51: {}
+
+  nodemailer@7.0.13: {}
 
   non-layered-tidy-tree-layout@2.0.2:
     optional: true

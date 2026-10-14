@@ -12,7 +12,7 @@ import {
 import {
   PERSONA_FIELD_KEYS, PERSONA_FIELD_LABELS, PERSONA_PLATFORMS, PERSONA_PLATFORM_LABELS,
   PERSONA_STYLE_PRESETS, PERSONA_STYLE_PRESET_LABELS,
-  adoptField, emptyForm, formFromEntry, inputFromForm, parseWordList,
+  adoptField, emptyForm, formFromEntry, inputFromForm, joinIntents, parseIntents, parseWordList, SOCIAL_PLATFORMS,
 } from '../src/client/persona/model.ts'
 
 function entry(): PersonaEntry {
@@ -39,7 +39,7 @@ function entry(): PersonaEntry {
 }
 
 describe('the client and gateway vocabulary tables stay in sync', () => {
-  it('carries the same platforms, fields, and presets as the wire contract', () => {
+  it('carries the same platforms, fields, and presets as the wire contract', async () => {
     // The bundle purity gate forbids value-importing the gateway tables in
     // client code, so the two tables drift apart silently unless pinned here.
     expect([...PERSONA_PLATFORMS]).toEqual([...GATEWAY_PLATFORMS])
@@ -48,6 +48,9 @@ describe('the client and gateway vocabulary tables stay in sync', () => {
     expect(PERSONA_FIELD_LABELS).toEqual(GATEWAY_FIELD_LABELS)
     expect([...PERSONA_STYLE_PRESETS]).toEqual([...GATEWAY_PRESETS])
     expect(PERSONA_STYLE_PRESET_LABELS).toEqual(GATEWAY_PRESET_LABELS)
+    // The social-capture platform set is the client copy of the wire subset.
+    const { SOCIAL_PLATFORMS: GATEWAY_SOCIAL } = (await import('@deepseek-ai/dsh-content-outputs/types')) as { SOCIAL_PLATFORMS: readonly string[] }
+    expect([...SOCIAL_PLATFORMS]).toEqual([...GATEWAY_SOCIAL])
   })
 })
 
@@ -107,6 +110,38 @@ describe('inputFromForm', () => {
     const form = formFromEntry(entry())
     form.bannedWordsText = '最好；第一'
     expect(inputFromForm(form).style.bannedWords).toEqual(['最好', '第一'])
+  })
+
+  it('drops links without a url — the step-2 list renders a row per platform and blank rows are not links', () => {
+    const form = emptyForm()
+    form.links = [
+      { platform: 'xhs', url: '  ', bio: null, sampleText: null },
+      { platform: 'douyin', url: 'https://d.example', bio: '保留', sampleText: null },
+    ]
+    expect(inputFromForm(form).links).toEqual([{ platform: 'douyin', url: 'https://d.example', bio: '保留', sampleText: null }])
+  })
+})
+
+describe('parseIntents and joinIntents', () => {
+  const options = ['带货转化', '引流到店']
+
+  it('splits a stored value into preset selections and the custom remainder', () => {
+    expect(parseIntents('带货转化；引流到店；加盟咨询', options)).toEqual({ selected: ['带货转化', '引流到店'], custom: '加盟咨询' })
+    // Selections report in preset order even when the value lists them differently.
+    expect(parseIntents('引流到店、带货转化', options).selected).toEqual(['带货转化', '引流到店'])
+    // A hand-written or AI-inferred value without preset matches stays fully custom.
+    expect(parseIntents('3 个月做到 1 万粉', options)).toEqual({ selected: [], custom: '3 个月做到 1 万粉' })
+    expect(parseIntents('', options)).toEqual({ selected: [], custom: '' })
+  })
+
+  it('joins selections and the custom remainder, dropping empty pieces', () => {
+    expect(joinIntents(['带货转化', '引流到店'], '加盟咨询')).toBe('带货转化；引流到店；加盟咨询')
+    expect(joinIntents([], '  ')).toBe('')
+    expect(joinIntents(['带货转化'], '')).toBe('带货转化')
+    // Round trip: parse then join with no changes is the identity.
+    const value = '带货转化；加盟咨询'
+    const parsed = parseIntents(value, options)
+    expect(joinIntents(parsed.selected, parsed.custom)).toBe(value)
   })
 })
 

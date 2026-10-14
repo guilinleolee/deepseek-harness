@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import {
-  IconChevronDownOutline14, IconPlusOutline16, useDismissOnOutsidePointer,
+  IconChevronDownOutlineRegular, IconPlusOutlineRegular, useDismissOnOutsidePointer,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './ContentStudio.module.css'
@@ -61,7 +61,7 @@ export function AccountSelect({ account, accounts, onSelect, onAdd, t }: Account
         onClick={() => { setOpen(!open) }}
       >
         <span className={css.accountName}>{account}</span>
-        <IconChevronDownOutline14 size={14} />
+        <IconChevronDownOutlineRegular size={14} />
       </button>
       {open && (
         <div className={css.accountList} role="listbox" aria-label={t('account.label')}>
@@ -98,7 +98,7 @@ export function AccountSelect({ account, accounts, onSelect, onAdd, t }: Account
             )
             : (
               <button type="button" className={css.accountOption} onClick={() => { setCreating(true) }}>
-                <IconPlusOutline16 size={12} />
+                <IconPlusOutlineRegular size={12} />
                 {t('account.new')}
               </button>
             )}

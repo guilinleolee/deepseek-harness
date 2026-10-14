@@ -123,7 +123,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   const workbench = await ctx.plugin({
     name: 'ui-content-studio:workbench',
     inject: ['slots', 'locale', 'remote', 'remote.contentOutputs', 'remote.contentSchedule', 'remote.contentTopics'],
-    apply: workbenchCtx => mainApply(workbenchCtx),
+    apply: (workbenchCtx) =>{  mainApply(workbenchCtx) },
   })
 
   return async () => {
@@ -258,8 +258,26 @@ function mainApply(ctx: Context): void {
         const result = await unwrap('contentOutputs.processPersonaAi', ctx.remote.contentOutputs.processPersonaAi(request))
         return result as Extract<PersonaAiResult, { readonly operation: T['operation'] }>
       },
+      socialStatuses: () => unwrap('contentOutputs.socialStatuses', ctx.remote.contentOutputs.socialStatuses()),
+      socialStartLogin: platform => unwrap('contentOutputs.socialStartLogin', ctx.remote.contentOutputs.socialStartLogin(platform)),
+      socialCapture: (platform, url) => unwrap('contentOutputs.socialCapture', ctx.remote.contentOutputs.socialCapture(platform, url)),
+      socialForget: platform => unwrap('contentOutputs.socialForget', ctx.remote.contentOutputs.socialForget(platform)),
+      socialVerify: platform => unwrap('contentOutputs.socialVerify', ctx.remote.contentOutputs.socialVerify(platform)),
     },
   })
+  // The sentiment faces: the 舆情 view's task/mention/alert store plus the
+  // scan engine, unwrap-wrapped like every other contentOutputs Remote call.
+  const sentimentGateway: ContentStudioInjected['sentiment'] = {
+    getSentiment: () => unwrap('contentOutputs.getSentiment', ctx.remote.contentOutputs.getSentiment()),
+    putSentimentTask: input => unwrap('contentOutputs.putSentimentTask', ctx.remote.contentOutputs.putSentimentTask(input)),
+    deleteSentimentTask: id => unwrap('contentOutputs.deleteSentimentTask', ctx.remote.contentOutputs.deleteSentimentTask(id)),
+    setSentimentTaskEnabled: (id, enabled) => unwrap('contentOutputs.setSentimentTaskEnabled', ctx.remote.contentOutputs.setSentimentTaskEnabled(id, enabled)),
+    putSentimentSettings: settings => unwrap('contentOutputs.putSentimentSettings', ctx.remote.contentOutputs.putSentimentSettings(settings)),
+    scanSentiment: () => unwrap('contentOutputs.scanSentiment', ctx.remote.contentOutputs.scanSentiment()),
+    handleSentimentAlert: id => unwrap('contentOutputs.handleSentimentAlert', ctx.remote.contentOutputs.handleSentimentAlert(id)),
+    sentimentStats: () => unwrap('contentOutputs.sentimentStats', ctx.remote.contentOutputs.sentimentStats()),
+    generateSentimentReport: () => unwrap('contentOutputs.generateSentimentReport', ctx.remote.contentOutputs.generateSentimentReport()),
+  }
   const competitors: ContentStudioInjected['competitors'] = {
     // The benchmark side's 收录为选题 rides the shared topic-bank face.
     topics,
@@ -383,7 +401,8 @@ function mainApply(ctx: Context): void {
       order: 50,
       locale: NS,
       inject: () => ({
-        studio, listOutputs, gather, schedule, notes, competitors, create, personas, listThemes,
+        studio, listOutputs, gather, schedule, notes, competitors, create, personas, sentiment: sentimentGateway, listThemes,
+        sentimentRead: { getSentiment: sentimentGateway.getSentiment, sentimentStats: sentimentGateway.sentimentStats },
         topics, writeExport, publish, review, interaction, readInteractions, readReviewManifest,
         templates,
       }),

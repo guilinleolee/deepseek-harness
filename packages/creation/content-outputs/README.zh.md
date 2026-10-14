@@ -18,13 +18,22 @@ gather 的全部存储都位于 `outputs/<主题>/assets/` 下：`_gather.json` 
 
 保留策略：每源每主题保留最近 50 条 `unread`/`read` 素材；`favorite` 与 `picked` 标记及其快照永不自动清理。
 
+## 舆情面
+
+舆情监测的存储是根级一个 `_sentiment.json` 清单（任务、提及、告警、设置与最新一份报告；`formatVersion 0`），沿用画像清单规则：坏记录具名进 `problems` 且绝不隐藏其余记录，写入拒绝触碰当前解析已丢记录的文件。
+
+- `getSentiment` 返回投影（含存量报告）加单槽 `scanning` 标志与最近一次扫描摘要；`putSentimentTask` / `deleteSentimentTask`（级联删除该任务的提及与告警）/ `setSentimentTaskEnabled` 管理任务；`putSentimentSettings` 整体替换设置块（域名与账号黑名单、阈值、保留天数、推送总开关、webhook 地址、SMTP 传输字段）；`handleSentimentAlert` 标记一条告警已处理。
+- `scanSentiment` 按每个启用任务的 `sources` 标志跑完整管线：RSS 源经共享 gather 抓取器（每源 30 条上限、关键词组过滤），勾选时另按任务第一个监控主体抓一页微博访客搜索与一页 B 站 wbi 签名热搜（均为匿名公开 web 端点；主体搜索即检索过滤，社媒提及跳过关键词组但走同一两级分类、域名黑名单与针对作者的账号黑名单）。负面按任务+日聚合为告警行，热度对照配置阈值定 1–4 级；任何适配器在失败下降级为空页，被挡的源不能使扫描失败。去重按任务+URL，保留窗口与 5000 条硬上限在每次追加时裁剪，并发扫描立即拒绝。落盘后若推送开关开启，向每个已配置渠道各发一条汇总——钉钉与企业微信群机器人（纯 JSON 文本协议），以及收件人/主机/密码齐备时经 nodemailer 发一封邮件（465 隐式 TLS，其余 STARTTLS）；渠道失败仅记日志——告警已存储，推送尽力而为。
+- `sentimentStats` 计算看板投影：总数、各极性计数、14 天趋势、平台 TOP 榜。
+- `generateSentimentReport` 把存量状态（统计、任务名、平台分布、最新 10 条告警与 40 行提及，12k 字符上限）框进固定五节提示词的一次模型调用（`sentiment-report@1`）；模型任何失败都落确定性的数据版降级模板而非报错，清单只保留最新一份报告。
+
 ## Model Experience
 
 ### 显式一次性 AI Remote
 
 #### What the model sees
 
-每次用户点击恰好组装一个框架化请求，走共享 `llm` 服务：素材处理、创作生成/改写/评估、对标拆解与报告、画像补全/简历解析/官网解析/社媒主页解析/报告、发布适配、复盘诊断与周期报告、模板生成/优化/提炼，以及互动回复草稿、语气/诉求识别与洞察提取。提示词是按面版本化的网关冻结常量（`processMaterial`、`generateCreateContent`、`analyzeCompetitorWork`），输入按配置字符上限截断，JSON 契约面严格解析并逐字段记入 problems；失败或限流的调用向调用方报错，绝不阻塞文件操作。
+每次用户点击恰好组装一个框架化请求，走共享 `llm` 服务：素材处理、创作生成/改写/评估、对标拆解与报告、画像补全/简历解析/官网解析/社媒主页解析/报告、发布适配、复盘诊断与周期报告、模板生成/优化/提炼，以及互动回复草稿、语气/诉求识别与洞察提取、舆情扫描的批量情感精析。提示词是按面版本化的网关冻结常量（`processMaterial`、`generateCreateContent`、`analyzeCompetitorWork`），输入按配置字符上限截断，JSON 契约面严格解析并逐字段记入 problems；失败或限流的调用向调用方报错，绝不阻塞文件操作。
 
 #### Token effect
 
