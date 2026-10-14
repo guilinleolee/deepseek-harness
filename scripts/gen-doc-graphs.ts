@@ -899,6 +899,22 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Reads the dragon-assets index snapshots into a searchable asset registry; consumers own any model-facing projection.',
   },
   {
+    key: 'customerAcquisition',
+    pkg: 'growth/customer-acquisition',
+    title: 'Customer acquisition domain and panel Remotes',
+    mode: 'service',
+    consumers: ['ui-content-studio', 'ui-customer-acquisition'],
+    note: 'Owns the acquisition domain (leads, scoring, content, SOP) and serves the dashboard, settings, and audit Remotes the browser panels read.',
+  },
+  {
+    key: 'geoDiagnosis',
+    pkg: 'growth/customer-acquisition-geo',
+    title: 'GEO website diagnosis',
+    mode: 'service',
+    consumers: ['ui-customer-acquisition'],
+    note: 'Runs bounded website scans and serves the history, report, and comparison Remotes behind the GEO diagnosis panel.',
+  },
+  {
     key: 'dragonBridge',
     pkg: 'dragon-bridge',
     title: 'Dragon asset cross-kind bridge',
