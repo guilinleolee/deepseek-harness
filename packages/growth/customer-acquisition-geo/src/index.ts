@@ -36,7 +36,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** Services required before the plugin body runs. */
-export const inject = ['storageDomain', 'tools', 'customerAcquisition', 'web'] as const
+export const inject = ['storageDomain', 'tools', 'customerAcquisition', 'web']
 
 /**
  * The denial auditor: warn-and-continue when the audit write fails — a failed

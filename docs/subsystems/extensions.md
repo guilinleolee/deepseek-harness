@@ -12,6 +12,45 @@ The extensions subsystem lets an agent define versioned Cordis packages, run the
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxagentroster--agentroster"></a>
+
+### `ctx.agentRoster` — `AgentRoster`
+
+Read-only registry over the `dragon-assets/agents/` source markdowns.
+
+One service instance owns one snapshot; call `loadAll()` after upstream mirror changes to refresh.
+
+```ts cordis-catalog
+/**
+ * Walk the `agents/` mirror and parse every markdown file into a role.
+ * @returns the loaded roster, sorted by numeric prefix then id.
+ */
+async loadAll(): Promise<readonly AgentRole[]>
+
+/**
+ * Filter the cached roster.
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching roles, sorted as the source roster declared them.
+ */
+search(query: RoleSearchQuery = {}): readonly AgentRole[]
+
+/**
+ * Exact-id lookup against the cached roster.
+ * @param id - the role identifier (without `.md`).
+ * @returns the matching role, or `undefined` if none.
+ */
+get(id: AgentId): AgentRole | undefined
+
+/**
+ * Return every role belonging to one family bucket.
+ * @param family - the family bucket to filter by.
+ * @returns the roles in that family, in roster order.
+ */
+byFamily(family: AgentFamily): readonly AgentRole[]
+```
+
+Source: [`packages/experimental/agent-roster/src/index.ts`](../../packages/experimental/agent-roster/src/index.ts)
+
 <a id="ctxcordisinspect--cordisinspectregistryservice"></a>
 
 ### `ctx.cordisInspect` — `CordisInspectRegistryService`
@@ -64,6 +103,263 @@ resolveClientQuery( agent: Agent, requestId: CordisInspectRequestId, resolution:
 Types: [Agent](core.md)
 
 Source: [`packages/extensions/cordis-host-runner/src/inspect-registry.ts`](../../packages/extensions/cordis-host-runner/src/inspect-registry.ts)
+
+<a id="ctxcustomeracquisition--customeracquisitionservice"></a>
+
+### `ctx.customerAcquisition` — `CustomerAcquisitionService`
+
+Storage-backed customer-acquisition service. The domain opens once at service init and closes with the owning fiber; every read is synchronous from memory, every write durable-first.
+
+```ts cordis-catalog
+/**
+ * Authoritative audit handle, valid after init; a miss is a broken lifecycle.
+ * @returns the audit log table.
+ */
+requireAuditTable(): AuditTable
+
+/**
+ * Authoritative domain, valid after init; a miss is a broken lifecycle.
+ * Open to the P1 module services (lead ledger, scoring), which borrow the
+ * domain's tables — the P0 service stays its single owner and closer.
+ * @returns the durable customer-acquisition domain.
+ */
+requireDomain(): Domain<typeof customerAcquisitionDomainSpec>
+
+/**
+ * Current settings, projected to the exact-optional wire shape.
+ * @returns the stored settings as the wire value.
+ */
+getSettings(): SettingsValue
+
+/**
+ * Merge a partial settings update, validate referenced templates exist,
+ * persist, and audit. Referencing an unknown profile or template fails
+ * loud with a friendly error instead of storing a dangling id.
+ * @param patch - fields to change; omitted fields keep their value.
+ * @param operator - the caller's resolved operator.
+ * @param channel - which surface performed the write.
+ * @returns the settings after the write.
+ */
+async updateSettings( patch: SettingsPatchInput, operator: ResolvedOperator, channel: OperatorChannel, ): Promise<SettingsValue>
+
+/**
+ * Filter the audit log for list and export faces.
+ * @param request - filters plus paging bounds.
+ * @returns the matching page, newest first, with the unfiltered total.
+ */
+listAudit(request: AuditListRequest): AuditListValue
+
+/**
+ * All audit records matching the filter, unpaged — the export face.
+ * @param filter - filters without paging bounds.
+ * @returns every matching record, newest first.
+ */
+exportAudit(filter: Omit<AuditListRequest, 'limit' | 'offset'>): AuditListValue['items']
+
+/**
+ * Read face for the browser panel.
+ * @returns the settings snapshot wire value.
+ */
+@Remote('getSettings') getSettingsRemote(): Promise<SettingsSnapshotValue>
+
+/**
+ * Write face for the browser panel; resolves the web operator per call.
+ * @param patch - partial settings update.
+ * @returns the settings snapshot after the write.
+ */
+@Remote('updateSettings') async updateSettingsRemote(patch: SettingsPatchInput): Promise<SettingsSnapshotValue>
+
+/**
+ * Audit read face for the browser panel.
+ * @param request - list window and filters.
+ * @returns the audit log page.
+ */
+@Remote('listAuditLogs') async listAuditLogs(request: AuditListRequest): Promise<AuditListValue>
+
+/**
+ * Dashboard read face: the seven overview metrics through the same
+ * aggregation the model tool serves. Resolves the web operator per call so
+ * `lead_scope=own` panels never see another operator's leads.
+ * @param request - the metric window and grouping.
+ * @returns the seven overview metrics.
+ */
+@Remote('getOverview') async getOverviewRemote(request: OverviewRequest): Promise<OverviewValue>
+
+/**
+ * Lead list read face; the ledger's list scope applies unchanged.
+ * @param request - optional lead-id filter and paging.
+ * @returns the visible lead reference page.
+ */
+@Remote('listLeads') async listLeadsRemote(request?: LeadListRequest): Promise<LeadListValue>
+
+/**
+ * Score-run history read face across the operator's visible leads, newest first.
+ * @param request - optional lead-id filter and row cap (default 20).
+ * @returns the score-run page.
+ */
+@Remote('listScoreRuns') async listScoreRunsRemote(request?: { lead_id?: string; limit?: number }): Promise<{ items: ScoreRun[]; total: number }>
+
+/**
+ * ICP profile read face for the scoring page.
+ * @param enabled_only - drop disabled profiles when true.
+ * @returns the visible ICP profiles.
+ */
+@Remote('listIcpProfiles') async listIcpProfilesRemote(enabled_only?: boolean): Promise<IcpProfileValue[]>
+
+/**
+ * Score-template read face for the scoring page.
+ * @param enabled_only - drop disabled templates when true.
+ * @returns the visible score templates.
+ */
+@Remote('listScoreTemplates') async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ScoreTemplateValue[]>
+
+/**
+ * GEO scan-history read face: every scan joined with its report's score.
+ * @param limit - optional row cap on the returned items.
+ * @returns the scan history page.
+ */
+@Remote('listGeoScans') async listGeoScansRemote(limit?: number): Promise<GeoScanListValue>
+
+/**
+ * One full GEO report for the diagnosis page.
+ * @param reportId - the report to load.
+ * @returns the stored GEO report.
+ */
+@Remote('getGeoReport') getGeoReportRemote(reportId: string): Promise<GeoReport>
+
+/**
+ * Generated-copy read face across the operator's visible leads, newest first.
+ * @param request - optional lead-id filter and row cap (default 20).
+ * @returns the generated-content page.
+ */
+@Remote('listGeneratedContents') async listGeneratedContentsRemote( request?: { lead_id?: string; limit?: number }, ): Promise<{ items: GeneratedContent[]; total: number }>
+
+/**
+ * Copy-template read face for the templates page.
+ * @param filters - optional type and enabled-only filters.
+ * @returns the matching copy templates.
+ */
+@Remote('listContentTemplates') async listContentTemplatesRemote(filters?: { type?: string; enabled_only?: boolean }): Promise<ContentTemplate[]>
+
+/**
+ * SOP task read face; the service's lead-visibility scope applies unchanged.
+ * @param request - optional lead-id, status, and paging filters.
+ * @returns the SOP task page.
+ */
+@Remote('listSopTasks') async listSopTasksRemote( request?: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number }, ): Promise<{ items: SopTask[]; total: number }>
+
+/**
+ * SOP-template read face for the templates page.
+ * @param enabled_only - drop disabled templates when true.
+ * @returns the visible SOP templates.
+ */
+@Remote('listSopTemplates') async listSopTemplatesRemote(enabled_only?: boolean): Promise<SopTemplate[]>
+
+/**
+ * Record one compliance denial (red lines 1-3 enforcement, red line 6
+ * coverage). The operator resolves best-effort: a denial must be recorded
+ * even when the caller carried no agent identity.
+ * @param toolName - the denied tool.
+ * @param reason - the friendly denial reason.
+ * @param request - the operator reference when known.
+ * @returns resolution after the audit record is durable.
+ */
+async recordComplianceDeny( toolName: string, reason: string, request: OperatorRequest, ): Promise<void>
+```
+
+Types: [Domain](storage.md)
+
+Source: [`packages/growth/customer-acquisition/src/service.ts`](../../packages/growth/customer-acquisition/src/service.ts)
+
+<a id="ctxdragonbridge--dragonbridge"></a>
+
+### `ctx.dragonBridge` — `DragonBridge`
+
+Facade that joins the index, roster, and policy services.
+
+The bridge does not own disk state; it depends on its sibling packages for I/O and classification. Its only state is a cached asset list rebuilt by `loadAll()`.
+
+```ts cordis-catalog
+/**
+ * Refresh every upstream service and rebuild the cross-kind asset list.
+ *
+ * Skill and command / hook / plugin assets come from `ctx.dragonIndex`;
+ * agent assets come from `ctx.agentRoster`. Each entry is classified by
+ * `ctx.licensePolicy`.
+ * @returns the rebuilt asset list, in load order.
+ */
+async loadAll(): Promise<readonly DragonAsset[]>
+
+/**
+ * Filter the cached asset list.
+ *
+ * `safeOnly` (constructor flag) drops `artifact-only` and `reject` entries
+ * from the default result set; explicit `decision` overrides it.
+ *
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching assets, in the source-declared order.
+ */
+search(query: BridgeSearchQuery = {}): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `allow`.
+ * @returns the matching assets, in load order.
+ */
+allowed(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `attribute`.
+ * @returns the matching assets, in load order.
+ */
+attributed(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `artifact-only`.
+ * @returns the matching assets, in load order.
+ */
+artifactOnly(): readonly DragonAsset[]
+
+/**
+ * Return every asset the policy resolves to `reject`.
+ * @returns the matching assets, in load order.
+ */
+rejected(): readonly DragonAsset[]
+```
+
+Source: [`packages/experimental/dragon-bridge/src/index.ts`](../../packages/experimental/dragon-bridge/src/index.ts)
+
+<a id="ctxdragonindex--dragonassetindex"></a>
+
+### `ctx.dragonIndex` — `DragonAssetIndex`
+
+Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.
+
+One service instance owns one snapshot. Callers can refresh the snapshot by calling `loadAll()` again; the registry exposes the current snapshot via the `snapshot` accessor.
+
+```ts cordis-catalog
+/**
+ * Read every jsonl file into one snapshot and cache it.
+ * @returns the loaded snapshot.
+ */
+async loadAll(): Promise<IndexSnapshot>
+
+/**
+ * Filter the cached snapshot.
+ * @param query - filter criteria; missing fields do not restrict.
+ * @returns matching entries, ordered as the source jsonl declared them.
+ */
+search(query: SearchQuery = {}): readonly AssetIndexEntry[]
+
+/**
+ * Exact-id lookup against the cached snapshot.
+ * @param id - the asset identifier to resolve.
+ * @param kind - optional kind disambiguator; omitted matches the first entry of any kind.
+ * @returns the matching entry, or `undefined` if none.
+ */
+get(id: string, kind?: AssetKind): AssetIndexEntry | undefined
+```
+
+Source: [`packages/experimental/skill-index/src/index.ts`](../../packages/experimental/skill-index/src/index.ts)
 
 <a id="ctxdynamiccordisrunner--dynamiccordisrunnerservice"></a>
 
@@ -258,6 +554,51 @@ Types: [Agent](core.md)
 
 Source: [`packages/extensions/cordis-host-runner/src/index.ts`](../../packages/extensions/cordis-host-runner/src/index.ts)
 
+<a id="ctxgeodiagnosis--geodiagnosisservice"></a>
+
+### `ctx.geoDiagnosis` — `GeoDiagnosisService`
+
+Storage-backed GEO diagnosis service. The domain comes from the main plugin's service; the web capability performs every fetch.
+
+```ts cordis-catalog
+/**
+ * Run one bounded serial scan: record the running scan, crawl the seed's
+ * origin, analyze, persist the report, and close the scan. Fetch failures
+ * on individual pages degrade the report; a total failure marks the scan
+ * `failed` and rethrows friendly.
+ * @param input - the gated scan input (URL, optional page cap).
+ * @param operator - the caller's resolved operator, for the audit write.
+ * @returns the canonical scan value.
+ */
+async runScan(input: ScanInput, operator: ResolvedOperator): Promise<GeoScanValue>
+
+/**
+ * List scans joined with their reports, newest first, optionally filtered
+ * by URL prefix and time window.
+ * @param request - filters plus paging bounds.
+ * @returns the matching page with the unfiltered total.
+ */
+listHistory(request: GeoHistoryRequest): { items: GeoHistoryItem[]; total: number }
+
+/**
+ * Read one full report with its scan's URL.
+ * @param reportId - the report id.
+ * @returns the projected report.
+ */
+getReport(reportId: string): GeoReportValue
+
+/**
+ * Compare two reports of the same site: score movement, resolved and newly
+ * introduced shortcomings, and a Markdown summary.
+ * @param reportAId - the baseline report id.
+ * @param reportBId - the comparison report id.
+ * @returns the comparison value.
+ */
+compareReports(reportAId: string, reportBId: string): GeoCompareValue
+```
+
+Source: [`packages/growth/customer-acquisition-geo/src/service.ts`](../../packages/growth/customer-acquisition-geo/src/service.ts)
+
 <a id="ctxinspector--inspectorservice"></a>
 
 ### `ctx.inspector` — `InspectorService`
@@ -275,6 +616,53 @@ publish(topic: string, payload: InspectorJsonValue, monotonicMs?: number): void
 ```
 
 Source: [`packages/experimental/inspector/src/index.ts`](../../packages/experimental/inspector/src/index.ts)
+
+<a id="ctxlicensepolicy--licensepolicy"></a>
+
+### `ctx.licensePolicy` — `LicensePolicy`
+
+Singleton license policy evaluator.
+
+One Service instance owns the tier-to-decision table and (optional) AGPL attribution text. Pure: no I/O, no filesystem, no event subscription.
+
+```ts cordis-catalog
+/**
+ * Normalize an arbitrary license string to a {@link LicenseTier}.
+ *
+ * Accepts values lifted directly from frontmatter, package.json, or
+ * upstream registry metadata. Matching is case-insensitive; whitespace and
+ * surrounding `()` are stripped. `NOASSERTION`, `UNKNOWN`, and absent
+ * values each map to a distinct tier rather than collapsing into `unknown`.
+ *
+ * @param raw - the license string discovered upstream.
+ * @returns the normalized tier.
+ */
+normalize(raw: string | null | undefined): LicenseTier
+
+/**
+ * Evaluate one license tier and return the typed decision.
+ * @param raw - the license string discovered upstream.
+ * @returns the evaluation result.
+ */
+evaluate(raw: string | null | undefined): LicenseEvaluation
+
+/**
+ * Evaluate an already-normalized tier.
+ * @param tier - the normalized license tier.
+ * @returns the evaluation result.
+ */
+evaluateTier(tier: LicenseTier): LicenseEvaluation
+
+/**
+ * Convenience: assert the evaluation result is one of the allowed decisions.
+ * @param raw - the license string discovered upstream.
+ * @param allowed - the set of decisions the caller accepts.
+ * @returns the evaluation result, throwing if it falls outside `allowed`.
+ */
+assertAllowed(raw: string | null | undefined, allowed: readonly LicenseDecision[]): LicenseEvaluation
+```
+
+Source: [`packages/experimental/license-policy/src/index.ts`](../../packages/experimental/license-policy/src/index.ts)
 
 <a id="cordis-events"></a>
 

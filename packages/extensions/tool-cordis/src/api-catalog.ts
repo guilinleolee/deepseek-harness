@@ -222,6 +222,37 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'agentRoster',
+    summary: 'Read-only registry over the `dragon-assets/agents/` source markdowns.',
+    description: 'Read-only registry over the `dragon-assets/agents/` source markdowns.\n\nOne service instance owns one snapshot; call `loadAll()` after upstream mirror changes to refresh.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<readonly AgentRole[]>',
+        description: 'Walk the `agents/` mirror and parse every markdown file into a role.',
+        parameters: [],
+        returns: 'the loaded roster, sorted by numeric prefix then id.',
+      },
+      {
+        signature: 'search(query: RoleSearchQuery = {}): readonly AgentRole[]',
+        description: 'Filter the cached roster.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching roles, sorted as the source roster declared them.',
+      },
+      {
+        signature: 'get(id: AgentId): AgentRole | undefined',
+        description: 'Exact-id lookup against the cached roster.',
+        parameters: [{ name: 'id', description: 'the role identifier (without `.md`).' }],
+        returns: 'the matching role, or `undefined` if none.',
+      },
+      {
+        signature: 'byFamily(family: AgentFamily): readonly AgentRole[]',
+        description: 'Return every role belonging to one family bucket.',
+        parameters: [{ name: 'family', description: 'the family bucket to filter by.' }],
+        returns: 'the roles in that family, in roster order.',
+      },
+    ],
+  },
+  {
     key: 'agents',
     summary: 'Agent service (`ctx.agents`): tracks live agents and carries the initiating Agent through one process-local asynchronous driver chain.',
     description: 'Agent service (`ctx.agents`): tracks live agents and carries the initiating Agent through one process-local asynchronous driver chain. Agent *creation* is provided by whichever plugin implements the AgentFactory (`@deepseek-ai/dsh-agent-loop`), registered via setFactory.\n\nInitiator methods provide same-process causal attribution only. Ambient presence is neither liveness proof nor authorization; subjects and owners remain explicit, as does identity at worker, process, persistence, and wire boundaries. Returned Promise boundaries drain during teardown, except a nested lineage that starts an owning-fiber unload is excluded from its own drain.',
@@ -899,6 +930,139 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'customerAcquisition',
+    summary: 'Storage-backed customer-acquisition service.',
+    description: 'Storage-backed customer-acquisition service. The domain opens once at service init and closes with the owning fiber; every read is synchronous from memory, every write durable-first.',
+    methods: [
+      {
+        signature: 'requireAuditTable(): AuditTable',
+        description: 'Authoritative audit handle, valid after init; a miss is a broken lifecycle.',
+        parameters: [],
+        returns: 'the audit log table.',
+      },
+      {
+        signature: 'requireDomain(): Domain<typeof customerAcquisitionDomainSpec>',
+        description: 'Authoritative domain, valid after init; a miss is a broken lifecycle. Open to the P1 module services (lead ledger, scoring), which borrow the domain\'s tables — the P0 service stays its single owner and closer.',
+        parameters: [],
+        returns: 'the durable customer-acquisition domain.',
+      },
+      {
+        signature: 'getSettings(): SettingsValue',
+        description: 'Current settings, projected to the exact-optional wire shape.',
+        parameters: [],
+        returns: 'the stored settings as the wire value.',
+      },
+      {
+        signature: 'async updateSettings( patch: SettingsPatchInput, operator: ResolvedOperator, channel: OperatorChannel, ): Promise<SettingsValue>',
+        description: 'Merge a partial settings update, validate referenced templates exist, persist, and audit. Referencing an unknown profile or template fails loud with a friendly error instead of storing a dangling id.',
+        parameters: [{ name: 'patch', description: 'fields to change; omitted fields keep their value.' }, { name: 'operator', description: 'the caller\'s resolved operator.' }, { name: 'channel', description: 'which surface performed the write.' }],
+        returns: 'the settings after the write.',
+      },
+      {
+        signature: 'listAudit(request: AuditListRequest): AuditListValue',
+        description: 'Filter the audit log for list and export faces.',
+        parameters: [{ name: 'request', description: 'filters plus paging bounds.' }],
+        returns: 'the matching page, newest first, with the unfiltered total.',
+      },
+      {
+        signature: 'exportAudit(filter: Omit<AuditListRequest, \'limit\' | \'offset\'>): AuditListValue[\'items\']',
+        description: 'All audit records matching the filter, unpaged — the export face.',
+        parameters: [{ name: 'filter', description: 'filters without paging bounds.' }],
+        returns: 'every matching record, newest first.',
+      },
+      {
+        signature: '@Remote(\'getSettings\') getSettingsRemote(): Promise<SettingsSnapshotValue>',
+        description: 'Read face for the browser panel.',
+        parameters: [],
+        returns: 'the settings snapshot wire value.',
+      },
+      {
+        signature: '@Remote(\'updateSettings\') async updateSettingsRemote(patch: SettingsPatchInput): Promise<SettingsSnapshotValue>',
+        description: 'Write face for the browser panel; resolves the web operator per call.',
+        parameters: [{ name: 'patch', description: 'partial settings update.' }],
+        returns: 'the settings snapshot after the write.',
+      },
+      {
+        signature: '@Remote(\'listAuditLogs\') async listAuditLogs(request: AuditListRequest): Promise<AuditListValue>',
+        description: 'Audit read face for the browser panel.',
+        parameters: [{ name: 'request', description: 'list window and filters.' }],
+        returns: 'the audit log page.',
+      },
+      {
+        signature: '@Remote(\'getOverview\') async getOverviewRemote(request: OverviewRequest): Promise<OverviewValue>',
+        description: 'Dashboard read face: the seven overview metrics through the same aggregation the model tool serves. Resolves the web operator per call so `lead_scope=own` panels never see another operator\'s leads.',
+        parameters: [{ name: 'request', description: 'the metric window and grouping.' }],
+        returns: 'the seven overview metrics.',
+      },
+      {
+        signature: '@Remote(\'listLeads\') async listLeadsRemote(request?: LeadListRequest): Promise<LeadListValue>',
+        description: 'Lead list read face; the ledger\'s list scope applies unchanged.',
+        parameters: [{ name: 'request', description: 'optional lead-id filter and paging.' }],
+        returns: 'the visible lead reference page.',
+      },
+      {
+        signature: '@Remote(\'listScoreRuns\') async listScoreRunsRemote(request?: { lead_id?: string; limit?: number }): Promise<{ items: ScoreRun[]; total: number }>',
+        description: 'Score-run history read face across the operator\'s visible leads, newest first.',
+        parameters: [{ name: 'request', description: 'optional lead-id filter and row cap (default 20).' }],
+        returns: 'the score-run page.',
+      },
+      {
+        signature: '@Remote(\'listIcpProfiles\') async listIcpProfilesRemote(enabled_only?: boolean): Promise<IcpProfileValue[]>',
+        description: 'ICP profile read face for the scoring page.',
+        parameters: [{ name: 'enabled_only', description: 'drop disabled profiles when true.' }],
+        returns: 'the visible ICP profiles.',
+      },
+      {
+        signature: '@Remote(\'listScoreTemplates\') async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ScoreTemplateValue[]>',
+        description: 'Score-template read face for the scoring page.',
+        parameters: [{ name: 'enabled_only', description: 'drop disabled templates when true.' }],
+        returns: 'the visible score templates.',
+      },
+      {
+        signature: '@Remote(\'listGeoScans\') async listGeoScansRemote(limit?: number): Promise<GeoScanListValue>',
+        description: 'GEO scan-history read face: every scan joined with its report\'s score.',
+        parameters: [{ name: 'limit', description: 'optional row cap on the returned items.' }],
+        returns: 'the scan history page.',
+      },
+      {
+        signature: '@Remote(\'getGeoReport\') getGeoReportRemote(reportId: string): Promise<GeoReport>',
+        description: 'One full GEO report for the diagnosis page.',
+        parameters: [{ name: 'reportId', description: 'the report to load.' }],
+        returns: 'the stored GEO report.',
+      },
+      {
+        signature: '@Remote(\'listGeneratedContents\') async listGeneratedContentsRemote( request?: { lead_id?: string; limit?: number }, ): Promise<{ items: GeneratedContent[]; total: number }>',
+        description: 'Generated-copy read face across the operator\'s visible leads, newest first.',
+        parameters: [{ name: 'request', description: 'optional lead-id filter and row cap (default 20).' }],
+        returns: 'the generated-content page.',
+      },
+      {
+        signature: '@Remote(\'listContentTemplates\') async listContentTemplatesRemote(filters?: { type?: string; enabled_only?: boolean }): Promise<ContentTemplate[]>',
+        description: 'Copy-template read face for the templates page.',
+        parameters: [{ name: 'filters', description: 'optional type and enabled-only filters.' }],
+        returns: 'the matching copy templates.',
+      },
+      {
+        signature: '@Remote(\'listSopTasks\') async listSopTasksRemote( request?: { lead_id?: string; status?: \'pending\' | \'done\' | \'deferred\' | \'dropped\'; limit?: number; offset?: number }, ): Promise<{ items: SopTask[]; total: number }>',
+        description: 'SOP task read face; the service\'s lead-visibility scope applies unchanged.',
+        parameters: [{ name: 'request', description: 'optional lead-id, status, and paging filters.' }],
+        returns: 'the SOP task page.',
+      },
+      {
+        signature: '@Remote(\'listSopTemplates\') async listSopTemplatesRemote(enabled_only?: boolean): Promise<SopTemplate[]>',
+        description: 'SOP-template read face for the templates page.',
+        parameters: [{ name: 'enabled_only', description: 'drop disabled templates when true.' }],
+        returns: 'the visible SOP templates.',
+      },
+      {
+        signature: 'async recordComplianceDeny( toolName: string, reason: string, request: OperatorRequest, ): Promise<void>',
+        description: 'Record one compliance denial (red lines 1-3 enforcement, red line 6 coverage). The operator resolves best-effort: a denial must be recorded even when the caller carried no agent identity.',
+        parameters: [{ name: 'toolName', description: 'the denied tool.' }, { name: 'reason', description: 'the friendly denial reason.' }, { name: 'request', description: 'the operator reference when known.' }],
+        returns: 'resolution after the audit record is durable.',
+      },
+    ],
+  },
+  {
     key: 'deepseekAccount',
     summary: 'Account operations; only Host consumers can obtain a request credential.',
     description: 'Account operations; only Host consumers can obtain a request credential.',
@@ -1037,6 +1201,74 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create one child directory for a Remote caller\'s in-app browser.',
         parameters: [{ name: 'path', description: 'absolute existing parent directory.' }, { name: 'name', description: 'single non-blank path segment.' }],
         returns: 'the created directory\'s absolute path.',
+      },
+    ],
+  },
+  {
+    key: 'dragonBridge',
+    summary: 'Facade that joins the index, roster, and policy services.',
+    description: 'Facade that joins the index, roster, and policy services.\n\nThe bridge does not own disk state; it depends on its sibling packages for I/O and classification. Its only state is a cached asset list rebuilt by `loadAll()`.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<readonly DragonAsset[]>',
+        description: 'Refresh every upstream service and rebuild the cross-kind asset list.\n\nSkill and command / hook / plugin assets come from `ctx.dragonIndex`; agent assets come from `ctx.agentRoster`. Each entry is classified by `ctx.licensePolicy`.',
+        parameters: [],
+        returns: 'the rebuilt asset list, in load order.',
+      },
+      {
+        signature: 'search(query: BridgeSearchQuery = {}): readonly DragonAsset[]',
+        description: 'Filter the cached asset list.\n\n`safeOnly` (constructor flag) drops `artifact-only` and `reject` entries from the default result set; explicit `decision` overrides it.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching assets, in the source-declared order.',
+      },
+      {
+        signature: 'allowed(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `allow`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'attributed(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `attribute`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'artifactOnly(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `artifact-only`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+      {
+        signature: 'rejected(): readonly DragonAsset[]',
+        description: 'Return every asset the policy resolves to `reject`.',
+        parameters: [],
+        returns: 'the matching assets, in load order.',
+      },
+    ],
+  },
+  {
+    key: 'dragonIndex',
+    summary: 'Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.',
+    description: 'Read-only registry over the `dragon-assets/index/*.jsonl` snapshots.\n\nOne service instance owns one snapshot. Callers can refresh the snapshot by calling `loadAll()` again; the registry exposes the current snapshot via the `snapshot` accessor.',
+    methods: [
+      {
+        signature: 'async loadAll(): Promise<IndexSnapshot>',
+        description: 'Read every jsonl file into one snapshot and cache it.',
+        parameters: [],
+        returns: 'the loaded snapshot.',
+      },
+      {
+        signature: 'search(query: SearchQuery = {}): readonly AssetIndexEntry[]',
+        description: 'Filter the cached snapshot.',
+        parameters: [{ name: 'query', description: 'filter criteria; missing fields do not restrict.' }],
+        returns: 'matching entries, ordered as the source jsonl declared them.',
+      },
+      {
+        signature: 'get(id: string, kind?: AssetKind): AssetIndexEntry | undefined',
+        description: 'Exact-id lookup against the cached snapshot.',
+        parameters: [{ name: 'id', description: 'the asset identifier to resolve.' }, { name: 'kind', description: 'optional kind disambiguator; omitted matches the first entry of any kind.' }],
+        returns: 'the matching entry, or `undefined` if none.',
       },
     ],
   },
@@ -1190,6 +1422,37 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Atomically edit literal text. When supplied, the version guard is checked before matching so stale content reports `FS_STALE_VERSION`; omission edits the current content without a freshness precondition.',
         parameters: [{ name: 'target', description: 'the resolved target to edit.' }, { name: 'edit', description: 'the literal search/replace request.' }, { name: 'expected', description: 'the version guard; omit for an unconditional edit.' }, { name: 'signal', description: 'aborts before atomic publication takes effect.' }, { name: 'sandboxPolicy', description: 'the per-call mode and workspace root this edit runs under; a sandboxing backend fences the edit by it, the bare backend ignores it. Omit to leave the backend its own default.' }],
         returns: 'the outcome, including the version the edit produced.',
+      },
+    ],
+  },
+  {
+    key: 'geoDiagnosis',
+    summary: 'Storage-backed GEO diagnosis service.',
+    description: 'Storage-backed GEO diagnosis service. The domain comes from the main plugin\'s service; the web capability performs every fetch.',
+    methods: [
+      {
+        signature: 'async runScan(input: ScanInput, operator: ResolvedOperator): Promise<GeoScanValue>',
+        description: 'Run one bounded serial scan: record the running scan, crawl the seed\'s origin, analyze, persist the report, and close the scan. Fetch failures on individual pages degrade the report; a total failure marks the scan `failed` and rethrows friendly.',
+        parameters: [{ name: 'input', description: 'the gated scan input (URL, optional page cap).' }, { name: 'operator', description: 'the caller\'s resolved operator, for the audit write.' }],
+        returns: 'the canonical scan value.',
+      },
+      {
+        signature: 'listHistory(request: GeoHistoryRequest): { items: GeoHistoryItem[]; total: number }',
+        description: 'List scans joined with their reports, newest first, optionally filtered by URL prefix and time window.',
+        parameters: [{ name: 'request', description: 'filters plus paging bounds.' }],
+        returns: 'the matching page with the unfiltered total.',
+      },
+      {
+        signature: 'getReport(reportId: string): GeoReportValue',
+        description: 'Read one full report with its scan\'s URL.',
+        parameters: [{ name: 'reportId', description: 'the report id.' }],
+        returns: 'the projected report.',
+      },
+      {
+        signature: 'compareReports(reportAId: string, reportBId: string): GeoCompareValue',
+        description: 'Compare two reports of the same site: score movement, resolved and newly introduced shortcomings, and a Markdown summary.',
+        parameters: [{ name: 'reportAId', description: 'the baseline report id.' }, { name: 'reportBId', description: 'the comparison report id.' }],
+        returns: 'the comparison value.',
       },
     ],
   },
@@ -1401,6 +1664,37 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Attach an effect-scoped controller that can read and stop jobs. It serves the owners its registering context\'s scope covers, and start refuses an owner no attached controller serves.',
         parameters: [{ name: 'name', description: 'diagnostic label; duplicate names remain independent.' }],
         returns: 'disposer that detaches this controller.',
+      },
+    ],
+  },
+  {
+    key: 'licensePolicy',
+    summary: 'Singleton license policy evaluator.',
+    description: 'Singleton license policy evaluator.\n\nOne Service instance owns the tier-to-decision table and (optional) AGPL attribution text. Pure: no I/O, no filesystem, no event subscription.',
+    methods: [
+      {
+        signature: 'normalize(raw: string | null | undefined): LicenseTier',
+        description: 'Normalize an arbitrary license string to a LicenseTier.\n\nAccepts values lifted directly from frontmatter, package.json, or upstream registry metadata. Matching is case-insensitive; whitespace and surrounding `()` are stripped. `NOASSERTION`, `UNKNOWN`, and absent values each map to a distinct tier rather than collapsing into `unknown`.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }],
+        returns: 'the normalized tier.',
+      },
+      {
+        signature: 'evaluate(raw: string | null | undefined): LicenseEvaluation',
+        description: 'Evaluate one license tier and return the typed decision.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }],
+        returns: 'the evaluation result.',
+      },
+      {
+        signature: 'evaluateTier(tier: LicenseTier): LicenseEvaluation',
+        description: 'Evaluate an already-normalized tier.',
+        parameters: [{ name: 'tier', description: 'the normalized license tier.' }],
+        returns: 'the evaluation result.',
+      },
+      {
+        signature: 'assertAllowed(raw: string | null | undefined, allowed: readonly LicenseDecision[]): LicenseEvaluation',
+        description: 'Convenience: assert the evaluation result is one of the allowed decisions.',
+        parameters: [{ name: 'raw', description: 'the license string discovered upstream.' }, { name: 'allowed', description: 'the set of decisions the caller accepts.' }],
+        returns: 'the evaluation result, throwing if it falls outside `allowed`.',
       },
     ],
   },
@@ -4598,8 +4892,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AgentFactory {\n    createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>;\n    resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandle>;\n}',
   },
   {
+    name: 'AgentFamily',
+    declaration: 'export type AgentFamily = \'core\' | \'platform\' | \'data\' | \'business\' | \'finance\' | \'social\' | \'sales\' | \'commerce\' | \'finance-2\' | \'hr\' | \'unknown\';',
+  },
+  {
     name: 'AgentHandle',
     declaration: 'export interface AgentHandle {\n    agent: Agent;\n    dispose(): Promise<void>;\n}',
+  },
+  {
+    name: 'AgentId',
+    declaration: 'export type AgentId = string;',
   },
   {
     name: 'AgentOptions',
@@ -4632,6 +4934,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AgentResolver',
     declaration: 'export type AgentResolver = (sessionId: SessionId) => Promise<Agent>;',
+  },
+  {
+    name: 'AgentRole',
+    declaration: 'export interface AgentRole {\n    readonly id: AgentId;\n    readonly family: AgentFamily;\n    readonly numericPrefix: string;\n    readonly displayName: string;\n    readonly displayNameZh?: string;\n    readonly description: string;\n    readonly capabilities: readonly string[];\n    readonly license?: string;\n    readonly path: string;\n}',
   },
   {
     name: 'AgentSetup',
@@ -4734,6 +5040,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AssembledSection {\n    name: string;\n    text: string;\n    interpolate?: boolean;\n}',
   },
   {
+    name: 'AssetIndexEntry',
+    declaration: 'export interface AssetIndexEntry {\n    id: string;\n    kind: AssetKind;\n    version?: string;\n    status?: AssetStatus;\n    license?: LicenseTier;\n    upstream?: string;\n    path: string;\n    description?: string;\n    triggers?: string[];\n    tags?: string[];\n    mtime?: string;\n    hash?: string;\n    [extra: string]: unknown;\n}',
+  },
+  {
+    name: 'AssetKind',
+    declaration: 'export type AssetKind = \'skill\' | \'agent\' | \'hook\' | \'command\' | \'plugin\';',
+  },
+  {
+    name: 'AssetStatus',
+    declaration: 'export type AssetStatus = \'active\' | \'deprecated\' | \'experimental\' | \'archived\' | \'unknown\';',
+  },
+  {
     name: 'AssistantMessage',
     declaration: 'export interface AssistantMessage extends MessageBase {\n    readonly role: \'assistant\';\n    readonly source: ModelMessageSource;\n}',
   },
@@ -4772,6 +5090,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AttachmentId',
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
+  },
+  {
+    name: 'AuditListRequest',
+    declaration: 'export interface AuditListRequest {\n    source?: AuditSource;\n    operator_user_id?: string;\n    action_prefix?: string;\n    object_type?: string;\n    from?: number;\n    to?: number;\n    limit?: number;\n    offset?: number;\n}',
+  },
+  {
+    name: 'AuditListValue',
+    declaration: 'export interface AuditListValue {\n    items: AuditLogValue[];\n    total: number;\n}',
+  },
+  {
+    name: 'AuditLog',
+    declaration: 'export type AuditLog = z.infer<typeof auditLogSchema>;',
+  },
+  {
+    name: 'AuditLogId',
+    declaration: 'export type AuditLogId = Branded<\'AuditLogId\'>;',
+  },
+  {
+    name: 'AuditLogValue',
+    declaration: 'export interface AuditLogValue {\n    id: string;\n    source: AuditSource;\n    operator_user_id: string;\n    action: string;\n    object_type: string;\n    object_id?: string;\n    summary: string;\n    created_at: number;\n}',
+  },
+  {
+    name: 'AuditSource',
+    declaration: 'export type AuditSource = z.infer<typeof auditSourceSchema>;',
+  },
+  {
+    name: 'AuditTable',
+    declaration: 'export type AuditTable = KvTable<AuditLogId, AuditLog>;',
   },
   {
     name: 'AuthorizationEntry',
@@ -4848,6 +5194,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'BrandedNumber',
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
+  },
+  {
+    name: 'BridgeSearchQuery',
+    declaration: 'export interface BridgeSearchQuery {\n    kind?: \'skill\' | \'agent\' | \'command\' | \'hook\' | \'plugin\';\n    text?: string;\n    license?: LicenseTier;\n    decision?: LicenseDecision;\n    limit?: number;\n}',
   },
   {
     name: 'BrowserUseProviderName',
@@ -5032,6 +5382,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ContentBlockType',
     declaration: 'export type ContentBlockType = keyof ContentBlockMap;',
+  },
+  {
+    name: 'ContentTemplate',
+    declaration: 'export type ContentTemplate = z.infer<typeof contentTemplateSchema>;',
   },
   {
     name: 'ContinuableCreateRequest',
@@ -5290,6 +5644,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}',
   },
   {
+    name: 'DragonAsset',
+    declaration: 'export interface DragonAsset {\n    readonly source: AssetIndexEntry | AgentRole;\n    readonly kind: \'skill\' | \'agent\' | \'command\' | \'hook\' | \'plugin\';\n    readonly licenseTier: LicenseTier;\n    readonly licenseEvaluation: LicenseEvaluation;\n    readonly decision: LicenseDecision;\n}',
+  },
+  {
     name: 'DshEnvironment',
     declaration: 'export type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>;',
   },
@@ -5438,6 +5796,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface FsWriteOutcome {\n    operation: \'create\' | \'update\';\n    version: FsVersion;\n    before: string | null;\n    after: string;\n}',
   },
   {
+    name: 'GeneratedContent',
+    declaration: 'export type GeneratedContent = z.infer<typeof generatedContentSchema>;',
+  },
+  {
     name: 'GenerateOptions',
     declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: RequestMessage[];\n    system?: string;\n    tools?: ToolSchema[];\n    toolHistory?: ToolHistory;\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\';\n}',
   },
@@ -5448,6 +5810,46 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GenericResultView',
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
+  },
+  {
+    name: 'GeoCompareValue',
+    declaration: 'export interface GeoCompareValue {\n    readonly score_a: number;\n    readonly score_b: number;\n    readonly score_delta: number;\n    readonly resolved: string[];\n    readonly introduced: string[];\n    readonly summary_md: string;\n}',
+  },
+  {
+    name: 'GeoFindingValue',
+    declaration: 'export interface GeoFindingValue {\n    readonly id: string;\n    readonly category: string;\n    readonly severity: string;\n    readonly title: string;\n    readonly detail: string;\n    readonly evidence_page?: string;\n}',
+  },
+  {
+    name: 'GeoHistoryItem',
+    declaration: 'export interface GeoHistoryItem {\n    readonly scan_id: string;\n    readonly report_id: string;\n    readonly url: string;\n    readonly status: string;\n    readonly score: number;\n    readonly pages_fetched: number;\n    readonly started_at: number;\n}',
+  },
+  {
+    name: 'GeoHistoryRequest',
+    declaration: 'export interface GeoHistoryRequest {\n    url_filter?: string;\n    from?: number;\n    to?: number;\n    limit?: number;\n    offset?: number;\n}',
+  },
+  {
+    name: 'GeoReport',
+    declaration: 'export type GeoReport = z.infer<typeof geoReportSchema>;',
+  },
+  {
+    name: 'GeoReportValue',
+    declaration: 'export interface GeoReportValue {\n    readonly report: {\n        readonly id: string;\n        readonly scan_id: string;\n        readonly url: string;\n        readonly score: number;\n        readonly findings: GeoFindingValue[];\n        readonly llms_txt: string;\n        readonly report_md: string;\n        readonly robots_skipped_paths: string[];\n        readonly created_at: number;\n    };\n}',
+  },
+  {
+    name: 'GeoScanListValue',
+    declaration: 'export interface GeoScanListValue {\n    items: GeoScanRowValue[];\n    total: number;\n}',
+  },
+  {
+    name: 'GeoScanRowValue',
+    declaration: 'export interface GeoScanRowValue {\n    scan_id: string;\n    url: string;\n    status: \'running\' | \'done\' | \'failed\';\n    started_at: number;\n    finished_at?: number;\n    report_id?: string;\n    score?: number;\n}',
+  },
+  {
+    name: 'GeoScanValue',
+    declaration: 'export interface GeoScanValue {\n    readonly scan_id: string;\n    readonly score: number;\n    readonly findings_count: number;\n    readonly pages_fetched: number;\n    readonly robots_skipped_paths: string[];\n    readonly llms_txt: string;\n    readonly report_md: string;\n}',
+  },
+  {
+    name: 'GeoStats',
+    declaration: 'export type GeoStats = {\n    scan_count: number;\n    avg_score: number;\n    last_score?: number;\n};',
   },
   {
     name: 'GoalActivation',
@@ -5526,6 +5928,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface HostConnectionRpc {\n    handle(channel: string, handler: ConnectionRpcHandler): () => Promise<void>;\n    intercept(channel: \'/api\', matches: ConnectionRpcEndpointMatcher, handler: ConnectionRpcHandler): () => Promise<void>;\n}',
   },
   {
+    name: 'IcpDimensionValue',
+    declaration: 'export interface IcpDimensionValue {\n    id: string;\n    name: string;\n    description: string;\n    weight: number;\n}',
+  },
+  {
+    name: 'IcpProfileValue',
+    declaration: 'export interface IcpProfileValue {\n    id: string;\n    name: string;\n    industry?: string;\n    enabled: boolean;\n    dimensions: IcpDimensionValue[];\n}',
+  },
+  {
     name: 'ImageAttachmentLimits',
     declaration: 'export interface ImageAttachmentLimits {\n    maxImageBytes: number;\n    maxImagesPerMessage: number;\n    maxMessageImageBytes: number;\n    maxImagePixels: number;\n    maxImageDimension: number;\n    mediaTypes: readonly ImageMediaType[];\n}',
   },
@@ -5562,6 +5972,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type IndexInjectionPlacement = \'head\' | \'body\';',
   },
   {
+    name: 'IndexSnapshot',
+    declaration: 'export interface IndexSnapshot {\n    readonly skills: readonly AssetIndexEntry[];\n    readonly agents: readonly AssetIndexEntry[];\n    readonly hooks: readonly AssetIndexEntry[];\n    readonly commands: readonly AssetIndexEntry[];\n    readonly plugins: readonly AssetIndexEntry[];\n    readonly all: readonly AssetIndexEntry[];\n}',
+  },
+  {
     name: 'InspectOptions',
     declaration: 'export interface InspectOptions {\n    readonly registry?: Registry;\n}',
   },
@@ -5588,6 +6002,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'InstallSpecKind',
     declaration: 'export type InstallSpecKind = \'registry\' | \'path\' | \'git\' | \'tarball\';',
+  },
+  {
+    name: 'IntentDistribution',
+    declaration: 'export type IntentDistribution = {\n    high: number;\n    mid: number;\n    low: number;\n    invalid: number;\n};',
+  },
+  {
+    name: 'IntentLevel',
+    declaration: 'export type IntentLevel = z.infer<typeof intentLevelSchema>;',
   },
   {
     name: 'InternalScheduleError',
@@ -5764,6 +6186,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'KvUnitDescriptor',
     declaration: 'export interface KvUnitDescriptor {\n    readonly name: string;\n    readonly version: number;\n    readonly tables: readonly string[];\n    readonly hasGlobal: boolean;\n    readonly layout?: \'single\' | \'per-record\';\n    readonly compatibleVersions?: readonly number[];\n}',
+  },
+  {
+    name: 'LeadListRequest',
+    declaration: 'export interface LeadListRequest {\n    status?: LeadStatus;\n    source?: string;\n    industry?: string;\n    intent_level?: IntentLevel;\n    tag?: string;\n    owner?: \'me\' | \'pool\' | \'all\';\n    q?: string;\n    created_from?: number;\n    created_to?: number;\n    limit?: number;\n    offset?: number;\n}',
+  },
+  {
+    name: 'LeadListValue',
+    declaration: 'export interface LeadListValue {\n    items: LeadRefValue[];\n    total: number;\n}',
+  },
+  {
+    name: 'LeadRefValue',
+    declaration: 'export interface LeadRefValue {\n    id: string;\n    company_name: string;\n    contact_name?: string;\n    source: string;\n    industry?: string;\n    intent_level?: IntentLevel;\n    opportunity_stage: OpportunityStage;\n    owner_id?: string;\n    status: LeadStatus;\n    tags: string[];\n    next_followup_at?: number;\n    updated_at: number;\n}',
+  },
+  {
+    name: 'LeadStatus',
+    declaration: 'export type LeadStatus = z.infer<typeof leadStatusSchema>;',
+  },
+  {
+    name: 'LicenseDecision',
+    declaration: 'export type LicenseDecision = \'allow\' | \'attribute\' | \'artifact-only\' | \'reject\';',
+  },
+  {
+    name: 'LicenseEvaluation',
+    declaration: 'export interface LicenseEvaluation {\n    readonly tier: LicenseTier;\n    readonly severity: LicenseSeverity;\n    readonly decision: LicenseDecision;\n    readonly attribution?: string;\n    readonly reason?: string;\n}',
+  },
+  {
+    name: 'LicenseSeverity',
+    declaration: 'export type LicenseSeverity = \'green\' | \'amber\' | \'red\' | \'black\';',
   },
   {
     name: 'LlmAdapter',
@@ -6114,6 +6564,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type OneShotScheduleRecord = AfterScheduleRecord | AtScheduleRecord;',
   },
   {
+    name: 'OperatorCapabilities',
+    declaration: 'export interface OperatorCapabilities {\n    lead_scope: \'all\' | \'own\';\n    can_manage_global_templates: boolean;\n    can_delete_any_lead: boolean;\n    can_export: boolean;\n    can_manage_settings: boolean;\n}',
+  },
+  {
+    name: 'OperatorChannel',
+    declaration: 'export type OperatorChannel = \'web\' | \'agent\' | \'acp\';',
+  },
+  {
+    name: 'OperatorRequest',
+    declaration: 'export interface OperatorRequest {\n    via: OperatorChannel;\n    agentId?: string;\n    rpcId?: string;\n}',
+  },
+  {
+    name: 'OpportunityStage',
+    declaration: 'export type OpportunityStage = z.infer<typeof opportunityStageSchema>;',
+  },
+  {
     name: 'OptionalSessionSeq',
     declaration: 'export type OptionalSessionSeq = SessionSeq | null;',
   },
@@ -6124,6 +6590,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'OTelEventScalar',
     declaration: 'export type OTelEventScalar = string | number | boolean;',
+  },
+  {
+    name: 'OverviewBreakdownGroup',
+    declaration: 'export type OverviewBreakdownGroup = {\n    key: string;\n    lead_count: number;\n    new_in_period: number;\n    intent_distribution: IntentDistribution;\n};',
+  },
+  {
+    name: 'OverviewGroupBy',
+    declaration: 'export type OverviewGroupBy = \'none\' | \'industry\' | \'source\';',
+  },
+  {
+    name: 'OverviewPeriod',
+    declaration: 'export type OverviewPeriod = \'today\' | \'week\' | \'month\' | \'custom\';',
+  },
+  {
+    name: 'OverviewRequest',
+    declaration: 'export type OverviewRequest = {\n    period: OverviewPeriod;\n    from?: number;\n    to?: number;\n    group_by?: OverviewGroupBy;\n};',
+  },
+  {
+    name: 'OverviewTotals',
+    declaration: 'export type OverviewTotals = {\n    lead_count: number;\n    new_in_period: number;\n    intent_distribution: IntentDistribution;\n    source_distribution: Record<string, number>;\n    score_distribution: ScoreDistribution;\n    tasks: TaskStats;\n    geo: GeoStats;\n};',
+  },
+  {
+    name: 'OverviewValue',
+    declaration: 'export type OverviewValue = {\n    totals: OverviewTotals;\n    breakdown: OverviewBreakdownGroup[] | null;\n};',
   },
   {
     name: 'PackageResult',
@@ -6510,6 +7000,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ResolvedNormalRetryPolicy extends ResolvedRetryBackoff {\n    readonly mode: \'normal\';\n    readonly maxRetries: number;\n    readonly retryableCodes: readonly string[];\n}',
   },
   {
+    name: 'ResolvedOperator',
+    declaration: 'export interface ResolvedOperator {\n    userId: UserId;\n    displayName: string;\n    capabilities: OperatorCapabilities;\n}',
+  },
+  {
     name: 'ResolvedRetryBackoff',
     declaration: 'export interface ResolvedRetryBackoff {\n    readonly initialDelayMs: number;\n    readonly maxDelayMs: number;\n    readonly jitterRatio: number;\n}',
   },
@@ -6528,6 +7022,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ResumeAgentOptions',
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
+  },
+  {
+    name: 'RoleSearchQuery',
+    declaration: 'export interface RoleSearchQuery {\n    family?: AgentFamily;\n    text?: string;\n    license?: string;\n    limit?: number;\n}',
   },
   {
     name: 'RpcId',
@@ -6572,6 +7070,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SaveTextSpill',
     declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
+  },
+  {
+    name: 'ScanInput',
+    declaration: 'export interface ScanInput {\n    readonly url: string;\n    readonly maxPages?: number;\n}',
   },
   {
     name: 'ScheduleCatalogEntry',
@@ -6658,6 +7160,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ScopeKey = object;',
   },
   {
+    name: 'ScoreDistribution',
+    declaration: 'export type ScoreDistribution = {\n    \'0-59\': number;\n    \'60-74\': number;\n    \'75-89\': number;\n    \'90-100\': number;\n};',
+  },
+  {
+    name: 'ScoreRun',
+    declaration: 'export type ScoreRun = z.infer<typeof scoreRunSchema>;',
+  },
+  {
+    name: 'ScoreTemplateValue',
+    declaration: 'export interface ScoreTemplateValue {\n    id: string;\n    name: string;\n    industry?: string;\n    prompt_text: string;\n    enabled: boolean;\n}',
+  },
+  {
     name: 'SearchFileMatches',
     declaration: 'export interface SearchFileMatches {\n    path: string;\n    matches: SearchLineMatch[];\n}',
   },
@@ -6672,6 +7186,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SearchPathsResultView',
     declaration: 'export interface SearchPathsResultView {\n    card: \'search\';\n    shape: \'paths\';\n    title?: string;\n    paths: string[];\n    truncated: boolean;\n    total: number;\n}',
+  },
+  {
+    name: 'SearchQuery',
+    declaration: 'export interface SearchQuery {\n    kind?: AssetKind;\n    text?: string;\n    license?: LicenseTier;\n    limit?: number;\n}',
   },
   {
     name: 'SearchResultView',
@@ -7278,6 +7796,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SettingsNamespaceView {\n    autoGenerate: boolean;\n    ns: string;\n    schema: JsonValue;\n    value: JsonValue;\n    base?: JsonValue;\n    user?: JsonValue;\n    applies: \'live\';\n    secrets: SettingsSecretView[];\n    revision: number;\n}',
   },
   {
+    name: 'SettingsPatchInput',
+    declaration: 'export interface SettingsPatchInput {\n    default_icp_profile_id?: string;\n    default_score_template_id?: string;\n    geo_max_pages?: number;\n    geo_page_timeout_ms?: number;\n    sop_todo_write_enabled?: boolean;\n}',
+  },
+  {
     name: 'SettingsPathOp',
     declaration: 'export type SettingsPathOp = {\n    op: \'set\';\n    path: readonly string[];\n    value: unknown;\n} | {\n    op: \'unset\';\n    path: readonly string[];\n};',
   },
@@ -7288,6 +7810,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SettingsSecretView',
     declaration: 'export interface SettingsSecretView {\n    path: string[];\n    set: boolean;\n}',
+  },
+  {
+    name: 'SettingsSnapshotValue',
+    declaration: 'export interface SettingsSnapshotValue {\n    settings: SettingsValue;\n}',
+  },
+  {
+    name: 'SettingsValue',
+    declaration: 'export interface SettingsValue {\n    default_icp_profile_id?: string;\n    default_score_template_id?: string;\n    geo_max_pages: number;\n    geo_page_timeout_ms: number;\n    sop_todo_write_enabled: boolean;\n}',
   },
   {
     name: 'ShellExecRequest',
@@ -7404,6 +7934,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillViewOptions',
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
+  },
+  {
+    name: 'SopTask',
+    declaration: 'export type SopTask = z.infer<typeof sopTaskSchema>;',
+  },
+  {
+    name: 'SopTemplate',
+    declaration: 'export type SopTemplate = z.infer<typeof sopTemplateSchema>;',
   },
   {
     name: 'SpawnTeammateRequest',
@@ -7724,6 +8262,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TableValueOf',
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
+  },
+  {
+    name: 'TaskStats',
+    declaration: 'export type TaskStats = {\n    total: number;\n    done: number;\n    deferred: number;\n    dropped: number;\n    completion_rate: number;\n};',
   },
   {
     name: 'TeamId',
@@ -8224,6 +8766,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'UpdateTeamTaskRequest',
     declaration: 'export interface UpdateTeamTaskRequest {\n    readonly taskId: TeamTaskId;\n    readonly expectedRevision: number;\n    readonly action: TeamTaskAction;\n    readonly subject?: string;\n    readonly description?: string;\n    readonly blockedBy?: readonly TeamTaskId[];\n    readonly writeScopes?: readonly string[];\n    readonly owner?: string;\n}',
+  },
+  {
+    name: 'UserId',
+    declaration: 'export type UserId = Branded<\'UserId\'>;',
   },
   {
     name: 'UserMessage',

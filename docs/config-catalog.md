@@ -749,6 +749,91 @@ export interface ToolResultPruneConfig {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-tool-result-pruner -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-content-outputs -->
+<a id="deepseek-aidsh-content-outputs"></a>
+
+## `@deepseek-ai/dsh-content-outputs`
+
+- `inject`: `llm`
+- `source`: [`packages/creation/content-outputs/src/index.ts:176`](../packages/creation/content-outputs/src/index.ts)
+
+```ts config-catalog
+/** Content-outputs Remote configuration. */
+export interface Config extends GatherAiConfig, CreateQuotaConfig {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+  /** Home the global template library resolves under (`<templatesRoot>/templates`). Defaults to the dsh home. */
+  templatesRoot?: string
+  /**
+   * Gather feed-host allowlist: an entry admits itself and its subdomains.
+   * Absent = unrestricted (the `GATHER_ALLOWED_FEED_HOSTS` env applies as the
+   * fallback channel); empty = deny every host. Config wins over the env.
+   */
+  allowedFeedHosts?: string[]
+  /** Where social-capture browser sessions and counters persist. Defaults to `<dsh home>/social-states`. */
+  socialStatesDir?: string
+  /** Daily per-platform capture cap for the social-capture faces (1–10). Defaults to 3. */
+  maxDailyCaptures?: number
+}
+
+/** Deployment policy for the AI processing face; every default lives in {@link GatherAiProcessor}. */
+export interface GatherAiConfig {
+  /** Registered LLM provider route. */
+  readonly provider?: string
+  /** Model id within the provider route. */
+  readonly model?: string
+  /** End-to-end call deadline in milliseconds (1000–600000). */
+  readonly timeoutMs?: number
+  /** Model-output token cap for one call (256–32000). */
+  readonly maxOutputTokens?: number
+  /** Model-input character cap for one material (1000–100000). */
+  readonly maxInputChars?: number
+}
+
+/** Deployment policy of the gate; every default lives in {@link CreateQuotaGate}. */
+export interface CreateQuotaConfig {
+  /** Free generations served per local day (0–1000; default 10). */
+  readonly freeDailyGenerates?: number
+  /** Free rewrites served per local day (0–5000; default 50). */
+  readonly freeDailyRewrites?: number
+  /** Whether the paid-tier features (batch of 3, AI evaluation) are enabled. */
+  readonly paidTierEnabled?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-content-outputs -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-content-schedule -->
+<a id="deepseek-aidsh-content-schedule"></a>
+
+## `@deepseek-ai/dsh-content-schedule`
+
+- `source`: [`packages/creation/content-schedule/src/index.ts:20`](../packages/creation/content-schedule/src/index.ts)
+
+```ts config-catalog
+/** Content-schedule Remote configuration. */
+export interface Config {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-content-schedule -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-content-topics -->
+<a id="deepseek-aidsh-content-topics"></a>
+
+## `@deepseek-ai/dsh-content-topics`
+
+- `source`: [`packages/creation/content-topics/src/index.ts:18`](../packages/creation/content-topics/src/index.ts)
+
+```ts config-catalog
+/** Content-topics Remote configuration. */
+export interface Config {
+  /** Outputs library root. Defaults to `<dsh home>/outputs`. */
+  root?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-content-topics -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-cordis-host-runner -->
 <a id="deepseek-aidsh-cordis-host-runner"></a>
 
@@ -790,6 +875,35 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-credentials-local -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-customer-acquisition -->
+<a id="deepseek-aidsh-customer-acquisition"></a>
+
+## `@deepseek-ai/dsh-customer-acquisition`
+
+- `inject`: `storageDomain` · `tools`
+- `source`: [`packages/growth/customer-acquisition/src/index.ts:119`](../packages/growth/customer-acquisition/src/index.ts)
+
+```ts config-catalog
+/** Bundle-row config of the plugin (`config:` on the `customer-acquisition` row). */
+export interface CustomerAcquisitionPluginConfig {
+  /** Policy for the plugin's internal model calls (lead extraction, AI scoring). */
+  readonly ai?: AiPolicyConfig
+}
+
+/** Deployment policy for the plugin's internal model calls (row config `ai`). */
+export interface AiPolicyConfig {
+  /** Registered LLM provider route; defaults to `deepseek`. */
+  readonly provider?: string
+  /** Model id within the provider route; defaults to `deepseek-chat`. */
+  readonly model?: string
+  /** End-to-end call deadline in milliseconds (1000–300000); defaults to 120000. */
+  readonly timeoutMs?: number
+  /** Model-output token cap for one call (256–32000); defaults to 2000. */
+  readonly maxOutputTokens?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-customer-acquisition -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-deepseek-account-platform -->
 <a id="deepseek-aidsh-deepseek-account-platform"></a>
 
@@ -830,6 +944,31 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-deepseek-account-platform -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-agent-roster -->
+<a id="deepseek-aidsh-experimental-agent-roster"></a>
+
+## `@deepseek-ai/dsh-experimental-agent-roster`
+
+- `source`: [`packages/experimental/agent-roster/src/index.ts:30`](../packages/experimental/agent-roster/src/index.ts)
+
+```ts config-catalog
+/** Loaded configuration for {@link AgentRoster}. */
+interface AgentRosterConfig extends Config {
+  /** Directory names under `dragon-assets/agents/` to ignore. */
+  excludeSubdirs?: readonly string[]
+}
+
+/** Base configuration shared by all dragon-assets service families. */
+export interface Config {
+  /**
+   * Filesystem root for the dragon-assets mirror; consumed by services that
+   * read files out of the mirror.
+   */
+  dragonAssetsRoot?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-agent-roster -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-agent-team -->
 <a id="deepseek-aidsh-experimental-agent-team"></a>
@@ -1024,6 +1163,24 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-dragon-bridge -->
+<a id="deepseek-aidsh-experimental-dragon-bridge"></a>
+
+## `@deepseek-ai/dsh-experimental-dragon-bridge`
+
+- `source`: [`packages/experimental/dragon-bridge/src/types.ts:44`](../packages/experimental/dragon-bridge/src/types.ts)
+
+```ts config-catalog
+/** Loaded configuration for {@link DragonBridge}. */
+export interface Config {
+  /** Filesystem root of the dragon-assets mirror; passed to skill-index and agent-roster. */
+  dragonAssetsRoot?: string
+  /** When true, decisions are filtered to `allow` + `attribute` only by default. */
+  safeOnly?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-dragon-bridge -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-inspector -->
 <a id="deepseek-aidsh-experimental-inspector"></a>
 
@@ -1093,6 +1250,30 @@ export interface InspectorOptions {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-inspector -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-license-policy -->
+<a id="deepseek-aidsh-experimental-license-policy"></a>
+
+## `@deepseek-ai/dsh-experimental-license-policy`
+
+- `source`: [`packages/experimental/license-policy/src/types.ts:54`](../packages/experimental/license-policy/src/types.ts)
+
+```ts config-catalog
+/** Configuration for {@link LicensePolicy}. */
+export interface Config {
+  /**
+   * Treat `unknown` as `reject` instead of `allow`. Default `false`: unknown
+   * assets pass through with attribution but no network deployment.
+   */
+  rejectUnknown?: boolean
+  /**
+   * Override the default AGPL attribution text. The placeholder string is
+   * supplied by `dragon-assets/LICENSE-ATTRIBUTION.md` §三.
+   */
+  agplAttribution?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-license-policy -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-ptc-runtime-python -->
 <a id="deepseek-aidsh-experimental-ptc-runtime-python"></a>
 
@@ -1161,6 +1342,25 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-ptc-runtime-python -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-skill-index -->
+<a id="deepseek-aidsh-experimental-skill-index"></a>
+
+## `@deepseek-ai/dsh-experimental-skill-index`
+
+- `source`: [`packages/experimental/skill-index/src/types.ts:57`](../packages/experimental/skill-index/src/types.ts)
+
+```ts config-catalog
+/** Loaded configuration for {@link DragonAssetIndex}. */
+export interface Config {
+  /**
+   * Absolute filesystem path to the `dragon-assets/` mirror root.
+   * Default: `<workspace>/dragon-assets`.
+   */
+  dragonAssetsRoot?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-skill-index -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-speech-to-text -->
 <a id="deepseek-aidsh-experimental-speech-to-text"></a>
@@ -2537,6 +2737,42 @@ export interface Config {
 export type Config = LocalConfig
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-pwsh-sandbox -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-quant-research -->
+<a id="deepseek-aidsh-quant-research"></a>
+
+## `@deepseek-ai/dsh-quant-research`
+
+- `inject`: `storageDomain` · `subprocess` · `approval`
+- `source`: [`packages/quant/quant-research/src/config.ts:44`](../packages/quant/quant-research/src/config.ts)
+
+```ts config-catalog
+/** Deployment tunables for the plugin; every field is optional with a resolved default. */
+export interface Config {
+  /** Market-data source; omit for the deterministic offline walk. */
+  dataSource?: QuantDataSource
+  /** Python interpreter used to run the kernel; omit for the platform default. */
+  kernelCommand?: string
+  /** Directory the kernel uses for its kline cache; omit for `<dshHome>/quant-research/cache`. */
+  cacheDir?: string
+  /** Model-facing tool-call budget in milliseconds. */
+  toolTimeoutMs?: number
+  /** Per-request kernel deadline in milliseconds; must stay below `toolTimeoutMs`. */
+  kernelRequestTimeoutMs?: number
+  /** Kernel-side retries for one flaky data-source fetch. */
+  sourceMaxRetries?: number
+  /** Consecutive data-source failures that trip the circuit breaker. */
+  fuseThreshold?: number
+  /** Backtest starting cash when a call omits it. */
+  defaultCash?: number
+  /** Backtest per-trade fee rate when a call omits it. */
+  feeRate?: number
+}
+
+/** Market-data source selection; `synthetic` is the deterministic offline walk. */
+export type QuantDataSource = 'synthetic' | 'akshare'
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-quant-research -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-repeat-tool-reminder -->
 <a id="deepseek-aidsh-repeat-tool-reminder"></a>
@@ -4513,8 +4749,10 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-brand-official` | — | [`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-chat` | — | [`packages/client/ui-chat/src/index.ts`](../packages/client/ui-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-commands` | — | [`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-content-studio` | — | [`packages/client/ui-content-studio/src/index.ts`](../packages/client/ui-content-studio/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-conversation` | — | [`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-cordis` | — | [`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-customer-acquisition` | — | [`packages/client/ui-customer-acquisition/src/index.ts`](../packages/client/ui-customer-acquisition/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-deliverables` | `systemPrompt` · `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-browse` | — | [`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-native` | — | [`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts) |
@@ -4527,6 +4765,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-plan` | — | [`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-quant-research` | — | [`packages/client/ui-quant-research/src/index.ts`](../packages/client/ui-quant-research/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-reference` | — | [`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-renderer` | — | [`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-schedule` | — | [`packages/client/ui-schedule/src/index.ts`](../packages/client/ui-schedule/src/index.ts) |
@@ -4561,6 +4800,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-computer-use` | — | [`packages/computer-use/computer-use/src/index.ts`](../packages/computer-use/computer-use/src/index.ts) |
 | `@deepseek-ai/dsh-config-editor` | `loader` · `profileContext` | [`packages/boot/config-editor/src/index.ts`](../packages/boot/config-editor/src/index.ts) |
 | `@deepseek-ai/dsh-cordis-client-runner` | — | [`packages/extensions/cordis-client-runner/src/index.ts`](../packages/extensions/cordis-client-runner/src/index.ts) |
+| `@deepseek-ai/dsh-customer-acquisition-geo` | `storageDomain` · `tools` · `customerAcquisition` · `web` | [`packages/growth/customer-acquisition-geo/src/index.ts`](../packages/growth/customer-acquisition-geo/src/index.ts) |
 | `@deepseek-ai/dsh-deepseek-llm-api-extensions` | — | [`packages/llm/deepseek-llm-api-extensions/src/index.ts`](../packages/llm/deepseek-llm-api-extensions/src/index.ts) |
 | `@deepseek-ai/dsh-experimental-auto-review` | `approval` · `llm` · `permissionPresets` · `sessions` · `tools` · `workingDirectory` | [`packages/experimental/auto-review/src/index.ts`](../packages/experimental/auto-review/src/index.ts) |
 | `@deepseek-ai/dsh-experimental-client-ui-agent-team` | — | [`packages/experimental/client-ui-agent-team/src/index.ts`](../packages/experimental/client-ui-agent-team/src/index.ts) |
