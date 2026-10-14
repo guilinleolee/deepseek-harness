@@ -2820,6 +2820,9 @@ importers:
       '@deepseek-ai/dsh-typert-registry':
         specifier: workspace:*
         version: link:../../typert/registry
+      '@deepseek-ai/libreoffice-kit':
+        specifier: ^0.1.5
+        version: 0.1.5
 
   packages/client/connection:
     dependencies:
