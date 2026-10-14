@@ -205,7 +205,7 @@ render：summary_md 原文。
 
 ---
 
-## 5. 模块 2 · 线索台账（P1，14 个）
+## 5. 模块 2 · 线索台账（P1，16 个）
 
 ### `customer_acquisition_lead_create` — P1 · scope:按传入 owner 授权 · audit `lead.create`
 
@@ -714,12 +714,12 @@ render：Markdown 指标表；Web 看板走 Remote 同一聚合服务，不经�
 |---|---|---|
 | P0：settings ×2 + audit ×2（含冒烟 `settings_get`） | 4 | P0 |
 | GEO 诊断 | 4 | P2 |
-| 线索台账（含 extract/export/documents/followups） | 14 | P1 |
+| 线索台账（含 extract/export/documents/followups） | 16 | P1 |
 | AI 打分（score ×3 + icp ×4 + score_template ×4） | 11 | P1 |
 | 培育文案（generate/list + 模板 ×4） | 6 | P3 |
 | SOP（任务 ×3 + 模板 ×4） | 7 | P3 |
 | 看板 | 1 | P4 |
-| **合计** | **47** | |
+| **合计** | **49** | |
 
 红线落点核对：红线 1（抓取边界）→ geo_scan description + pre-execute + 参数 schema 上限；红线 2/3（无自动触达/无发送）→ 全清单无任何发送/私信/加好友类工具；红线 4（模板可编辑）→ 16 个模板 CRUD 工具；红线 5（数据本地）→ 全部读写走 storageDomain；红线 6（审计）→ audit_list/audit_export + 全部写路径埋点（各工具标注的 audit action）。
 
@@ -728,6 +728,6 @@ render：Markdown 指标表；Web 看板走 Remote 同一聚合服务，不经�
 | # | 决策 | 理由 |
 |---|---|---|
 | 15 | 新增 `lead_followup_add/list` 两个工具 | lead_followups 表在投喂第 6 节存在但第 7 节无写入口/查入口，表会变死表 |
-| 16 | 工具总数 47，模板 CRUD 按「每实体四动作」展开而非合并 action 参数 | 对齐仓库单动作单工具先例（team_task_*/schedule_*），模型调用歧义最小 |
+| 16 | 工具总数 49（§5 明细实为 16 个线索工具，初稿计数 14 系笔误，2026-10-05 实施时对齐），模板 CRUD 按「每实体四动作」展开而非合并 action 参数 | 对齐仓库单动作单工具先例（team_task_*/schedule_*），模型调用歧义最小 |
 | 17 | 删除保护：模板被历史引用即拒删、提示停用 | KV 无外键级联，物理删除会断历史回溯链（契约 §3.4 权重快照的配套） |
 | 18 | `lead_update` 不接受修改 `source`/`intent_level` | source 是录入事实；intent_level 只由打分回填 |

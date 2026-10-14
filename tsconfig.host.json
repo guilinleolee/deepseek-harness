@@ -506,6 +506,7 @@
     { "path": "./packages/creation/content-schedule" },
     { "path": "./packages/creation/content-topics" },
     { "path": "./packages/growth/customer-acquisition" },
+    { "path": "./packages/growth/customer-acquisition-geo" },
     { "path": "./packages/quant/quant-research" },
     { "path": "./packages/boot/plugin-manager" },
     { "path": "./packages/llm/plugin-package-inventory-deepseek" },

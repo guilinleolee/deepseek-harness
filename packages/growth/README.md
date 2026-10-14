@@ -5,5 +5,6 @@
 | Package | Owns | `ctx` key |
 |---|---|---|
 | [`customer-acquisition/`](customer-acquisition/README.md) | Customer-acquisition domain, PermissionContext seam, compliance gate, P0 tools, Remote gateway | `customerAcquisition`, `permissionContext` |
+| [`customer-acquisition-geo/`](customer-acquisition-geo/README.md) | GEO diagnosis module: bounded serial crawler, deterministic analyzer, four model-facing tools | `geoDiagnosis` |
 
 English | [中文](README.zh.md)

@@ -13,6 +13,12 @@ import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import { ToolRuntime } from '@deepseek-ai/dsh-tools'
 import apply from '../src/index.ts'
+import { P1_TOOL_NAMES } from '../src/tools/register-p1.ts'
+import { P3_TOOL_NAMES } from '../src/tools/register-p3.ts'
+import { P4_TOOL_NAMES } from '../src/tools/register-p4.ts'
+
+/** The P1 runtime fiber injects `llm`; the loader composition provides a stub never called. */
+const LLM_STUB = { stream: () => (async function* () {})() }
 
 let root: string | undefined
 const contexts: Context[] = []
@@ -27,6 +33,7 @@ async function loadComposition(configPath: string): Promise<Context> {
   const ctx = new Context()
   contexts.push(ctx)
   ctx.baseUrl = pathToFileURL(root as string).href + '/'
+  ctx.provide('llm', LLM_STUB)
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
@@ -57,7 +64,7 @@ async function loadComposition(configPath: string): Promise<Context> {
 }
 
 describe('customer-acquisition through a real Loader composition', () => {
-  it('installs the patch rows, provides both services, registers the P0 tools, and persists settings across a restart', async () => {
+  it('installs the patch rows, provides both services, registers the P0/P1/P3 tools, and persists settings across a restart', async () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-customer-acquisition-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
@@ -77,14 +84,32 @@ describe('customer-acquisition through a real Loader composition', () => {
     const first = await loadComposition(configPath)
     expect(first.customerAcquisition.typertRemote.namespace).toBe('customerAcquisition')
     // remoteMethods markers carry the implementing method names; the wire
-    // names (@Remote arguments) are getSettings / updateSettings / listAuditLogs.
+    // names (@Remote arguments) are the camelCase faces the panel mounts.
     expect(remoteMethods(first.customerAcquisition).map(marker => marker.method))
-      .toEqual(['getSettingsRemote', 'updateSettingsRemote', 'listAuditLogs'])
+      .toEqual([
+        'getSettingsRemote',
+        'updateSettingsRemote',
+        'listAuditLogs',
+        'getOverviewRemote',
+        'listLeadsRemote',
+        'listScoreRunsRemote',
+        'listIcpProfilesRemote',
+        'listScoreTemplatesRemote',
+        'listGeoScansRemote',
+        'getGeoReportRemote',
+        'listGeneratedContentsRemote',
+        'listContentTemplatesRemote',
+        'listSopTasksRemote',
+        'listSopTemplatesRemote',
+      ])
     for (const name of [
       'customer_acquisition_settings_get',
       'customer_acquisition_settings_set',
       'customer_acquisition_audit_list',
       'customer_acquisition_audit_export',
+      ...P1_TOOL_NAMES,
+      ...P3_TOOL_NAMES,
+      ...P4_TOOL_NAMES,
     ]) {
       expect(first.tools.get(name), name).toBeDefined()
     }

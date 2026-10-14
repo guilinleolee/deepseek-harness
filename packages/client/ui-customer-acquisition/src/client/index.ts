@@ -5,12 +5,11 @@
  * ui-content-studio established — so the panel carries its server face with
  * it. Two registrations install atomically for their declarations'
  * lifetimes: the sidebar entry fills ui-sidebar's `sidebar.footer.action`
- * hole and the placeholder surface fills ui-layout's additive
+ * hole and the eight-page workbench fills ui-layout's additive
  * `shell.overlay` hole; both share one open/close controller created here.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { TypertClientRemote } from '@deepseek-ai/dsh-typert-protocol'
-import type { AuditListValue } from '@deepseek-ai/dsh-customer-acquisition/types'
 import customerAcquisitionRemote from '@deepseek-ai/dsh-customer-acquisition/remote'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay') into this
 // program so the surface registration below typechecks.
@@ -20,13 +19,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { AcquisitionEntry } from './AcquisitionEntry.tsx'
-import { AcquisitionPanel, type AcquisitionPanelInjected } from './AcquisitionPanel.tsx'
+import { AcquisitionWorkbench } from './AcquisitionWorkbench.tsx'
+import type { WorkbenchInjected } from './injected.ts'
 import { createPanelController } from './panel-controller.ts'
 import { en, zh, type AcquisitionKey } from './locales.ts'
 
 export { createPanelController, type PanelController } from './panel-controller.ts'
+export { AcquisitionWorkbench, type AcquisitionWorkbenchProps, type WorkbenchPage } from './AcquisitionWorkbench.tsx'
+export type { WorkbenchInjected } from './injected.ts'
 export type { AcquisitionEntryProps } from './AcquisitionEntry.tsx'
-export type { AcquisitionPanelInjected, AcquisitionPanelProps } from './AcquisitionPanel.tsx'
 export type { AcquisitionKey } from './locales.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -38,7 +39,7 @@ declare module '@deepseek-ai/cordis' {
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** Acquisition panel copy: entry, placeholder surface. */
+    /** Acquisition panel copy: entry, workbench pages. */
     'customer-acquisition': AcquisitionKey
   }
 }
@@ -93,18 +94,32 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
 }
 
 /**
- * The panel body: the shared controller, the gateway closures, and the two
- * slot registrations (sidebar entry + frame-wide surface), on the fiber that
- * declared the Remote namespace. The `slots.inject` generator owns the
- * registrations' lifetime, so there is no separate disposer.
+ * The panel body: the shared controller, the unwrapped Remote gateway
+ * closures behind the workbench's pages, and the two slot registrations
+ * (sidebar entry + frame-wide surface), on the fiber that declared the
+ * Remote namespace. The `slots.inject` generator owns the registrations'
+ * lifetime, so there is no separate disposer.
  * @param ctx - the panel fiber's context.
  */
 function mainApply(ctx: Context): void {
   const panel = createPanelController()
-  const getSettings: AcquisitionPanelInjected['getSettings'] = () =>
-    unwrap('customerAcquisition.getSettings', ctx.remote.customerAcquisition.getSettings())
-  const listAuditLogs: AcquisitionPanelInjected['listAuditLogs'] = (): Promise<AuditListValue> =>
-    unwrap('customerAcquisition.listAuditLogs', ctx.remote.customerAcquisition.listAuditLogs({ limit: 10 }))
+  const face = ctx.remote.customerAcquisition
+  const injected: Omit<WorkbenchInjected, 'panel'> = {
+    getOverview: request => unwrap('customerAcquisition.getOverview', face.getOverview(request)),
+    listLeads: request => unwrap('customerAcquisition.listLeads', face.listLeads(request)),
+    listScoreRuns: request => unwrap('customerAcquisition.listScoreRuns', face.listScoreRuns(request)),
+    listIcpProfiles: enabledOnly => unwrap('customerAcquisition.listIcpProfiles', face.listIcpProfiles(enabledOnly)),
+    listScoreTemplates: enabledOnly => unwrap('customerAcquisition.listScoreTemplates', face.listScoreTemplates(enabledOnly)),
+    listGeoScans: limit => unwrap('customerAcquisition.listGeoScans', face.listGeoScans(limit)),
+    getGeoReport: reportId => unwrap('customerAcquisition.getGeoReport', face.getGeoReport(reportId)),
+    listGeneratedContents: request => unwrap('customerAcquisition.listGeneratedContents', face.listGeneratedContents(request)),
+    listContentTemplates: filters => unwrap('customerAcquisition.listContentTemplates', face.listContentTemplates(filters)),
+    listSopTasks: request => unwrap('customerAcquisition.listSopTasks', face.listSopTasks(request)),
+    listSopTemplates: enabledOnly => unwrap('customerAcquisition.listSopTemplates', face.listSopTemplates(enabledOnly)),
+    getSettings: () => unwrap('customerAcquisition.getSettings', face.getSettings()),
+    updateSettings: patch => unwrap('customerAcquisition.updateSettings', face.updateSettings(patch)),
+    listAuditLogs: () => unwrap('customerAcquisition.listAuditLogs', face.listAuditLogs({ limit: 10 })),
+  }
 
   ctx.slots.inject('sidebar.footer.action', function* () {
     yield ctx.slots.register({
@@ -118,7 +133,7 @@ function mainApply(ctx: Context): void {
       id: 'customer-acquisition',
       order: 51,
       locale: NS,
-      inject: () => ({ panel, getSettings, listAuditLogs }),
-    }, AcquisitionPanel)
+      inject: () => ({ panel, ...injected }),
+    }, AcquisitionWorkbench)
   })
 }

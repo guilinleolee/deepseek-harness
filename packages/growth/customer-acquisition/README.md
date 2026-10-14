@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 ships the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, four model-facing tools, and the browser Remote gateway the web panel mounts. The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
+Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger (module 2) and AI lead scoring (module 3): 27 model-facing tools, the preset three-industry template seeds, and per-call owner scoping. The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
 
 ## Installation
 
@@ -14,7 +14,19 @@ The bundle patch inserts both rows — this plugin and the `@deepseek-ai/dsh-cli
 
 ## Configuration
 
-None. The plugin has no deployment-varying tunables: the red-line limits are constants enforced in code and re-checked by the compliance gate (see below), and everything user-adjustable lives in the `settings` global slot of the domain, changeable at runtime through `customer_acquisition_settings_set` or the panel.
+Row config (`config:` on the plugin row) tunes the internal model calls the AI faces make (lead extraction, lead scoring):
+
+```yaml
+- name: '@deepseek-ai/dsh-customer-acquisition'
+  config:
+    ai:
+      provider: deepseek
+      model: deepseek-chat
+      timeoutMs: 120000
+      maxOutputTokens: 2000
+```
+
+Every field is optional and defaults as shown (`provider` = the registered LLM provider route, `timeoutMs` = the per-call deadline bounded to 1000-300000, `maxOutputTokens` = the output cap bounded to 256-32000); out-of-range values fail the plugin at load. The red-line limits (page cap, timeout cap, batch cap) are constants enforced in code and re-checked by the compliance gate — they are not configurable. Everything user-adjustable at runtime lives in the `settings` global slot of the domain, changeable through `customer_acquisition_settings_set`.
 
 ## Domain
 
@@ -37,6 +49,14 @@ One `tools/pre-execute` listener owns enforcement for every `customer_acquisitio
 
 Each red line has at least one illegal-path unit test.
 
+## Lead ledger (module 2)
+
+`LeadLedgerService` is the single authority for leads, follow-ups, and attached documents; the 16 `customer_acquisition_lead_*` tools are thin projections of it. Ownership is enforced server-side on every call: `lead_scope=own` operators read only their own leads plus the pool (`owner_id` absent) and write only their own; the pool is claimed through `lead_assign`, released through `lead_transfer` without a target owner. Delete is soft (recycle bin) — `lead_restore` brings a lead back, `lead_purge` physically removes it with every follow-up, document, score run, generated copy, and SOP task, and requires `can_delete_any_lead`. Attached documents (20 000 chars each) are the knowledge source injected into scoring and copy generation. `lead_extract` parses only the text handed to it — one model call, no network collection — and returns fields without storing; the caller confirms through `lead_create`. Export renders Markdown tables or formula-guarded CSV and audits itself.
+
+## AI lead scoring (module 3)
+
+Scoring is one model call per lead: the service resolves the ICP profile and prompt template (explicit id → enabled global default → exact industry match → industry-absent → any enabled), renders the template's `{{lead}}`/`{{icp_profile}}`/`{{dimensions}}`/`{{knowledge}}` placeholders, validates the JSON answer (every dimension scored exactly once, finite 0-100 scores, non-empty reasons), and persists the run with a per-item weight snapshot — history stays reproducible when weights change later. The weighted total maps to an intent tag (≥80 high, ≥60 mid, ≥30 low, else invalid) written back to the lead. `score_batch` runs up to 50 leads serially; one failure never aborts the batch. ICP profile and template CRUD gate on `can_manage_global_templates`; a profile or template referenced by any run refuses deletion (disable it instead). Three industry packs — retail, B2B manufacturing/trade, software services — seed idempotently at mount under fixed `seed-*` ids and never overwrite user edits.
+
 ## Tools
 
 | name | what it does |
@@ -45,6 +65,17 @@ Each red line has at least one illegal-path unit test.
 | `customer_acquisition_settings_set` | Merge a partial settings update; requires `can_manage_settings`, rejects unknown profile/template ids. |
 | `customer_acquisition_audit_list` | Paged, filtered audit-log queries. |
 | `customer_acquisition_audit_export` | Full-filter export as Markdown or formula-guarded CSV; requires `can_export`. |
+| `customer_acquisition_lead_create` / `lead_update` / `lead_get` / `lead_list` | Ledger CRUD with multi-dimension filters, keyword search, and paging. |
+| `customer_acquisition_lead_delete` / `lead_restore` / `lead_purge` | Recycle-bin lifecycle; purge cascades every associated record. |
+| `customer_acquisition_lead_assign` / `lead_transfer` | Pool claiming and ownership transfer. |
+| `customer_acquisition_lead_extract` | Fields from one user-provided text snippet; model-backed, nothing stored. |
+| `customer_acquisition_lead_export` | Filtered export as Markdown or guarded CSV; requires `can_export`. |
+| `customer_acquisition_lead_document_add` / `lead_document_list` / `lead_document_remove` | Plain-text knowledge attached to a lead. |
+| `customer_acquisition_lead_followup_add` / `lead_followup_list` | Follow-up notes, newest first. |
+| `customer_acquisition_score_one` / `score_batch` | AI scoring with weight snapshots and intent write-back; batch is serial with per-lead failure isolation. |
+| `customer_acquisition_score_history` | Fully retained runs with per-dimension snapshots. |
+| `customer_acquisition_icp_create` / `icp_update` / `icp_list` / `icp_delete` | ICP profiles; weights must sum to 100, referenced profiles refuse deletion. |
+| `customer_acquisition_score_template_create` / `score_template_update` / `score_template_list` / `score_template_delete` | Scoring prompt templates with the four placeholders; referenced templates refuse deletion. |
 
 ## Remote face
 
@@ -56,11 +87,11 @@ Each red line has at least one illegal-path unit test.
 
 #### What the model sees
 
-Four tools (`customer_acquisition_settings_get/set`, `customer_acquisition_audit_list/export`) joined to prompt assembly when the plugin loads, plus their text renders: the settings snapshot as a field list, audit rows as dated lines, and exports as a fenced table/CSV document. Denials from the compliance gate surface as tool errors carrying the Chinese reason.
+Thirty-one tools joined to prompt assembly when the plugin loads — the four P0 settings/audit tools plus the 27 lead-ledger and scoring tools — and their text renders: lead refs as one-line summaries, score outcomes as headline plus per-dimension lines, exports as fenced Markdown/CSV documents, and extraction results as field lists. Denials from the compliance gate and capability checks surface as tool errors carrying the Chinese reason. The three industry seed packs appear as ready-to-use profiles and templates on first run.
 
 #### Token effect
 
-Bounded: four tool schemas (~600 tokens) in every assembled request while the plugin is loaded; results are paged (audit list caps at 100 rows per page).
+Bounded: 31 tool schemas (~4k tokens) in every assembled request while the plugin is loaded; list faces cap at 100 rows per page and score renders scale with the profile's dimension count (typically 5-6 lines).
 
 #### KV Cache effect
 
@@ -68,9 +99,10 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 
 ## Known Limitations and Deferred Work
 
-- **P0 scope** — the lead, scoring, GEO, copy, SOP, and dashboard tools of the frozen manifest are not implemented yet; the domain tables exist but only settings and audit carry P0 behavior. Phases land in order P1 → P2 → P3 → P4 per the data contract.
-- **Seed templates not sown** — the three industry template packs (retail / B2B trade / software) arrive with P1/P3; their fixed id space and idempotent strategy are frozen in the contract.
-- **Panel is a placeholder** — the web surface mounts the Remote face and shows settings plus recent audit entries; the eight-page panel ships with P4.
-- **Operator identity is trivial locally** — `local-default` holds every capability; meaningful `lead_scope` enforcement begins when platform providers and the P1 lead tools arrive.
+- **P1+P3 scope** — GEO diagnosis lives in the sibling `customer-acquisition-geo` package, and the dashboard tool lands with P4; the copy and SOP tools shipped with P3.
+- **Seeds cover ICP, scoring, SOP, and copy** — the three industry packs seed profiles, prompt templates, follow-up SOPs, and two copy templates each.
+- **Panel is a placeholder** — the web surface mounts the Remote face and shows settings plus recent audit entries; the eight-page panel ships with P4, and the lead/scoring Remote reads and writes land there.
+- **Scoring needs a reachable model route** — `ai.provider`/`ai.model` must name a registered route with credentials; scoring, extraction, and copy generation fail per call otherwise, and batch failures isolate by lead.
+- **Todo linkage is forward-only** — DSH todos are the agent's own `todo_write` checklist with no writable service; `sop_generate_tasks` returns a ready-to-forward list when the settings flag is on, and `todo_written` stays false.
+- **Operator identity is trivial locally** — `local-default` holds every capability; meaningful `lead_scope` enforcement begins when platform providers inject real users.
 - **Audit growth is unbounded** — records are never pruned; retention policy waits for a concrete deployment requirement.
-- **Fetch orchestration not wired** — the P2 GEO scanner must verify the exact web-fetch consumption form before reuse; the gate's URL and cap rules are already in force.
