@@ -373,6 +373,15 @@
   gap: 8px;
 }
 
+.sentimentFieldError {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-danger, var(--dsw-alias-label-primary)) 45%, transparent);
+  border-radius: 8px;
+  color: var(--dsw-alias-text-danger);
+  font-size: 14px;
+}
+
 .sentimentDetailText {
   margin: 0;
   font-size: 14px;

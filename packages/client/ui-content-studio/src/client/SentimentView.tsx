@@ -105,9 +105,9 @@ function joinTerms(terms: readonly string[]): string {
 
 /** Build the wire input from the dialog state (skipping empty groups). */
 function toTaskInput(form: TaskFormState): SentimentTaskInput | { error: string } {
-  if (form.name.trim().length === 0) return { error: 'sentiment.field.taskName' }
+  if (form.name.trim().length === 0) return { error: 'sentiment.error.taskName' }
   const subjects = splitTerms(form.subjectsText)
-  if (subjects.length === 0) return { error: 'sentiment.field.subjects' }
+  if (subjects.length === 0) return { error: 'sentiment.error.subjects' }
   const groups: Array<SentimentTaskInput['keywordGroups'][number]> = []
   const pos = splitTerms(form.kwPositive)
   if (pos.length > 0) groups.push({ polarity: 'pos', terms: pos })
@@ -117,7 +117,7 @@ function toTaskInput(form: TaskFormState): SentimentTaskInput | { error: string 
   if (neu.length > 0) groups.push({ polarity: 'any', terms: neu })
   const feedUrls = splitTerms(form.feedUrlsText)
   const sources: SentimentTaskInput['sources'] = ['rss', ...(form.useWeibo ? ['weibo' as const] : []), ...(form.useBili ? ['bili' as const] : [])]
-  if (feedUrls.length === 0 && !form.useWeibo && !form.useBili) return { error: 'sentiment.field.sources' }
+  if (feedUrls.length === 0 && !form.useWeibo && !form.useBili) return { error: 'sentiment.error.sources' }
   return {
     ...(form.id === null ? {} : { id: form.id }),
     name: form.name,
@@ -171,7 +171,7 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
   const saveTask = async (): Promise<void> => {
     const input = toTaskInput(taskForm)
     if ('error' in input) {
-      setFormError(t(input.error as 'sentiment.field.taskName'))
+      setFormError(t(input.error as 'sentiment.error.sources'))
       return
     }
     try {
@@ -373,7 +373,12 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
                       value={taskForm.group}
                       onChange={(event) => { setTaskForm({ ...taskForm, group: event.currentTarget.value }) }}
                     >
-                      {[t('sentiment.group.brand'), t('sentiment.group.complaint'), t('sentiment.group.competitor'), t('sentiment.group.policy')].map(group => <option key={group}>{group}</option>)}
+                      {([
+                        ['brand', t('sentiment.group.brand'), t('sentiment.group.hint.brand')],
+                        ['complaint', t('sentiment.group.complaint'), t('sentiment.group.hint.complaint')],
+                        ['competitor', t('sentiment.group.competitor'), t('sentiment.group.hint.competitor')],
+                        ['policy', t('sentiment.group.policy'), t('sentiment.group.hint.policy')],
+                      ] as const).map(([, label, hint]) => <option key={label} value={label}>{label}{hint}</option>)}
                     </select>
                   </Field>
                   <Field label={t('sentiment.field.enable')}>
