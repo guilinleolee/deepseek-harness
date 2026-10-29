@@ -14,11 +14,12 @@
  *
  * 真实外网 SMTP 未验证（无凭证）；本地 mock SMTP 由测试覆盖命令流。
  */
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import net from 'node:net'
 import tls from 'node:tls'
 
+import { writeFileAtomic, writeJsonAtomic } from './atomic-write.mjs'
 import { decryptText, deriveKey, encryptText } from './totp.mjs'
 
 const NOTIFY_FILE = 'notify.json'
@@ -53,9 +54,7 @@ function loadNotifyRaw(dataDir) {
 function saveNotifyRaw(dataDir, config) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, NOTIFY_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, config)
 }
 
 /** 读取生效配置（缺省自动生成 off）；passEnc 不解密（需要明文时走 getSmtpPassword）。 */
@@ -290,9 +289,7 @@ export function sendMail({ to, subject, text }) {
       for (const recipient of toList) {
         outboxSeq += 1
         const path = join(dir, `${stamp}-${outboxSeq}.eml`)
-        const tmp = `${path}.tmp`
-        writeFileSync(tmp, buildMime({ from, to: recipient, subject, text }))
-        renameSync(tmp, path)
+        writeFileAtomic(path, buildMime({ from, to: recipient, subject, text }))
         paths.push(path)
       }
       return { sent: true, via: 'file', paths }

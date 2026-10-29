@@ -1,8 +1,24 @@
+---
+description: "The quant-research web panel plugin: a sidebar entry plus a frame-wide research-only placeholder surface."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-client-ui-quant-research
 
 English | [中文](README.zh.md)
 
+## Summary
+
 The quant-research web panel plugin: a sidebar entry plus a frame-wide placeholder surface stating the plugin's research-only scope. Phase 1 ships the mount point and the disclaimer; the charts, the report cards, and the core package's Remote face arrive with phase 2. The node half is an empty apply so the plugin can appear in a host cordis.yml; everything user-visible lives in the browser half exported as `./client`.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Surface](#surface)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Installation
 
@@ -39,3 +55,13 @@ Independent of live requests: the panel never touches a request prefix.
 
 - **Placeholder by design** — the real panel (kline/indicator/equity cards, backtest reports) lands with phase 2, together with the core package's Remote face and its locale dictionaries.
 - **No locale dictionaries yet** — the placeholder copy is fixed Chinese; the locale namespace arrives with the real panel.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

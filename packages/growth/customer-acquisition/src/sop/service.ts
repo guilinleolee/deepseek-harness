@@ -25,6 +25,12 @@ import type { OperatorChannel, ResolvedOperator } from '../permission/types.ts'
 /** The day in milliseconds; cadence offsets (`D+N`) resolve against it. */
 const DAY_MS = 86_400_000
 
+/** One day offset inside a cadence: `D+3`, `d + 3`, `D＋3`, `第3天`, `3天后`. */
+const DAY_OFFSET = /[Dd]\s*[+＋]\s*(\d+)|第\s*(\d+)\s*天|(\d+)\s*天[后後]/g
+
+/** Any day mention in a cadence, whether or not the parser can read it. */
+const DAY_MENTION = /[Dd]\s*[+＋]|第\s*\d+\s*天|\d+\s*天[后後]/g
+
 /** Clamp helper: offset floors at 0, limit ranges 1-100. */
 function pagingOf(request: { limit?: number | undefined; offset?: number | undefined }): { offset: number; limit: number } {
   return {
@@ -59,6 +65,8 @@ export interface SopGenerateOutcome {
   intentLevel: NonNullable<Lead['intent_level']>
   templateId: SopTemplateId
   tasks: SopTaskOutcome[]
+  /** Points that were not created because an open task with the same title exists. */
+  skipped: { title: string; reason: string }[]
   leadName: string
   /** Ready to forward through `todo_write` when the settings flag is on. */
   todoList: { content: string; status: 'pending' }[]
@@ -105,10 +113,23 @@ export class SopService {
       throw new Error(`SOP 模板「${template.name}」缺少 ${lead.intent_level} 等级的规则，请先补充该等级的跟进规则`)
     }
     const offsets = cadenceOffsets(rule.cadence)
+    const unreadable = unreadableDayMentions(rule.cadence)
+    if (unreadable > 0) {
+      throw new Error(
+        `SOP 规则「${template.name}」的跟进节奏里有 ${unreadable} 处无法解析的排期表达：「${rule.cadence}」。`
+        + '请写成「D+0 微信问候，D+3 到店」这样的格式，否则任务会全部落在今天。',
+      )
+    }
     const now = Date.now()
+    const openTitles = this.openTaskTitles(lead.id)
     const tasks: SopTaskOutcome[] = []
+    const skipped: { title: string; reason: string }[] = []
     for (const [index, point] of rule.points.entries()) {
-      const offset = offsets[Math.min(index, offsets.length - 1)] ?? 0
+      if (openTitles.has(point)) {
+        skipped.push({ title: point, reason: '该线索已有同名的未完成任务，未重复创建' })
+        continue
+      }
+      const offset = offsets.length === 0 ? 0 : offsets[Math.min(index, offsets.length - 1)] ?? 0
       const task = sopTaskSchema.parse({
         id: newId<SopTaskId>(),
         lead_id: lead.id,
@@ -123,22 +144,44 @@ export class SopService {
         updated_at: now,
       })
       await this.sopTasks.put(task.id, task)
+      openTitles.add(point)
       tasks.push({ task, todoWritten: false })
     }
     const todoWriteEnabled = this.deps.domain.global.get().sop_todo_write_enabled
     await appendAuditRecord(this.deps.audit, {
       action: 'sop.tasks.generate',
       object_type: 'sop_task',
-      summary: `生成跟进任务 ${tasks.length} 条（${lead.intent_level}）：${lead.company_name}`,
+      summary: `生成跟进任务 ${tasks.length} 条（${lead.intent_level}）：${lead.company_name}`
+        + (skipped.length === 0 ? '' : `；跳过重复 ${skipped.length} 条`),
     }, operator, channel)
     return {
       intentLevel: lead.intent_level,
       templateId: template.id,
       tasks,
+      skipped,
       leadName: lead.company_name,
       todoList: tasks.map(({ task }) => ({ content: `${task.title}（${lead.company_name}）`, status: 'pending' as const })),
       todoWriteEnabled,
     }
+  }
+
+  /**
+   * The titles of one lead's still-open tasks (pending or deferred).
+   *
+   * Generation is idempotent against these: re-running the same SOP for the
+   * same lead must not pile a second copy of every follow-up on top of the
+   * first. A dropped or done task does not block a fresh one.
+   * @param leadId - the lead whose open tasks are collected.
+   * @returns the set of titles that already have an open task.
+   */
+  private openTaskTitles(leadId: string): Set<string> {
+    const titles = new Set<string>()
+    for (const [, task] of this.sopTasks.entries()) {
+      if (task.lead_id !== leadId) continue
+      if (task.status !== 'pending' && task.status !== 'deferred') continue
+      titles.add(task.title)
+    }
+    return titles
   }
 
   /**
@@ -374,10 +417,33 @@ export function assertSopScope(lead: Lead, operator: ResolvedOperator): void {
 }
 
 /**
- * Extract the `D+N` day offsets from a cadence string, ascending.
+ * Extract the `D+N` day offsets from a cadence string, in order of appearance.
+ *
+ * Accepts the spellings an operator actually types: `D+3`, `d + 3`, `D＋3`,
+ * `第3天`, `3天后`. A cadence with no day token at all (e.g. 「不跟进」) yields
+ * an empty list — every task then lands on D+0, which is the correct reading
+ * of "no scheduled offset".
  * @param cadence - the rule's cadence text (e.g. `D+0 微信问候，D+3 到店`).
  * @returns the offsets in order of appearance.
  */
 export function cadenceOffsets(cadence: string): number[] {
-  return [...cadence.matchAll(/D\+(\d+)/g)].map(match => Number(match[1]))
+  const offsets: number[] = []
+  for (const match of cadence.matchAll(DAY_OFFSET)) {
+    offsets.push(Number(match[1] ?? match[2] ?? match[3]))
+  }
+  return offsets
+}
+
+/**
+ * Count the day mentions in a cadence that carry no readable offset.
+ *
+ * A mention the parser cannot read (e.g. `D+下次`) means the schedule would
+ * silently collapse onto D+0 — indistinguishable from a genuine D+0. This
+ * count is compared against the parsed offsets so the caller can fail loudly.
+ * @param cadence - the rule's cadence text.
+ * @returns how many day mentions the parser could not turn into an offset.
+ */
+export function unreadableDayMentions(cadence: string): number {
+  const mentions = [...cadence.matchAll(DAY_MENTION)].length
+  return Math.max(0, mentions - cadenceOffsets(cadence).length)
 }

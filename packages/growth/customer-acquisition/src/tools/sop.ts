@@ -77,12 +77,27 @@ export function sopGenerateTasksTool(deps: SopToolDeps): ToolDefinition {
             },
           },
           todo_write_enabled: { type: 'boolean', required: true },
+          skipped: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                title: { type: 'string', required: true },
+                reason: { type: 'string', required: true },
+              },
+            },
+          },
         },
       },
       render: (_args, value) => {
+        const skipped = value.skipped ?? []
         const lines = [
-          `已按「${value.intent_level}」意向生成 ${value.created.length} 条跟进任务：`,
+          skipped.length === 0
+            ? `已按「${value.intent_level}」意向生成 ${value.created.length} 条跟进任务：`
+            : `已按「${value.intent_level}」意向生成 ${value.created.length} 条跟进任务，跳过 ${skipped.length} 条重复项：`,
           ...value.created.map(task => `- ${new Date(task.planned_at).toISOString().slice(0, 10)} ${task.title}（id ${task.task_id}）`),
+          ...skipped.map(entry => `- （跳过）${entry.title}：${entry.reason}`),
         ]
         const todoLines = value.todo_write_enabled
           ? (value.todo_list ?? []).map(entry => `  · [${entry.status}] ${entry.content}`)
@@ -118,6 +133,7 @@ export function sopGenerateTasksTool(deps: SopToolDeps): ToolDefinition {
         })),
         todo_list: outcome.todoList,
         todo_write_enabled: outcome.todoWriteEnabled,
+        skipped: outcome.skipped,
       }
     },
   })

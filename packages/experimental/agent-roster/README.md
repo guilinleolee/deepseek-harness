@@ -1,8 +1,23 @@
+---
+description: "Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) agent roster mirrored under `dragon-assets/agents/`."
+kind: "package-reference"
+---
 # dsh-experimental-agent-roster
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) agent roster mirrored under `dragon-assets/agents/`. This package registers a Cordis Service that walks every `*.md` file under that directory, parses a minimal frontmatter + first-heading + first-paragraph + capabilities section, and exposes the result as a typed roster keyed by the upstream 00-99 numeric id.
+
+## Table of Contents
+
+- [What it reads](#what-it-reads)
+- [Config](#config)
+- [Service API](#service-api)
+- [Dev Note](#dev-note)
+
+-----
 
 This is an experimental package. It only mounts when its owning composition asks for it; no release package may declare it as a dependency.
 
@@ -66,3 +81,14 @@ None.
 - **License from frontmatter only** — `LICENSE` file presence is not consulted; an agent without a `license:` line in frontmatter records `license: undefined`.
 - **Frozen snapshots** — like `skill-index`, the roster is deeply frozen; callers must clone before mutating.
 - **Family buckets are opinionated** — the 00-99 ranges are derived from `dragon-engine CLAUDE.md §3` rather than from a declarative table in this package. If upstream re-buckets, regenerate this code, not the call sites.
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

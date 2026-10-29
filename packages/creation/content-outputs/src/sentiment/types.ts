@@ -86,6 +86,17 @@ export interface SentimentMention {
 /** Re-export of the stored report document (defined in the report engine). */
 export type { SentimentReport } from './report.ts'
 
+/** One dual-perspective adjudication of one alert (the debate verdict). */
+export interface SentimentAlertAdjudication {
+  /** The optimistic reading: mitigating factors, false-positive arguments. */
+  readonly optimistic: string
+  /** The cautious reading: escalation risks, worst-case arguments. */
+  readonly cautious: string
+  /** The synthesized verdict weighing both readings. */
+  readonly conclusion: string
+  readonly at: string
+}
+
 /** One aggregated alert: multiple mentions collapse onto one event row. */
 export interface SentimentAlert {
   readonly id: SentimentAlertId
@@ -99,6 +110,8 @@ export interface SentimentAlert {
   readonly handled: boolean
   readonly createdAt: string
   readonly handledAt: string | null
+  /** The dual-perspective adjudication, present after the first run. */
+  readonly adjudication?: SentimentAlertAdjudication | null
 }
 
 /** Module settings, persisted with the manifest. */

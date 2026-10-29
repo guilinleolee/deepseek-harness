@@ -4,8 +4,13 @@
  * groups, classifies matches with a two-stage pipeline (local lexicon presale
  * → batched LLM refinement for the ambiguous), aggregates negative matches
  * into deduplicated alerts, and hands the batch back for persistence. The
- * fetch happens exclusively server-side; nothing here is a scraper — RSS
- * feeds are the phase-2 source by design (see the 2026-10-07 research).
+ * weibo/bili sources run one LLM keyword-expansion pass per task per day
+ * (the search terms real posters use, degrading to the raw subjects) and
+ * drill one page of comments behind the hottest matched entries — the
+ * comment layer is where the sentiment actually lives. The fetch happens
+ * exclusively server-side; nothing here is a scraper — RSS feeds and the
+ * public visitor endpoints are the phase-2 sources by design (see the
+ * 2026-10-07 research).
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -17,7 +22,10 @@ import type {
 import { fetchFeedDocument } from '../gather/feed.ts'
 import { htmlToText } from '../gather/sanitize.ts'
 import { streamLlmText, type AiCallPolicy } from '../gather/ai.ts'
-import { fetchBiliHot, fetchWeiboSearch, type SourceEntry } from './sources.ts'
+import {
+  fetchBiliComments, fetchBiliVideos, fetchWeiboComments, fetchWeiboSearch, type SourceEntry,
+} from './sources.ts'
+import { expandTaskTerms, SENTIMENT_EXPAND_SEARCH_TERMS } from './expand.ts'
 
 /** Timeout reason code carried by aborted sentiment LLM calls. */
 export const SENTIMENT_AI_TIMEOUT_CODE = 'SENTIMENT_AI_TIMEOUT'
@@ -33,6 +41,15 @@ const ENTRIES_PER_FEED_CAP = 30
 
 /** At most this many mentions get LLM refinement per scan (cost bound). */
 export const SENTIMENT_LLM_BATCH_CAP = 12
+
+/** At most this many comment pages are drilled per task per source per round (cost bound). */
+export const SENTIMENT_COMMENT_DRILLDOWN_CAP = 2
+
+/** Alerts at this level or higher (more severe) trigger the depth round. */
+export const SENTIMENT_DEPTH_ALERT_LEVEL = 2
+
+/** Extra search terms consumed by the depth round per source. */
+export const SENTIMENT_EXPAND_DEPTH_TERMS = 3
 
 const REFINE_SYSTEM_PROMPT = [
   '你是企业舆情分析助手。对给定的内容条目判断情感倾向并给出依据。',
@@ -159,8 +176,14 @@ export interface ScanDeps {
   readonly llmBatchCap?: number
   /** The weibo visitor search; injectable for tests. */
   readonly fetchWeibo?: typeof fetchWeiboSearch
-  /** The bilibili hot search; injectable for tests. */
-  readonly fetchBili?: typeof fetchBiliHot
+  /** The weibo hot-comment read; injectable for tests. */
+  readonly fetchWeiboComments?: typeof fetchWeiboComments
+  /** The bilibili video search; injectable for tests. */
+  readonly fetchBiliVideos?: typeof fetchBiliVideos
+  /** The bilibili comment read; injectable for tests. */
+  readonly fetchBiliComments?: typeof fetchBiliComments
+  /** The keyword-expansion middleware; injectable for tests. */
+  readonly expandTerms?: typeof expandTaskTerms
 }
 
 /** Build one mention row from a normalized source entry (keyword filter + classify upstream). */
@@ -223,10 +246,19 @@ export async function runSentimentScan(
   const nowIso = now.toISOString()
   const fetchFeed = deps.fetchFeed ?? fetchFeedDocument
   const fetchWeibo = deps.fetchWeibo ?? fetchWeiboSearch
-  const fetchBili = deps.fetchBili ?? fetchBiliHot
+  const fetchWeiboCommentsRead = deps.fetchWeiboComments ?? fetchWeiboComments
+  const fetchBiliVideosRead = deps.fetchBiliVideos ?? fetchBiliVideos
+  const fetchBiliCommentsRead = deps.fetchBiliComments ?? fetchBiliComments
+  const expandTerms = deps.expandTerms ?? expandTaskTerms
   const mentions: SentimentMention[] = []
   const blacklistDomains = settings.domainBlacklist.map(domain => domain.toLowerCase())
   const blacklistAccounts = new Set(settings.accountBlacklist)
+  const policy: AiCallPolicy = {
+    provider: ai.provider,
+    model: ai.model,
+    timeoutMs: ai.timeoutMs,
+    maxOutputTokens: ai.maxOutputTokens,
+  }
 
   /** Shared keyword/blacklist/classify pipeline for one normalized entry page. */
   const ingestEntries = (
@@ -234,8 +266,12 @@ export async function runSentimentScan(
     task: SentimentTask,
     source: SentimentSource,
     platform: string,
+    seenUrls: Set<string>,
+    drilldown: Array<{ readonly source: SentimentSource; readonly refId: string; readonly comments: number }>,
   ): void => {
     for (const entry of entries) {
+      if (seenUrls.has(entry.url)) continue
+      seenUrls.add(entry.url)
       const text = `${entry.title}\n${entry.summary}`
       const match = matchesKeywordGroups(text, task.keywordGroups)
       if (!match.matched) continue
@@ -246,10 +282,62 @@ export async function runSentimentScan(
         entry, task.id, source, platform,
         match.hint ?? lexicon.polarity, lexicon.confidence, lexicon.evidence, nowIso,
       ))
+      if (typeof entry.refId === 'string' && entry.refId.length > 0) {
+        drilldown.push({ source, refId: entry.refId, comments: entry.heat?.comments ?? 0 })
+      }
+    }
+  }
+
+  /** Drill one page of comments behind the hottest matched entries of one source. */
+  const drillComments = async (
+    task: SentimentTask,
+    drilldown: ReadonlyArray<{ readonly source: SentimentSource; readonly refId: string; readonly comments: number }>,
+    source: SentimentSource,
+    platform: string,
+    seenUrls: Set<string>,
+    drilledRefs: Set<string>,
+  ): Promise<void> => {
+    const hottest = drilldown
+      .filter(candidate => candidate.source === source && !drilledRefs.has(candidate.refId))
+      .sort((left, right) => right.comments - left.comments)
+      .slice(0, SENTIMENT_COMMENT_DRILLDOWN_CAP)
+    for (const candidate of hottest) {
+      drilledRefs.add(candidate.refId)
+      const comments = source === 'weibo'
+        ? await fetchWeiboCommentsRead(candidate.refId, {})
+        : await fetchBiliCommentsRead(candidate.refId, {})
+      ingestEntries(comments, task, source, platform, seenUrls, [])
+    }
+  }
+
+  /** One search-plus-drill round for one source over the given terms. */
+  const searchRound = async (
+    task: SentimentTask,
+    source: SentimentSource,
+    terms: readonly string[],
+    seenUrls: Set<string>,
+    drilldown: Array<{ readonly source: SentimentSource; readonly refId: string; readonly comments: number }>,
+    drilledRefs: Set<string>,
+  ): Promise<void> => {
+    if (source === 'weibo') {
+      for (const term of terms) {
+        const entries = await fetchWeibo(term, {})
+        ingestEntries(entries, task, 'weibo', '微博', seenUrls, drilldown)
+      }
+      await drillComments(task, drilldown, 'weibo', '微博评论', seenUrls, drilledRefs)
+    } else {
+      for (const term of terms) {
+        const entries = await fetchBiliVideosRead(term, {})
+        ingestEntries(entries, task, 'bili', 'B站', seenUrls, drilldown)
+      }
+      await drillComments(task, drilldown, 'bili', 'B站评论', seenUrls, drilledRefs)
     }
   }
 
   for (const task of tasks.filter(candidate => candidate.enabled)) {
+    const seenUrls = new Set<string>()
+    const drilledRefs = new Set<string>()
+    const drilldown: Array<{ readonly source: SentimentSource; readonly refId: string; readonly comments: number }> = []
     // RSS feeds: the phase-2 source, always the same fetcher and filters.
     for (const feedUrl of task.feedUrls) {
       let feed
@@ -264,6 +352,8 @@ export async function runSentimentScan(
         const text = htmlToText(`${item.title ?? ''}\n${item.summary ?? ''}`)
         const match = matchesKeywordGroups(text, task.keywordGroups)
         if (!match.matched) continue
+        if (seenUrls.has(item.url)) continue
+        seenUrls.add(item.url)
         if (blacklistDomains.some(domain => item.url.toLowerCase().includes(domain))) continue
         const lexicon = classifyByLexicon(text)
         const polarity: SentimentPolarity = match.hint ?? lexicon.polarity
@@ -285,22 +375,36 @@ export async function runSentimentScan(
         })
       }
     }
-    // weibo visitor search: one page per task, the first subject as the term
-    // (subjects are company/brand names; keyword-group terms would over-match).
-    if (task.sources.includes('weibo')) {
-      const term = task.subjects[0]
-      if (term !== undefined) {
-        const entries = await fetchWeibo(term, {})
-        ingestEntries(entries, task, 'weibo', '微博')
+    // Platform searches ride the keyword-expansion middleware: the task's
+    // subjects widened into the terms real posters use, degrading to the
+    // raw subjects; the breadth round searches the first few terms.
+    const usesPlatformSearch = task.sources.includes('weibo') || task.sources.includes('bili')
+    let expandedTerms: readonly string[] = []
+    if (usesPlatformSearch) {
+      try {
+        expandedTerms = await expandTerms(ctx, policy, task)
+      } catch {
+        // The expansion middleware owns its degradation; an injected stub or
+        // an unexpected throw falls back to the raw subjects, never fails
+        // the scan.
+        expandedTerms = task.subjects
       }
     }
-    // bilibili hot search: one page per task on the first subject.
-    if (task.sources.includes('bili')) {
-      const term = task.subjects[0]
-      if (term !== undefined) {
-        const entries = await fetchBili(term, {})
-        ingestEntries(entries, task, 'bili', 'B站')
-      }
+    const breadthTerms = expandedTerms.slice(0, SENTIMENT_EXPAND_SEARCH_TERMS)
+    // weibo visitor search: one page per term (subjects are company/brand
+    // names; keyword-group terms would over-match). bilibili video search:
+    // one page per term, then the comment layer of the hottest matched videos.
+    if (task.sources.includes('weibo')) await searchRound(task, 'weibo', breadthTerms, seenUrls, drilldown, drilledRefs)
+    if (task.sources.includes('bili')) await searchRound(task, 'bili', breadthTerms, seenUrls, drilldown, drilledRefs)
+    // Depth round (the two-stage breadth→depth pass): when this task's
+    // negative mentions already aggregate into a high-level alert, search
+    // the next tier of expanded terms and drill deeper comments for the
+    // same sources — more evidence for the events that matter.
+    const negative = mentions.filter(mention => mention.taskId === task.id && mention.polarity === 'neg')
+    if (negative.length > 0 && alertLevelOf(groupHeatOf(negative), settings) <= SENTIMENT_DEPTH_ALERT_LEVEL) {
+      const depthTerms = expandedTerms.slice(SENTIMENT_EXPAND_SEARCH_TERMS, SENTIMENT_EXPAND_SEARCH_TERMS + SENTIMENT_EXPAND_DEPTH_TERMS)
+      if (task.sources.includes('weibo')) await searchRound(task, 'weibo', depthTerms, seenUrls, drilldown, drilledRefs)
+      if (task.sources.includes('bili')) await searchRound(task, 'bili', depthTerms, seenUrls, drilldown, drilledRefs)
     }
   }
 
@@ -310,12 +414,6 @@ export async function runSentimentScan(
     .filter(({ mention }) => needsRefinement({ polarity: mention.polarity, confidence: mention.confidence, evidence: mention.evidence }))
     .slice(0, deps.llmBatchCap ?? SENTIMENT_LLM_BATCH_CAP)
   if (ambiguous.length > 0) {
-    const policy: AiCallPolicy = {
-      provider: ai.provider,
-      model: ai.model,
-      timeoutMs: ai.timeoutMs,
-      maxOutputTokens: ai.maxOutputTokens,
-    }
     const verdicts = await (deps.refineBatch ?? refineBatchWithLlm)(ctx, policy, ambiguous.map(({ index, mention }) => ({
       index,
       text: `${mention.title}\n${mention.summary}`,
@@ -368,11 +466,8 @@ export function aggregateAlerts(
   for (const [eventKey, group] of byEvent) {
     const lead = group[0]
     if (lead === undefined) continue
-    const totalHeat = group.reduce((sum, m) => sum + (m.heat?.likes ?? 0) + (m.heat?.comments ?? 0) + (m.heat?.shares ?? 0), 0)
-    const heat = totalHeat > 0 ? totalHeat : group.length * 100
-    const level: 1 | 2 | 3 | 4 = heat >= settings.negativeHeatThreshold * 4 ? 1
-      : heat >= settings.negativeHeatThreshold ? 2
-        : heat >= settings.negativeHeatThreshold / 4 ? 3 : 4
+    const heat = groupHeatOf(group)
+    const level = alertLevelOf(heat, settings)
     const reasonParts = [`负面提及 ${String(group.length)} 条`, `热度 ${String(heat)}`]
     const evidence = group.find(m => m.evidence !== null)?.evidence ?? null
     if (evidence !== null) reasonParts.push(`依据：${evidence}`)
@@ -392,4 +487,17 @@ export function aggregateAlerts(
     })
   }
   return alerts
+}
+
+/** Summed engagement heat of one mention group (fallback: 100 per mention). */
+export function groupHeatOf(group: readonly SentimentMention[]): number {
+  const totalHeat = group.reduce((sum, m) => sum + (m.heat?.likes ?? 0) + (m.heat?.comments ?? 0) + (m.heat?.shares ?? 0), 0)
+  return totalHeat > 0 ? totalHeat : group.length * 100
+}
+
+/** Map one aggregated heat against the configured threshold to an alert level. */
+export function alertLevelOf(heat: number, settings: SentimentSettings): 1 | 2 | 3 | 4 {
+  return heat >= settings.negativeHeatThreshold * 4 ? 1
+    : heat >= settings.negativeHeatThreshold ? 2
+      : heat >= settings.negativeHeatThreshold / 4 ? 3 : 4
 }

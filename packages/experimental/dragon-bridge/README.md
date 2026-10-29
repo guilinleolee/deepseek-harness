@@ -1,8 +1,24 @@
+---
+description: "The single facade for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror inside DSH."
+kind: "package-reference"
+---
 # dsh-experimental-dragon-bridge
 
 English | [中文](README.zh.md)
 
+## Summary
+
 The single facade for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror inside DSH. Combines `@deepseek-ai/dsh-experimental-skill-index`, `@deepseek-ai/dsh-experimental-agent-roster`, and `@deepseek-ai/dsh-experimental-license-policy` so a consumer can search across skills, agents, commands, hooks, and plugins in one call and trust the AGPL / NOASSERTION gate.
+
+## Table of Contents
+
+- [Dependencies](#dependencies)
+- [Service API](#service-api)
+- [Config](#config)
+- [Cross-package contract](#cross-package-contract)
+- [Dev Note](#dev-note)
+
+-----
 
 This is an experimental package. It only mounts when its owning composition asks for it; no release package may declare it as a dependency.
 
@@ -83,3 +99,14 @@ None.
 - **Description fallback for skills** — the bridge's `text` matcher falls back to `displayName` when the index entry has no `description` field. Future schema may normalize both sides under a single field.
 - **No fuzzy search** — `search({ text })` is a literal substring match. Embedding-based retrieval would require a new sibling package (Phase 4+).
 - **One-shot policy decision** — the bridge evaluates the license once at `loadAll()` time. If the upstream policy changes, the bridge cache must be invalidated manually.
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

@@ -1,0 +1,362 @@
+{
+  "schema": "dragon-license-registry/1.0",
+  "updated": "2026-10-26",
+  "purpose": "Authoritative license facts for dragon-assets skills. Consumed by build-index.py (license resolution) and by the commercial-use gate. Skills listed here override frontmatter and LICENSE-sniff results; a skill absent from this file keeps its detected license but is treated as unverified for commercial delivery.",
+  "commercial_use_vocabulary": {
+    "yes": "Commercial use permitted; obligations listed in obligations[] still apply.",
+    "no": "Commercial use forbidden. Do not include in any paid deliverable, client skill library, or hosted service.",
+    "deliverable-only": "Commercial use permitted only by delivering the produced artifact (for example a PNG) to the client. Providing the skill itself, a network service over it, or a private skill library copy is not permitted.",
+    "unverified": "License not established. Excluded from paid deliverables until resolved."
+  },
+  "obligations_vocabulary": {
+    "retain-license-text": "Ship the full upstream LICENSE text with the deliverable.",
+    "retain-notice": "Ship the upstream NOTICE file with the deliverable.",
+    "include-attribution": "Include an attribution line naming the upstream project and URL.",
+    "mark-modified": "State that the work was modified.",
+    "no-endorsement": "Do not use upstream author or contributor names as endorsement."
+  },
+  "skills": {
+    "baoyu-xhs-images": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26",
+      "note": "Upstream repository states MIT unless otherwise noted. Individual skill dirs carry no LICENSE file; the repository-level license governs."
+    },
+    "baoyu-cover-image": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-article-illustrator": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-comic": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-slide-deck": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-markdown-to-html": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-format-markdown": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-translate": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-url-to-markdown": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-youtube-transcript": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-seo": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-diagram": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-infographic": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-compress-image": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-image-gen": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-post-to-wechat": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-post-to-x": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-post-to-weibo": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-wechat-summary": {
+      "license": "MIT",
+      "upstream": "JimLiu/baoyu-skills",
+      "upstream_url": "https://github.com/JimLiu/baoyu-skills",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26",
+      "note": "Depends on the external wx-cli binary, which is not bundled and has its own license."
+    },
+    "multi-platform-publisher": {
+      "license": "self",
+      "upstream": "天龙引擎自研",
+      "commercial_use": "yes",
+      "obligations": [],
+      "verified_on": "2026-10-26",
+      "note": "Wrapper skill written in this repository; no upstream dependency. Publisher backends are invoked as external CLIs with their own licenses."
+    },
+    "render-deck": {
+      "license": "MIT",
+      "upstream": "天龙引擎自研",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26",
+      "note": "Zero-AGPL replacement path for the AGPL-licensed guizang renderer: HTML to PNG through the system headless Chrome, no npm dependencies. Verified on 2026-10-26 across 4 ratios."
+    },
+    "check-runtime": {
+      "license": "MIT",
+      "upstream": "天龙引擎自研",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26",
+      "note": "Probes the DeepSeek, muapi, browser, runner, and anysearch paths and classifies each as ok, auth, quota, cfg, net, or skip. Used before quoting a delivery."
+    },
+    "xhs-visual-director-skill": {
+      "license": "MIT",
+      "upstream": "ziguishian/xhs-visual-director",
+      "upstream_url": "https://github.com/ziguishian/xhs-visual-director",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26",
+      "note": "Bundled LICENSE is MIT, Copyright (c) 2026 ziguishian. MIT replacement for the AGPL-licensed guizang layout pipeline."
+    },
+    "a-stock-data-bridge": {
+      "license": "Apache-2.0",
+      "upstream": "simonlin1212/a-stock-data",
+      "upstream_url": "https://github.com/simonlin1212/a-stock-data",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "retain-notice", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26"
+    },
+    "global-stock-data-bridge": {
+      "license": "Apache-2.0",
+      "upstream": "simonlin1212/global-stock-data",
+      "upstream_url": "https://github.com/simonlin1212/global-stock-data",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "retain-notice", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26"
+    },
+    "anysearch": {
+      "license": "Apache-2.0",
+      "upstream": "anysearch-ai/anysearch-skill",
+      "upstream_url": "https://github.com/anysearch-ai/anysearch-skill",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "retain-notice", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26"
+    },
+    "nuwa-skill": {
+      "license": "MIT",
+      "upstream": "alchaincyf/nuwa-skill",
+      "upstream_url": "https://github.com/alchaincyf/nuwa-skill",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "darwin-skill": {
+      "license": "MIT",
+      "upstream": "darwin-skill",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text", "include-attribution"],
+      "verified_on": "2026-10-26"
+    },
+    "async-task-pattern": {
+      "license": "MIT",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26"
+    },
+    "cinema-director-laoli": {
+      "license": "MIT",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26"
+    },
+    "skill-updater": {
+      "license": "MIT",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26"
+    },
+    "book-distiller": {
+      "license": "self",
+      "upstream": "天龙引擎自研",
+      "commercial_use": "yes",
+      "obligations": [],
+      "verified_on": "2026-10-26"
+    },
+    "guizang-social-card-skill": {
+      "license": "AGPL-3.0",
+      "upstream": "op7418/guizang-social-card-skill",
+      "upstream_url": "https://github.com/op7418/guizang-social-card-skill",
+      "commercial_use": "deliverable-only",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "AGPL section 13 exemption covers delivering the produced PNG, not shipping the skill into a client library or running it as a service for a client. The upstream author also runs an explicit commercial licensing programme (see the skill's COMMERCIAL_LICENSING.md): deep-integration starts at CNY 100,000, listing with attribution at CNY 30,000, and a revenue-share tier with no fixed fee. Ask the author for a written agreement before any productised use. For layout work inside client engagements without a separate agreement, use xhs-visual-director-skill (MIT) for visual direction plus an MIT-licensed renderer."
+    },
+    "gzh-design-skill": {
+      "license": "AGPL-3.0",
+      "upstream": "Jiamu x Moyu Xiaoli",
+      "commercial_use": "deliverable-only",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "AGPL section 13 exemption covers delivering the produced artifact, not shipping the skill into a client library or running it as a service for a client."
+    },
+    "cangjie-skill": {
+      "license": "AGPL-3.0",
+      "upstream": "kangarooking/cangjie-skill",
+      "upstream_url": "https://github.com/kangarooking/cangjie-skill",
+      "commercial_use": "deliverable-only",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26"
+    },
+    "opc-methodology": {
+      "license": "CC-BY-NC-SA-4.0",
+      "upstream": "easychen/opc-methodology",
+      "upstream_url": "https://github.com/easychen/opc-methodology",
+      "commercial_use": "no",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "NonCommercial. The methodology text must not appear in a paid deliverable. Rebuild the nine-stage model independently, or use the opc-* skill structures without copying the upstream prose."
+    },
+    "dbskill": {
+      "license": "CC-BY-NC-4.0",
+      "upstream": "dontbesilent2025/dbskill",
+      "upstream_url": "https://github.com/dontbesilent2025/dbskill",
+      "commercial_use": "no",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "NonCommercial. The dbs-* family inherits this license."
+    },
+    "dbs-*": {
+      "license": "CC-BY-NC-4.0",
+      "upstream": "dontbesilent2025/dbskill",
+      "upstream_url": "https://github.com/dontbesilent2025/dbskill",
+      "commercial_use": "no",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "Family rule: every dbs-* skill inherits the CC BY-NC 4.0 license of the dbskill collection. A key ending in \"*\" matches by id or directory prefix."
+    },
+    "privacy-policy-generator": {
+      "license": "CC-BY-NC-4.0",
+      "commercial_use": "no",
+      "obligations": ["retain-license-text", "include-attribution", "mark-modified"],
+      "verified_on": "2026-10-26",
+      "note": "NonCommercial."
+    },
+    "docx": {
+      "license": "proprietary",
+      "upstream": "Anthropic, PBC",
+      "commercial_use": "no",
+      "obligations": [],
+      "verified_on": "2026-10-26",
+      "note": "Anthropic skill licence. Extraction from the Services, retention outside the Services, derivative works, and redistribution to any third party are all forbidden. Do not ship to a client library."
+    },
+    "pdf": {
+      "license": "proprietary",
+      "upstream": "Anthropic, PBC",
+      "commercial_use": "no",
+      "obligations": [],
+      "verified_on": "2026-10-26",
+      "note": "Anthropic skill licence. Do not ship to a client library."
+    },
+    "pptx": {
+      "license": "proprietary",
+      "upstream": "Anthropic, PBC",
+      "commercial_use": "no",
+      "obligations": [],
+      "verified_on": "2026-10-26",
+      "note": "Anthropic skill licence. Do not ship to a client library."
+    },
+    "xlsx": {
+      "license": "proprietary",
+      "upstream": "Anthropic, PBC",
+      "commercial_use": "no",
+      "obligations": [],
+      "verified_on": "2026-10-26",
+      "note": "Anthropic skill licence. Do not ship to a client library."
+    }
+  }
+}

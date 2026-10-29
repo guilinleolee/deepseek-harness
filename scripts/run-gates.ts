@@ -334,6 +334,9 @@ export function gatesForMode(selected: Mode): Gate[] {
         pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
         pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
         pnpmScript('client-domain-graph', 'verify-client-domain-graph', { label: 'client domain graph' }),
+        pnpmScript('dragon-assets-licenses', 'verify-dragon-assets-licenses', { label: 'dragon-assets licenses' }),
+        pnpmScript('dragon-capability-honesty', 'verify-dragon-capability-honesty', { label: 'dragon capability honesty' }),
+        pnpmScript('dragon-deliverable-skills', 'verify-dragon-deliverable-skills', { label: 'dragon deliverable skills' }),
         pnpmScript('test', 'test'),
         pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
         pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
@@ -355,6 +358,9 @@ export function gatesForMode(selected: Mode): Gate[] {
         ...hygieneLeafGates(),
         pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
         pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
+        pnpmScript('dragon-assets-licenses', 'verify-dragon-assets-licenses', { label: 'dragon-assets licenses' }),
+        pnpmScript('dragon-capability-honesty', 'verify-dragon-capability-honesty', { label: 'dragon capability honesty' }),
+        pnpmScript('dragon-deliverable-skills', 'verify-dragon-deliverable-skills', { label: 'dragon deliverable skills' }),
       ]
     case 'doc-sync':
       return docSyncLeafGates()
@@ -374,6 +380,9 @@ function ciSharedStaticGates(): Gate[] {
     pnpmScript('constraints', 'constraints'),
     pnpmScript('package-dependencies', 'verify-package-dependencies', { label: 'package dependencies' }),
     pnpmScript('dsh-package-licenses', 'verify-dsh-package-licenses', { label: 'DSH package licenses' }),
+    pnpmScript('dragon-assets-licenses', 'verify-dragon-assets-licenses', { label: 'dragon-assets licenses' }),
+    pnpmScript('dragon-capability-honesty', 'verify-dragon-capability-honesty', { label: 'dragon capability honesty' }),
+    pnpmScript('dragon-deliverable-skills', 'verify-dragon-deliverable-skills', { label: 'dragon deliverable skills' }),
     pnpmScript('package-meta', 'verify-package-meta', { label: 'package metadata' }),
     pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
     ...sharedHygieneGates(),

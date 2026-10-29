@@ -13,8 +13,9 @@
  * auditor 得 403「审计员为只读角色」。全部变更端点与登录/配额/导出/安全设置
  * 事件在 data/audit.jsonl 留痕（audit.mjs，result=ok/deny/fail）。
  */
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { writeJsonAtomic } from './atomic-write.mjs'
 import { addAccount, getOrCreateSecret, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
 import { addModel, issueVkey, listUpstreams, listVkeys, monthKey, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
@@ -1169,9 +1170,7 @@ function saveRoleMatrix(dataDir, role, patch) {
     if (Object.keys(diff).length > 0) overrides[roleKey] = diff
   }
   const path = join(dataDir, MATRIX_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify({ roles: overrides }, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, { roles: overrides })
   return roles
 }
 
@@ -1353,11 +1352,21 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
           const password = body.password || generatePassword()
           const policy = checkPasswordPolicy(password, account, loadSecurityConfig(dataDir))
           if (!policy.ok) { fail(400, policy.message); return }
+          // 角色显式校验：此前「非 auditor 一律 employee」的静默降级，会让
+          // 「建审计员」实际建成普通成员——权限矩阵与审计口径一起失真，
+          // 且调用方无从察觉（接口照样返回 200）。
+          const role = body.role === undefined || body.role === null || body.role === '' ? 'employee' : body.role
+          if (!['admin', 'auditor', 'employee'].includes(role)) {
+            fail(400, `角色非法：${String(role)}（允许 admin / auditor / employee）`)
+            return
+          }
           const created = addAccount(dataDir, {
             account,
             instanceId: body.instance,
-            role: body.role === 'auditor' ? 'auditor' : 'employee',
+            role,
             displayName: body.displayName || undefined,
+            // 部门此前整条建号链路被丢弃（表单填了也不落库）。
+            department: body.department || undefined,
             password,
           })
           const { token } = issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
@@ -1412,8 +1421,11 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
           saveAccounts(dataDir, store)
           const history = readJson(dataDir, 'vkeys.json', { vkeys: [] }).vkeys.filter((v) => v.account === account)
           const models = history.at(-1)?.models ?? '*'
-          issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
-          ok({ ok: true, models })
+          // 重新启用会重签一把钥匙。明文此前被直接丢弃，管理员拿不到可用钥匙，
+          // 只能再跑一次「令牌与配额」页签发——与建号口径对齐：明文只出现一次
+          // （平台只存哈希），不进审计（审计只记 meta）。
+          const { token } = issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
+          ok({ ok: true, models, vkey: token })
         })
         return
       }
@@ -1810,11 +1822,13 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
       return true
     }
     // 成员列表（阶段 12 数据源：user_list 工具/服务令牌白名单端点）。
+    // 服务端可选过滤 + 分页（新增，**向后兼容**：不传任何参数时行为与原来一致，
+    // 仍返回全部成员；传参时只返回过滤后的一页并带 total/offset/limit）。
     if (path === '/console/api/member/list') {
       const d = new Date()
       const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const usage = readJson(dataDir, 'usage.json', { months: {} }).months[month] ?? {}
-      const members = listAccounts(dataDir).map((a) => {
+      const all = listAccounts(dataDir).map((a) => {
         const e = usage[a.account] ?? {}
         return {
           account: a.account, displayName: a.displayName, department: a.department,
@@ -1824,7 +1838,29 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
           lastLogin: a.lastLogin ?? null,
         }
       })
-      json(res, 200, { month, members })
+      const q = (query.get('q') ?? '').trim().toLowerCase()
+      const department = query.get('department') ?? ''
+      const role = query.get('role') ?? ''
+      const disabledParam = query.get('disabled') ?? ''
+      const instance = query.get('instance') ?? ''
+      let filtered = all
+      if (q !== '') {
+        filtered = filtered.filter((m) => [m.account, m.displayName, m.department]
+          .some((v) => String(v ?? '').toLowerCase().includes(q)))
+      }
+      if (department !== '') filtered = filtered.filter((m) => m.department === department)
+      if (role !== '') filtered = filtered.filter((m) => m.role === role)
+      if (disabledParam === 'true' || disabledParam === 'false') {
+        filtered = filtered.filter((m) => Boolean(m.disabled) === (disabledParam === 'true'))
+      }
+      if (instance !== '') filtered = filtered.filter((m) => m.instanceId === instance)
+      const total = filtered.length
+      const offsetRaw = Number.parseInt(query.get('offset') ?? '0', 10)
+      const offset = Number.isInteger(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0
+      const limitRaw = Number.parseInt(query.get('limit') ?? '', 10)
+      const limit = Number.isInteger(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 1000) : null
+      const members = limit === null ? filtered.slice(offset) : filtered.slice(offset, offset + limit)
+      json(res, 200, { month, members, total, offset, limit: limit ?? members.length })
       return true
     }
     // 单成员当月用量（阶段 12 数据源：user_quota_query 工具）。

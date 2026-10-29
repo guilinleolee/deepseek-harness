@@ -1,8 +1,21 @@
+---
+description: "内容创作产物域：agent 写入成品的持久化磁盘面。"
+kind: "package-group"
+---
 # creation/ — 内容创作产物域
 
 [English](README.md) | 中文
 
+## 概述
+
 creation 族拥有 agent 写入成品的持久化磁盘面：产物库根目录下一次创作一个目录——成品文件放项目根，中间素材放 `assets/`，`.dsh-output.json` 是唯一元数据。Web 端内容创作工作台（[`dsh-client-ui-content-studio`](../client/ui-content-studio)）通过下面的 Remote 读取；写入始终是 agent 通过自身工具完成的职责。
+
+## 目录
+
+- [包](#包)
+- [开发备注](#dev-note)
+
+-----
 
 | 包 | 职责 | ctx key |
 |---|---|---|
@@ -11,3 +24,13 @@ creation 族拥有 agent 写入成品的持久化磁盘面：产物库根目录�
 | `content-topics/` | `contentTopics/list`、`put`、`delete` Remote，读写库根的 `_topics.json` 选题库 | —（仅 Remote 网关） |
 
 磁盘格式为 `formatVersion 0`，无兼容性承诺，遵循仓库的预发布立场。
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

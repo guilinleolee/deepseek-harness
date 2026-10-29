@@ -5,10 +5,10 @@
  * remains a static demo until the LLM report face lands; everything else
  * reads and writes the real store.
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
-  SentimentAlertId, SentimentPolarity, SentimentReport, SentimentScanResult,
+  SentimentAlert, SentimentAlertId, SentimentPolarity, SentimentReport, SentimentScanResult,
   SentimentSettings, SentimentSnapshot, SentimentStats, SentimentTask, SentimentTaskId,
   SentimentTaskInput,
 } from '@deepseek-ai/dsh-content-outputs/types'
@@ -26,6 +26,7 @@ export interface SentimentGateway {
   putSentimentSettings: (settings: SentimentSettings) => Promise<void>
   scanSentiment: () => Promise<SentimentScanResult>
   handleSentimentAlert: (id: SentimentAlertId) => Promise<void>
+  adjudicateSentimentAlert: (id: SentimentAlertId) => Promise<SentimentAlert>
   sentimentStats: () => Promise<SentimentStats>
   generateSentimentReport: () => Promise<SentimentReport>
 }
@@ -148,6 +149,8 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [settingsDraft, setSettingsDraft] = useState<SentimentSettings | null>(null)
   const [reportGenerating, setReportGenerating] = useState(false)
+  const [adjudicatingId, setAdjudicatingId] = useState<SentimentAlertId | null>(null)
+  const [adjudicationOpenId, setAdjudicationOpenId] = useState<SentimentAlertId | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -210,6 +213,22 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
   const markAlertHandled = async (id: SentimentAlertId): Promise<void> => {
     await sentiment.handleSentimentAlert(id)
     await load()
+  }
+
+  const adjudicateAlert = async (id: SentimentAlertId): Promise<void> => {
+    setAdjudicatingId(id)
+    try {
+      const updated = await sentiment.adjudicateSentimentAlert(id)
+      setSnapshot(current => (current === null ? current : {
+        ...current,
+        alerts: current.alerts.map(alert => (alert.id === id ? updated : alert)),
+      }))
+      flashNotice(t('sentiment.adjudicate.done'))
+    } catch (error) {
+      setNotice(error instanceof Error ? `${t('sentiment.adjudicate.failed')}：${error.message.slice(0, 160)}` : t('sentiment.adjudicate.failed'))
+    } finally {
+      setAdjudicatingId(null)
+    }
   }
 
   const runReport = async (): Promise<void> => {
@@ -555,24 +574,45 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
             </thead>
             <tbody>
               {(snapshot?.alerts ?? []).map(alert => (
-                <tr key={alert.id}>
-                  <td>{alert.createdAt.slice(0, 16).replace('T', ' ')}</td>
-                  <td>{(snapshot?.tasks ?? []).find(task => task.id === alert.taskId)?.name ?? alert.taskId}</td>
-                  <td><span className={css[`sentimentLevel${alert.level}`]}>{t(`sentiment.level.${alert.level}`)}</span></td>
-                  <td className={css.sentimentSummary}>{alert.summary}</td>
-                  <td>{alert.reason}</td>
-                  <td>{alert.handled ? t('sentiment.alerts.state.done') : t('sentiment.alerts.state.open')}</td>
-                  <td className={css.sentimentRowActions}>
-                    <button type="button" className={css.sentimentGhost} onClick={() => { void reflowToTopicBank(alert.id) }}>
-                      {t('sentiment.alerts.toTopic')}
-                    </button>
-                    {!alert.handled && (
-                      <button type="button" className={css.sentimentGhost} onClick={() => { void markAlertHandled(alert.id) }}>
-                        {t('sentiment.alerts.markDone')}
+                <Fragment key={alert.id}>
+                  <tr>
+                    <td>{alert.createdAt.slice(0, 16).replace('T', ' ')}</td>
+                    <td>{(snapshot?.tasks ?? []).find(task => task.id === alert.taskId)?.name ?? alert.taskId}</td>
+                    <td><span className={css[`sentimentLevel${alert.level}`]}>{t(`sentiment.level.${alert.level}`)}</span></td>
+                    <td className={css.sentimentSummary}>{alert.summary}</td>
+                    <td>{alert.reason}</td>
+                    <td>{alert.handled ? t('sentiment.alerts.state.done') : t('sentiment.alerts.state.open')}</td>
+                    <td className={css.sentimentRowActions}>
+                      <button type="button" className={css.sentimentGhost} disabled={adjudicatingId === alert.id} onClick={() => { void adjudicateAlert(alert.id) }}>
+                        {adjudicatingId === alert.id ? t('sentiment.adjudicate.running') : t('sentiment.adjudicate.run')}
                       </button>
-                    )}
-                  </td>
-                </tr>
+                      {alert.adjudication != null && (
+                        <button type="button" className={css.sentimentGhost} onClick={() => { setAdjudicationOpenId(current => (current === alert.id ? null : alert.id)) }}>
+                          {adjudicationOpenId === alert.id ? t('sentiment.adjudicate.hide') : t('sentiment.adjudicate.show')}
+                        </button>
+                      )}
+                      <button type="button" className={css.sentimentGhost} onClick={() => { void reflowToTopicBank(alert.id) }}>
+                        {t('sentiment.alerts.toTopic')}
+                      </button>
+                      {!alert.handled && (
+                        <button type="button" className={css.sentimentGhost} onClick={() => { void markAlertHandled(alert.id) }}>
+                          {t('sentiment.alerts.markDone')}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {adjudicationOpenId === alert.id && alert.adjudication != null && (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className={css.sentimentAdjudication}>
+                          <p><strong>{t('sentiment.adjudicate.optimistic')}</strong>{alert.adjudication.optimistic}</p>
+                          <p><strong>{t('sentiment.adjudicate.cautious')}</strong>{alert.adjudication.cautious}</p>
+                          <p><strong>{t('sentiment.adjudicate.conclusion')}</strong>{alert.adjudication.conclusion}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
               {(snapshot?.alerts.length ?? 0) === 0 && (
                 <tr><td colSpan={7} className={css.sentimentHint}>{t('sentiment.alerts.empty')}</td></tr>

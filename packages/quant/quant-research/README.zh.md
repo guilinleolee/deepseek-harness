@@ -1,8 +1,26 @@
+---
+description: "面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标，以及受\"仅供研究\"合规门禁约束的日线双均线回测。插件注册三个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`），打开 `quant_rese"
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-quant-research
 
-English | [中文](README.md)
+[English](README.md) | 中文
+
+## 概述
 
 面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标，以及受"仅供研究"合规门禁约束的日线双均线回测。插件注册三个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
+
+## 目录
+
+- [安装](#安装)
+- [配置](#配置)
+- [架构](#架构)
+- [合规门禁（红线）](#合规门禁红线)
+- [工具](#工具)
+- [会话事件](#会话事件)
+- [开发备注](#dev-note)
+
+-----
 
 ## 安装
 
@@ -78,3 +96,14 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。
 - **pytest 覆盖率为信息性指标** — 仓库的逐文件 100% 门禁只覆盖 TypeScript `src`；内核 pytest 套件独立运行、独立报告。
 - **Excel 导出与 echarts 卡片延期** — Markdown 优先的报表避免引入 xlsx 依赖；图表库去留是 Phase 2 的显式评审项（权衡包体）。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

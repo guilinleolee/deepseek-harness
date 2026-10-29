@@ -9,25 +9,26 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Domain, KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { appendAuditRecord, type AuditTable } from '../audit.ts'
-import { ContentTemplateId, GeneratedContentId, IcpProfileId, newId } from '../domain/ids.ts'
+import { ContentTemplateId, GeneratedContentId, newId } from '../domain/ids.ts'
 import {
   contentTemplateSchema,
   customerAcquisitionDomainSpec,
   generatedContentSchema,
   type ContentTemplate,
   type GeneratedContent,
-  type IcpProfile,
   type Lead,
 } from '../domain/spec.ts'
 import { llmPromptCompletion, type PromptCompletion, type ResolvedAiPolicy } from '../llm/oneshot.ts'
 import type { LeadLedgerService } from '../leads/service.ts'
 import type { OperatorChannel, ResolvedOperator } from '../permission/types.ts'
-import { aggregateKnowledge, renderScorePrompt } from '../scoring/prompt.ts'
+import { aggregateKnowledge } from '../scoring/prompt.ts'
+import { renderVariables } from '../templates/render.ts'
 
 /** Copywriting system prompt shared by every generate call. */
 export const CONTENT_SYSTEM_PROMPT = [
   '你是获客培育文案写手。按给定的渠道类型、模板与线索资料写一段可直接使用的中文文案：',
-  '口吻自然、有具体行动点、不编造线索资料里没有的事实；模板里的 {{变量}} 全部落位；',
+  '口吻自然、有具体行动点、不编造线索资料里没有的事实；模板里的 {{变量}} 全部落位（确实没有值的按落位说明略过）；',
+  '发送人身份以线索资料中的 sender_name 为准，不要把收件人当成自己，也不要混用署名；',
   '只输出文案正文，不要解释（渠道要求的标题除外）。',
 ].join('')
 
@@ -58,25 +59,45 @@ function definedFields<T extends object>(patch: T): Partial<T> {
   return Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as Partial<T>
 }
 
-/** Variable values the lead itself supplies to every template render. */
-function leadVariables(lead: Lead): Record<string, string> {
-  return {
+/**
+ * Resolve every variable a copy template may name.
+ *
+ * Precedence: a real lead field wins; a value the template itself declares
+ * (its `variables[].example`) fills the gap; anything still empty stays open
+ * and is reported to the model instead of being silently dropped.
+ * @param lead - the lead the copy is for.
+ * @param senderName - the configured sender identity (global setting).
+ * @param template - the resolved template, whose declared examples backstop
+ *   variables the lead cannot supply (notably `sender_name`).
+ * @returns the variable map handed to the renderer.
+ */
+function copyVariables(
+  lead: Lead,
+  senderName: string | undefined,
+  template: ContentTemplate | undefined,
+): Record<string, string> {
+  const fromLead: Record<string, string> = {
     contact_name: lead.contact_name ?? '',
     company_name: lead.company_name,
     industry: lead.industry ?? '',
     company_size: lead.company_size ?? '',
     demand_desc: lead.demand_desc ?? '',
     budget_range: lead.budget_range ?? '',
-    sender_name: '',
+    sender_name: senderName ?? '',
   }
-}
-
-/** A minimal stand-in profile so renderScorePrompt has a shape (copy bodies don't use dimensions). */
-function emptyProfile(industry: string | undefined): IcpProfile {
-  return {
-    id: IcpProfileId('copy-render'), name: '', industry, dimensions: [], enabled: true,
-    created_at: 0, updated_at: 0,
+  const declared: Record<string, string> = {}
+  if (template !== undefined) {
+    for (const variable of template.variables) {
+      if (variable.example !== undefined && variable.example.length > 0) {
+        declared[variable.name] = variable.example
+      }
+    }
   }
+  const merged: Record<string, string> = { ...declared }
+  for (const [name, value] of Object.entries(fromLead)) {
+    if (value.length > 0) merged[name] = value
+  }
+  return merged
 }
 
 /** Construction dependencies of the nurture-copy service. */
@@ -140,10 +161,11 @@ export class NurtureContentService {
     if (type.length === 0) throw new Error('文案类型（type）不能为空')
     const template = this.resolveTemplate(input.template_id, type, lead)
     const knowledge = aggregateKnowledge(this.deps.ledger.getLeadDocuments(lead.id, operator))
-    const body = template === undefined
-      ? `渠道类型：${type}。请基于线索资料直接撰写。`
-      : renderScorePrompt(template.body, { lead, profile: emptyProfile(template.industry), knowledge })
-    const variables = leadVariables(lead)
+    const variables = copyVariables(lead, this.deps.domain.global.get().sender_name, template)
+    const rendered = template === undefined
+      ? { text: `渠道类型：${type}。请基于线索资料直接撰写。`, unresolved: [] as string[] }
+      : renderVariables(template.body, variables)
+    const body = rendered.text
     const prompt = [
       body,
       `渠道类型：${type} — ${TYPE_GUIDES[type] ?? DEFAULT_TYPE_GUIDE}`,
@@ -155,10 +177,13 @@ export class NurtureContentService {
         company_size: variables.company_size,
         demand_desc: variables.demand_desc,
         budget_range: variables.budget_range,
+        sender_name: variables.sender_name,
       }),
       '补充资料：',
       knowledge.length === 0 ? '（无）' : knowledge,
-      '落位说明：模板中未提供值的 {{变量}} 请自然略过，不要输出占位符本身。',
+      rendered.unresolved.length === 0
+        ? '落位说明：模板变量已全部按实际值填入，直接照此撰写；发送人身份以线索资料中的 sender_name 为准。'
+        : `落位说明：以下变量没有值，请在文案中自然略过（不要输出占位符本身，也不要猜测其内容）：${rendered.unresolved.map(name => `{{${name}}}`).join('、')}。发送人身份以线索资料中的 sender_name 为准。`,
     ].join('\n')
     const text = (await this.completionFactory(CONTENT_SYSTEM_PROMPT).complete(prompt, signal)).trim()
     if (text.length === 0) throw new Error('模型返回了空文案，请重试')

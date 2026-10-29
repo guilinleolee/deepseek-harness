@@ -1,8 +1,24 @@
+---
+description: "[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的纯 License 治理层。本包持有\"tier → decision\"判定表，供下游（skill 加载器、工具发布器、dragon-bridge）在边界"
+kind: "package-reference"
+---
 # dsh-experimental-license-policy
 
 [English](README.md) | 中文
 
+## 概述
+
 [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的纯 License 治理层。本包持有"tier → decision"判定表，供下游（skill 加载器、工具发布器、dragon-bridge）在边界处强制执行。
+
+## 目录
+
+- [Tier → 决策矩阵](#tier--决策矩阵)
+- [Service API](#service-api)
+- [配置](#配置)
+- [已知限制与延后工作](#已知限制与延后工作)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -14,10 +30,14 @@
 | `apache-2.0` | green | `attribute` | 需携带 NOTICE + "Modifications by dragon-engine" |
 | `bsd-3-clause` | green | `attribute` | 保留版权；禁止用作者名背书 |
 | `agpl-3.0` | red | `artifact-only` | **红线**：仅交付 PNG / artifact，禁止部署为网络服务 |
+| `noncommercial` | black | `reject` | CC BY-NC 家族：禁止商用，不得进入付费交付 |
+| `proprietary` | black | `reject` | 保留所有权利：禁止向第三方再分发 |
 | `noassertion` | black | `reject` | DSH 生态治理基线下拒绝 |
 | `unknown` | amber | `attribute`（或 `reject` 当 `rejectUnknown=true`）| 再分发前需确认上游 |
 
 该矩阵是 `dragon-assets/LICENSE-ATTRIBUTION.md` §一-§五 的真相源。如该文档变化，本包必须同步更新并 bump 快照。
+
+`noncommercial` 与 `proprietary` 之所以存在：策略表达不了的 tier 会塌回 `unknown`，而 `unknown` 的默认决策是 `attribute`（即可加载）。dragon-assets 注册表里正好有十个这样的资产（CC BY-NC 家族与 Anthropic 的文档类技能），策略若不能命名它们，就无法拒绝它们。
 
 ## Service API
 
@@ -60,3 +80,14 @@ ctx.licensePolicy.assertAllowed('MIT', ['allow', 'attribute'])
 - **无治理出处记录**——本策略不记住谁设了 `rejectUnknown`。切换该开关的调用方应同时记录原因。
 - **AGPL 声明仅英文**——中文/多语言版本在 `dragon-assets/LICENSE-ATTRIBUTION.md` §三；本包持英文默认并接受覆盖。
 - **边界是建议性**——本策略返回 decision，不强制执行。下游（加载器、发布器、dragon-bridge）负责在实际部署边界处拒绝 `artifact-only` / `reject` decision。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

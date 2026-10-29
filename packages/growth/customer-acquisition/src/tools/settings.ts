@@ -26,6 +26,7 @@ const SETTINGS_VALUE_SCHEMA = {
       properties: {
         default_icp_profile_id: { type: 'string' },
         default_score_template_id: { type: 'string' },
+        sender_name: { type: 'string' },
         geo_max_pages: { type: 'integer', required: true },
         geo_page_timeout_ms: { type: 'integer', required: true },
         sop_todo_write_enabled: { type: 'boolean', required: true },
@@ -43,6 +44,7 @@ function renderSettings(value: SettingsSnapshotValue): { type: 'text'; text: str
     `- sop_todo_write_enabled: ${String(s.sop_todo_write_enabled)}`,
     `- default_icp_profile_id: ${s.default_icp_profile_id ?? '(未设置)'}`,
     `- default_score_template_id: ${s.default_score_template_id ?? '(未设置)'}`,
+    `- sender_name: ${s.sender_name ?? '(未设置)'}`,
   ]
   return [{ type: 'text', text: `获客运营全局参数：\n${lines.join('\n')}` }]
 }
@@ -55,7 +57,7 @@ function renderSettings(value: SettingsSnapshotValue): { type: 'text'; text: str
 export function settingsGetTool(service: CustomerAcquisitionService): ToolDefinition {
   return defineTool({
     name: 'customer_acquisition_settings_get',
-    description: '读取获客运营插件的全局参数：默认 ICP 画像、默认打分模板、GEO 诊断的页数与超时上限、SOP 待办联动开关。',
+    description: '读取获客运营插件的全局参数：默认 ICP 画像、默认打分模板、文案署名（sender_name）、GEO 诊断的页数与超时上限、SOP 待办联动开关。',
     parameters: {},
     output: {
       schema: SETTINGS_VALUE_SCHEMA,
@@ -83,6 +85,7 @@ export function settingsSetTool(
     parameters: {
       default_icp_profile_id: { type: 'string', description: '默认 ICP 画像 id；需为已存在的画像' },
       default_score_template_id: { type: 'string', description: '默认打分模板 id；需为已存在的模板' },
+      sender_name: { type: 'string', description: '文案模板里 {{sender_name}} 的落位值，即我方发送人署名（如「李秉凌」）；未设置时按模板自带示例落位' },
       geo_max_pages: { type: 'integer', description: 'GEO 单次诊断页数上限，1-20 的整数；超出范围的值由合规校验拒绝' },
       geo_page_timeout_ms: { type: 'integer', description: 'GEO 单页抓取超时毫秒数，1000-10000 的整数；超出范围的值由合规校验拒绝' },
       sop_todo_write_enabled: { type: 'boolean', description: 'SOP 生成任务时是否同步写入 DSH 待办' },
@@ -99,6 +102,7 @@ export function settingsSetTool(
       const patch: SettingsPatchInput = {
         ...(args.default_icp_profile_id === undefined ? {} : { default_icp_profile_id: args.default_icp_profile_id }),
         ...(args.default_score_template_id === undefined ? {} : { default_score_template_id: args.default_score_template_id }),
+        ...(args.sender_name === undefined ? {} : { sender_name: args.sender_name }),
         ...(args.geo_max_pages === undefined ? {} : { geo_max_pages: args.geo_max_pages }),
         ...(args.geo_page_timeout_ms === undefined ? {} : { geo_page_timeout_ms: args.geo_page_timeout_ms }),
         ...(args.sop_todo_write_enabled === undefined ? {} : { sop_todo_write_enabled: args.sop_todo_write_enabled }),

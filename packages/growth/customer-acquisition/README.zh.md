@@ -1,8 +1,29 @@
+---
+description: "DSH 的获客运营插件：合规边界内的 GEO 诊断、线索台账与 AI 线索打分，面向 OPC 交付一体打包。P0 交付地基——冻结的 v1 存储域、PermissionContext 能力缝、pre-execute 合规校验器、审计日志，以及 Web 面板挂载的浏览器 Remote 网关。P1 新增线索台账（模块 2）"
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-customer-acquisition
 
 [English](README.md) | 中文
 
+## 概述
+
 DSH 的获客运营插件：合规边界内的 GEO 诊断、线索台账与 AI 线索打分，面向 OPC 交付一体打包。P0 交付地基——冻结的 v1 存储域、PermissionContext 能力缝、pre-execute 合规校验器、审计日志，以及 Web 面板挂载的浏览器 Remote 网关。P1 新增线索台账（模块 2）与 AI 线索打分（模块 3）：27 个模型可见工具、三套行业模板幂等种子、按调用粒度的归属人权限。冻结数据契约与全量工具清单见 [docs/data-contract.md](docs/data-contract.md) 与 [docs/tools-manifest.md](docs/tools-manifest.md)。
+
+## 目录
+
+- [安装](#安装)
+- [配置](#配置)
+- [存储域](#存储域)
+- [PermissionContext 能力缝](#permissioncontext-能力缝)
+- [合规校验器（红线）](#合规校验器红线)
+- [线索台账（模块 2）](#线索台账模块-2)
+- [AI 线索打分（模块 3）](#ai-线索打分模块-3)
+- [工具](#工具)
+- [Remote 面](#remote-面)
+- [开发备注](#dev-note)
+
+-----
 
 ## 安装
 
@@ -103,6 +124,19 @@ schema 进入提示词前缀的工具块；插件加载或卸载会使该点之�
 - **种子覆盖 ICP、打分、SOP、文案**——三套行业包播种画像、提示词模板、跟进 SOP 与各两套文案模板。
 - **面板为占位**——Web 面板挂载 Remote 面，展示设置与最近审计；八页完整面板随 P4 交付，线索/打分的 Remote 读写也在那时落地。
 - **打分需要可达的模型路由**——`ai.provider`/`ai.model` 必须指向已注册且有凭据的路由；否则打分、抽取与文案生成按调用失败，批量按线索隔离。
+- **文案署名默认走模板示例**——`{{sender_name}}` 优先取全局设置 `sender_name`（`settings_set` 配置），未配置时回退到模板 `variables[].example`；两者都没有则该占位符保持可见并在提示词中标注略过。
 - **待办联动为单向**——DSH 待办是 agent 自有的 `todo_write` 清单，无可写服务；`sop_generate_tasks` 在设置开启时返回可直接转发的清单，`todo_written` 恒为 false。
+- **SOP 生成按标题幂等**——同一线索下已有同名的 pending/deferred 任务时跳过不重建（`skipped` 返回）；已 done/dropped 的要点允许再次生成。
 - **本地操作者身份是平凡的**——`local-default` 持有全部能力；有意义的 `lead_scope` 强制从平台 Provider 注入真实用户开始。
 - **审计无限增长**——记录从不清理；保留策略等待具体部署需求。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

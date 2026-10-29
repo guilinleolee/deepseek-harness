@@ -14,10 +14,12 @@
  */
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { get } from 'node:http'
 import { join, resolve } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 const PLUGINS_FILE = 'plugins.json'
 const INSTALL_TIMEOUT_MS = 10 * 60_000
@@ -33,9 +35,7 @@ export function loadDesired(dataDir) {
 
 export function saveDesired(dataDir, store) {
   const path = join(dataDir, PLUGINS_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, store)
 }
 
 /** 在指定 DSH_HOME 的 web profile 里执行 dsh plugin add/remove（pnpm 转发）。 */
@@ -182,9 +182,7 @@ export function createJobRunner({ dataDir, manifest, repoRoot }) {
     try { return JSON.parse(readFileSync(jobsFile, 'utf8')) } catch { return { jobs: [] } }
   }
   const saveJobs = (store) => {
-    const tmp = `${jobsFile}.tmp`
-    writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-    renameSync(tmp, jobsFile)
+    writeJsonAtomic(jobsFile, store)
   }
   const patchJob = (id, patch) => {
     const store = loadJobs()

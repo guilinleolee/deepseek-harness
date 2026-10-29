@@ -1,8 +1,24 @@
+---
+description: "获客运营功能的 Web 面板半边：侧边栏入口加全帧工作台页面。"
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-client-ui-customer-acquisition
 
 [English](README.md) | 中文
 
+## 概述
+
 获客运营功能的 Web 面板半边：侧边栏入口 + 全屏占位工作台。Node 半边在 [`@deepseek-ai/dsh-customer-acquisition`](../../growth/customer-acquisition/README.zh.md)；任一包安装时经各自 bundle patch 同时拉起两包。
+
+## 目录
+
+- [安装](#安装)
+- [接线方式](#接线方式)
+- [模型体验](#model-experience)
+- [已知限制与暂缓事项](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+-----
 
 ## 安装
 
@@ -36,3 +52,13 @@ dsh plugin --profile web add @deepseek-ai/dsh-client-ui-customer-acquisition
 
 - **占位面板**——工作台展示全局参数快照与最近审计条目以验证 P0 全链路；八页完整面板随 P4 交付。
 - **无离线状态**——Remote 网关不可达时读取失败可见展示；按设计不做浏览器本地缓存（业务数据不进 localStorage）。
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

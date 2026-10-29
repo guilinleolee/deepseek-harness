@@ -11,8 +11,22 @@
 /** Asset kind discriminator matching `INDEX_MASTER.json` counts. */
 export type AssetKind = 'skill' | 'agent' | 'hook' | 'command' | 'plugin'
 
-/** License tier classification derived from upstream LICENSE markers. */
-export type LicenseTier = 'mit' | 'apache-2.0' | 'bsd-3-clause' | 'agpl-3.0' | 'noassertion' | 'unknown'
+/**
+ * License tier classification derived from upstream LICENSE markers.
+ *
+ * The vocabulary mirrors `dsh-experimental-license-policy`, which owns the
+ * tier-to-decision table: a tier the policy cannot express would collapse
+ * into `unknown` there and lose its red-line.
+ */
+export type LicenseTier =
+  | 'mit'
+  | 'apache-2.0'
+  | 'bsd-3-clause'
+  | 'agpl-3.0'
+  | 'noncommercial'
+  | 'proprietary'
+  | 'noassertion'
+  | 'unknown'
 
 /** Discovery status flag for downstream consumers. */
 export type AssetStatus = 'active' | 'deprecated' | 'experimental' | 'archived' | 'unknown'

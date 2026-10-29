@@ -1,8 +1,24 @@
+---
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文"
+kind: "package-reference"
+---
 # dsh-experimental-skill-index
 
 [English](README.md) | 中文
 
+## 概述
+
 DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文件并以可查询快照的形式暴露。
+
+## 目录
+
+- [读取哪些文件](#读取哪些文件)
+- [配置](#配置)
+- [Service API](#service-api)
+- [已知限制与延后工作](#已知限制与延后工作)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -56,3 +72,14 @@ const skill = ctx.dragonIndex.get('async-task-pattern', 'skill')
 - **同步 JSON.parse 循环**——服务一次性解析整个索引。几千条资产内可接受；如索引超过 ~50k 条资产需考虑流式解析。
 - **无 CJK 路径校验**——服务原样返回路径。Windows 上的调用方在传入 `fs` 前必须自行校验。
 - **AGPL-3.0 与 MIT 资产共存**——调用方在执行任何 AGPL 标签资产前必须按 `license` 过滤（详见计划中的 `dsh-experimental-license-policy` 包）。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

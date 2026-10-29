@@ -1,6 +1,24 @@
+---
+description: "Remote gateway over the content-creation outputs library: the read-only projection plus the workbench columns' write faces."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-content-outputs
 
 English | [中文](README.zh.md)
+
+## Summary
+
+Remote gateway over the content-creation outputs library: the read-only projection the Content Studio library view reads, plus the authorized write faces of the workbench columns — information gathering, benchmark accounts, creation, personas, publishing, review, the global template library, interactions, and the opinion-monitoring faces.
+
+## Table of Contents
+
+- [Gather write face](#gather-write-face)
+- [Sentiment faces](#sentiment-faces)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
 
 Remote gateway over the content-creation outputs library: the read-only projection the Content Studio library view reads, plus the authorized write faces of the workbench columns — information gathering, benchmark accounts, creation, personas, publishing, review, the global template library, and interactions. Each column's storage follows one convention: theme-scoped sidecar manifests (`_<column>.json`) under `outputs/<theme>/assets/`, hidden root-level indexes (`_<column>-index.json`), and `.dsh-output.json` never touched.
 
@@ -23,9 +41,10 @@ Retention: per source, the newest 50 `unread`/`read` materials stay in a theme; 
 The opinion-monitoring storage is one root-level `_sentiment.json` manifest (tasks, mentions, alerts, settings, and the newest report; `formatVersion 0`) following the persona manifest rules: a malformed record is named in `problems` and never hides the rest, and every write refuses to touch a file whose current parse dropped records.
 
 - `getSentiment` returns the projection (including the stored report) plus the single-slot `scanning` flag and the last scan's summary; `putSentimentTask` / `deleteSentimentTask` (cascades the task's mentions and alerts) / `setSentimentTaskEnabled` manage tasks; `putSentimentSettings` replaces the settings block (domain and account blacklists, thresholds, retention, the push master switch, webhook URLs, and the SMTP transport fields); `handleSentimentAlert` marks one alert handled.
-- `scanSentiment` runs the whole pipeline once per enabled task over the task's `sources` flags: RSS feeds through the shared gather fetcher (30-entries-per-feed cap, keyword-group filtering), plus — when toggled — one weibo visitor-search page and one bilibili wbi-signed hot-search page per task on the first subject (both anonymous public web endpoints; the subject search is the retrieval filter, so social mentions skip the keyword groups but run the same two-stage classification, the domain blacklist, and the account blacklist against the author). Negatives aggregate into task+day alert rows leveled 1–4 by heat against the configured threshold; every adapter degrades to an empty page on any failure, so a blocked source never fails the scan. Dedupe is per task+URL, retention and the 5,000-mention hard cap prune on every append, and a concurrent scan call rejects immediately. After persistence, when the push switch is on, the scan posts one text digest per configured channel — Dingtalk and WeCom group robots (plain-JSON text protocol) and one email via nodemailer when the SMTP host/recipient/password are all set (implicit TLS on 465, STARTTLS otherwise); a channel failure only logs — push is best-effort because the alerts are already stored.
+- `scanSentiment` runs the whole pipeline once per enabled task over the task's `sources` flags: RSS feeds through the shared gather fetcher (30-entries-per-feed cap, keyword-group filtering), plus — when toggled — the platform searches. Before those searches, the keyword-expansion middleware widens the task's subjects into the terms real posters use (one LLM call per task per day, cached 24h, degrading to the raw subjects on any failure): the breadth round searches the first three expanded terms per source, and — when the task's negative mentions already aggregate into a level-1/2 alert — a depth round searches the next three terms and drills two more comment pages. The comment layer rides the matched entries' platform ids (weibo mblog id, bilibili bvid) and is read from the public weibo hotflow endpoint and bilibili's public comment endpoint (the video's aid is resolved from its bvid first); every comment page runs the same keyword filter, the domain and account blacklists, and the URL dedupe, so a comment joins the mentions, the classification, and the alert aggregation as its own platform row. Both are anonymous public web endpoints; the subject search is the retrieval filter, so social mentions skip the keyword groups but run the same two-stage classification. Every adapter degrades to an empty page on any failure, so a blocked source never fails the scan. Dedupe is per task+URL, retention and the 5,000-mention hard cap prune on every append, and a concurrent scan call rejects immediately. After persistence, when the push switch is on, the scan posts one text digest per configured channel — Dingtalk and WeCom group robots (plain-JSON text protocol) and one email via nodemailer when the SMTP host/recipient/password are all set (implicit TLS on 465, STARTTLS otherwise); a channel failure only logs — push is best-effort because the alerts are already stored.
 - `sentimentStats` computes the dashboard projection: totals, polarity counts, the 14-day trend, and the per-platform top list.
-- `generateSentimentReport` frames the stored state (stats, task names, platform spread, the newest 10 alerts and 40 mention lines, 12k-char cap) into one model call over a fixed five-section prompt (`sentiment-report@1`); any model failure lands the deterministic data-only degraded template instead of an error, and the manifest keeps the newest report only.
+- `generateSentimentReport` picks a template deterministically — the routine daily report, or the crisis brief when an unhandled level-1/2 alert exists — then generates one model call per section in parallel and binds the bodies into both the Markdown document and a structured `ir` (template name plus the sections' key/title/body), so reports stay comparable across days. Each section degrades on its own; a fully failed generation lands the deterministic data-only degraded template instead of an error, and the manifest keeps the newest report only.
+- `adjudicateSentimentAlert` runs the on-demand debate over one alert: an optimistic reader (mitigating factors, false-positive arguments) and a cautious reader (escalation risks) write their stance in parallel, and a synthesis call weighs both into a verdict. It is never part of the scheduled scan — the user triggers it per alert. The verdict is stored on the alert (`adjudication`), a later run replaces the earlier one, and a failed stance or synthesis degrades to its failure note or a deterministic join of the two stances.
 
 ## Model Experience
 
@@ -48,3 +67,13 @@ None retained. Every call is an isolated one-shot with no shared conversation pr
 - **Projection stays read-only** — `list` never mutates; creating and updating output projects is still the agent's job through its own tools. The gather face writes only `assets/` system files, never deliverables.
 - **Deliverable bytes still need a file surface** — the projection carries names and counts only.
 - **Fresh format** — `formatVersion 0` manifests and metadata have no compatibility promise, per the repository's pre-release stance.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

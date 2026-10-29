@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # adapter/gpt-image-2.sh · async-task-pattern V1.0
-# 后端：C:/Users/li/.claude/skills/gpt-image-2-api-integration
+# 后端：OpenAI image generation API
 # 异步方式：长轮询（OpenAI image generation API）
 # KEY 需求：OPENAI_API_KEY
-# 累计验证：3/3 PASS
+# 状态：**未接真后端**。submit/poll 只回显任务元数据，download 不产出文件。
+#       未接真后端时退出码 4（未实现），与 async-task-pattern 协议一致。
 
 set -euo pipefail
 
-ROOT_SKILL="C:/Users/li/.claude/skills/gpt-image-2-api-integration"
 PROVIDER="gpt-image-2"
+
+not_implemented() {
+  echo "❌ $PROVIDER adapter 未接真后端：$1" >&2
+  echo "   真实出图请用 dragon-assets/skills/render-deck 或 minimax-image adapter。" >&2
+  exit 4
+}
 
 case "${1:-}" in
   submit)
     shift
     PAYLOAD=""
     while [[ $# -gt 0 ]]; do case $1 in --payload) PAYLOAD="$2"; shift 2 ;; *) shift ;; esac; done
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+      not_implemented "OPENAI_API_KEY 未设置"
+    fi
     echo "{\"task_id\":\"${PROVIDER}-$(date +%s)-$RANDOM\",\"status\":\"queued\",\"provider\":\"$PROVIDER\",\"payload_size\":${#PAYLOAD}}"
     exit 0
     ;;
@@ -56,10 +65,7 @@ case "${1:-}" in
         --output) OUTPUT="$2"; shift 2 ;;
         *) shift ;;
       esac; done
-    mkdir -p "$(dirname "$OUTPUT")"
-    echo "# gpt-image-2 placeholder for $TASK_ID" > "$OUTPUT"
-    echo "{\"path\":\"$OUTPUT\",\"size\":$(wc -c < "$OUTPUT"),\"task_id\":\"$TASK_ID\",\"provider\":\"$PROVIDER\"}"
-    exit 0
+    not_implemented "download 不产出文件（不写占位内容）"
     ;;
   *)
     echo "用法: bash $0 {submit|poll|upload|download} [options]" >&2

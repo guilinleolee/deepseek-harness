@@ -12,8 +12,10 @@
  *   管理台 API）；readonly 角色仅放行只读白名单端点（白名单在 gateway.mjs）。
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 const TOKENS_FILE = 'service-tokens.json'
 const TOKEN_PREFIX = 'kbsvc-'
@@ -58,9 +60,7 @@ function loadTokens(dataDir) {
 function saveTokens(dataDir, tokens) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, TOKENS_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify({ tokens }, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, { tokens })
   caches.set(dataDir, { mtimeMs: statSync(path).mtimeMs, tokens })
 }
 

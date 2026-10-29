@@ -1,8 +1,24 @@
+---
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析"
+kind: "package-reference"
+---
 # dsh-experimental-agent-roster
 
 [English](README.md) | 中文
 
+## 概述
+
 DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析最小 frontmatter + 一级标题 + 首段 + 能力清单，按天龙 00-99 数字编号暴露为强类型花名册。
+
+## 目录
+
+- [读取哪些文件](#读取哪些文件)
+- [配置](#配置)
+- [Service API](#service-api)
+- [已知限制与延后工作](#已知限制与延后工作)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -66,3 +82,14 @@ const analyst = ctx.agentRoster.get('00-analyst')
 - **License 只看 frontmatter**——未读 LICENSE 文件存在性；没有 `license:` 行的角色 `license === undefined`。
 - **冻结快照**——花名册被深冻结，调用方需先克隆再修改。
 - **Family 分桶是 opinionated**——00-99 范围源自 `dragon-engine CLAUDE.md §3`，不是声明表。若上游重新分桶，修改本包代码而不是调用点。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

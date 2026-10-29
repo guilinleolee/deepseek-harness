@@ -9,8 +9,10 @@
  * 读取走 mtime 缓存（relay 每请求调用，改动 ≤ 下一请求生效）；daemon 单进程承载
  * 网关/管理台/Relay，initQuotas 在建服时配置一次目录（写入口按 dataDir 幂等初始化）。
  */
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 const RATIOS_FILE = 'ratios.json'
 
@@ -40,9 +42,7 @@ export function initQuotas(dataDir) {
 }
 
 function writeRatiosFile(file, ratios) {
-  const tmp = `${file}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(ratios, null, 2)}\n`)
-  renameSync(tmp, file)
+  writeJsonAtomic(file, ratios)
   cache.file = file
   cache.mtime = statSync(file).mtimeMs
   cache.value = ratios
@@ -210,9 +210,7 @@ export function migrateLegacyQuotas(dataDir) {
     migrated.push({ account: record.account, points: record.monthlyPoints })
   }
   if (migrated.length > 0) {
-    const tmp = `${path}.tmp`
-    writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-    renameSync(tmp, path)
+    writeJsonAtomic(path, store)
   }
   return { migrated, skipped: accounts.length - migrated.length }
 }

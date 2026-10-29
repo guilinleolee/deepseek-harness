@@ -1,0 +1,535 @@
+{
+  "schema": "dragon-deliverable-skills/1.0",
+  "updated": "2026-10-26",
+  "purpose": "The skill subset a client inner-network library may contain. Generated from LICENSES.json; do not edit by hand.",
+  "policy": {
+    "tier_rules": {
+      "MIT": {
+        "decision": "allow",
+        "deliverable": true
+      },
+      "Apache-2.0": {
+        "decision": "attribute",
+        "deliverable": true
+      },
+      "BSD-3-Clause": {
+        "decision": "attribute",
+        "deliverable": true
+      },
+      "self": {
+        "decision": "allow",
+        "deliverable": true
+      },
+      "AGPL-3.0": {
+        "decision": "artifact-only",
+        "deliverable": false
+      },
+      "CC-BY-NC-4.0": {
+        "decision": "reject",
+        "deliverable": false
+      },
+      "CC-BY-NC-SA-4.0": {
+        "decision": "reject",
+        "deliverable": false
+      },
+      "proprietary": {
+        "decision": "reject",
+        "deliverable": false
+      },
+      "noassertion": {
+        "decision": "reject",
+        "deliverable": false
+      },
+      "unknown": {
+        "decision": "attribute",
+        "deliverable": false
+      }
+    },
+    "unknown_included": false,
+    "note": "The tier vocabulary mirrors dsh-experimental-license-policy. An AGPL asset may be delivered as a produced artifact, never as a skill inside a client library."
+  },
+  "counts": {
+    "deliverable": 32,
+    "withheld": 11,
+    "violations": 0
+  },
+  "deliverable": [
+    {
+      "id": "a-stock-data-bridge",
+      "tier": "Apache-2.0",
+      "decision": "attribute",
+      "commercial_use": "yes",
+      "upstream": "simonlin1212/a-stock-data",
+      "obligations": [
+        "retain-license-text",
+        "retain-notice",
+        "include-attribution",
+        "mark-modified"
+      ]
+    },
+    {
+      "id": "anysearch",
+      "tier": "Apache-2.0",
+      "decision": "attribute",
+      "commercial_use": "yes",
+      "upstream": "anysearch-ai/anysearch-skill",
+      "obligations": [
+        "retain-license-text",
+        "retain-notice",
+        "include-attribution",
+        "mark-modified"
+      ]
+    },
+    {
+      "id": "async-task-pattern",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "",
+      "obligations": [
+        "retain-license-text"
+      ]
+    },
+    {
+      "id": "baoyu-article-illustrator",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-comic",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-compress-image",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-cover-image",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-diagram",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-format-markdown",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-image-gen",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-infographic",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-markdown-to-html",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-post-to-wechat",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-post-to-weibo",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-post-to-x",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-seo",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-slide-deck",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-translate",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-url-to-markdown",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-wechat-summary",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-xhs-images",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "baoyu-youtube-transcript",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "JimLiu/baoyu-skills",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "book-distiller",
+      "tier": "self",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "天龙引擎自研",
+      "obligations": []
+    },
+    {
+      "id": "check-runtime",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "天龙引擎自研",
+      "obligations": [
+        "retain-license-text"
+      ]
+    },
+    {
+      "id": "cinema-director-laoli",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "",
+      "obligations": [
+        "retain-license-text"
+      ]
+    },
+    {
+      "id": "darwin-skill",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "darwin-skill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "global-stock-data-bridge",
+      "tier": "Apache-2.0",
+      "decision": "attribute",
+      "commercial_use": "yes",
+      "upstream": "simonlin1212/global-stock-data",
+      "obligations": [
+        "retain-license-text",
+        "retain-notice",
+        "include-attribution",
+        "mark-modified"
+      ]
+    },
+    {
+      "id": "multi-platform-publisher",
+      "tier": "self",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "天龙引擎自研",
+      "obligations": []
+    },
+    {
+      "id": "nuwa-skill",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "alchaincyf/nuwa-skill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    },
+    {
+      "id": "render-deck",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "天龙引擎自研",
+      "obligations": [
+        "retain-license-text"
+      ]
+    },
+    {
+      "id": "skill-updater",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "",
+      "obligations": [
+        "retain-license-text"
+      ]
+    },
+    {
+      "id": "xhs-visual-director-skill",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "ziguishian/xhs-visual-director",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution"
+      ]
+    }
+  ],
+  "withheld": [
+    {
+      "id": "cangjie-skill",
+      "tier": "AGPL-3.0",
+      "decision": "artifact-only",
+      "commercial_use": "deliverable-only",
+      "upstream": "kangarooking/cangjie-skill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "artifact-only"
+    },
+    {
+      "id": "dbs-*",
+      "tier": "CC-BY-NC-4.0",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "dontbesilent2025/dbskill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "dbskill",
+      "tier": "CC-BY-NC-4.0",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "dontbesilent2025/dbskill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "docx",
+      "tier": "proprietary",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "Anthropic, PBC",
+      "obligations": [],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "guizang-social-card-skill",
+      "tier": "AGPL-3.0",
+      "decision": "artifact-only",
+      "commercial_use": "deliverable-only",
+      "upstream": "op7418/guizang-social-card-skill",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "artifact-only"
+    },
+    {
+      "id": "gzh-design-skill",
+      "tier": "AGPL-3.0",
+      "decision": "artifact-only",
+      "commercial_use": "deliverable-only",
+      "upstream": "Jiamu x Moyu Xiaoli",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "artifact-only"
+    },
+    {
+      "id": "opc-methodology",
+      "tier": "CC-BY-NC-SA-4.0",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "easychen/opc-methodology",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "pdf",
+      "tier": "proprietary",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "Anthropic, PBC",
+      "obligations": [],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "pptx",
+      "tier": "proprietary",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "Anthropic, PBC",
+      "obligations": [],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "privacy-policy-generator",
+      "tier": "CC-BY-NC-4.0",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "",
+      "obligations": [
+        "retain-license-text",
+        "include-attribution",
+        "mark-modified"
+      ],
+      "withheld_reason": "reject"
+    },
+    {
+      "id": "xlsx",
+      "tier": "proprietary",
+      "decision": "reject",
+      "commercial_use": "no",
+      "upstream": "Anthropic, PBC",
+      "obligations": [],
+      "withheld_reason": "reject"
+    }
+  ],
+  "violations": []
+}

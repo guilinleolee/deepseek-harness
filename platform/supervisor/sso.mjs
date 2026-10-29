@@ -21,8 +21,10 @@
  * 合法且只在请求期调用（模块求值期不触碰）。
  */
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 import { auditAppend, clientIp } from './audit.mjs'
 import { saveAccounts, verifyPassword } from './gateway.mjs'
@@ -67,9 +69,7 @@ function loadSsoRaw(dataDir) {
 function saveSsoRaw(dataDir, config) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, SSO_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, config)
 }
 
 /** 读取 SSO 配置（缺省生成全 disabled；密文不解密）。 */

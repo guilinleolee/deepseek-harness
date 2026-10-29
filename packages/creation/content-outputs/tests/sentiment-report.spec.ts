@@ -12,7 +12,7 @@ import type { SentimentMention, SentimentSnapshot, SentimentStats, SentimentTask
 import { SENTIMENT_FILENAME, DEFAULT_SENTIMENT_SETTINGS, putSentimentReportFile, readSentimentFile } from '../src/sentiment/store.ts'
 import {
   SENTIMENT_REPORT_ALERT_CAP, SENTIMENT_REPORT_MENTION_CAP, SENTIMENT_REPORT_PROMPT_VERSION,
-  degradedSentimentReport, frameSentimentReport, generateSentimentReport,
+  degradedSentimentReport, frameSentimentReport, generateSentimentReport, selectReportTemplate,
 } from '../src/sentiment/report.ts'
 
 let dir: string
@@ -110,6 +110,65 @@ describe('generateSentimentReport', () => {
   })
 })
 
+describe('selectReportTemplate', () => {
+  const alert = { id: 'a-1', taskId: 'st-1', eventKey: 'e', level: 2 as const, summary: 's', reason: 'r', mentionIds: ['m-1'], handled: false, createdAt: NOW, handledAt: null }
+  it('keeps the daily template without alerts and switches to crisis on an unhandled high-level alert', () => {
+    expect(selectReportTemplate([]).map(spec => spec.key)).toEqual(['overview', 'risks', 'highlights', 'actions', 'watchlist'])
+    expect(selectReportTemplate([alert]).map(spec => spec.key)).toEqual(['panorama', 'spread', 'response', 'followup'])
+    expect(selectReportTemplate([{ ...alert, handled: true }]).map(spec => spec.key)).toEqual(['overview', 'risks', 'highlights', 'actions', 'watchlist'])
+    expect(selectReportTemplate([{ ...alert, level: 3 as const }]).map(spec => spec.key)).toEqual(['overview', 'risks', 'highlights', 'actions', 'watchlist'])
+  })
+})
+
+describe('generateSentimentReport section-wise', () => {
+  it('generates per-section bodies and binds them into the markdown plus ir', async () => {
+    vi.doMock('../src/gather/ai.ts', () => ({
+      streamLlmText: async (_ctx: unknown, _policy: unknown, system: string) => `正文(${system.includes('事件全景') ? '危机' : system.includes('今日概览') ? '概览' : '节'})`,
+      AiCallPolicy: class {},
+    }))
+    vi.resetModules()
+    try {
+      const { generateSentimentReport: freshGenerate } = await import('../src/sentiment/report.ts')
+      const ctx = {} as unknown as Context
+      const policy = { provider: 'p', model: 'm', timeoutMs: 1_000, maxOutputTokens: 1_000 }
+      const report = await freshGenerate(ctx, policy, snapshot(), stats(), new Date(NOW))
+      expect(report.degraded).toBe(false)
+      expect(report.ir?.template).toBe('daily')
+      expect(report.ir?.sections).toHaveLength(5)
+      expect(report.markdown).toContain('## 今日概览')
+      expect(report.markdown).toContain('正文(概览)')
+    } finally {
+      vi.doUnmock('../src/gather/ai.ts')
+      vi.resetModules()
+    }
+  })
+
+  it('degrades a single failed section but keeps the rest', async () => {
+    let first = true
+    vi.doMock('../src/gather/ai.ts', () => ({
+      streamLlmText: async () => {
+        if (first) { first = false; throw new Error('one section down') }
+        return '正常正文'
+      },
+      AiCallPolicy: class {},
+    }))
+    vi.resetModules()
+    try {
+      const { generateSentimentReport: freshGenerate } = await import('../src/sentiment/report.ts')
+      const ctx = {} as unknown as Context
+      const policy = { provider: 'p', model: 'm', timeoutMs: 1_000, maxOutputTokens: 1_000 }
+      const report = await freshGenerate(ctx, policy, snapshot(), stats(), new Date(NOW))
+      expect(report.degraded).toBe(true)
+      expect(report.markdown).toContain('生成失败')
+      expect(report.markdown).toContain('正常正文')
+      expect(report.markdown).not.toContain('数据版降级')
+    } finally {
+      vi.doUnmock('../src/gather/ai.ts')
+      vi.resetModules()
+    }
+  })
+})
+
 describe('putSentimentReportFile', () => {
   it('stores the newest report and the read projects it back', async () => {
     const report = {
@@ -123,5 +182,28 @@ describe('putSentimentReportFile', () => {
     await putSentimentReportFile(FILE(), replaced)
     const second = await readSentimentFile(FILE())
     expect(second.report?.markdown).toBe('# 第二份')
+  })
+
+  it('round-trips the structured ir next to the markdown', async () => {
+    const report = {
+      markdown: '# 报告\n## 今日概览\n\n正文', degraded: false, generatedAt: NOW,
+      promptVersion: SENTIMENT_REPORT_PROMPT_VERSION, mentionCount: 0, alertCount: 0,
+      ir: { template: 'daily' as const, sections: [{ key: 'overview', title: '今日概览', body: '正文' }] },
+    }
+    await putSentimentReportFile(FILE(), report)
+    const read = await readSentimentFile(FILE())
+    expect(read.report?.ir?.template).toBe('daily')
+    expect(read.report?.ir?.sections).toHaveLength(1)
+  })
+
+  it('drops a stored report whose ir is malformed on the next read', async () => {
+    const base = {
+      markdown: '# 报告', degraded: false, generatedAt: NOW,
+      promptVersion: SENTIMENT_REPORT_PROMPT_VERSION, mentionCount: 0, alertCount: 0,
+    }
+    await putSentimentReportFile(FILE(), { ...base, ir: { template: 'daily', sections: [] } })
+    const read = await readSentimentFile(FILE())
+    expect(read.report).toBeNull()
+    expect(read.problems.length).toBeGreaterThan(0)
   })
 })

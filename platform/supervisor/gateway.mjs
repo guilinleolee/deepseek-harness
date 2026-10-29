@@ -18,9 +18,10 @@
 import { createServer, request as httpRequest } from 'node:http'
 import { connect as netConnect } from 'node:net'
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
+import { writeJsonAtomic } from './atomic-write.mjs'
 import { handleConsole, withAccountLock } from './console.mjs'
 import { handlePortal, sameOrigin } from './portal.mjs'
 import { createJobRunner } from './plugins-gov.mjs'
@@ -28,7 +29,8 @@ import { auditAppend, clientIp, initAudit } from './audit.mjs'
 import { checkPasswordPolicy, createLoginRateGuard, loadSecurityConfig } from './security.mjs'
 import { deriveKey, getTwofaRecord, isTwofaEnabled, verifyTwofaForLogin } from './totp.mjs'
 import { authenticateServiceToken } from './service-tokens.mjs'
-import { handleSso, SSO_PROVIDERS, enabledSsoProviders } from './sso.mjs'
+import { handleSso, enabledSsoProviders } from './sso.mjs'
+import { renderLoginPage, renderTotpPage } from './auth-ui.mjs'
 
 const json = (res, status, value) => {
   try {
@@ -85,10 +87,9 @@ export function setPassword(dataDir, account, password) {
 }
 
 export function saveAccounts(dataDir, store) {
-  const path = join(dataDir, 'accounts.json')
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-  renameSync(tmp, path)
+  // 原子写（共享 helper）：Windows 上 rename 覆盖被占用文件会 EPERM，
+  // 会让建号/改密/禁用等账号变更整体失败 —— helper 内置退避重试。
+  writeJsonAtomic(join(dataDir, 'accounts.json'), store)
 }
 
 /** 账号/部门等实体名白名单：字母数字、@._- 与中文，1–64 字符（收敛注入面）。 */
@@ -262,42 +263,11 @@ function instanceIdFromHost(hostHeader, manifest) {
  * 主机上登录成功后跳个人中心 /me（阶段 10），在实例子域上登录则原地刷新
  * 进入工作区；admin/auditor 一律原地刷新（进入管理台或工作区）。
  */
-const LOGIN_PAGE = (error = '', portalHostname = '', ssoProviders = []) => `<!doctype html><meta charset="utf-8">
-<title>卡巴格 · 登录</title>
-<style>body{font-family:system-ui;background:#f6f7f9;color:#1f2937;display:grid;place-items:center;height:100vh;margin:0}
-form{background:#ffffff;padding:2rem 2.5rem;border-radius:12px;min-width:280px}
-input,button{display:block;width:100%;margin:.5rem 0;padding:.6rem;border-radius:6px;border:1px solid #e5e7eb;background:#ffffff;color:#1f2937;box-sizing:border-box}
-button{background:#2563eb;border:none;cursor:pointer;font-weight:600}
-a.ssobtn{display:block;margin-top:.5rem;padding:.55rem;border-radius:6px;border:1px solid #e5e7eb;background:#fafafa;color:#374151;text-align:center;text-decoration:none;font-size:.92rem}
-.err{color:#ff8a80;font-size:.9rem;min-height:1.2em}</style>
-<form onsubmit="login(event)"><h2 style="margin-top:0">卡巴格 · 登录</h2>
-<input id="acc" placeholder="账号（邮箱）" autocomplete="username">
-<input id="pw" type="password" placeholder="密码" autocomplete="current-password">
-<div id="totprow" style="display:none"><input id="tc" inputmode="numeric" placeholder="两步验证码（6 位数字）" autocomplete="one-time-code"></div>
-<div class="err" id="msg">${error}</div><button id="btn">登录</button></form>
-${ssoProviders.map((provider) => `<a class="ssobtn" href="/api/auth/sso/${provider}/start">使用${SSO_PROVIDERS[provider].label}账号登录</a>`).join('')}
-<script>
-var STAGE='password';var HOST='${portalHostname}';
-async function finish(j){
- if(j.role==='employee' && HOST!=='' && location.hostname===HOST) location.href='/me';
- else location.reload()}
-async function login(ev){ev.preventDefault();
- var msg=document.getElementById('msg');msg.textContent='';
- if(STAGE==='totp'){
-  var t=await fetch('/api/auth/totp',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({account:acc.value,code:tc.value})});
-  var tj=await t.json().catch(function(){return{}});
-  if(t.ok){finish(tj)}else{msg.textContent=(tj&&tj.error)||'验证码错误'}
-  return}
- var r=await fetch('/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({account:acc.value,password:pw.value})});
- var j=await r.json().catch(function(){return{}});
- if(r.ok){
-  if(j.totp_required){STAGE='totp';pw.style.display='none';document.getElementById('totprow').style.display='block';document.getElementById('btn').textContent='验证';tc.focus();msg.textContent='请输入认证器中的 6 位验证码';msg.style.color='#6b7280';return}
-  if(j.needs_2fa_enrollment){msg.textContent='登录成功。管理员已要求该角色绑定两步验证，请到个人中心完成绑定。';msg.style.color='#d97706';setTimeout(function(){finish(j)},2500);return}
-  finish(j)
- }else{msg.textContent=(j&&j.error)||('失败（HTTP '+r.status+'）')}}
-</script>`
+const LOGIN_PAGE = (error = '', portalHostname = '', ssoProviders = [], stage = 'password') => (
+  stage === 'totp'
+    ? renderTotpPage({ error, portalHostname, ssoProviders })
+    : renderLoginPage({ error, portalHostname, ssoProviders })
+)
 
 /**
  * 创建网关服务器。依赖注入：
@@ -363,8 +333,8 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
   const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
   const accountsFile = join(dataDir, 'accounts.json')
   const portalHost = manifest.gatewayHost ?? 'localhost'
-  // 登录页注入 portal 主机名与已启用的 SSO 按钮（阶段 11C）。
-  const loginPage = (error = '') => LOGIN_PAGE(error, portalHost.split(':')[0], enabledSsoProviders(dataDir))
+  // 登录页注入 portal 主机名与已启用的 SSO 按钮（阶段 11C）；渲染统一走 auth-ui.mjs。
+  const loginPage = (error = '', stage = 'password') => LOGIN_PAGE(error, portalHost.split(':')[0], enabledSsoProviders(dataDir), stage)
   const instancePortById = () => {
     const state = getState()
     const ports = {}

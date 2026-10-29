@@ -1,8 +1,23 @@
+---
+description: "Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) asset index mirrored under `dragon-assets/index/`."
+kind: "package-reference"
+---
 # dsh-experimental-skill-index
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) asset index mirrored under `dragon-assets/index/`. This package registers a Cordis Service that reads the five `*.jsonl` files and exposes them as a queryable snapshot.
+
+## Table of Contents
+
+- [What it reads](#what-it-reads)
+- [Config](#config)
+- [Service API](#service-api)
+- [Dev Note](#dev-note)
+
+-----
 
 This is an experimental package. It only mounts when its owning composition asks for it; no release package may declare it as a dependency.
 
@@ -56,3 +71,14 @@ None.
 - **Synchronous JSON.parse loop** — the service parses the entire index in one pass. Acceptable up to a few thousand entries; consider streaming if the index grows past ~50k assets.
 - **No CJK path validation** — the service returns paths verbatim. Callers that consume paths on Windows must validate before passing to `fs`.
 - **AGPL-3.0 assets live alongside MIT assets** — callers must filter by `license` before invoking any AGPL-tagged entry (see the `dsh-experimental-license-policy` package, deferred).
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

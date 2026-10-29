@@ -18,12 +18,14 @@ import { get } from 'node:http'
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import {
-  existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync,
+  existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync,
   writeFileSync, openSync, closeSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { platform } from 'node:os'
+import { writeJsonAtomic } from './atomic-write.mjs'
+import { loadManifest } from './manifest.mjs'
 import { addAccount, createGatewayServer, getOrCreateSecret, listAccounts, loadAccounts, revokeAccountTokens, setPassword, updateAccount } from './gateway.mjs'
 import { createRelayServer, issueVkey, listUpstreams, listUsage, listVkeys, monthKey, revokeVkey, setQuota, setUpstream } from './relay.mjs'
 import { fmtPoints, migrateLegacyQuotas } from './quotas.mjs'
@@ -43,7 +45,10 @@ const STATE_FILE = join(DATA, 'state.json')
 const CONTROL_FILE = join(DATA, 'control.json')
 const DAEMON_PID_FILE = join(DATA, 'daemon.pid')
 
-const MANIFEST = JSON.parse(readFileSync(join(HERE, 'instances.json'), 'utf8'))
+// 清单加载走 manifest.mjs：清单（git 跟踪）+ data/instances.local.json（git 忽略，
+// 放真实令牌等秘密）+ ${ENV} 插值。仓库里不再需要出现任何真实凭据。
+const { manifest: MANIFEST, warnings: MANIFEST_WARNINGS } = loadManifest(HERE)
+for (const warning of MANIFEST_WARNINGS) console.warn(`[清单] ${warning}`)
 const IS_WIN = platform() === 'win32'
 const RESTART_DELAY_MS = 2_000
 const START_TIMEOUT_MS = 180_000
@@ -69,9 +74,7 @@ function readState() {
 
 function writeState(state) {
   mkdirSync(DATA, { recursive: true })
-  const tmp = `${STATE_FILE}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`)
-  renameSync(tmp, STATE_FILE)
+  writeJsonAtomic(STATE_FILE, state)
 }
 
 function pidAlive(pid) {

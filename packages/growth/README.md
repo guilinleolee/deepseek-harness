@@ -1,10 +1,33 @@
+---
+description: "The growth plugin group: the customer-acquisition loop behind the OPC delivery, with its compliance red lines as a design premise."
+kind: "package-group"
+---
 # Growth
 
+English | [中文](README.zh.md)
+
+## Summary
+
 获客运营业务插件组：面向 OPC 交付的获客闭环能力（GEO 诊断、线索台账、AI 线索打分、培育文案、SOP 跟进、数据看板），合规红线（无抓取越界、无自动触达、无发送通道、审计留存）为设计前提。
+
+## Table of Contents
+
+- [Packages](#packages)
+- [Dev Note](#dev-note)
+
+-----
 
 | Package | Owns | `ctx` key |
 |---|---|---|
 | [`customer-acquisition/`](customer-acquisition/README.md) | Customer-acquisition domain, PermissionContext seam, compliance gate, P0 tools, Remote gateway | `customerAcquisition`, `permissionContext` |
 | [`customer-acquisition-geo/`](customer-acquisition-geo/README.md) | GEO diagnosis module: bounded serial crawler, deterministic analyzer, four model-facing tools | `geoDiagnosis` |
 
-English | [中文](README.zh.md)
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

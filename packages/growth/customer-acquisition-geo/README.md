@@ -1,8 +1,23 @@
+---
+description: "GEO (generative-engine optimization) website diagnosis — module 1 of the customer-acquisition feature."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-customer-acquisition-geo
 
 English | [中文](README.zh.md)
 
+## Summary
+
 GEO (generative-engine optimization) website diagnosis — module 1 of the customer-acquisition feature. Scans the site the user explicitly provides through a bounded serial crawler, analyzes AI-search visibility deterministically (llms.txt / robots.txt / sitemap presence, brand/product/FAQ/case content, structure and freshness), and produces a 0-100 score, a Markdown report, a deployable `llms.txt`, knowledge material, and an optimization checklist. One-way dependent on the main [`@deepseek-ai/dsh-customer-acquisition`](../customer-acquisition/README.md) package's frozen storage domain and audit trail; the main package never depends on this one.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Compliance boundary (red line 1)](#compliance-boundary-red-line-1)
+- [Tools](#tools)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Installation
 
@@ -46,3 +61,14 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 - **The analyzer is deterministic, not model-based** — findings come from structural and content heuristics; an LLM-judged content-quality pass can join later behind the same service interface.
 - **Site coverage is bounded by the scan** — pages beyond `max_pages`, JS-rendered content, and subdomains outside the start origin are out of scope by design.
 - **Reports persist in the shared domain** — retention follows the main plugin's audit-retention stance (unbounded until a deployment requirement lands).
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

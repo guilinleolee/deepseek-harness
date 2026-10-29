@@ -1,8 +1,29 @@
+---
+description: "Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-customer-acquisition
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger (module 2) and AI lead scoring (module 3): 27 model-facing tools, the preset three-industry template seeds, and per-call owner scoping. The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Domain](#domain)
+- [PermissionContext seam](#permissioncontext-seam)
+- [Compliance gate (red lines)](#compliance-gate-red-lines)
+- [Lead ledger (module 2)](#lead-ledger-module-2)
+- [AI lead scoring (module 3)](#ai-lead-scoring-module-3)
+- [Tools](#tools)
+- [Remote face](#remote-face)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Installation
 
@@ -103,6 +124,19 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 - **Seeds cover ICP, scoring, SOP, and copy** — the three industry packs seed profiles, prompt templates, follow-up SOPs, and two copy templates each.
 - **Panel is a placeholder** — the web surface mounts the Remote face and shows settings plus recent audit entries; the eight-page panel ships with P4, and the lead/scoring Remote reads and writes land there.
 - **Scoring needs a reachable model route** — `ai.provider`/`ai.model` must name a registered route with credentials; scoring, extraction, and copy generation fail per call otherwise, and batch failures isolate by lead.
+- **Copy sender falls back to the template example** — `{{sender_name}}` resolves from the global `sender_name` setting (`settings_set`) first, then the template's `variables[].example`; with neither, the placeholder stays visible and is flagged as skip.
 - **Todo linkage is forward-only** — DSH todos are the agent's own `todo_write` checklist with no writable service; `sop_generate_tasks` returns a ready-to-forward list when the settings flag is on, and `todo_written` stays false.
+- **SOP generation is idempotent by title** — when a lead already has an open (pending/deferred) task of the same title, the point is skipped and reported in `skipped`; done/dropped points may be generated again.
 - **Operator identity is trivial locally** — `local-default` holds every capability; meaningful `lead_scope` enforcement begins when platform providers inject real users.
 - **Audit growth is unbounded** — records are never pruned; retention policy waits for a concrete deployment requirement.
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

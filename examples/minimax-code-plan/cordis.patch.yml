@@ -1,0 +1,57 @@
+# MiniMax Code Plan profile patch layer.
+#
+# The dsh-base bundle declares the shared rows; this layer retargets the model
+# route at MiniMax and leaves everything else alone. Applied after every bundle
+# layer, so the last write wins per row.
+#
+# MiniMax serves an Anthropic-compatible Messages endpoint, so the native
+# DeepSeek adapter talks to it unchanged — only the base URL and the model
+# catalog differ. No DeepSeek account and no muapi key are required.
+#
+# Credentials: MINIMAX_API_KEY resolves per request through the credential
+# store; nothing is inlined here.
+
+- id: llm-deepseek
+  config:
+    baseURL: https://api.minimaxi.com/anthropic
+    apiKeyEnv: MINIMAX_API_KEY
+    maxTokens: 32768
+    defaultContextWindow: 196608
+    models:
+      - id: MiniMax-M2.7
+        name: MiniMax M2.7
+        description: MiniMax M2.7，通过 Anthropic 兼容端点服务
+        contextWindow: 196608
+        maxTokens: 32768
+        imagePixelBudget: low
+        imageMaxBytes: 5242880
+        systemPromptUpdate: in-history
+        toolUpdate: in-history
+        inputModalities: [text, image]
+      - id: MiniMax-M2.5
+        name: MiniMax M2.5
+        description: MiniMax M2.5，文本模型
+        contextWindow: 196608
+        maxTokens: 32768
+        systemPromptUpdate: in-history
+        toolUpdate: in-history
+        inputModalities: [text]
+
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: MiniMax-M2.7
+
+# The DeepSeek search route needs its own credential and endpoint, and the
+# Code Plan covers chat rather than search. Fetch stays on the HTTP provider,
+# so the agent can still read pages.
+- id: web-search-deepseek
+  disabled: true
+
+- id: web-deepseek-api
+  disabled: true
+
+- id: web
+  config:
+    searchProvider: http
+    fetchProvider: http

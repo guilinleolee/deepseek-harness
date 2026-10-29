@@ -12,8 +12,10 @@
  * 超过时限（manifest.driftStaleHours，默认 24 小时）即标记 STALE（红）——
  * 即任务书验收的「比对页按时限标红」。
  */
-import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 /** 粗读实例 settings.yaml 里各 provider 路由声明的模型 id（行级解析，格式由平台管理）。 */
 export function effectiveModels(home) {
@@ -105,7 +107,5 @@ export function loadDriftState(dataDir) {
 
 export function saveDriftState(dataDir, state) {
   const path = join(dataDir, 'drift.json')
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, state)
 }

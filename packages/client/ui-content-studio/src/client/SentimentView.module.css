@@ -260,6 +260,39 @@
   font-size: 13px;
 }
 
+/* The trend columns: one bar per day, height set inline by the view. */
+.sentimentTrend {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 100px;
+  padding-top: 8px;
+}
+
+.sentimentTrendCol {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sentimentTrendBar {
+  width: 100%;
+  max-width: 18px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.sentimentTrendDay {
+  font-size: 11px;
+  color: var(--dsw-alias-label-dimmed, var(--dsw-alias-label-tertiary));
+  white-space: nowrap;
+}
+
 .sentimentAlertList {
   display: flex;
   flex-direction: column;
@@ -380,6 +413,22 @@
   border-radius: 8px;
   color: var(--dsw-alias-text-danger);
   font-size: 14px;
+}
+
+.sentimentAdjudication {
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-label-tertiary, var(--dsw-alias-label-primary)) 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary, var(--dsw-alias-label-primary)) 6%, transparent);
+}
+
+.sentimentAdjudication p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-primary);
 }
 
 .sentimentDetailText {

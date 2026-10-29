@@ -1,10 +1,10 @@
 /**
  * The frame-wide workbench surface occupying the `shell.overlay` hole.
- * Easel-style two-column shell: a left inner nav — 工作台 / 对话 / 对标 /
+ * Easel-style two-column shell: a left inner nav — 工作台 / 对标 /
  * 选题库 / 信息收集 / 内容 / 内容日历 / 创作 / 发布 / 账号 / 画像 / 模板, with the
  * back-to-chat verb and the feedback link at the foot — and a main column
  * rendering the active view, defaulting to the workbench home dashboard.
- * 对话 closes back to the chat; 对标 is a capability slice of the catalog;
+ * 对标 is a capability slice of the catalog;
  * 选题库 is the topic bank over the contentTopics Remote; 内容日历 is the
  * scheduling workbench over the contentSchedule Remote; 画像 is the
  * account-persona manager over the `_personas.json` manifest. 账号 keeps the
@@ -57,14 +57,13 @@ import gatherCss from './GatherView.module.css'
 /** How long a card shows its copied state before reverting. */
 const COPIED_FEEDBACK_MS = 1600
 
-/** The top-level views; the workbench home is the entry view. 对话 is a verb, not a view. */
+/** The top-level views; the workbench home is the entry view. */
 type StudioView = 'sentiment' | 'workbench' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
 
-/** The nav order exactly as specified: 对话 rides between 工作台 and 对标 as a verb. */
-const NAV_ITEMS: readonly { view: StudioView | 'chat'; key: StudioKey }[] = [
+/** The nav order exactly as specified. */
+const NAV_ITEMS: readonly { view: StudioView; key: StudioKey }[] = [
   { view: 'workbench', key: 'nav.workbench' },
   { view: 'sentiment', key: 'nav.sentiment' },
-  { view: 'chat', key: 'nav.chat' },
   { view: 'competitors', key: 'nav.competitors' },
   { view: 'topicBank', key: 'nav.topicBank' },
   { view: 'gather', key: 'nav.gather' },
@@ -304,10 +303,7 @@ export function ContentStudio({
                 type="button"
                 className={clsx(css.navItem, view === candidate && css.navItemActive)}
                 aria-current={view === candidate || undefined}
-                onClick={() => {
-                  if (candidate === 'chat') studio.close()
-                  else setView(candidate)
-                }}
+                onClick={() => { setView(candidate) }}
               >
                 {t(key)}
               </button>
@@ -346,6 +342,7 @@ export function ContentStudio({
                 listTopics={topics.list}
                 readInteractions={readInteractions}
                 readReviewManifest={readReviewManifest}
+                sentimentRead={sentimentRead}
                 onNavigate={setView}
                 onChat={() => { studio.close() }}
                 account={account}

@@ -54,6 +54,44 @@ describe('licensePolicy', () => {
     expect(h.ctx.licensePolicy.normalize('noassertion')).toBe('noassertion')
   })
 
+  it('classifies the NonCommercial family rather than collapsing it into unknown', async () => {
+    const h = await makeHarness()
+    expect(h.ctx.licensePolicy.normalize('CC-BY-NC-4.0')).toBe('noncommercial')
+    expect(h.ctx.licensePolicy.normalize('CC-BY-NC-SA-4.0')).toBe('noncommercial')
+    expect(h.ctx.licensePolicy.normalize('cc-by-nc-sa-4.0')).toBe('noncommercial')
+    expect(h.ctx.licensePolicy.normalize('Attribution-NonCommercial 4.0 International')).toBe('noncommercial')
+    expect(h.ctx.licensePolicy.normalize('NonCommercial')).toBe('noncommercial')
+  })
+
+  it('classifies proprietary and all-rights-reserved strings', async () => {
+    const h = await makeHarness()
+    expect(h.ctx.licensePolicy.normalize('proprietary')).toBe('proprietary')
+    expect(h.ctx.licensePolicy.normalize('Proprietary')).toBe('proprietary')
+    expect(h.ctx.licensePolicy.normalize('© 2025 Anthropic, PBC. All rights reserved.')).toBe('proprietary')
+  })
+
+  it('rejects NonCommercial and proprietary tiers', async () => {
+    const h = await makeHarness()
+    expect(h.ctx.licensePolicy.evaluate('CC-BY-NC-4.0').decision).toBe('reject')
+    expect(h.ctx.licensePolicy.evaluate('CC-BY-NC-SA-4.0').decision).toBe('reject')
+    expect(h.ctx.licensePolicy.evaluate('proprietary').decision).toBe('reject')
+  })
+
+  it('gives NonCommercial and proprietary a black severity and a specific reason', async () => {
+    const h = await makeHarness()
+    const nc = h.ctx.licensePolicy.evaluate('CC-BY-NC-4.0')
+    expect(nc.severity).toBe('black')
+    expect(nc.reason).toContain('commercial use is forbidden')
+    const proprietary = h.ctx.licensePolicy.evaluate('proprietary')
+    expect(proprietary.severity).toBe('black')
+    expect(proprietary.reason).toContain('redistribution')
+  })
+
+  it('rejects the NonCommercial family even when rejectUnknown is off', async () => {
+    const h = await makeHarness({ rejectUnknown: false })
+    expect(h.ctx.licensePolicy.evaluate('CC-BY-NC-SA-4.0').decision).toBe('reject')
+  })
+
   it('treats null / undefined / empty strings as unknown', async () => {
     const h = await makeHarness()
     expect(h.ctx.licensePolicy.normalize(null)).toBe('unknown')

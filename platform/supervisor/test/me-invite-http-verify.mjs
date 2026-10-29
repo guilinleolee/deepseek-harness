@@ -119,7 +119,13 @@ try {
   const meAnon = await get('/me')
   check('未认证 /me 401 + 登录页', meAnon.status === 401 && (await meAnon.text()).includes('登录'))
   const loginAnon = await get('/login')
-  check('/login 未认证 200 表单', loginAnon.status === 200 && (await loginAnon.text()).includes('账号（邮箱）'))
+  const loginAnonHtml = await loginAnon.text()
+  // 登录页已改由 auth-ui.mjs 渲染（表单 id/name 稳定、可见文案可迭代）：
+  // 断言「200 + 真表单 + 账号字段 + 密码字段」，不再绑死 placeholder 文案。
+  check('/login 未认证 200 表单', loginAnon.status === 200
+    && loginAnonHtml.includes('id="login-form"')
+    && loginAnonHtml.includes('name="account"')
+    && loginAnonHtml.includes('name="password"'))
   const loginEmp = await get('/login', emp.cookie)
   check('/login 已认证 employee 303 → /me', loginEmp.status === 303 && loginEmp.headers.get('location') === '/me')
   const loginAdmin = await get('/login', admin.cookie)
@@ -273,7 +279,9 @@ try {
   const badPw = await login('noquota@t', 'WrongPass1')
   check('错密码 401 中文文案', badPw.status === 401 && badPw.body.error === '账号或密码错误')
   const llPage = await (await get('/login')).text()
-  check('登录页失败分支透传服务端错误', llPage.includes('(j&&j.error)'))
+  // 失败分支把服务端 error 字段取出来贴到错误区（auth-ui.mjs 的新实现：
+  // describe() 读 payload.error → showError，不再是旧内联脚本的 (j&&j.error)）。
+  check('登录页失败分支透传服务端错误', llPage.includes('payload && payload.error') && llPage.includes('showError(describe'))
   const membersPageHtml = await (await get('/console/members', llAdmin.cookie)).text()
   check('成员页含最后登录列与取值', membersPageHtml.includes('<th>最后登录</th>') && membersPageHtml.includes('noquota@t') && membersPageHtml.includes('127.0.0.1'))
   // 登录类 POST 同源校验（Origin 存在且与 Host 不符即拒，堵登录 CSRF；

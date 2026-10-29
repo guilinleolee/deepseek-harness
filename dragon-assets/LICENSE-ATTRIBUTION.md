@@ -157,7 +157,76 @@ are permitted provided that the following conditions are met:
 
 ---
 
-## 五、NOASSERTION ❌ NO-GO（DSH 主仓治理基线 V1.0）
+## 五、NonCommercial（CC BY-NC 家族）❌ 禁止商用
+
+> **决策**：`reject`（tier `noncommercial` · severity black）
+> 见 `packages/experimental/license-policy` 的 tier→decision 表。
+
+### 适用资产
+
+- `opc-methodology`（easychen/opc-methodology · **CC BY-NC-SA 4.0**）
+- `dbskill` + `dbs-*` 全家 30 个（dontbesilent2025/dbskill · **CC BY-NC 4.0**）
+- `privacy-policy-generator`（**CC BY-NC 4.0**）
+
+### 核心红线
+
+| ❌ 禁止 | 说明 |
+|---|---|
+| 进入任何付费交付 | NonCommercial 授权下，"商用"包括把资产作为收费服务 / 付费交付物的一部分 |
+| 放进客户内网技能库 | 客户库是付费部署的组成部分 |
+| 用它生成的内容标成自研方法论卖 | NC-SA 的 **SA**（相同方式共享）还要求衍生作品同授权 |
+| 修改后去掉署名 | BY（署名）条款仍然适用 |
+
+### 允许场景
+
+- ✅ 内部学习、个人非商业研究
+- ✅ 免费分享（带署名、非商用前提下）
+
+### 商用替代路径（opc-methodology 专用）
+
+上游方法论结构（九阶段、线性/条件触发划分）是**事实**，不受版权保护；受保护的是**表达**（正文文字）。合规做法：
+
+1. **自写一套阶段方法论** —— 只保留"阶段编号 + 名称"，正文全部重写
+2. 或直接使用本仓库自研的替代：`dragon-assets/skills/opc-playbook/`（见 §八）
+
+### 致谢模板（仅限非商用场景使用资产时）
+
+```
+本内容参考了 easychen/opc-methodology（CC BY-NC-SA 4.0）
+github.com/easychen/opc-methodology
+仅用于非商业用途。
+```
+
+---
+
+## 六、Proprietary（专有许可）❌ 禁止再分发
+
+> **决策**：`reject`（tier `proprietary` · severity black）
+
+### 适用资产
+
+- `docx` / `pdf` / `pptx` / `xlsx`（**Anthropic, PBC 专有许可**）
+
+### 核心红线（LICENSE.txt 原文要点）
+
+| ❌ 禁止 | LICENSE.txt 原文 |
+|---|---|
+| 从服务中提取并保留副本 | "Extract these materials from the Services or retain copies of these materials outside the Services" |
+| 复制（临时副本除外） | "Reproduce or copy these materials, except for temporary copies created automatically during authorized use" |
+| 衍生作品 | "Create derivative works based on these materials" |
+| **向任何第三方分发、转授、转移** | "Distribute, sublicense, or transfer these materials to any third party" |
+| 逆向工程 | "Reverse engineer, decompile, or disassemble these materials" |
+
+### 处置
+
+1. **绝不放进客户内网技能库**（客户库 = 向第三方分发）
+2. **绝不作为付费交付物的一部分**
+3. 内部使用需自行确认与 Anthropic 的服务条款覆盖关系
+4. 客户需要同等能力时的替代：文档处理走自研代码（如 `docx`/`xlsx` 生成用 `exceljs` / `docx` npm 包自行实现），不依赖这 4 个 skill
+
+---
+
+## 七、NOASSERTION ❌ NO-GO（DSH 主仓治理基线 V1.0）
 
 **DSH 主仓（含 experimental）一律拒收 NOASSERTION 资产**。
 
@@ -165,7 +234,7 @@ are permitted provided that the following conditions are met:
 
 ---
 
-## 六、检查工具
+## 八、检查工具
 
 天龙侧自带的合规检查脚本（已镜像到 `dragon-assets/runtime/scripts/`）：
 
@@ -189,13 +258,14 @@ pnpm exec dsh-license-check dragon-assets/
 
 ---
 
-## 七、版本
+## 九、版本
 
-- **本模板版本**: V1.0
-- **生成日期**: 2026-08-27
+- **本模板版本**: V1.1
+- **生成日期**: 2026-08-27（V1.1 · 2026-10-26 补 NonCommercial / Proprietary 两节）
 - **依据**:
   - 天龙 `memory/agpl-attribution-statements.md` §一-§六
   - 天龙 `memory/mit-attribution-statements.md` §一-§十八
   - 天龙 `memory/apache-attribution-statements.md` §一-§九
   - 天龙 `memory/bsd3-attribution-statements.md` §一
   - DSH `docs/dsh-ecosystem-license-policy.md` V1.0
+  - `packages/experimental/license-policy` tier→decision 表（V1.1 起 noncommercial / proprietary 两档以本包为准）

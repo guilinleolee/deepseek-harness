@@ -1,8 +1,26 @@
+---
+description: "Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, and a daily SMA-cross backtester behind a research-only compliance gate."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-quant-research
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, and a daily SMA-cross backtester behind a research-only compliance gate. The plugin registers three model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Compliance gate (red lines)](#compliance-gate-red-lines)
+- [Tools](#tools)
+- [Session events](#session-events)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Installation
 
@@ -78,3 +96,14 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 - **`akshare` depends on the host environment** — the source fails with a friendly config error until `kernel-py/requirements.txt` is installed; Tushare is a later optional source (its open-source library has been stale since 2024-03).
 - **pytest coverage is informational** — the repository's per-file 100% gate covers the TypeScript `src` only; the kernel's pytest suite runs independently and reports separately.
 - **Excel export and echarts cards are deferred** — Markdown-first reporting avoids the xlsx dependency; the chart-library decision is an explicit phase-2 review against bundle size.
+
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

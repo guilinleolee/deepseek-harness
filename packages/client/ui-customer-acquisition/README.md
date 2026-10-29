@@ -1,8 +1,24 @@
+---
+description: "The web panel half of the customer-acquisition feature: a sidebar entry plus the frame-wide workbench surface."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-client-ui-customer-acquisition
 
 English | [中文](README.zh.md)
 
+## Summary
+
 The web panel half of the customer-acquisition feature: a sidebar entry plus the frame-wide placeholder workbench surface. The Node half lives in [`@deepseek-ai/dsh-customer-acquisition`](../../growth/customer-acquisition/README.md); installing either package pulls both through its bundle patch.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [How it wires](#how-it-wires)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Installation
 
@@ -36,3 +52,13 @@ Independent.
 
 - **Placeholder surface** — the workbench shows the global settings snapshot and the newest audit entries to prove the full P0 chain; the eight-page panel ships with P4.
 - **No offline state** — reads fail visibly when the Remote gateway is unreachable; no browser-local caching by design (business data never lives in localStorage).
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

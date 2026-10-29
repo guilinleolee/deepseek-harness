@@ -330,6 +330,8 @@ export type AuditLog = z.infer<typeof auditLogSchema>
 export const customerAcquisitionSettingsSchema = z.object({
   default_icp_profile_id: z.string().min(1).optional(),
   default_score_template_id: z.string().min(1).optional(),
+  /** The sender identity rendered into copy templates (`{{sender_name}}`). */
+  sender_name: z.string().min(1).optional(),
   geo_max_pages: z.number().int().min(1).max(20).default(10),
   geo_page_timeout_ms: z.number().int().min(1_000).max(10_000).default(10_000),
   sop_todo_write_enabled: z.boolean().default(true),

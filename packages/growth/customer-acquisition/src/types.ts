@@ -13,6 +13,7 @@ import type { AuditSource } from './domain/spec.ts'
 export interface SettingsPatchInput {
   default_icp_profile_id?: string
   default_score_template_id?: string
+  sender_name?: string
   geo_max_pages?: number
   geo_page_timeout_ms?: number
   sop_todo_write_enabled?: boolean
@@ -25,6 +26,7 @@ export interface SettingsPatchInput {
 export interface SettingsValue {
   default_icp_profile_id?: string
   default_score_template_id?: string
+  sender_name?: string
   geo_max_pages: number
   geo_page_timeout_ms: number
   sop_todo_write_enabled: boolean

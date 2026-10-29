@@ -131,6 +131,7 @@ function gateway(overrides: Partial<SentimentGateway> = {}): SentimentGateway {
     putSentimentSettings: async () => undefined,
     scanSentiment: async () => ({ captured: 2, alerts: 1, at: NOW }),
     handleSentimentAlert: async () => undefined,
+    adjudicateSentimentAlert: async () => alert(),
     sentimentStats: async () => stats(),
     generateSentimentReport: async () => ({
       markdown: '# Daily sentiment report', degraded: false, generatedAt: NOW,
@@ -172,6 +173,24 @@ describe('SentimentView', () => {
     expect(screen.getByText('news.example — 3')).toBeTruthy()
   })
 
+  it('renders one trend column per day of the statistics trend', async () => {
+    renderView({
+      sentimentStats: async () => stats({
+        trend: [
+          { day: '2026-10-06', pos: 2, neu: 1, neg: 0 },
+          { day: '2026-10-07', pos: 3, neu: 0, neg: 1 },
+          { day: '2026-10-08', pos: 1, neu: 1, neg: 1 },
+        ],
+      }),
+    })
+    await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
+    fireEvent.click(screen.getByText('Dashboard'))
+    // Each day contributes one labelled column carrying its month-day.
+    expect(screen.getByText('10-06')).toBeTruthy()
+    expect(screen.getByText('10-07')).toBeTruthy()
+    expect(screen.getByText('10-08')).toBeTruthy()
+  })
+
   it('opens the task dialog, saves through the gateway, and toggles a task', async () => {
     const putSpy = vi.fn(async (input: SentimentTaskInput) => ({ ...task(), ...input }))
     const toggleSpy = vi.fn(async () => task({ enabled: false }))
@@ -184,8 +203,8 @@ describe('SentimentView', () => {
     const [nameBox] = textboxes
     if (nameBox === undefined) throw new Error('expected a task-name textbox')
     fireEvent.change(nameBox, { target: { value: 'Policy watch' } })
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Subjects (one per line)' }), { target: { value: 'Acme' } })
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'RSS feed URLs (one per line)' }), { target: { value: 'https://policy.example/rss' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Subjects \(one per line/ }), { target: { value: 'Acme' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^RSS feed URLs/ }), { target: { value: 'https://policy.example/rss' } })
     const [saveButton] = within(dialog).getAllByText('Save')
     if (saveButton === undefined) throw new Error('expected a Save button')
     fireEvent.click(saveButton)

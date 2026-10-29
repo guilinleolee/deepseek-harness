@@ -14,8 +14,10 @@
  * - 撤销只对未用邀请生效（已用的撤销无语义）。
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 const INVITES_FILE = 'invites.json'
 /** 邀请角色白名单：邀请不发放 admin（管理员只能由既有管理员在成员页创建）。 */
@@ -42,9 +44,7 @@ function loadInvites(dataDir) {
 function saveInvites(dataDir, store) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, INVITES_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, store)
 }
 
 const sha256Hex = (text) => createHash('sha256').update(text, 'utf8').digest('hex')

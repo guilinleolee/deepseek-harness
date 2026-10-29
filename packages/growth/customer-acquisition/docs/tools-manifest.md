@@ -59,12 +59,13 @@ const LeadRef = {
 ### `customer_acquisition_settings_get` — P0 · 冒烟 · audit 无（读）
 
 ```ts
-description: '读取获客运营插件的全局参数：默认 ICP 画像、默认打分模板、GEO 诊断的页数与超时上限、SOP 待办联动开关。'
+description: '读取获客运营插件的全局参数：默认 ICP 画像、默认打分模板、文案署名（sender_name）、GEO 诊断的页数与超时上限、SOP 待办联动开关。'
 parameters: {}
 output: { schema: { type: 'object', properties: {
   settings: { type: 'object', properties: {
     default_icp_profile_id: { type: 'string' },
     default_score_template_id: { type: 'string' },
+    sender_name: { type: 'string' },
     geo_max_pages: { type: 'integer' },
     geo_page_timeout_ms: { type: 'integer' },
     sop_todo_write_enabled: { type: 'boolean' },
@@ -81,6 +82,7 @@ description: '修改获客运营插件的全局参数。只更新传入的字段
 parameters: {
   default_icp_profile_id: { type: 'string', description: '默认 ICP 画像 id；需为已存在的画像' },
   default_score_template_id: { type: 'string', description: '默认打分模板 id；需为已存在的模板' },
+  sender_name: { type: 'string', description: '文案模板里 {{sender_name}} 的落位值，即我方发送人署名（如「李秉凌」）；未设置时按模板自带示例落位' },
   geo_max_pages: { type: 'integer', description: 'GEO 单次诊断页数上限，1-20', min: 1, max: 20 },
   geo_page_timeout_ms: { type: 'integer', description: 'GEO 单页抓取超时毫秒数，1000-10000', min: 1000, max: 10000 },
   sop_todo_write_enabled: { type: 'boolean', description: 'SOP 生成任务时是否同步写入 DSH 待办' },

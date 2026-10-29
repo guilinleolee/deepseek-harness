@@ -428,6 +428,7 @@ export const auditLogSchema = z.object({
 export const customerAcquisitionSettingsSchema = z.object({
   default_icp_profile_id: z.string().min(1).optional(),
   default_score_template_id: z.string().min(1).optional(),
+  sender_name: z.string().min(1).optional(),                           // 文案署名，落位 {{sender_name}}
   geo_max_pages: z.number().int().min(1).max(20).default(10),          // 红线封顶 20
   geo_page_timeout_ms: z.number().int().min(1_000).max(10_000).default(10_000),  // 红线封顶 10s，只许更短
   sop_todo_write_enabled: z.boolean().default(true),

@@ -1,8 +1,25 @@
+---
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-experimental-skill-index`、`@deepseek-ai/dsh"
+kind: "package-reference"
+---
 # dsh-experimental-dragon-bridge
 
 [English](README.md) | 中文
 
+## 概述
+
 DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-experimental-skill-index`、`@deepseek-ai/dsh-experimental-agent-roster`、`@deepseek-ai/dsh-experimental-license-policy` 三个包，调用方通过一次 `search()` 即可跨 skill / agent / command / hook / plugin 五类检索，并由 policy 守好 AGPL / NOASSERTION 边界。
+
+## 目录
+
+- [依赖](#依赖)
+- [Service API](#service-api)
+- [配置](#配置)
+- [跨包契约](#跨包契约)
+- [已知限制与延后工作](#已知限制与延后工作)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
@@ -83,3 +100,14 @@ bridge 通过 Cordis 注入依赖；`ctx.dragonIndex`、`ctx.agentRoster`、`ctx
 - **Skill 的 description 兜底**——bridge 的 `text` 匹配在 index 条目无 `description` 字段时会回退到 `displayName`。未来 schema 升级后可统一字段。
 - **无模糊搜索**——`search({ text })` 是字面子串匹配。Embedding 检索需要新 sibling 包（Phase 4+）。
 - **单次 policy 决策**——bridge 在 `loadAll()` 时一次性评估 license；上游 policy 变更后需手动让 bridge cache 失效。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

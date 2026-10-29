@@ -268,6 +268,7 @@ function mainApply(ctx: Context): void {
     putSentimentSettings: settings => unwrap('contentOutputs.putSentimentSettings', ctx.remote.contentOutputs.putSentimentSettings(settings)),
     scanSentiment: () => unwrap('contentOutputs.scanSentiment', ctx.remote.contentOutputs.scanSentiment()),
     handleSentimentAlert: id => unwrap('contentOutputs.handleSentimentAlert', ctx.remote.contentOutputs.handleSentimentAlert(id)),
+    adjudicateSentimentAlert: id => unwrap('contentOutputs.adjudicateSentimentAlert', ctx.remote.contentOutputs.adjudicateSentimentAlert(id)),
     sentimentStats: () => unwrap('contentOutputs.sentimentStats', ctx.remote.contentOutputs.sentimentStats()),
     generateSentimentReport: () => unwrap('contentOutputs.generateSentimentReport', ctx.remote.contentOutputs.generateSentimentReport()),
   }

@@ -1,6 +1,24 @@
+---
+description: "量化研究的 Web 面板插件：侧边栏入口加一块仅供研究的占位面板。"
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-client-ui-quant-research
 
-English | [中文](README.md)
+English | [中文](README.zh.md)
+
+## 概述
+
+量化研究的 Web 面板插件：一个侧边栏入口加一块声明"仅供研究"范围的框架级占位面板。Phase 1 交付挂载点与免责声明；图表、报表卡片与核心包的 Remote 面随 Phase 2 到来。node 半边是空 apply（让插件可出现在宿主 cordis.yml），用户可见内容全部在以 `./client` 导出的浏览器半边。
+
+## 目录
+
+- [安装](#安装)
+- [面板](#面板)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+-----
 
 量化研究的 Web 面板插件：一个侧边栏入口加一块声明"仅供研究"范围的框架级占位面板。Phase 1 交付挂载点与免责声明；图表、报表卡片与核心包的 Remote 面随 Phase 2 到来。node 半边是空 apply（让插件可出现在宿主 cordis.yml），用户可见内容全部在以 `./client` 导出的浏览器半边。
 
@@ -39,3 +57,13 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 
 - **占位是设计使然** — 真面板（K线/指标/净值卡片、回测报告）随 Phase 2 落地，连同核心包 Remote 面与本地化词典。
 - **暂无本地化词典** — 占位文案为固定中文；locale 命名空间随真面板一起加入。
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

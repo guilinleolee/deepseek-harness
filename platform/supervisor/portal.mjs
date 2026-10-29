@@ -32,6 +32,7 @@ import { checkPasswordPolicy, createLoginRateGuard, loadSecurityConfig } from '.
 import { fmtPoints } from './quotas.mjs'
 import { syncInstanceHome } from './toolpolicy.mjs'
 import { consumeInvite, inviteRejectMessage, validateInvite } from './invites.mjs'
+import { renderRegisterPage } from './auth-ui.mjs'
 import { clearTwofa, confirmSecret, generateTotpSecret, getTwofaRecord, otpauthUrl, setPendingSecret } from './totp.mjs'
 
 const ROLE_LABELS = { admin: '管理员', auditor: '审计员', employee: '成员' }
@@ -245,44 +246,6 @@ async function tfaDisable(ev){ev.preventDefault();
 </script>`)
 }
 
-/** 注册页：code 有效显示预设与表单，否则显示拒绝文案。code 只进表单与链接。 */
-function registerPage({ verdict, code }) {
-  if (!verdict.ok) {
-    return page('邀请注册', `
-<div class="head"><h1>卡巴格 · 邀请注册</h1></div>
-<div class="card"><p style="margin:.2rem 0">${esc(inviteRejectMessage(verdict.reason))}</p>
-<p class="mut">已有账号？<a href="/login">去登录</a></p></div>`)
-  }
-  const invite = verdict.invite
-  return page('邀请注册', `
-<div class="head"><h1>卡巴格 · 邀请注册</h1><a href="/login">已有账号？去登录</a></div>
-<div class="invite">
-<b>邀请有效</b> ｜ 部门：<b>${esc(invite.department)}</b> ｜ 角色：<b>${esc(ROLE_LABELS[invite.role] ?? invite.role)}</b> ｜ 实例：<b>${esc(invite.instanceId)}</b>
-<div class="mut" style="margin-top:.3rem">有效期至 ${esc(invite.expiresAt)}（剩余 <span id="cd">…</span>），每个邀请仅可注册一次。</div>
-</div>
-<div class="card">
-<form onsubmit="doRegister(event)">
-<label>账号（邮箱）</label><input id="acc" placeholder="name@company" autocomplete="username" required>
-<label>显示名（可选）</label><input id="dn" placeholder="如 小王">
-<label>密码</label><input type="password" id="pw" autocomplete="new-password" required>
-<label>确认密码</label><input type="password" id="pw2" autocomplete="new-password" required>
-<div class="msg" id="msg"></div><button>注册并加入企业</button>
-</form></div>
-<script>
-var CODE=${JSON.stringify(code)};var EXPIRES=${JSON.stringify(invite.expiresAt)};
-function tick(){var left=Date.parse(EXPIRES)-Date.now();if(left<=0){document.getElementById('cd').textContent='已过期';return}
- var m=Math.floor(left/60000),h=Math.floor(m/60);document.getElementById('cd').textContent=h+' 小时 '+(m%60)+' 分钟'}
-tick();setInterval(tick,1000);
-async function doRegister(ev){ev.preventDefault();
- var m=document.getElementById('msg');m.textContent='';
- var r=await fetch('/api/register',{method:'POST',headers:{'content-type':'application/json'},
-  body:JSON.stringify({code:CODE,account:acc.value,displayName:dn.value,password:pw.value,confirmPassword:pw2.value})});
- var j=await r.json().catch(function(){return{}});
- if(r.ok){m.className='msg okmsg';m.textContent='注册成功，正在跳转登录页…';setTimeout(function(){location.href='/login'},1500);return}
- m.textContent=(j&&j.error)||('注册失败（HTTP '+r.status+'）')}
-</script>`)
-}
-
 /** 注册串行队列：invites.json 与 accounts.json 都是读改写热点，全局串行。 */
 let registerQueue = Promise.resolve()
 
@@ -343,7 +306,14 @@ export function handlePortal({ req, res, url, auth, dataDir, manifest, loginPage
     const raw = url.searchParams.get('code') ?? ''
     const code = /^inv-[A-Za-z0-9_-]+$/.test(raw) ? raw : ''
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    res.end(registerPage({ verdict: code === '' ? { ok: false, reason: 'invalid_code' } : validateInvite(dataDir, code), code }))
+    const verdict = code === '' ? { ok: false, reason: 'invalid_code' } : validateInvite(dataDir, code)
+    // 统一走 auth-ui.mjs 的渲染器：脚本块完全静态（动态值一律走 data-* 属性），
+    // 拒绝态给出成因与出路，有效态展示邀请信息 + 密码强度实时提示。
+    res.end(renderRegisterPage({
+      code,
+      invite: verdict.ok ? verdict.invite : null,
+      reason: verdict.ok ? '' : verdict.reason,
+    }))
     return true
   }
 

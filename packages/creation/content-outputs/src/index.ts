@@ -34,7 +34,7 @@ import type {
   SentimentSnapshot, SentimentStats, SentimentTask, SentimentTaskId, SentimentTaskInput,
   SentimentSettings, SentimentScanResult,
   SocialCaptureResult, SocialPlatform, SocialStatuses, SocialVerifyResult,
-  SentimentAlertId,
+  SentimentAlert, SentimentAlertId,
   PublishPackage, PublishProfilesRead, PublishProfilesDoc,
   ReviewAiResult, ReviewAnalyzeWorkRequest, ReviewGenerateReportRequest, ReviewImportCommitRequest,
   ReviewImportCommitResult, ReviewImportPreview, ReviewImportPreviewRequest, ReviewIndexRead,
@@ -67,13 +67,14 @@ import {
 import { PersonaAiProcessor } from './persona/ai.ts'
 import { SocialCaptureProcessor } from './social/capture.ts'
 import {
-  deleteSentimentTaskFile, handleSentimentAlertFile, putSentimentSettingsFile,
+  deleteSentimentTaskFile, handleSentimentAlertFile, putSentimentAlertAdjudicationFile, putSentimentSettingsFile,
   putSentimentReportFile, putSentimentTaskFile, readSentimentFile, SENTIMENT_FILENAME, setSentimentTaskEnabledFile,
 } from './sentiment/store.ts'
 import { appendSentimentScanFile } from './sentiment/store.ts'
 import { computeSentimentStats } from './sentiment/stats.ts'
 import { runSentimentScan } from './sentiment/scan.ts'
 import { generateSentimentReport as generateSentimentReportEngine, type SentimentReport } from './sentiment/report.ts'
+import { adjudicateSentimentAlert } from './sentiment/adjudicate.ts'
 import { pushAlertRound } from './sentiment/push.ts'
 import {
   buildPublishPackageFile, readPublishDerivedFile, readPublishIndexFile,
@@ -847,10 +848,11 @@ export class ContentOutputsGateway extends TypertRemoteService {
   }
 
   /**
-   * Generate one sentiment report from the stored snapshot: one model call
-   * over the framed data (five fixed sections), degrading to the
-   * deterministic data-only template when the call fails. The manifest
-   * keeps the newest report only.
+   * Generate one sentiment report from the stored snapshot: a deterministic
+   * template choice (daily vs crisis brief), one model call per section,
+   * bound into Markdown plus a structured IR; each section degrades on its
+   * own and a fully failed generation falls back to the deterministic
+   * data-only template. The manifest keeps the newest report only.
    * @returns the stored report.
    */
   @Remote('generateSentimentReport')
@@ -859,6 +861,27 @@ export class ContentOutputsGateway extends TypertRemoteService {
     const stats = computeSentimentStats(state.mentions, state.tasks, new Date())
     const report = await generateSentimentReportEngine(this.ctx, this.aiPolicy, state, stats, new Date())
     return putSentimentReportFile(this.sentimentFile, report)
+  }
+
+  /**
+   * Run the dual-perspective debate over one alert (optimistic vs cautious
+   * reader, then a synthesis) and attach the verdict to the stored alert.
+   * On-demand only — the scheduled scan never pays for it. A later run
+   * replaces the earlier verdict.
+   * @param id - the alert id.
+   * @returns the updated alert.
+   */
+  @Remote('adjudicateSentimentAlert')
+  async adjudicateSentimentAlert(id: SentimentAlertId): Promise<SentimentAlert> {
+    const state = await readSentimentFile(this.sentimentFile)
+    const alert = state.alerts.find(candidate => candidate.id === id)
+    if (alert === undefined) throw new Error(`unknown sentiment alert: ${id}`)
+    const verdict = await adjudicateSentimentAlert(
+      this.ctx, this.aiPolicy, alert,
+      state.tasks.find(task => task.id === alert.taskId),
+      state.mentions, new Date(),
+    )
+    return putSentimentAlertAdjudicationFile(this.sentimentFile, id, verdict)
   }
 
   /**

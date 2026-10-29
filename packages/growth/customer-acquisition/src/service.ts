@@ -434,6 +434,7 @@ function toSettingsValue(settings: CustomerAcquisitionSettings): SettingsValue {
     sop_todo_write_enabled: settings.sop_todo_write_enabled,
     ...(settings.default_icp_profile_id === undefined ? {} : { default_icp_profile_id: settings.default_icp_profile_id }),
     ...(settings.default_score_template_id === undefined ? {} : { default_score_template_id: settings.default_score_template_id }),
+    ...(settings.sender_name === undefined ? {} : { sender_name: settings.sender_name }),
   }
 }
 

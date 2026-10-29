@@ -10,7 +10,7 @@ import { dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import type {
-  SentimentAlert, SentimentMention, SentimentPolarity, SentimentReport, SentimentSettings, SentimentSource, SentimentTask,
+  SentimentAlert, SentimentAlertAdjudication, SentimentMention, SentimentPolarity, SentimentReport, SentimentSettings, SentimentSource, SentimentTask,
   SentimentTaskId, SentimentTaskInput, SentimentManifest, SentimentSnapshot,
 } from './types.ts'
 import { SENTIMENT_SOURCES } from './types.ts'
@@ -105,7 +105,14 @@ function isAlert(value: unknown): value is SentimentAlert {
   if (!Array.isArray(value.mentionIds) || value.mentionIds.length === 0 || value.mentionIds.length > 100) return false
   if (!value.mentionIds.every(id => isText(id, 64))) return false
   if (typeof value.handled !== 'boolean') return false
-  return isTimestamp(value.createdAt) && (value.handledAt === null || isTimestamp(value.handledAt))
+  if (!(isTimestamp(value.createdAt) && (value.handledAt === null || isTimestamp(value.handledAt)))) return false
+  if (value.adjudication === undefined || value.adjudication === null) return true
+  if (!isRecord(value.adjudication)) return false
+  const adjudication = value.adjudication
+  return isText(adjudication.optimistic, SENTIMENT_MAX_TEXT)
+    && isText(adjudication.cautious, SENTIMENT_MAX_TEXT)
+    && isText(adjudication.conclusion, SENTIMENT_MAX_TEXT)
+    && isTimestamp(adjudication.at)
 }
 
 export const DEFAULT_SENTIMENT_SETTINGS: SentimentSettings = {
@@ -148,8 +155,15 @@ function isReport(value: unknown): value is SentimentReport {
   if (!isText(value.promptVersion, 100)) return false
   const mentionCount: unknown = value.mentionCount
   const alertCount: unknown = value.alertCount
-  return typeof mentionCount === 'number' && Number.isInteger(mentionCount) && mentionCount >= 0
-    && typeof alertCount === 'number' && Number.isInteger(alertCount) && alertCount >= 0
+  if (!(typeof mentionCount === 'number' && Number.isInteger(mentionCount) && mentionCount >= 0
+    && typeof alertCount === 'number' && Number.isInteger(alertCount) && alertCount >= 0)) return false
+  if (value.ir === undefined) return true
+  if (!isRecord(value.ir)) return false
+  const ir = value.ir
+  if (!isText(ir.template, 40)) return false
+  if (!Array.isArray(ir.sections) || ir.sections.length === 0 || ir.sections.length > 12) return false
+  return ir.sections.every(section => isRecord(section)
+    && isText(section.key, 100) && isText(section.title, 200) && isText(section.body, 40_000))
 }
 
 /** Newest mention first; the id breaks ties so the order is total and stable. */
@@ -451,6 +465,28 @@ export async function handleSentimentAlertFile(file: string, id: string, now: st
     if (alert === undefined) throw new Error(`unknown sentiment alert: ${id}`)
     const next: SentimentAlert = { ...alert, handled: true, handledAt: now }
     await writeSnapshot(file, state.tasks, state.mentions, [next, ...state.alerts.filter(a => a.id !== id)], state.settings, state.report)
+  })
+}
+
+/**
+ * Attach one dual-perspective adjudication to one alert under a file lock;
+ * unknown ids reject and a later run replaces the earlier verdict.
+ * @returns the updated alert.
+ */
+export async function putSentimentAlertAdjudicationFile(
+  file: string, id: string, adjudication: SentimentAlertAdjudication,
+): Promise<SentimentAlert> {
+  return withFileLock(file, async () => {
+    const state = await readForWrite(file)
+    const alert = state.alerts.find(a => a.id === id)
+    if (alert === undefined) throw new Error(`unknown sentiment alert: ${id}`)
+    if (!isText(adjudication.optimistic, SENTIMENT_MAX_TEXT)
+      || !isText(adjudication.cautious, SENTIMENT_MAX_TEXT)
+      || !isText(adjudication.conclusion, SENTIMENT_MAX_TEXT)
+      || !isTimestamp(adjudication.at)) throw new Error('invalid sentiment alert adjudication')
+    const next: SentimentAlert = { ...alert, adjudication }
+    await writeSnapshot(file, state.tasks, state.mentions, [next, ...state.alerts.filter(a => a.id !== id)], state.settings, state.report)
+    return next
   })
 }
 
