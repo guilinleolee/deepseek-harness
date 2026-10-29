@@ -155,6 +155,7 @@ npx tsx scripts/verify-dragon-deliverable-skills.ts
 ```bash
 python dragon-assets/runtime/scripts/build-deliverable-skills.py --check  # 清单是否最新
 npx tsx scripts/verify-dragon-deliverable-skills.ts                     # 边界门禁
+npx tsx scripts/verify-dragon-index-sync.ts                            # 索引同步门禁
 npx tsx scripts/verify-dragon-assets-licenses.ts                       # 授权一致性门禁
 npx vitest run packages/experimental/license-policy/tests/              # 策略层测试
 ```

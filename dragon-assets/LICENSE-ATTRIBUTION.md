@@ -184,10 +184,11 @@ are permitted provided that the following conditions are met:
 
 ### 商用替代路径（opc-methodology 专用）
 
-上游方法论结构（九阶段、线性/条件触发划分）是**事实**，不受版权保护；受保护的是**表达**（正文文字）。合规做法：
+上游方法论结构（九阶段、线性/条件触发划分）是**事实**，不受版权保护；受保护的是**表达**（正文文字）。本仓库已落地自研替代：
 
-1. **自写一套阶段方法论** —— 只保留"阶段编号 + 名称"，正文全部重写
-2. 或直接使用本仓库自研的替代：`dragon-assets/skills/opc-playbook/`（见 §八）
+**`dragon-assets/skills/opc-playbook/`（MIT）** —— 覆盖资源盘点、利基定位、价值主张、商业模式、MVP 设计、转化闭环、资产沉淀、经营复盘、交付审视九个阶段，每个阶段带产出物与验收标准。表达全部原创，商业使用零风险。付费交付一律用它，不用 `opc-methodology`。
+
+另注意：`opc-niche-positioning` / `opc-value-proposition` / `opc-business-model-design` / `opc-mvp-designer` / `opc-resource-audit` / `opc-conversion-loop` 六个 skill 的 frontmatter 标注 `source: easychen/opc-methodology`，**是 NC 上游的衍生品**，与 `opc-methodology` 同样不进任何付费交付（打包清单已按 unverified 排除）。
 
 ### 致谢模板（仅限非商用场景使用资产时）
 
