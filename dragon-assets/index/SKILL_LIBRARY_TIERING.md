@@ -34,13 +34,13 @@
 
 ---
 
-## 2. 实际清单（32 可下发 / 11 不下发）
+## 2. 实际清单（33 可下发 / 11 不下发）
 
-### 可下发（32）
+### 可下发（33）
 
 | tier | 数量 | 资产 |
 |---|---|---|
-| MIT | 27 | `baoyu-*` 21 件套 · `xhs-visual-director-skill` · `cinema-director-laoli` · `async-task-pattern` · `nuwa-skill` · `darwin-skill` · `skill-updater` · `render-deck` · `check-runtime` |
+| MIT | 28 | `baoyu-*` 21 件套 · `xhs-visual-director-skill` · `cinema-director-laoli` · `async-task-pattern` · `nuwa-skill` · `darwin-skill` · `skill-updater` · `render-deck` · `check-runtime` · `opc-playbook` |
 | Apache-2.0 | 3 | `a-stock-data-bridge` · `global-stock-data-bridge` · `anysearch` |
 | self（自研） | 2 | `multi-platform-publisher` · `book-distiller` |
 
@@ -51,7 +51,7 @@
 | AGPL-3.0 | `guizang-social-card-skill` | 只出 PNG 成品；版式需求改用 `xhs-visual-director-skill`（MIT） |
 | AGPL-3.0 | `gzh-design-skill` | 同上 |
 | AGPL-3.0 | `cangjie-skill` | 蒸馏书能力在客户场景暂不交付 |
-| CC-BY-NC-SA 4.0 | `opc-methodology` | **付费交付里绝不能出现**。自写一套九阶段方法论，或只用 `opc-*` 的技能结构不复制上游正文 |
+| CC-BY-NC-SA 4.0 | `opc-methodology` | **付费交付里绝不能出现**。用自研的 `opc-playbook`（MIT）替代，已落地 |
 | CC-BY-NC 4.0 | `dbskill` + `dbs-*`（30 个） | 整个家族不进客户环境 |
 | CC-BY-NC 4.0 | `privacy-policy-generator` | 不交付 |
 | proprietary | `docx` / `pdf` / `pptx` / `xlsx` | Anthropic 专有许可，明确禁止再分发与衍生 |
@@ -64,16 +64,31 @@
 
 ```bash
 python dragon-assets/runtime/scripts/build-deliverable-skills.py
-# deliverable: 32  withheld: 11  violations: 0
+# deliverable: 33  withheld: 11  violations: 0
 ```
 
 产物 `DELIVERABLE_SKILLS.json` 列出每个资产的 tier、决策、义务（obligations）、上游。卡巴格的服务端按这份清单打技能库。
 
-### 3.2 强制边界
+### 3.2 打包技能库
+
+```bash
+python dragon-assets/runtime/scripts/pack-skill-library.py --out D:/deliver/library
+# [packed] 33 assets, 880 files -> D:/deliver/library
+```
+
+打包器按清单复制资产目录，并强制三件事：
+
+- Apache-2.0 / BSD-3-Clause / MIT 资产**必须带 LICENSE 文件**，缺失即失败
+- 生成库根 `ATTRIBUTIONS.md`，汇总每个资产的上游与授权
+- 排除 `node_modules` / `__pycache__` / 备份目录 / 测试产物
+
+打包前会校验清单一致性；`DELIVERABLE_SKILLS.json` 过期即失败，不会用旧清单打出违规库。
+
+### 3.3 强制边界
 
 ```bash
 npx tsx scripts/verify-dragon-deliverable-skills.ts
-# 32 deliverable, 11 withheld; the client library holds only redistributable assets.
+# 33 deliverable, 11 withheld; the client library holds only redistributable assets.
 ```
 
 门禁在以下情况失败：
@@ -86,7 +101,7 @@ npx tsx scripts/verify-dragon-deliverable-skills.ts
 
 已注册进 `ciSharedStaticGates`、`hygiene`、`check-all`。
 
-### 3.3 策略层已扩展
+### 3.4 策略层已扩展
 
 `packages/experimental/license-policy` 原本**不认识** NonCommercial 和专有许可：
 

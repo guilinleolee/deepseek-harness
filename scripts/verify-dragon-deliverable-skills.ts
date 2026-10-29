@@ -21,11 +21,9 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve, sep } from 'node:path'
+import { resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const MANIFEST_PATH = resolve(ROOT, 'dragon-assets/index/DELIVERABLE_SKILLS.json')
-const REGISTRY_PATH = resolve(ROOT, 'dragon-assets/index/LICENSES.json')
 
 /** Tiers a client inner-network library may hold. */
 const DELIVERABLE_TIERS = new Set(['MIT', 'Apache-2.0', 'BSD-3-Clause', 'self'])
@@ -69,10 +67,6 @@ export interface DeliverableSkillsReport {
 
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'))
-}
-
-function normalizePath(path: string): string {
-  return path.split(sep).join('/')
 }
 
 function toEntries(value: unknown): ManifestEntry[] {

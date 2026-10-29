@@ -10,12 +10,10 @@
  * @module scripts/verify-dragon-assets-licenses
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const REGISTRY_PATH = resolve(ROOT, 'dragon-assets/index/LICENSES.json')
-const SKILLS_DIR = resolve(ROOT, 'dragon-assets/skills')
 
 /** One registry entry after normalization. */
 interface RegistryEntry {
@@ -107,25 +105,6 @@ function readRegistry(path: string): RegistryEntry[] {
     })
   }
   return entries
-}
-
-/** Resolve the on-disk directory for a registry key, tolerating family wildcards. */
-function resolveSkillDir(id: string): string | undefined {
-  if (id.endsWith('*')) {
-    const family = id.slice(0, -1)
-    if (!existsSync(SKILLS_DIR)) return undefined
-    const match = readdirSync(SKILLS_DIR).find((name) => name.startsWith(family))
-    return match ? resolve(SKILLS_DIR, match) : undefined
-  }
-  const direct = resolve(SKILLS_DIR, id)
-  if (existsSync(direct)) return direct
-  if (!existsSync(SKILLS_DIR)) return undefined
-  const match = readdirSync(SKILLS_DIR).find((name) => {
-    if (name !== id && !name.startsWith(`${id}-`)) return false
-    const dir = resolve(SKILLS_DIR, name)
-    return existsSync(resolve(dir, 'SKILL.md')) || existsSync(resolve(dir, 'skill', 'SKILL.md'))
-  })
-  return match ? resolve(SKILLS_DIR, match) : undefined
 }
 
 /**

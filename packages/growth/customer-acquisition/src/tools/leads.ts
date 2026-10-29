@@ -20,7 +20,7 @@ import { operatorRequest } from '../permission/types.ts'
 import type { PermissionContextService } from '../permission/types.ts'
 
 /** Lead summary projection schema shared by create/update/get/list outputs. */
-const LEAD_REF_SCHEMA = {
+export const LEAD_REF_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
@@ -43,7 +43,7 @@ const LEAD_REF_SCHEMA = {
 const LEAD_REF_REQUIRED = { ...LEAD_REF_SCHEMA, required: true } as const
 
 /** Editable lead fields shared by create and update (create adds id/name/source/owner). */
-const LEAD_FIELD_PARAMETERS = {
+export const LEAD_FIELD_PARAMETERS = {
   contact_name: { type: 'string', description: '联系人姓名' },
   phone: { type: 'string', description: '联系电话（宽松存储，格式提示在面板）' },
   email: { type: 'string', description: '邮箱' },
@@ -66,7 +66,7 @@ const LEAD_FIELD_PARAMETERS = {
 } as const
 
 /** Filters shared by lead list and export. */
-const LEAD_FILTER_PARAMETERS = {
+export const LEAD_FILTER_PARAMETERS = {
   status: { type: 'string', enum: ['active', 'archived', 'recycled'], description: '状态过滤；缺省只看 active，回收站传 recycled' },
   source: { type: 'string', description: '按来源精确过滤' },
   industry: { type: 'string', description: '按行业精确过滤' },
@@ -79,7 +79,7 @@ const LEAD_FILTER_PARAMETERS = {
 } as const
 
 /** Paging bounds shared by the list faces. */
-const PAGING_PARAMETERS = {
+export const PAGING_PARAMETERS = {
   limit: { type: 'integer', description: '每页条数，默认 20，最大 100；越界值自动收敛' },
   offset: { type: 'integer', description: '偏移量，默认 0；负值按 0 处理' },
 } as const
@@ -102,7 +102,7 @@ interface LeadRefLike {
 }
 
 /** One human-readable line for a lead ref. */
-function renderLeadRef(lead: LeadRefLike): string {
+export function renderLeadRef(lead: LeadRefLike): string {
   const parts = [
     lead.company_name,
     lead.contact_name === undefined ? '' : `联系人 ${lead.contact_name}`,
@@ -528,7 +528,7 @@ export function leadTransferTool(deps: LeadToolDeps): ToolDefinition {
 export function leadExtractTool(deps: LeadToolDeps): ToolDefinition {
   return defineTool({
     name: 'customer_acquisition_lead_extract',
-    description: `从用户粘贴的一段文本（表单内容/聊天记录/邮件正文）中抽取线索字段：公司名、联系人、电话、邮箱、行业、规模、需求描述、预算、决策角色。仅解析用户本次提供的文本，不做任何网络采集或批量提取；只返回识别结果，不写库——确认后用 lead_create 落库。文本上限 ${EXTRACT_MAX_CHARS} 字符。`,
+    description: `从用户粘贴的一段文本（表单内容/聊天记录/邮件正文）中抽取线索字段：公司名、联系人、电话、邮箱、行业、规模、需求描述、预算、决策角色。仅解析用户本次提供的文本，不做任何网络采集或批量提取；只返回识别结果，不写库——确认后用 lead_manage 的 create 落库。文本上限 ${EXTRACT_MAX_CHARS} 字符。`,
     parameters: {
       text: { type: 'string', required: true, description: `用户提供的原始文本，≤${EXTRACT_MAX_CHARS} 字符` },
       source_hint: { type: 'string', description: '来源提示（form/chat/email），辅助歧义消解' },
@@ -564,7 +564,7 @@ export function leadExtractTool(deps: LeadToolDeps): ToolDefinition {
         const notes = value.notes === undefined ? [] : [`识别说明：${value.notes}`]
         return [{
           type: 'text',
-          text: `抽取结果（未写库，确认后用 lead_create 落库）：\n${[...lines, ...notes].join('\n')}`,
+          text: `抽取结果（未写库，确认后用 lead_manage 的 create 落库）：\n${[...lines, ...notes].join('\n')}`,
         }]
       },
     },

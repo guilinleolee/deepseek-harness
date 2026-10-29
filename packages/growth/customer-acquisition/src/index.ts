@@ -83,6 +83,9 @@ export type { ReportToolDeps } from './tools/report.ts'
 export type { LeadToolDeps } from './tools/leads.ts'
 export type { ScoringToolDeps } from './tools/scoring.ts'
 export type {
+  ContentManageDeps, LeadManageDeps, ScoringManageDeps, SopManageDeps,
+} from './tools/manage.ts'
+export type {
   DecisionRole, DocumentListValue, DocumentRefValue, DocumentValue, ExtractedLeadFields,
   FollowupValue, IntentLevel, LeadCreateInput, LeadDetailValue, LeadExportValue, LeadListRequest,
   LeadListValue, LeadMutationValue, LeadOwnerValue, LeadPurgeValue, LeadRefValue, LeadStatusValue,

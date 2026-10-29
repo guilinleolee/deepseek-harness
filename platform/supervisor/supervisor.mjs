@@ -35,6 +35,7 @@ import { compareSets, effectiveModels, effectivePlugins, grantedModels, loadDrif
 import { loadDesired, precheck, runPluginCommand, saveDesired } from './plugins-gov.mjs'
 import { auditAppend, initAudit } from './audit.mjs'
 import { syncAllHomes, transcribeGuardEvents } from './toolpolicy.mjs'
+import { writeVkeyToHome } from './credentials.mjs'
 import { createServiceToken, revokeServiceToken } from './service-tokens.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -695,7 +696,12 @@ async function main() {
     const record = loadAccounts(DATA).accounts.find((a) => a.account === opts.account)
     if (record === undefined) throw new Error(`账号不存在: ${opts.account}`)
     const { token } = issueVkey(DATA, { account: opts.account, instanceId: record.instanceId, models: opts.models })
+    // vkey 最后一公里：CLI 签发同样自动写入实例 home（此前只打印提示，
+    // 靠人工抄写——遗忘即钥匙作废）。写入失败不阻断，仍打印明文供手工落位。
+    const cred = writeVkeyToHome(DATA, record.instanceId, token)
     console.log(`虚拟钥匙已签发（旧钥匙已自动吊销）。模型授权: ${opts.models === '*' ? '全部' : opts.models.join(', ')}`)
+    if (cred.ok) console.log(`已自动写入实例凭据: ${cred.path}`)
+    else console.error(`⚠ 实例凭据自动写入失败（${cred.reason}），请手工写入实例 home 的 .credentials.yaml:`)
     console.log(`token（仅此一次显示，请立即写入实例 home 的 .credentials.yaml）:\n${token}`)
     return
   }

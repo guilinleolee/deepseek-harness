@@ -46,8 +46,41 @@ from typing import Dict, Iterable, List, Optional, Tuple
 # 常量
 # ============================================================
 SCHEMA_VERSION = "dragon-index/1.0"
-REPO_ROOT_DEFAULT = Path(__file__).resolve().parent.parent
+REPO_ROOT_DEFAULT = Path(__file__).resolve().parent.parent.parent
 INDEX_DIR = REPO_ROOT_DEFAULT / "index"
+
+# The license registry is the authoritative source for commercial-use facts on the
+# sellable skill set. It overrides frontmatter and LICENSE-sniff results, because
+# those two sources are wrong for the assets that matter: wrapper skills that
+# inherit a repository-level license, and skills whose licence is NonCommercial or
+# proprietary but whose frontmatter says "UNKNOWN".
+LICENSE_REGISTRY_PATH = INDEX_DIR / "LICENSES.json"
+_LICENSE_REGISTRY: Dict[str, Dict] = {}
+_LICENSE_REGISTRY_LOADED = False
+
+
+def load_license_registry(path: Optional[Path] = None) -> Dict[str, Dict]:
+    """Load index/LICENSES.json once and cache the per-skill entries."""
+    global _LICENSE_REGISTRY, _LICENSE_REGISTRY_LOADED
+    if _LICENSE_REGISTRY_LOADED and path is None:
+        return _LICENSE_REGISTRY
+    target = path or LICENSE_REGISTRY_PATH
+    entries: Dict[str, Dict] = {}
+    if target.is_file():
+        try:
+            payload = json.loads(target.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as error:
+            print(f"[WARN] license registry unreadable: {error}", file=sys.stderr)
+            payload = {}
+        raw_skills = payload.get("skills") if isinstance(payload, dict) else None
+        if isinstance(raw_skills, dict):
+            for skill_id, entry in raw_skills.items():
+                if isinstance(entry, dict):
+                    entries[str(skill_id)] = entry
+    if path is None:
+        _LICENSE_REGISTRY = entries
+        _LICENSE_REGISTRY_LOADED = True
+    return entries
 
 STATUSES = ("blessed", "active", "experimental", "dormant", "deprecated")
 KIND_TO_DIR = {
@@ -61,6 +94,15 @@ KIND_TO_DIR = {
 SKIP_DIR_NAMES = {"_archive", "_template", "__pycache__", "node_modules", ".git",
                   ".github", ".pytest_cache", ".mypy_cache", ".ruff_cache",
                   "backups", "db-backup", "cache", ".cache", "library"}
+
+
+def is_backup_dir(name: str) -> bool:
+    """True for timestamped backup copies such as "anysearch.bak-20260805-172101".
+
+    A backup holds a second copy of a skill, so indexing it duplicates the asset
+    under a different id and can shadow the live copy in license lookups.
+    """
+    return ".bak" in name or name.endswith(".old") or name.endswith(".orig")
 
 # ============================================================
 # 元数据解析
@@ -333,15 +375,25 @@ def normalize_license(s: str) -> str:
     if not s:
         return "unknown"
     s = s.strip().lower()
+    # NonCommercial variants must be recognized before the permissive tiers so
+    # "CC BY-NC-SA 4.0" never falls through to a bare prefix match.
     if "agpl" in s:
         return "AGPL-3.0"
+    if "by-nc" in s or "noncommercial" in s or "non-commercial" in s:
+        if "sa" in s:
+            return "CC-BY-NC-SA-4.0"
+        return "CC-BY-NC-4.0"
+    if "proprietary" in s or "all rights reserved" in s:
+        return "proprietary"
     if "apache" in s:
         return "Apache-2.0"
     if "mit" in s:
         return "MIT"
+    if "bsd" in s:
+        return "BSD-3-Clause"
     if "self" in s or "self-research" in s:
         return "self"
-    if "proprietary" in s or "commercial" in s:
+    if "commercial" in s:
         return "proprietary"
     return s.split()[0]
 
@@ -375,7 +427,17 @@ def scan_skills(root: Path, include_library: bool = False, repo: Optional[Path] 
     for entry in sorted(skills_dir.iterdir()):
         if not entry.is_dir() or entry.name in SKIP_DIR_NAMES or entry.name.startswith("."):
             continue
+        if is_backup_dir(entry.name):
+            continue
         skill_md = entry / "SKILL.md"
+        if not skill_md.exists():
+            # Some packaged skills nest their entry point one level down, as in
+            # xhs-visual-director-skill/skill/SKILL.md.
+            nested = entry / "skill" / "SKILL.md"
+            if nested.exists():
+                skill_md = nested
+            else:
+                continue
         if skill_md.exists():
             text = safe_read(skill_md)
             fm, body = parse_frontmatter(text)
@@ -572,7 +634,7 @@ def _emit(kind: str, path: Path, id_: str, fm: Dict, body: str, rc: Dict,
     if not isinstance(pitfalls, list):
         pitfalls = []
 
-    # license 解析流水线：frontmatter → runtime.conf → upstream → LICENSE/NOTICE sniff
+    # license 解析流水线：registry → frontmatter → runtime.conf → upstream → LICENSE/NOTICE sniff
     raw_license = (
         fm.get("license")
         or rc.get("skill", {}).get("license")
@@ -587,6 +649,37 @@ def _emit(kind: str, path: Path, id_: str, fm: Dict, body: str, rc: Dict,
             license_norm = sniffed
             license_source = "LICENSE_FILE"
             raw_license = sniffed
+
+    # The registry wins over every detected source: it is the reviewed fact.
+    # Match on the frontmatter id first, then on the skill's directory name, so a
+    # registry key works whether it names the frontmatter id (simonlin1212/a-stock-data)
+    # or the directory (a-stock-data-bridge). A "family" entry applies to every
+    # skill whose id or directory starts with that key's prefix.
+    registry = load_license_registry()
+    registry_entry = registry.get(id_)
+    if registry_entry is None:
+        dir_name = sibling.name if sibling.is_dir() else sibling.parent.name
+        registry_entry = registry.get(dir_name)
+    if registry_entry is None:
+        dir_name = sibling.name if sibling.is_dir() else sibling.parent.name
+        for key, candidate in registry.items():
+            if not key.endswith("*"):
+                continue
+            family = key[:-1]
+            if id_.startswith(family) or dir_name.startswith(family):
+                registry_entry = candidate
+                break
+    commercial_use = "unverified"
+    registry_obligations: List[str] = []
+    if registry_entry:
+        registry_license = str(registry_entry.get("license") or "").strip()
+        if registry_license:
+            license_norm = normalize_license(registry_license)
+            raw_license = registry_license
+            license_source = "registry"
+        commercial_use = str(registry_entry.get("commercial_use") or "unverified")
+        obligations = registry_entry.get("obligations")
+        registry_obligations = [str(item) for item in obligations] if isinstance(obligations, list) else []
 
     version = (
         fm.get("version")
@@ -617,6 +710,8 @@ def _emit(kind: str, path: Path, id_: str, fm: Dict, body: str, rc: Dict,
         "license": license_norm or "unknown",
         "license_raw": str(raw_license) if raw_license else "",
         "license_source": license_source,
+        "commercial_use": commercial_use,
+        "license_obligations": registry_obligations,
         "upstream": {
             "name": upstream.get("name", ""),
             "version": upstream.get("version", ""),
@@ -781,6 +876,13 @@ def main():
             src_counter[r.get("license_source") or "(empty/none)"] += 1
     print("[INFO] license_source:", dict(src_counter), file=sys.stderr)
 
+    # 商用可用性统计：unverified 的 skill 不得进入付费交付物
+    use_counter = collections.Counter()
+    for rows in rows_by_kind.values():
+        for r in rows:
+            use_counter[r.get("commercial_use") or "unverified"] += 1
+    print("[INFO] commercial_use:", dict(use_counter), file=sys.stderr)
+
     if args.stats:
         for kind, rows in rows_by_kind.items():
             print(f"\n=== {kind.upper()}  (n={len(rows)}) ===")
@@ -820,6 +922,7 @@ def main():
             "required": ["schema", "id", "kind", "status", "path"],
             "optional": [
                 "version", "license", "license_raw", "license_source",
+                "commercial_use", "license_obligations",
                 "upstream.{name,version,url,stars}",
                 "size_kb", "mtime", "last_used", "hash",
                 "triggers", "phrases", "tags", "pitfalls",

@@ -1,15 +1,15 @@
 {
   "schema": "dragon-index/1.0",
-  "generated_at": "2026-08-24T03:34:48Z",
-  "root": "C:\\Users\\li\\.claude\\projects\\dragon-engine",
+  "generated_at": "2026-10-29T04:44:58Z",
+  "root": "D:\\deepseek-harness\\dragon-assets",
   "counts": {
-    "skill": 784,
-    "agent": 187,
-    "hook": 90,
-    "command": 156,
-    "plugin": 7
+    "skill": 890,
+    "agent": 137,
+    "hook": 0,
+    "command": 120,
+    "plugin": 0
   },
-  "total": 1224,
+  "total": 1147,
   "files": {
     "skill": "SKILLS.jsonl",
     "agent": "AGENTS.jsonl",
@@ -41,6 +41,8 @@
       "license",
       "license_raw",
       "license_source",
+      "commercial_use",
+      "license_obligations",
       "upstream.{name,version,url,stars}",
       "size_kb",
       "mtime",

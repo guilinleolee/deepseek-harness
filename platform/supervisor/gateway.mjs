@@ -488,14 +488,15 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       if (handlePortal({ req, res, url, auth, dataDir, manifest, loginPage, twofaKey })) return
       // 管理台（总览 + 成员/模型/实例/插件操作页）统一委托 console.mjs：
       // 仅 admin；页面未登录回登录页；POST API 另校验 Origin 同源。
+      // handleConsole 为 async（变更端点需读体做权限点判定/认证限速）；
+      // 外层 if 已保证路径以 /console 开头，它只会有 true 或抛错两种结局，
+      // 响应由其内部完成，这里挂上异步错误兜底后立即返回。
       if (url.pathname === '/console' || url.pathname.startsWith('/console/')) {
-        try {
-          if (handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner: pluginRunner, twofaKey })) return
-        } catch (error) {
+        void handleConsole({ req, res, url, auth, loginPage, manifest, getState, dataDir, runner: pluginRunner, twofaKey }).catch((error) => {
           console.error('[gateway] console handler error:', error?.message ?? error)
           try { json(res, 500, { error: 'console error' }) } catch { /* 已响应 */ }
-          return
-        }
+        })
+        return
       }
       const ports = instancePortById()
       const rows = manifest.instances.map((spec) => {

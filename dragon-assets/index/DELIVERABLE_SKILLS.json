@@ -49,7 +49,7 @@
     "note": "The tier vocabulary mirrors dsh-experimental-license-policy. An AGPL asset may be delivered as a produced artifact, never as a skill inside a client library."
   },
   "counts": {
-    "deliverable": 32,
+    "deliverable": 33,
     "withheld": 11,
     "violations": 0
   },
@@ -368,6 +368,16 @@
       "obligations": [
         "retain-license-text",
         "include-attribution"
+      ]
+    },
+    {
+      "id": "opc-playbook",
+      "tier": "MIT",
+      "decision": "allow",
+      "commercial_use": "yes",
+      "upstream": "天龙引擎自研",
+      "obligations": [
+        "retain-license-text"
       ]
     },
     {

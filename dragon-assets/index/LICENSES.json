@@ -194,6 +194,14 @@
       "verified_on": "2026-10-26",
       "note": "Probes the DeepSeek, muapi, browser, runner, and anysearch paths and classifies each as ok, auth, quota, cfg, net, or skip. Used before quoting a delivery."
     },
+    "opc-playbook": {
+      "license": "MIT",
+      "upstream": "天龙引擎自研",
+      "commercial_use": "yes",
+      "obligations": ["retain-license-text"],
+      "verified_on": "2026-10-26",
+      "note": "Self-written nine-stage planning methodology for one-person businesses and small teams. Original expression throughout; no NonCommercial upstream text. Replaces opc-methodology (CC BY-NC-SA 4.0) in commercial deliveries."
+    },
     "xhs-visual-director-skill": {
       "license": "MIT",
       "upstream": "ziguishian/xhs-visual-director",

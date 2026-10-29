@@ -13,6 +13,13 @@ function memoryTable(): AuditTable & { records(): AuditLog[] } {
     get size() { return map.size },
     put: async (key, value) => { map.set(key, value) },
     delete: async key => map.delete(key),
+    deleteMany: async keys => {
+      let removed = 0
+      for (const key of new Set(keys)) {
+        if (map.delete(key)) removed += 1
+      }
+      return removed
+    },
     update: async (key, fn) => {
       const current = map.get(key)
       if (current === undefined) throw new Error(`missing-key: ${key}`)

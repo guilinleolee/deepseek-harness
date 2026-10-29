@@ -389,7 +389,7 @@ export class SopService {
     const fallback = industryMatch ?? enabled.find(template => template.industry === undefined)
     if (fallback !== undefined) return fallback
     const first = enabled[0]
-    if (first === undefined) throw new Error('没有启用中的 SOP 模板，请先创建或启用一套（sop_template_create）')
+    if (first === undefined) throw new Error('没有启用中的 SOP 模板，请先创建或启用一套（sop_template_manage 的 create）')
     return first
   }
 

@@ -22,8 +22,6 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const STATUS_PATH = resolve(ROOT, 'dragon-assets/index/CAPABILITY_STATUS.json')
-const TABLE_PATH = resolve(ROOT, 'dragon-assets/index/DELIVERABLE_CAPABILITIES.md')
 
 /** The status values the registry may use. */
 const KNOWN_STATUSES = new Set(['live', 'wired', 'stub', 'placeholder'])
@@ -47,11 +45,6 @@ export interface CapabilityHonestyReport {
   /** Repository-relative diagnostics. */
   failures: string[]
 }
-
-/** Patterns that prove a component calls a real backend. */
-const LIVE_MARKERS = [
-  /subprocess\.run|requests\.|urllib|fetch\(|curl -|CDP|chromium|Chrome|http/i,
-]
 
 /** Patterns that mark a component as producing a fake result. */
 const FAKE_MARKERS = [
@@ -123,7 +116,7 @@ export function expandComponent(root: string, component: string): string[] {
   // candidate per alternative.
   const braceMatch = /\{([^{}]+)\}/.exec(component)
   if (braceMatch) {
-    const alternatives = braceMatch[1].split(',')
+    const alternatives = (braceMatch[1] ?? '').split(',')
     const collected: string[] = []
     for (const alternative of alternatives) {
       const expanded = component.replace(braceMatch[0], alternative)

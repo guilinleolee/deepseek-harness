@@ -336,7 +336,7 @@ export class NurtureContentService {
     const template = this.requireTemplate(templateId)
     for (const [, content] of this.generatedContents.entries()) {
       if (content.template_id === template.id) {
-        throw new Error(`文案模板「${template.name}」已被生成产物引用，不能删除；请改用 content_template_update 停用（enabled=false）`)
+        throw new Error(`文案模板「${template.name}」已被生成产物引用，不能删除；请改用 content_template_manage 的 update 停用（enabled=false）`)
       }
     }
     await this.contentTemplates.delete(template.id)

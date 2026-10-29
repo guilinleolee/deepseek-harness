@@ -14,13 +14,15 @@
  * 事件在 data/audit.jsonl 留痕（audit.mjs，result=ok/deny/fail）。
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { writeJsonAtomic } from './atomic-write.mjs'
 import { addAccount, getOrCreateSecret, listAccounts, loadAccounts, saveAccounts, setPassword, updateAccount } from './gateway.mjs'
 import { addModel, issueVkey, listUpstreams, listVkeys, monthKey, removeModel, removeUpstream, revokeVkey, setQuota, setUpstream, setVkeyModels } from './relay.mjs'
+import { writeVkeyToHome } from './credentials.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
-import { checkPasswordPolicy, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
+import { checkPasswordPolicy, createLoginRateGuard, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
 import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
 import { approveForRole, denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
 import { createInvite, listOpenInvites, revokeInvite } from './invites.mjs'
@@ -1101,6 +1103,7 @@ const POINT_FOR_PATH = {
 const PERMISSION_POINTS = [
   ['console.read', '管理台查看（页面 + 只读 API）'],
   ['member.change', '成员变更（建号/角色/额度/禁用/邀请）'],
+  ['member.role_grant', '成员角色调整（授予/变更管理或审计角色等提权操作）'],
   ['model.change', '模型与供应商变更（含倍率/分组倍率）'],
   ['token.change', '虚拟钥匙签发/吊销'],
   ['instance.change', '实例启停/重启'],
@@ -1318,8 +1321,9 @@ async function saveNotify(ev){ev.preventDefault();
 </script>`
 }
 
-async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey }) {
-  const body = await readBody(req)
+async function handleApi({ req, res, path, body: rawBody, dataDir, manifest, actor, twofaKey }) {
+  // POST 门控已在读体时做过权限点判定；这里复用同一份 body（防二次读取漂移）。
+  const body = rawBody ?? await readBody(req)
   const account = typeof body.account === 'string' ? body.account : ''
   const action = auditActionFor(path, body)
   const target = auditTargetFor(path, body)
@@ -1370,11 +1374,14 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
             password,
           })
           const { token } = issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
+          // vkey 最后一公里：签发时刻自动把明文写进实例 home 的 .credentials.yaml
+          // （refs.LYZ_VIRTUAL_KEY）。失败只提示不阻断（明文仍在本次响应里）。
+          const cred = writeVkeyToHome(dataDir, created.instanceId, token)
           // 新账号落在已有实例上：按实例归属账号的当前角色补发策略文件（阶段 9）。
           resyncHome(created.instanceId)
           // 通知本人（阶段 11B）：建号邮件不含密码原文（密码只在本响应显示一次）。
           void sendMail({ to: created.account, subject: `${NOTIFY_SUBJECT_PREFIX} 账号已创建`, text: `您的卡巴格企业平台账号 ${created.account} 已创建（实例 ${created.instanceId}）。请使用管理员发放的密码登录（本邮件不含密码）。` })
-          ok({ ok: true, account: created.account, instance: created.instanceId, password, vkey: token }, { role: created.role, instanceId: created.instanceId })
+          ok({ ok: true, account: created.account, instance: created.instanceId, password, vkey: token, vkeyHome: cred.ok ? cred.path : null }, { role: created.role, instanceId: created.instanceId, vkey_written_home: cred.ok })
         })
         return
       }
@@ -1423,9 +1430,11 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
           const models = history.at(-1)?.models ?? '*'
           // 重新启用会重签一把钥匙。明文此前被直接丢弃，管理员拿不到可用钥匙，
           // 只能再跑一次「令牌与配额」页签发——与建号口径对齐：明文只出现一次
-          // （平台只存哈希），不进审计（审计只记 meta）。
+          // （平台只存哈希），不进审计（审计只记 meta）。签发时刻自动写入实例
+          // home（refs.LYZ_VIRTUAL_KEY），失败只提示不阻断。
           const { token } = issueVkey(dataDir, { account, instanceId: rec.instanceId, models })
-          ok({ ok: true, models, vkey: token })
+          const cred = writeVkeyToHome(dataDir, rec.instanceId, token)
+          ok({ ok: true, models, vkey: token, vkeyHome: cred.ok ? cred.path : null }, { instanceId: rec.instanceId, vkey_written_home: cred.ok })
         })
         return
       }
@@ -1467,7 +1476,9 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
                 password,
               })
               const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models: '*' })
-              result.created.push({ account: record.account, password, vkey: token, instance: record.instanceId })
+              // vkey 最后一公里：IdP 批量导入的新账号同样自动落盘实例 home。
+              const cred = writeVkeyToHome(dataDir, record.instanceId, token)
+              result.created.push({ account: record.account, password, vkey: token, instance: record.instanceId, vkeyHome: cred.ok ? cred.path : null })
             } else {
               let changed = false
               if (m.department !== undefined && m.department !== rec.department) { rec.department = m.department; changed = true }
@@ -1633,7 +1644,10 @@ async function handleApi({ req, res, path, dataDir, manifest, actor, twofaKey })
         if (models !== '*' && models.length === 0) { fail(400, '模型授权为空（留空 = 全部模型，或提供逗号分隔的模型 ID）'); return }
         try {
           const { token } = issueVkey(dataDir, { account: record.account, instanceId: record.instanceId, models })
-          ok({ ok: true, account: record.account, models, token }, { account: record.account, models })
+          // vkey 最后一公里：「令牌与配额」页签发同样自动落盘实例 home；
+          // 旧钥匙作废的同时新明文已就位，管理员不再需要手工抄写。
+          const cred = writeVkeyToHome(dataDir, record.instanceId, token)
+          ok({ ok: true, account: record.account, models, token, vkeyHome: cred.ok ? cred.path : null }, { account: record.account, models, vkey_written_home: cred.ok })
         } catch (error) {
           fail(400, String(error?.message ?? error))
         }
@@ -1766,7 +1780,44 @@ const SERVICE_READONLY_API_PATHS = new Set([
   '/console/api/toolpolicy',
 ])
 
-export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifest, getState, dataDir, runner, twofaKey }) {
+/**
+ * 管理台 API 认证失败限速（Top10 #3）。只对「认证失败」计数：401（无凭据/
+ * 无效/过期 bearer 与 JWT）记一次失败，成功认证（服务令牌或 JWT 解析通过）
+ * 清零；业务层 400/403/409（角色拒绝、参数校验失败等）绝不计数——审计里
+ * 的 403 deny 风暴与弱密码报错永远不会把合法用户锁在门外。复用登录限速的
+ * 可调参数（security.json），独立计数桶持久化 console-auth-limits.json。
+ * 隐私红线：桶键不含明文凭据——bearer 只取 sha256 切片，JWT 无凭据只有 IP。
+ */
+let consoleAuthGuardCache = null
+let consoleAuthGuardDataDir = null
+function consoleAuthGuard(dataDir) {
+  if (consoleAuthGuardCache === null || consoleAuthGuardDataDir !== dataDir) {
+    consoleAuthGuardCache = createLoginRateGuard(
+      () => {
+        const cfg = loadSecurityConfig(dataDir)
+        return { windowMs: cfg.loginWindowMinutes * 60_000, maxFails: cfg.loginMaxFails, accountMaxFails: cfg.accountMaxFails, lockoutMs: cfg.lockoutMinutes * 60_000 }
+      },
+      { dataDir, file: 'console-auth-limits.json' },
+    )
+    consoleAuthGuardDataDir = dataDir
+  }
+  return consoleAuthGuardCache
+}
+
+/** 认证桶键：bearer 用 sha256 前 12 位（明文绝不落盘），无凭据固定 '-'。 */
+const consoleAuthBucketKey = (bearer) => (bearer !== undefined ? createHash('sha256').update(bearer).digest('hex').slice(0, 12) : '-')
+
+/**
+ * 处理 /console 路径的全部请求（gateway 在裸 portal 分支里调用）。
+ * 认证由 gateway 计算后传入；页面与只读 GET API 放行 admin/auditor，
+ * employee 拒入；变更类 POST 仅 admin（auditor 得 403「审计员为只读角色」，
+ * 拒绝也以 result=deny 留痕）。带 Origin 的 POST 校验同源
+ * （配合 SameSite=Strict 双重 CSRF 防线），跨源拒绝同样留痕。
+ * 认证失败限速（Top10 #3）与提权权限点拆分（Top10 #2）需要读请求体，
+ * 因此本函数为 async：变更端点读体一次，handleApi 复用同一份。
+ * @returns true 表示已响应（或正在异步响应），gateway 不再处理；false 才回落。
+ */
+export async function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifest, getState, dataDir, runner, twofaKey }) {
   if (!url.pathname.startsWith('/console')) return false
   const path = url.pathname
   const query = url.searchParams
@@ -1778,7 +1829,13 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
   const bearer = /^Bearer (kbsvc-[\w-]+)$/.exec(req.headers.authorization ?? '')?.[1]
   if (bearer !== undefined) {
     serviceAuth = authenticateServiceToken(dataDir, bearer)
-    if (serviceAuth !== null) auth = { record: { account: `svc:${serviceAuth.id}`, role: serviceAuth.role }, payload: null }
+    if (serviceAuth !== null) {
+      auth = { record: { account: `svc:${serviceAuth.id}`, role: serviceAuth.role }, payload: null }
+      consoleAuthGuard(dataDir).success(consoleAuthBucketKey(bearer), clientIp(req))
+    } else {
+      // 无效 bearer 只计失败，不影响本轮后续（POST 门控里决定 401/429）。
+      consoleAuthGuard(dataDir).fail(consoleAuthBucketKey(bearer), clientIp(req))
+    }
   }
   const actor = auth.error === undefined
     ? { account: auth.record.account, role: auth.record.role, ip: clientIp(req) }
@@ -1929,12 +1986,32 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
   }
 
   if (req.method === 'POST' && path.startsWith('/console/api/')) {
-    if (auth.error !== undefined) { json(res, 401, { error: 'unauthenticated' }); return true }
+    // 先读体（权限点按请求体判定需要 body）；异常/超限请求解析为 {}。
+    const body = await readBody(req)
+    if (auth.error !== undefined) {
+      // 认证失败限速（Top10 #3）：无凭据/无效 JWT 的变更端点探测计一次失败；
+      // 达阈值锁定 → 429。GET /console/* 的 401 不计数（页面流量噪音太大）。
+      const guard = consoleAuthGuard(dataDir)
+      const verdict = guard.check('-', clientIp(req))
+      if (!verdict.allowed) {
+        void auditAppend({ actor, action: 'security.console_auth_limited', result: 'deny', detail: { reason: 'auth-fail-lockout', retryAfterMinutes: verdict.retryAfterMinutes } })
+        json(res, 429, { error: `认证失败次数过多，请 ${verdict.retryAfterMinutes} 分钟后重试`, retryAfterMinutes: verdict.retryAfterMinutes })
+        return true
+      }
+      guard.fail('-', clientIp(req))
+      json(res, 401, { error: 'unauthenticated' })
+      return true
+    }
     // 变更权限点（角色矩阵可编辑）：缺省 = 仅 admin（auditor 只读，employee 无权限）。
     // admin 服务令牌等价 admin（阶段 12 验收路径）；readonly 一律拒。
-    const point = POINT_FOR_PATH[path] ?? 'security.change'
+    // Top10 #2：提权类操作拆出独立权限点 member.role_grant——「改别人角色/
+    // 建管理员/导入管理员」与普通成员变更分开授权，角色矩阵可单独收放。
+    let point = POINT_FOR_PATH[path] ?? 'security.change'
+    if (path === '/console/api/member/update' && body.role !== undefined) point = 'member.role_grant'
+    else if (path === '/console/api/member/create' && (body.role === 'admin' || body.role === 'auditor')) point = 'member.role_grant'
+    else if (path === '/console/api/idp/import' && Array.isArray(body.members) && body.members.some((m) => m?.role === 'admin')) point = 'member.role_grant'
     if (serviceAuth === null && !canRole(dataDir, auth.record.role, point)) {
-      const deniedAction = auditActionFor(path)
+      const deniedAction = auditActionFor(path, body)
       if (deniedAction !== null) {
         void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: auth.record.role === 'auditor' ? 'auditor-readonly' : 'role-forbidden', point } })
       }
@@ -1942,7 +2019,7 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
       return true
     }
     if (serviceAuth !== null && serviceAuth.role === 'readonly') {
-      const deniedAction = auditActionFor(path)
+      const deniedAction = auditActionFor(path, body)
       if (deniedAction !== null) {
         void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: 'service-token-readonly' } })
       }
@@ -1956,7 +2033,7 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
         sameOrigin = new URL(origin).host === (req.headers.host ?? '')
       } catch { sameOrigin = false }
       if (!sameOrigin) {
-        const deniedAction = auditActionFor(path)
+        const deniedAction = auditActionFor(path, body)
         if (deniedAction !== null) {
           void auditAppend({ actor, action: deniedAction, result: 'deny', detail: { reason: 'origin-check' } })
         }
@@ -1965,20 +2042,18 @@ export function handleConsole({ req, res, url, auth: jwtAuth, loginPage, manifes
       }
     }
     if (path === '/console/api/plugin/job') {
-      void readBody(req).then((body) => {
-        const jobAction = auditActionFor(path, body)
-        try {
-          const job = runner.enqueue({ type: body.type, spec: body.spec, ids: body.ids, skipPrecheck: body.skipPrecheck })
-          void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'ok', detail: { type: body.type, ids: body.ids ?? 'all' } })
-          json(res, 200, { ok: true, job: { id: job.id, state: job.state } })
-        } catch (error) {
-          void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'fail', detail: { type: body.type, error: String(error?.message ?? error) } })
-          json(res, 409, { error: String(error?.message ?? error) })
-        }
-      })
+      const jobAction = auditActionFor(path, body)
+      try {
+        const job = runner.enqueue({ type: body.type, spec: body.spec, ids: body.ids, skipPrecheck: body.skipPrecheck })
+        void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'ok', detail: { type: body.type, ids: body.ids ?? 'all' } })
+        json(res, 200, { ok: true, job: { id: job.id, state: job.state } })
+      } catch (error) {
+        void auditAppend({ actor, action: jobAction, target: auditTargetFor(path, body), result: 'fail', detail: { type: body.type, error: String(error?.message ?? error) } })
+        json(res, 409, { error: String(error?.message ?? error) })
+      }
       return true
     }
-    void handleApi({ req, res, path, dataDir, manifest, actor, twofaKey }).catch((error) => {
+    void handleApi({ req, res, path, body, dataDir, manifest, actor, twofaKey }).catch((error) => {
       console.error('[console] api crashed:', error?.stack ?? error)
       try { json(res, 500, { error: 'console api crashed' }) } catch { /* 已响应 */ }
     })

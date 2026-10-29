@@ -21,8 +21,8 @@ export interface ContentToolDeps {
   readonly policy: ResolvedAiPolicy
 }
 
-/** The content-template parameter block shared by create and update. */
-const TEMPLATE_FIELD_PARAMETERS = {
+/** The content-template parameter block shared by create/update and the manage face. */
+export const TEMPLATE_FIELD_PARAMETERS = {
   name: { type: 'string', description: '模板名称' },
   industry: { type: 'string', description: '适用行业；省略 = 通用' },
   type: { type: 'string', description: '渠道类型（open 词表，已知值见 generate 描述）' },

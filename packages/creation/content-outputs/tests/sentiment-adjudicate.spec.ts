@@ -54,7 +54,7 @@ describe('adjudicateSentimentAlert', () => {
 
   it('returns both stances and the synthesized verdict, framing the alert and mentions', async () => {
     const seenFrames: string[] = []
-    mockAi((_system, framed) => {
+    mockAi(async (_system, framed) => {
       seenFrames.push(framed)
       if (_system.includes('乐观审读')) return '可能是一次性物流延误，已有客服跟进。'
       if (_system.includes('审慎审读')) return '投诉短语已被自媒体转载，存在扩散风险。'

@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import type { SentimentMention, SentimentSnapshot, SentimentStats, SentimentTask } from '../src/sentiment/types.ts'
+import type { SentimentAlert, SentimentMention, SentimentSnapshot, SentimentStats, SentimentTask } from '../src/sentiment/types.ts'
 import { SENTIMENT_FILENAME, DEFAULT_SENTIMENT_SETTINGS, putSentimentReportFile, readSentimentFile } from '../src/sentiment/store.ts'
 import {
   SENTIMENT_REPORT_ALERT_CAP, SENTIMENT_REPORT_MENTION_CAP, SENTIMENT_REPORT_PROMPT_VERSION,
@@ -111,7 +111,7 @@ describe('generateSentimentReport', () => {
 })
 
 describe('selectReportTemplate', () => {
-  const alert = { id: 'a-1', taskId: 'st-1', eventKey: 'e', level: 2 as const, summary: 's', reason: 'r', mentionIds: ['m-1'], handled: false, createdAt: NOW, handledAt: null }
+  const alert: SentimentAlert = { id: 'a-1' as SentimentAlert['id'], taskId: 'st-1' as SentimentAlert['taskId'], eventKey: 'e', level: 2, summary: 's', reason: 'r', mentionIds: ['m-1' as SentimentAlert['mentionIds'][number]], handled: false, createdAt: NOW, handledAt: null }
   it('keeps the daily template without alerts and switches to crisis on an unhandled high-level alert', () => {
     expect(selectReportTemplate([]).map(spec => spec.key)).toEqual(['overview', 'risks', 'highlights', 'actions', 'watchlist'])
     expect(selectReportTemplate([alert]).map(spec => spec.key)).toEqual(['panorama', 'spread', 'response', 'followup'])

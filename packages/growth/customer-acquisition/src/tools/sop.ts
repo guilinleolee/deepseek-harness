@@ -19,8 +19,8 @@ export interface SopToolDeps {
   readonly permission: PermissionContextService
 }
 
-/** The SOP rule parameter block shared by template create and update. */
-const SOP_RULE_PARAMETER_ITEM = {
+/** The SOP rule parameter block shared by template create/update and the manage face. */
+export const SOP_RULE_PARAMETER_ITEM = {
   type: 'object',
   additionalProperties: false,
   properties: {

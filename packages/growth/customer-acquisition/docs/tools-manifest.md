@@ -207,9 +207,23 @@ render：summary_md 原文。
 
 ---
 
-## 5. 模块 2 · 线索台账（P1，16 个）
+## 5. 模块 2 · 线索台账（P1，13 个；冻结稿 16 个 → 2026-10-29 工具面合并，lead_create/update/get/list 四合一为 `lead_manage`，见 §5.0）
 
-### `customer_acquisition_lead_create` — P1 · scope:按传入 owner 授权 · audit `lead.create`
+### 5.0 `customer_acquisition_lead_manage` — P1 · 权限随 action（create 按 owner 授权；update/get 同冻结稿各节） · audit `lead.create` / `lead.update`（get/list 读不审计）
+
+```ts
+description: '线索管理合并工具（原 lead_create/lead_update/lead_get/lead_list）。action=create 建线索（company_name 必填，source 已知值 manual/form/chat/email/referral/geo_scan，tags 整体传入去重）；action=update 改可编辑字段（lead_id 必填，tags 整体替换，source/intent_level 不可改）；action=get 读完整字段（lead_id 必填，附最近 5 条跟进与挂接文档标题）；action=list 多维筛选分页（status 缺省 active，回收站传 recycled）。'
+parameters: {
+  action: { type: 'string', required: true, enum: ['create', 'update', 'get', 'list'] },
+  lead_id: { type: 'string', description: 'update/get 必填' },
+  company_name: { type: 'string', description: 'create 必填' },
+  // create/update 共用字段：source/contact_name/phone/email/industry/company_size/demand_desc/budget_range/decision_role(enum)/tags/opportunity_stage(enum)/next_followup_at/owner_id
+  // list 过滤：status/source/industry/intent_level(enum)/tag/owner(enum me|pool|all)/q/created_from/created_to/limit/offset
+}
+output: create/update → { lead: LeadRef }；get → { lead, demand_desc, budget_range, followups[], documents[] }；list → { items: LeadRef[], total }
+```
+
+其余 12 个线索工具沿用冻结稿定义：
 
 ```ts
 description: '创建一条线索记录并返回完整字段。company_name 必填；source 记录线索来源，已知值 manual/form/chat/email/referral/geo_scan。tags 整体传入（数组去重）。'
@@ -228,7 +242,7 @@ parameters: {
 output: { schema: { type: 'object', properties: { lead: { type: 'object', properties: LeadRef, additionalProperties: false } }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_lead_update` — P1 · 写他人线索需 all · audit `lead.update`
+### `customer_acquisition_lead_update`（已并入 `lead_manage` action=update）— 冻结稿存档
 
 ```ts
 description: '更新线索的可编辑字段，只覆盖传入的字段。tags 为整体替换语义（传空数组即清空）。source 与 id 不可修改。intent_level 由打分流程回填，此处不接受。'
@@ -245,7 +259,7 @@ parameters: {
 output: 同 lead_create。
 ```
 
-### `customer_acquisition_lead_get` — P1 · scope:own 拒绝读他人 · audit 无（读）
+### `customer_acquisition_lead_get`（已并入 `lead_manage` action=get）— 冻结稿存档
 
 ```ts
 description: '读取一条线索的完整字段，附带最近 5 条跟进记录与全部挂接文档的标题列表；文档正文与全部跟进用 list 类工具分页查看。'
@@ -260,7 +274,7 @@ output: { schema: { type: 'object', properties: {
 }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_lead_list` — P1 · scope:own-filter · audit 无（读）
+### `customer_acquisition_lead_list`（已并入 `lead_manage` action=list）— 冻结稿存档
 
 ```ts
 description: '按多维度筛选线索列表：状态、来源、行业、意向等级、标签（任一匹配）、归属与时间范围，支持公司名/联系人关键词模糊搜索，按创建时间倒序分页。status 缺省只看 active；回收站传 status=recycled。'
@@ -326,7 +340,7 @@ output: 同 lead_assign（owner_id 可空串表示公海）。
 ### `customer_acquisition_lead_extract` — P1 · 红线 1/2 声明 · audit `lead.extract`
 
 ```ts
-description: '从用户粘贴的一段文本（表单内容/聊天记录/邮件正文）中抽取线索字段：公司名、联系人、电话、邮箱、行业、规模、需求描述、预算、决策角色。仅解析用户本次提供的文本，不做任何网络采集或批量提取；只返回识别结果，不写库——确认后用 lead_create 落库。'
+description: '从用户粘贴的一段文本（表单内容/聊天记录/邮件正文）中抽取线索字段：公司名、联系人、电话、邮箱、行业、规模、需求描述、预算、决策角色。仅解析用户本次提供的文本，不做任何网络采集或批量提取；只返回识别结果，不写库——确认后用 lead_manage 的 create 落库。'
 parameters: {
   text: { type: 'string', required: true, description: '用户提供的原始文本，≤10000 字符', maxLen: 10000 },
   source_hint: { type: 'string', description: '来源提示（form/chat/email），辅助歧义消解' },
@@ -411,7 +425,7 @@ output: { schema: { type: 'object', properties: { items: { type: 'array', items:
 
 ---
 
-## 6. 模块 3 · AI 线索打分（P1，11 个）
+## 6. 模块 3 · AI 线索打分（P1，8 个；冻结稿 11 个 → 2026-10-29 工具面合并，icp_create/update/list/delete 四合一为 `icp_manage`，score_template 四动作合一为 `score_template_manage`，存档见 §6.x）
 
 打分量纲与 ICP 权重校验见契约 §3.4/§3.5。模板类 CRUD 的删除保护统一规则：**被历史记录引用即拒绝删除**（fail loud），提示改用 enabled=false 停用。
 
@@ -475,25 +489,42 @@ output: { schema: { type: 'object', properties: {
 }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_icp_create` — P1 · 需 `can_manage_global_templates` · audit `icp.create`
+### 6.x `customer_acquisition_icp_manage` — P1 · 需 `can_manage_global_templates`（create/update/delete；list 读） · audit `icp.create`/`icp.update`/`icp.delete`
 
 ```ts
-description: '新建一套 ICP 客户画像：若干评分维度及权重。权重必须合计为 100（±0.01），否则拒绝保存；维度 id 在画像内唯一。'
+description: 'ICP 画像管理合并工具（原 icp_create/icp_update/icp_list/icp_delete）。action=create 新建（name 与 dimensions 必填，权重合计 100±0.01，维度 id 画像内唯一）；action=update 修改（icp_profile_id 必填，整体替换维度列表，历史打分不受影响）；action=list 列出（enabled_only 可选）；action=delete 删除（被历史引用时拒绝，应改 update 停用）。'
 parameters: {
-  name: { type: 'string', required: true },
+  action: { type: 'string', required: true, enum: ['create', 'update', 'list', 'delete'] },
+  icp_profile_id: { type: 'string', description: 'update/delete 必填' },
+  name: { type: 'string', description: 'create 必填；update 可选改名' },
   industry: { type: 'string', description: '适用行业；省略 = 通用' },
-  dimensions: { type: 'array', required: true, minLen: 1, items: { type: 'object', properties: {
-    id: { type: 'string', required: true, description: '维度标识，画像内唯一，如 budget_scale' },
-    name: { type: 'string', required: true }, description: { type: 'string', required: true },
-    weight: { type: 'number', required: true, min: 0, max: 100 },
-  }, additionalProperties: false } },
+  dimensions: { type: 'array', minLen: 1, items: { type: 'object', properties: {
+    id: { type: 'string', required: true }, name: { type: 'string', required: true },
+    description: { type: 'string', required: true }, weight: { type: 'number', required: true },
+  }, additionalProperties: false }, description: 'create 必填；update 整体替换' },
   enabled: { type: 'boolean', description: '默认 true' },
+  enabled_only: { type: 'string', description: 'list：仅看启用' },
 }
-output: { schema: { type: 'object', properties: { profile: { type: 'object', properties: {
-  id: { type: 'string' }, name: { type: 'string' }, enabled: { type: 'boolean' } }, additionalProperties: false } }, additionalProperties: false } }
+output: create/update → { profile }；list → { items }；delete → { deleted: true }
 ```
 
-### `customer_acquisition_icp_update` — P1 · 同上 · audit `icp.update`
+冻结稿存档（create/update/list/delete 四节内容同上，拆分语义不变）。
+
+### `customer_acquisition_score_template_manage` — P1 · 需 `can_manage_global_templates`（写） · audit `score_template.create`/`update`/`delete`
+
+```ts
+description: '打分提示词模板管理合并工具（原 score_template_create/update/list/delete）。action=create 新建（name 与 prompt_text 必填，支持 {{lead}}/{{icp_profile}}/{{dimensions}}/{{knowledge}} 占位）；action=update 修改（score_template_id 必填）；action=list 列出（enabled_only 可选）；action=delete 删除（被历史引用时拒绝，应改 update 停用）。'
+parameters: {
+  action: { type: 'string', required: true, enum: ['create', 'update', 'list', 'delete'] },
+  score_template_id: { type: 'string', description: 'update/delete 必填' },
+  name: { type: 'string' }, industry: { type: 'string' },
+  prompt_text: { type: 'string', description: 'create 必填；update 整体替换' },
+  enabled: { type: 'boolean' }, enabled_only: { type: 'string', description: 'list：仅看启用' },
+}
+output: create/update → { template }；list → { items }；delete → { deleted: true }
+```
+
+冻结稿存档（icp_update 原文）：
 
 ```ts
 description: '修改 ICP 画像：名称、行业、启用状态，或整体替换维度列表（权重仍须合计 100）。历史打分不受影响（分项保存了当时的权重快照）。'
@@ -505,7 +536,7 @@ parameters: {
 output: 同 icp_create。
 ```
 
-### `customer_acquisition_icp_list` — P1 · audit 无（读）
+### `customer_acquisition_icp_list`（已并入 `icp_manage` action=list）— 冻结稿存档
 
 ```ts
 description: '列出全部 ICP 画像（含维度与权重、启用状态）。'
@@ -518,15 +549,15 @@ output: { schema: { type: 'object', properties: { items: { type: 'array', items:
 }, additionalProperties: false } } }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_icp_delete` — P1 · 需 `can_manage_global_templates` · audit `icp.delete`
+### `customer_acquisition_icp_delete`（已并入 `icp_manage` action=delete）— 冻结稿存档
 
 ```ts
-description: '删除一套 ICP 画像。已被打分历史引用时拒绝删除，提示改用 icp_update 停用（enabled=false）。'
+description: '删除一套 ICP 画像。已被打分历史引用时拒绝删除，提示改用 icp_manage 的 update 停用（enabled=false）。'
 parameters: { icp_profile_id: { type: 'string', required: true } }
 output: { schema: { type: 'object', properties: { deleted: { type: 'boolean' } }, additionalProperties: false } }
 ```
 
-### 打分模板 CRUD（4 个，与 ICP 同构） — P1 · 需 `can_manage_global_templates`
+### 打分模板 CRUD（4 个，与 ICP 同构；2026-10-29 已合并为 `score_template_manage`，见 §6.x）— 冻结稿存档
 
 - `customer_acquisition_score_template_create` · audit `score_template.create`
 
@@ -547,7 +578,7 @@ output: { schema: { type: 'object', properties: { template: { type: 'object', pr
 
 ---
 
-## 7. 模块 4 · 培育文案（P3，6 个） · 红线 3：仅生成，永不发送
+## 7. 模块 4 · 培育文案（P3，3 个 + `content_template_manage`；冻结稿 6 个 → 2026-10-29 模板四动作合一，存档见下） · 红线 3：仅生成，永不发送
 
 ### `customer_acquisition_content_generate` — P3 · scope:own 拒绝为他人线索生成 · audit `content.generate`
 
@@ -582,7 +613,25 @@ output: { schema: { type: 'object', properties: { items: { type: 'array', items:
 }, additionalProperties: false } }, total: PAGE.total }, additionalProperties: false } }
 ```
 
-### 文案模板 CRUD（4 个） — P3 · 需 `can_manage_global_templates`
+### `customer_acquisition_content_template_manage` — P3 · 需 `can_manage_global_templates`（写） · audit `content_template.create`/`update`/`delete`
+
+```ts
+description: '文案模板管理合并工具（原 content_template_create/update/list/delete）。action=create 新建（name/type/body 必填，body 支持 {{变量}} 占位，variables 声明变量名/说明/示例）；action=update 修改（content_template_id 必填，body/variables 整体替换）；action=list 列出（type/enabled_only 可选）；action=delete 删除（被生成产物引用时拒绝，应改 update 停用）。type 已知值同 content_generate 描述。'
+parameters: {
+  action: { type: 'string', required: true, enum: ['create', 'update', 'list', 'delete'] },
+  content_template_id: { type: 'string', description: 'update/delete 必填' },
+  name: { type: 'string' }, type: { type: 'string' }, industry: { type: 'string' },
+  body: { type: 'string', description: 'create 必填；update 整体替换' },
+  variables: { type: 'array', items: { type: 'object', properties: {
+    name: { type: 'string', required: true }, description: { type: 'string', required: true }, example: { type: 'string' },
+  }, additionalProperties: false } },
+  enabled: { type: 'boolean' }, type_filter: { type: 'string', description: 'list：按类型过滤' },
+  enabled_only: { type: 'boolean', description: 'list：仅看启用' },
+}
+output: create/update → { template }；list → { items }；delete → { deleted: true }
+```
+
+冻结稿存档（模板 CRUD 原四工具）：
 
 - `customer_acquisition_content_template_create` · audit `content_template.create`
 
@@ -607,12 +656,14 @@ output: { schema: { type: 'object', properties: { template: { type: 'object', pr
 
 ---
 
-## 8. 模块 5 · 跟进 SOP（P3，7 个）
+## 8. 模块 5 · 跟进 SOP（P3，2 个 + `sop_task_manage` + `sop_template_manage`；冻结稿 7 个 → 2026-10-29 工具面合并，sop_task_list/update 二合一，SOP 模板四动作合一，存档见下）
 
 ### `customer_acquisition_sop_generate_tasks` — P3 · scope:own 拒绝 · audit `sop.tasks.generate`
 
+> 2026-10-29 核对：该工具在 P3 批次正常注册（`register-p3.ts`），schema 如下冻结稿原文，未做合并。
+
 ```ts
-description: '按线索的意向等级与 SOP 模板生成跟进任务清单：每条任务含标题（跟进要点）、计划时间（按模板节奏排期）与备注（沟通提问清单、风险提示）。线索未打分（无意向等级）时拒绝并提示先打分。全局设置开启待办联动时同步写入 DSH 待办。'
+description: '按线索的意向等级与 SOP 模板生成跟进任务清单：每条任务含标题（跟进要点）、计划时间（按模板节奏 D+N 排期）与备注（提问清单、风险提示）。线索未打分（无意向等级）时拒绝并提示先打分。全局设置开启待办联动时，输出附带可直接经 todo_write 写入的待办清单（todo_written 恒为 false，前向不落库）。'
 parameters: {
   lead_id: { type: 'string', required: true },
   sop_template_id: { type: 'string', description: '省略时按行业匹配启用的 SOP 模板' },
@@ -626,7 +677,45 @@ output: { schema: { type: 'object', properties: {
 }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_sop_task_list` — P3 · scope:own-filter · audit 无（读）
+### `customer_acquisition_sop_task_manage` — P3 · scope:list 按 own 过滤；update 拒绝改他人线索任务 · audit `sop.task.update`（list 读不审计）
+
+```ts
+description: 'SOP 跟进任务管理合并工具（原 sop_task_list/sop_task_update）。action=list 查看任务（lead_id/status 过滤，按计划时间升序分页）；action=update 流转任务（task_id 必填，status 枚举 pending/done/deferred/dropped，可调整 planned_at 与 note）。'
+parameters: {
+  action: { type: 'string', required: true, enum: ['list', 'update'] },
+  task_id: { type: 'string', description: 'update 必填' },
+  lead_id: { type: 'string', description: 'list：按线索过滤' },
+  status: { type: 'string', enum: ['pending', 'done', 'deferred', 'dropped'] },
+  planned_at: { type: 'integer', description: 'update：调整后的计划时间（epoch 毫秒）' },
+  note: { type: 'string', description: 'update：备注（整体替换）' },
+  limit: { type: 'integer', min: 1, max: 100 }, offset: { type: 'integer', min: 0 },
+}
+output: list → { items, total }；update → { task }
+```
+
+冻结稿存档（sop_task_list / sop_task_update 原文同上拆分语义）。
+
+### `customer_acquisition_sop_template_manage` — P3 · 需 `can_manage_global_templates`（写） · audit `sop_template.create`/`update`/`delete`
+
+```ts
+description: 'SOP 跟进模板管理合并工具（原 sop_template_create/update/list/delete）。action=create 新建（name 与 rules 必填，按意向等级各一条规则，cadence 中 D+N 解析为任务排期，等级在模板内不可重复）；action=update 修改（sop_template_id 必填，整体替换规则列表）；action=list 列出（enabled_only 可选）；action=delete 删除（已生成的任务不受影响；被来源引用时提示改用 update 停用）。'
+parameters: {
+  action: { type: 'string', required: true, enum: ['create', 'update', 'list', 'delete'] },
+  sop_template_id: { type: 'string', description: 'update/delete 必填' },
+  name: { type: 'string' }, industry: { type: 'string' },
+  rules: { type: 'array', minLen: 1, items: { type: 'object', properties: {
+    intent_level: { type: 'string', required: true, enum: ['high', 'mid', 'low', 'invalid'] },
+    cadence: { type: 'string', required: true },
+    points: { type: 'array', required: true, items: { type: 'string' } },
+    questions: { type: 'array', items: { type: 'string' } },
+    risks: { type: 'array', items: { type: 'string' } },
+  }, additionalProperties: false }, description: 'create 必填；update 整体替换' },
+  enabled: { type: 'boolean' }, enabled_only: { type: 'boolean', description: 'list：仅看启用' },
+}
+output: create/update → { template }；list → { items }；delete → { deleted: true }
+```
+
+冻结稿存档（SOP 模板 CRUD 原四工具）：
 
 ```ts
 description: '查看 SOP 跟进任务：按线索、状态过滤，按计划时间升序分页返回。'
@@ -641,7 +730,7 @@ output: { schema: { type: 'object', properties: { items: { type: 'array', items:
 }, additionalProperties: false } }, total: PAGE.total }, additionalProperties: false } }
 ```
 
-### `customer_acquisition_sop_task_update` — P3 · scope:own 拒绝改他人线索任务 · audit `sop.task.update`
+### `customer_acquisition_sop_task_update`（已并入 `sop_task_manage` action=update）— 冻结稿存档
 
 ```ts
 description: '流转 SOP 任务状态（pending/done/deferred/dropped），可调整计划时间与备注。'
@@ -654,7 +743,7 @@ output: { schema: { type: 'object', properties: { task: { type: 'object', proper
   id: { type: 'string' }, status: { type: 'string' }, planned_at: { type: 'integer' } }, additionalProperties: false } }, additionalProperties: false } }
 ```
 
-### SOP 模板 CRUD（4 个） — P3 · 需 `can_manage_global_templates`
+### SOP 模板 CRUD（4 个；2026-10-29 已合并为 `sop_template_manage`，见上）— 冻结稿存档
 
 - `customer_acquisition_sop_template_create` · audit `sop_template.create`
 
@@ -716,12 +805,15 @@ render：Markdown 指标表；Web 看板走 Remote 同一聚合服务，不经�
 |---|---|---|
 | P0：settings ×2 + audit ×2（含冒烟 `settings_get`） | 4 | P0 |
 | GEO 诊断 | 4 | P2 |
-| 线索台账（含 extract/export/documents/followups） | 16 | P1 |
-| AI 打分（score ×3 + icp ×4 + score_template ×4） | 11 | P1 |
-| 培育文案（generate/list + 模板 ×4） | 6 | P3 |
-| SOP（任务 ×3 + 模板 ×4） | 7 | P3 |
+| 线索台账（`lead_manage` + delete/restore/purge/assign/transfer/extract/export/document ×3/followup ×2） | 13 | P1 |
+| AI 打分（score ×3 + `icp_manage` + `score_template_manage`） | 5 | P1 |
+| 培育文案（generate/list_by_lead + `content_template_manage`） | 3 | P3 |
+| SOP（generate_tasks + `sop_task_manage` + `sop_template_manage`） | 3 | P3 |
 | 看板 | 1 | P4 |
-| **合计** | **49** | |
+| **主包合计** | **29** | |
+| GEO 子包 4 个并入部署面（如同时挂载） | 33 | — |
+
+> **2026-10-29 工具面合并**：冻结稿 49 个中的 22 个 CRUD 工具（lead ×4、icp ×4、score_template ×4、content_template ×4、sop_template ×4、sop_task ×2）合并为 6 个 `*_manage` 工具，action-union schema + 运行时逐 action 必填校验（schema 级 `required` 仅保留 `action`，各 action 的必填字段在 execute 内强校验并返回中文错误）。主包工具面 45 → 29，schema 估算 token 约 6.5k → 6.1k（描述略增、参数大减）。旧单动作名自本日起不再注册；服务层分发与权限/审计语义逐字保持冻结稿。
 
 红线落点核对：红线 1（抓取边界）→ geo_scan description + pre-execute + 参数 schema 上限；红线 2/3（无自动触达/无发送）→ 全清单无任何发送/私信/加好友类工具；红线 4（模板可编辑）→ 16 个模板 CRUD 工具；红线 5（数据本地）→ 全部读写走 storageDomain；红线 6（审计）→ audit_list/audit_export + 全部写路径埋点（各工具标注的 audit action）。
 
@@ -730,6 +822,6 @@ render：Markdown 指标表；Web 看板走 Remote 同一聚合服务，不经�
 | # | 决策 | 理由 |
 |---|---|---|
 | 15 | 新增 `lead_followup_add/list` 两个工具 | lead_followups 表在投喂第 6 节存在但第 7 节无写入口/查入口，表会变死表 |
-| 16 | 工具总数 49（§5 明细实为 16 个线索工具，初稿计数 14 系笔误，2026-10-05 实施时对齐），模板 CRUD 按「每实体四动作」展开而非合并 action 参数 | 对齐仓库单动作单工具先例（team_task_*/schedule_*），模型调用歧义最小 |
+| 16 | ~~工具总数 49，模板 CRUD 按「每实体四动作」展开而非合并 action 参数~~ → **已被 2026-10-29 工具面合并取代**：22 个 CRUD → 6 个 `*_manage`（§10），理由从「单动作单工具」转向 token 成本；action-union 的调用歧义由运行时逐 action 必填校验兜底 | 对齐仓库单动作单工具先例（team_task_*/schedule_*），模型调用歧义最小；2026-10-29 实测 token 面收益 ~0.4k/会话 + schema 重复字段消除 |
 | 17 | 删除保护：模板被历史引用即拒删、提示停用 | KV 无外键级联，物理删除会断历史回溯链（契约 §3.4 权重快照的配套） |
 | 18 | `lead_update` 不接受修改 `source`/`intent_level` | source 是录入事实；intent_level 只由打分回填 |

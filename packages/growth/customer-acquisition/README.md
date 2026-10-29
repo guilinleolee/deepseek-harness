@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger (module 2) and AI lead scoring (module 3): 27 model-facing tools, the preset three-industry template seeds, and per-call owner scoping. The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
+Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger (module 2) and AI lead scoring (module 3); P3 adds nurture copy and follow-up SOPs; P4 adds the dashboard. As of 2026-10-29 the 22 single-action template/CRUD tools are consolidated into six `*_manage` action-union faces — 29 main-package tools (33 with the GEO sibling). The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
 
 ## Table of Contents
 
@@ -72,7 +72,7 @@ Each red line has at least one illegal-path unit test.
 
 ## Lead ledger (module 2)
 
-`LeadLedgerService` is the single authority for leads, follow-ups, and attached documents; the 16 `customer_acquisition_lead_*` tools are thin projections of it. Ownership is enforced server-side on every call: `lead_scope=own` operators read only their own leads plus the pool (`owner_id` absent) and write only their own; the pool is claimed through `lead_assign`, released through `lead_transfer` without a target owner. Delete is soft (recycle bin) — `lead_restore` brings a lead back, `lead_purge` physically removes it with every follow-up, document, score run, generated copy, and SOP task, and requires `can_delete_any_lead`. Attached documents (20 000 chars each) are the knowledge source injected into scoring and copy generation. `lead_extract` parses only the text handed to it — one model call, no network collection — and returns fields without storing; the caller confirms through `lead_create`. Export renders Markdown tables or formula-guarded CSV and audits itself.
+`LeadLedgerService` is the single authority for leads, follow-ups, and attached documents; the lead-ledger tools are thin projections of it. Ownership is enforced server-side on every call: `lead_scope=own` operators read only their own leads plus the pool (`owner_id` absent) and write only their own; the pool is claimed through `lead_assign`, released through `lead_transfer` without a target owner. Delete is soft (recycle bin) — `lead_restore` brings a lead back, `lead_purge` physically removes it with every follow-up, document, score run, generated copy, and SOP task, and requires `can_delete_any_lead`. Attached documents (20 000 chars each) are the knowledge source injected into scoring and copy generation. `lead_extract` parses only the text handed to it — one model call, no network collection — and returns fields without storing; the caller confirms through `lead_manage` action=create. Export renders Markdown tables or formula-guarded CSV and audits itself.
 
 ## AI lead scoring (module 3)
 
@@ -86,7 +86,7 @@ Scoring is one model call per lead: the service resolves the ICP profile and pro
 | `customer_acquisition_settings_set` | Merge a partial settings update; requires `can_manage_settings`, rejects unknown profile/template ids. |
 | `customer_acquisition_audit_list` | Paged, filtered audit-log queries. |
 | `customer_acquisition_audit_export` | Full-filter export as Markdown or formula-guarded CSV; requires `can_export`. |
-| `customer_acquisition_lead_create` / `lead_update` / `lead_get` / `lead_list` | Ledger CRUD with multi-dimension filters, keyword search, and paging. |
+| `customer_acquisition_lead_manage` | Consolidated ledger face: `action=create/update/get/list` replaces the four single-action CRUD tools; runtime per-action required checks. |
 | `customer_acquisition_lead_delete` / `lead_restore` / `lead_purge` | Recycle-bin lifecycle; purge cascades every associated record. |
 | `customer_acquisition_lead_assign` / `lead_transfer` | Pool claiming and ownership transfer. |
 | `customer_acquisition_lead_extract` | Fields from one user-provided text snippet; model-backed, nothing stored. |
@@ -95,8 +95,11 @@ Scoring is one model call per lead: the service resolves the ICP profile and pro
 | `customer_acquisition_lead_followup_add` / `lead_followup_list` | Follow-up notes, newest first. |
 | `customer_acquisition_score_one` / `score_batch` | AI scoring with weight snapshots and intent write-back; batch is serial with per-lead failure isolation. |
 | `customer_acquisition_score_history` | Fully retained runs with per-dimension snapshots. |
-| `customer_acquisition_icp_create` / `icp_update` / `icp_list` / `icp_delete` | ICP profiles; weights must sum to 100, referenced profiles refuse deletion. |
-| `customer_acquisition_score_template_create` / `score_template_update` / `score_template_list` / `score_template_delete` | Scoring prompt templates with the four placeholders; referenced templates refuse deletion. |
+| `customer_acquisition_icp_manage` / `score_template_manage` | ICP profile and scoring-prompt template CRUD as action-union faces (create/update/list/delete); weights must sum to 100, referenced records refuse deletion. |
+| `customer_acquisition_content_generate` / `content_list_by_lead` | Nurture-copy generation per lead and its history; text-only, never sent. |
+| `customer_acquisition_content_template_manage` / `sop_template_manage` | Copy and SOP template CRUD as action-union faces. |
+| `customer_acquisition_sop_generate_tasks` / `sop_task_manage` | Generate follow-up task lists by intent level; task list/update as one face. |
+| `customer_acquisition_report_overview` | Dashboard aggregates (leads, intent/source/score distributions, SOP completion, GEO stats). |
 
 ## Remote face
 
@@ -108,11 +111,11 @@ Scoring is one model call per lead: the service resolves the ICP profile and pro
 
 #### What the model sees
 
-Thirty-one tools joined to prompt assembly when the plugin loads — the four P0 settings/audit tools plus the 27 lead-ledger and scoring tools — and their text renders: lead refs as one-line summaries, score outcomes as headline plus per-dimension lines, exports as fenced Markdown/CSV documents, and extraction results as field lists. Denials from the compliance gate and capability checks surface as tool errors carrying the Chinese reason. The three industry seed packs appear as ready-to-use profiles and templates on first run.
+Thirty-three tools joined to prompt assembly when the plugin loads — the four P0 settings/audit tools, the four GEO tools from the sibling package, and the 25 consolidated lead-ledger, scoring, copy, SOP, and dashboard faces — and their text renders: lead refs as one-line summaries, score outcomes as headline plus per-dimension lines, exports as fenced Markdown/CSV documents, and extraction results as field lists. Denials from the compliance gate and capability checks surface as tool errors carrying the Chinese reason. The three industry seed packs appear as ready-to-use profiles and templates on first run.
 
 #### Token effect
 
-Bounded: 31 tool schemas (~4k tokens) in every assembled request while the plugin is loaded; list faces cap at 100 rows per page and score renders scale with the profile's dimension count (typically 5-6 lines).
+Bounded: 29 main-package tool schemas (~6.1k tokens estimated) plus 4 GEO schemas (~0.5k) in every assembled request while both packages are loaded — down from 45 main tools (~6.5k) before the 2026-10-29 22→6 `*_manage` consolidation; list faces cap at 100 rows per page and score renders scale with the profile's dimension count (typically 5-6 lines).
 
 #### KV Cache effect
 

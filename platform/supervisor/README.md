@@ -13,6 +13,8 @@ node supervisor.mjs revoke --account <email>   # epoch+1，该账号全部登录
 node supervisor.mjs set-upstream <name> --baseURL <url> --models m1,m2 [--key <真实Key>]
 node supervisor.mjs list-upstreams             # 真实 Key 只显示指纹
 node supervisor.mjs issue-vkey --account <email> [--models m1,m2 | --all]
+                                # 签发后自动把明文写入实例 home 的 .credentials.yaml
+                                # （refs.LYZ_VIRTUAL_KEY）；CLI 同时打印明文仅此一次
 node supervisor.mjs list-vkeys                 # 只有哈希，token 不可见
 node supervisor.mjs revoke-vkey --account <email>
 node supervisor.mjs set-quota --account <email> --tokens <N> | --unlimited
@@ -32,7 +34,7 @@ node supervisor.mjs logs --id e02
 
 - 员工入口：`http://localhost:8460/`（各实例入口为 `http://<实例id>.localhost:8460/`；浏览器原生把 `*.localhost` 解析到 127.0.0.1，无需改 hosts。生产 = 真实域名 + 通配符 DNS + TLS）。
 - 首次进入实例子域会看到登录页；账号绑定哪个实例，登录后就只能进哪个实例。
-- 实例数据根：`data/homes/<id>/`（即该实例的 `DSH_HOME`）；账号：`data/accounts.json`（scrypt 哈希）；上游表：`data/upstreams.json`（真实 Key 唯一容身处）；虚拟钥匙：`data/vkeys.json`（只存 SHA-256）；日志：`data/logs/<id>.log` 与 `data/logs/relay.log`。
+- 实例数据根：`data/homes/<id>/`（即该实例的 `DSH_HOME`）；账号：`data/accounts.json`（scrypt 哈希）；上游表：`data/upstreams.json`（真实 Key 唯一容身处）；虚拟钥匙：`data/vkeys.json`（只存 SHA-256）；实例凭据：`data/homes/<id>/.credentials.yaml`（签发时刻自动写入 `refs.LYZ_VIRTUAL_KEY`，`records:` 段原样保留）；日志：`data/logs/<id>.log` 与 `data/logs/relay.log`。
 
 ## 阶段 2 认证语义
 

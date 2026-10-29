@@ -26,7 +26,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { addAccount, loadAccounts, revokeAccountTokens, setPassword, verifyPassword } from './gateway.mjs'
-import { issueVkey } from './relay.mjs'
+import { issueVkey, listVkeys } from './relay.mjs'
+import { writeVkeyToHome } from './credentials.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
 import { checkPasswordPolicy, createLoginRateGuard, loadSecurityConfig } from './security.mjs'
 import { fmtPoints } from './quotas.mjs'
@@ -36,6 +37,13 @@ import { renderRegisterPage } from './auth-ui.mjs'
 import { clearTwofa, confirmSecret, generateTotpSecret, getTwofaRecord, otpauthUrl, setPendingSecret } from './totp.mjs'
 
 const ROLE_LABELS = { admin: '管理员', auditor: '审计员', employee: '成员' }
+
+/** 取该账号当前有效 vkey 明文（签发后立刻落盘用；找不到返回 null）。 */
+function listVkeysLatestFor(dataDir, account) {
+  try {
+    return listVkeys(dataDir).find((v) => v.account === account && !v.revoked)?.token ?? null
+  } catch { return null }
+}
 
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;')
@@ -481,6 +489,13 @@ function respondRegister({ req, res, dataDir, manifest }) {
           return
         }
         issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
+        // vkey 最后一公里：注册链路此前连明文都不返回，管理员完全拿不到钥匙。
+        // 签发时刻直接把明文写进实例 home（refs.LYZ_VIRTUAL_KEY）——这是注册
+        // 链路唯一把钥匙送到位的途径；失败仅记日志，注册本身照常完成。
+        const vkeyToken = listVkeysLatestFor(dataDir, created.account)
+        const vkeyCred = vkeyToken === null ? { ok: false, reason: 'no_active_vkey' } : writeVkeyToHome(dataDir, created.instanceId, vkeyToken)
+        if (!vkeyCred.ok) console.error('[portal] 注册后 vkey 落盘实例 home 失败:', vkeyCred.reason)
+        if (!vkeyCred.ok) console.error('[portal] 注册后 vkey 落盘实例 home 失败:', vkeyCred.reason)
         const consumed = consumeInvite(dataDir, String(body.code ?? ''), created.account)
         if (!consumed.ok) {
           // 串行队列下不应到达（校验与消费之间无并发窗口）；到达说明数据被
