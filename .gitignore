@@ -47,3 +47,8 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 native/system/test/bin/
+
+# local gate run logs
+.build-artifacts*.log
+.build-check.log
+.typecheck*.log
