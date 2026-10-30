@@ -1,6 +1,6 @@
 # index/ · 天龙引擎五资产索引 · 自动生成
 
-> **schema**: `dragon-index/1.0`  ·  生成时间：2026-10-29T04:44:58Z
+> **schema**: `dragon-index/1.0`  ·  生成时间：2026-10-30T00:14:53Z
 
 > **用法**：每次大模型启动时只读 `CLAUDE.md`（hot 层）；命中触发词后查对应 `*.jsonl`（warm 层）；按 `id` 再读 `cold` 资产原文。
 
@@ -9,7 +9,7 @@
 
 | kind | files | total_kb | active | deprecated | license breakdown |
 |---|---|---|---|---|---|
-| skill | 890 | 7490.9 | 889 | 0 | unknown:644 · MIT:180 · CC-BY-NC-4.0:30 · Apache-2.0:22 |
+| skill | 895 | 7536.2 | 894 | 0 | unknown:648 · MIT:181 · CC-BY-NC-4.0:30 · Apache-2.0:22 |
 | agent | 137 | 2138.1 | 137 | 0 | unknown:127 · MIT:9 · Apache-2.0:1 |
 | hook | 0 | 0.0 | 0 | 0 |  |
 | command | 120 | 405.7 | 120 | 0 | unknown:113 · CC-BY-NC-4.0:3 · GPL-3.0:2 · MIT:2 |
@@ -19,7 +19,7 @@
 
 | 文件 | 行数 | 用途 |
 |---|---|---|
-| `SKILLS.jsonl` | 890 | skill 一级目录（含 library/ 套件剔除） |
+| `SKILLS.jsonl` | 895 | skill 一级目录（含 library/ 套件剔除） |
 | `AGENTS.jsonl` | 137 | agent 角色定义 |
 | `HOOKS.jsonl` | 0 | 钩子脚本（sh/js/py/json） |
 | `COMMANDS.jsonl` | 120 | 命令文件（含中文乱码警告） |

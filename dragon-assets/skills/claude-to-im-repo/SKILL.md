@@ -1,5 +1,5 @@
 ---
-name: claude-to-im
+name: claude-to-im-repo
 description: |
 Bridge THIS Claude Code session to Telegram, Discord, Feishu/Lark, or QQ so the
 user can chat with Claude from their phone. Use for: setting up, starting, stopping,

@@ -1,15 +1,15 @@
 {
   "schema": "dragon-index/1.0",
-  "generated_at": "2026-10-29T04:44:58Z",
+  "generated_at": "2026-10-30T00:14:53Z",
   "root": "D:\\deepseek-harness\\dragon-assets",
   "counts": {
-    "skill": 890,
+    "skill": 895,
     "agent": 137,
     "hook": 0,
     "command": 120,
     "plugin": 0
   },
-  "total": 1147,
+  "total": 1152,
   "files": {
     "skill": "SKILLS.jsonl",
     "agent": "AGENTS.jsonl",

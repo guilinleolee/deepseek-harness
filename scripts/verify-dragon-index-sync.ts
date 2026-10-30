@@ -7,22 +7,43 @@
  * `runtime/index/`. Both failures were invisible until a downstream lookup
  * answered from the wrong copy.
  *
- * This gate re-derives the two invariants the builder must hold and fails when
- * either breaks:
+ * This gate re-derives the invariants the builder must hold and fails when
+ * any breaks:
  *
  *   1. Registry coverage — every `commercial_use: yes` / `deliverable-only` /
  *      `no` registry entry must appear in SKILLS.jsonl carrying the same
  *      license and class, under its own id or the registry key's family.
- *   2. Single index home — the index files live in `dragon-assets/index/`
+ *   2. Asset-tree coverage — every skill directory that carries a SKILL.md
+ *      (top-level or nested under `skill/`) must have an index row, and every
+ *      indexed `skills/<dir>/` row must point at a directory that still
+ *      exists. A skill added or deleted without rebuilding the index fails
+ *      here.
+ *   3. Single index home — the index files live in `dragon-assets/index/`
  *      only; a second SKILLS.jsonl under `runtime/index/` fails.
  *
  * @module scripts/verify-dragon-index-sync
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
+
+/** Directories the index builder skips, mirrored from `build-index.py`. */
+const SKIP_DIR_NAMES = new Set([
+  '_archive', '_template', '__pycache__', 'node_modules', '.git',
+  '.github', '.pytest_cache', '.mypy_cache', '.ruff_cache',
+  'backups', 'db-backup', 'cache', '.cache', 'library',
+])
+
+/**
+ * True for timestamped backup copies such as `anysearch.bak-20260805-172101`;
+ * mirrors the builder's `is_backup_dir` so a backup directory neither
+ * requires an index row nor satisfies one.
+ */
+function isBackupDir(name: string): boolean {
+  return name.includes('.bak') || name.endsWith('.old') || name.endsWith('.orig')
+}
 
 /** Result of the index-sync gate. */
 export interface DragonIndexSyncReport {
@@ -30,6 +51,8 @@ export interface DragonIndexSyncReport {
   entryCount: number
   /** Number of skill rows read from the index. */
   rowCount: number
+  /** Number of skill directories found in the asset tree. */
+  skillDirCount: number
   /** Repository-relative diagnostics. */
   failures: string[]
 }
@@ -60,6 +83,27 @@ function readIndexRows(path: string): IndexRow[] {
 }
 
 /**
+ * Collect the skill directories the builder would index: first-level
+ * directories under `dragon-assets/skills/` that carry a `SKILL.md` at their
+ * root or nested under `skill/`.
+ * @param root - absolute repository root.
+ * @returns sorted directory names, or an empty list when the tree is absent.
+ */
+export function collectSkillDirs(root: string): string[] {
+  const skillsDir = resolve(root, 'dragon-assets/skills')
+  if (!existsSync(skillsDir)) return []
+  const dirs: string[] = []
+  for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    if (entry.name.startsWith('.') || SKIP_DIR_NAMES.has(entry.name) || isBackupDir(entry.name)) continue
+    if (existsSync(resolve(skillsDir, entry.name, 'SKILL.md')) || existsSync(resolve(skillsDir, entry.name, 'skill', 'SKILL.md'))) {
+      dirs.push(entry.name)
+    }
+  }
+  return dirs.sort()
+}
+
+/**
  * Check that the index is fresh against the license registry and lives in
  * exactly one directory.
  * @param root - absolute repository root.
@@ -81,10 +125,41 @@ export function inspectDragonIndexSync(root: string): DragonIndexSyncReport {
   }
 
   if (!existsSync(skillsPath)) {
-    return { entryCount: 0, rowCount: 0, failures: [...failures, 'dragon-assets/index/SKILLS.jsonl does not exist; run build-index.py'] }
+    return { entryCount: 0, rowCount: 0, skillDirCount: 0, failures: [...failures, 'dragon-assets/index/SKILLS.jsonl does not exist; run build-index.py'] }
   }
 
   const rows = readIndexRows(skillsPath)
+  for (const row of rows) {
+    if (row.id === '<unparseable>') {
+      failures.push('SKILLS.jsonl: contains an unparseable line; rebuild the index.')
+    }
+  }
+
+  // Asset-tree coverage, in both directions. Skipped when the synthetic
+  // fixture carries no skills tree — those tests exercise the registry logic.
+  const skillDirs = collectSkillDirs(root)
+  if (skillDirs.length > 0) {
+    const byDir = new Map<string, number>()
+    for (const row of rows) {
+      const match = /^skills\/([^/]+)\//.exec(row.path)
+      const dir = match?.[1]
+      if (dir) byDir.set(dir, (byDir.get(dir) ?? 0) + 1)
+    }
+    for (const dir of skillDirs) {
+      if (!byDir.has(dir)) {
+        failures.push(
+          `SKILLS.jsonl: skill directory skills/${dir}/ has no index row; a skill was added without rebuilding the index.`,
+        )
+      }
+    }
+    for (const [dir, count] of byDir) {
+      if (!skillDirs.includes(dir)) {
+        failures.push(
+          `SKILLS.jsonl: ${String(count)} row(s) reference skills/${dir}/, which no longer exists; a skill was deleted without rebuilding the index.`,
+        )
+      }
+    }
+  }
 
   // Registry coverage: a registry fact must survive into the index.
   if (existsSync(registryPath)) {
@@ -130,10 +205,10 @@ export function inspectDragonIndexSync(root: string): DragonIndexSyncReport {
       }
     }
 
-    return { entryCount: checked, rowCount: rows.length, failures }
+    return { entryCount: checked, rowCount: rows.length, skillDirCount: skillDirs.length, failures }
   }
 
-  return { entryCount: 0, rowCount: rows.length, failures }
+  return { entryCount: 0, rowCount: rows.length, skillDirCount: skillDirs.length, failures }
 }
 
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
