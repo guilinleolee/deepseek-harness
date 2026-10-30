@@ -1,12 +1,11 @@
 /**
  * The frame-wide workbench surface occupying the `shell.overlay` hole.
- * Easel-style two-column shell: a left inner nav — 工作台 / 对标 /
- * 选题库 / 信息收集 / 内容 / 内容日历 / 创作 / 发布 / 账号 / 画像 / 模板, with the
+ * Easel-style two-column shell: a left inner nav — 工作台 / 舆情 /
+ * 对标 / 选题库 / 创作 / 发布 / 复盘 / 互动 / 账号 / 画像 / 模板, with the
  * back-to-chat verb and the feedback link at the foot — and a main column
  * rendering the active view, defaulting to the workbench home dashboard.
  * 对标 is a capability slice of the catalog;
- * 选题库 is the topic bank over the contentTopics Remote; 内容日历 is the
- * scheduling workbench over the contentSchedule Remote; 画像 is the
+ * 选题库 is the topic bank over the contentTopics Remote; 画像 is the
  * account-persona manager over the `_personas.json` manifest. 账号 keeps the
  * browser-local creation identity injected into every copied capability
  * instruction, and a selected disk persona injects its packed prompt
@@ -21,20 +20,16 @@ import type {
 } from '@deepseek-ai/dsh-content-outputs/types'
 import type { ContentScheduleSnapshot, ScheduleItem, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
 import type { CapabilityItem, CapabilityMaturity } from './capabilities.ts'
 import { STUDIO_TABS, capabilityGroups, type StudioTab } from './capabilities.ts'
-import { ContentLibrary } from './ContentLibrary.tsx'
-import { ContentCalendar, type ContentCalendarInjected } from './ContentCalendar.tsx'
 import { ContentWorkbench } from './ContentWorkbench.tsx'
 import { AccountSelect } from './AccountSelect.tsx'
 import { AccountsView } from './AccountsView.tsx'
 import { SentimentView, type SentimentGateway } from './SentimentView.tsx'
 import { PersonaView } from './PersonaView.tsx'
 import { CompetitorsView, type CompetitorsViewInjected } from './CompetitorsView.tsx'
-import { GatherView } from './GatherView.tsx'
 import { CreateView, type CreateGateway } from './CreateView.tsx'
-import { TopicBankView, type TopicBankGateway } from './TopicBankView.tsx'
+import { TopicBankView, type TopicBankGateway, type TopicCategoryGateway, type TopicCollectFace } from './TopicBankView.tsx'
 import { PublishView } from './PublishView.tsx'
 import type { PublishController } from './publish/publish-store.ts'
 import { ReviewView } from './ReviewView.tsx'
@@ -44,21 +39,16 @@ import type { InteractionController } from './interaction/interaction-store.ts'
 import { TemplateLibraryView } from './template/TemplateLibraryView.tsx'
 import { TemplatePickerModal } from './template/TemplatePickerModal.tsx'
 import type { TemplateController } from './template/template-store.ts'
-import { gatherMaterialToTopicInput } from './topic-bank.ts'
-import type { GatherController } from './gather/gather-store.ts'
 import type { PersonaController } from './persona/persona-store.ts'
 import type { StudioKey } from './locales.ts'
 import type { ContentStudioController, PickedManuscript, PickedTopic } from './studio-store.ts'
 import css from './ContentStudio.module.css'
-// The picked-material banner belongs to the gather feature surface, whose
-// styles live in the gather view's own module.
-import gatherCss from './GatherView.module.css'
 
 /** How long a card shows its copied state before reverting. */
 const COPIED_FEEDBACK_MS = 1600
 
 /** The top-level views; the workbench home is the entry view. */
-type StudioView = 'sentiment' | 'workbench' | 'competitors' | 'topicBank' | 'gather' | 'library' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates' | 'calendar'
+type StudioView = 'sentiment' | 'workbench' | 'competitors' | 'topicBank' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates'
 
 /** The nav order exactly as specified. */
 const NAV_ITEMS: readonly { view: StudioView; key: StudioKey }[] = [
@@ -66,9 +56,6 @@ const NAV_ITEMS: readonly { view: StudioView; key: StudioKey }[] = [
   { view: 'sentiment', key: 'nav.sentiment' },
   { view: 'competitors', key: 'nav.competitors' },
   { view: 'topicBank', key: 'nav.topicBank' },
-  { view: 'gather', key: 'nav.gather' },
-  { view: 'library', key: 'nav.content' },
-  { view: 'calendar', key: 'nav.calendar' },
   { view: 'create', key: 'nav.create' },
   { view: 'publish', key: 'nav.publish' },
   { view: 'review', key: 'nav.review' },
@@ -82,15 +69,11 @@ const NAV_ITEMS: readonly { view: StudioView; key: StudioKey }[] = [
 export interface ContentStudioInjected {
   studio: ContentStudioController
   listOutputs: () => Promise<ContentOutputsSnapshot>
-  /** The gather controller: browser-side sources/tasks plus the collection scheduler. */
-  gather: GatherController
   schedule: {
     list: () => Promise<ContentScheduleSnapshot>
     put: (input: ScheduleItemInput) => Promise<ContentScheduleSnapshot>
     remove: (id: ScheduleItem['id']) => Promise<ContentScheduleSnapshot>
   }
-  /** The calendar's day-note sidecar face, served by the contentSchedule Remote. */
-  notes: ContentCalendarInjected['notes']
   /** The competitor write face, served by the content-outputs Remote. */
   competitors: Omit<CompetitorsViewInjected, 'listOutputs'>
   /** The sentiment read faces the competitor volume-compare block consumes. */
@@ -105,6 +88,10 @@ export interface ContentStudioInjected {
   listThemes: () => Promise<readonly string[]>
   /** The topic-bank Remote face, served by the content-topics Remote. */
   topics: TopicBankGateway
+  /** The topic-category Remote face, served by the content-topics Remote. */
+  topicCategories: TopicCategoryGateway
+  /** The keyword topic-collection face, served by the content-outputs Remote. */
+  topicCollect: TopicCollectFace
   /** The authorized asset write backing the topic bank's Markdown export. */
   writeExport: (theme: string, file: string, content: string) => Promise<unknown>
   /** The publish controller: tasks, profiles, history, and the AI adaptations. */
@@ -138,8 +125,8 @@ const BADGE_CLASS: Record<CapabilityMaturity, string> = {
  * @returns the surface element tree while open; null while closed.
  */
 export function ContentStudio({
-  studio, listOutputs, gather, schedule, notes, competitors, create, personas, sentiment, listThemes,
-  sentimentRead, topics, writeExport, publish, review, interaction, readInteractions, readReviewManifest, templates, t,
+  studio, listOutputs, schedule, competitors, create, personas, sentiment, listThemes,
+  sentimentRead, topics, topicCategories, topicCollect, writeExport, publish, review, interaction, readInteractions, readReviewManifest, templates, t,
 }: ContentStudioProps) {
   const open = useSyncExternalStore(
     fn => studio.subscribe(fn),
@@ -171,8 +158,7 @@ export function ContentStudio({
     if (account === name) selectAccount('通用模式')
   }
   // Prepend the active account (and persona when set) to a copied instruction;
-  // generic mode with no persona adds nothing. A picked gathered material adds
-  // its id-titled reference line — never the body. A selected disk persona
+  // generic mode with no persona adds nothing. A selected disk persona
   // injects its packed persona-prompt@1 text; the inline free text is the
   // fallback.
   const personaPrompt = useSyncExternalStore(
@@ -180,15 +166,12 @@ export function ContentStudio({
     () => personas.activePrompt(),
   )
   const personaText = personaPrompt.length > 0 ? personaPrompt : persona
-  const withIdentity = (prompt: string, material?: { title: string; url: string } | null): string => {
+  const withIdentity = (prompt: string): string => {
     const personaLine = personaPrompt.length > 0 ? personaPrompt : persona.length > 0 ? `账号画像：${persona}` : ''
     const identity = account === '通用模式'
       ? personaLine
       : personaLine.length > 0 ? `我的账号/画像：${account}\n${personaLine}` : `我的账号/画像：${account}`
-    const reference = material === null || material === undefined ? '' : `参考素材：${material.title}（${material.url}）`
-    return [identity, reference].filter(part => part.length > 0).join('\n').length > 0
-      ? `${[identity, reference].filter(part => part.length > 0).join('\n')}\n\n${prompt}`
-      : prompt
+    return identity.length > 0 ? `${identity}\n\n${prompt}` : prompt
   }
   const [tab, setTab] = useState<StudioTab>('create')
   const [copiedId, setCopiedId] = useState<string | undefined>(undefined)
@@ -212,18 +195,6 @@ export function ContentStudio({
     return () => { window.clearTimeout(timer) }
   }, [copiedId])
 
-  // The gather scheduler exists only while the surface is open: opening
-  // starts the tick (and runs the overdue catch-up), closing stops every
-  // timer and the visibility listener. No background polling remains.
-  useEffect(() => {
-    if (!open) return
-    gather.start()
-    return () => { gather.dispose() }
-  }, [open, gather])
-  const picked = useSyncExternalStore(
-    fn => studio.subscribe(fn),
-    () => studio.pickedMaterial(),
-  )
   const pickedTopic = useSyncExternalStore(
     fn => studio.subscribe(fn),
     () => studio.pickedTopic(),
@@ -239,16 +210,11 @@ export function ContentStudio({
 
   const pickItem = (item: CapabilityItem): void => {
     void (async () => {
-      if (await writeClipboard(withIdentity(item.prompt, picked))) setCopiedId(item.id)
+      if (await writeClipboard(withIdentity(item.prompt))) setCopiedId(item.id)
     })()
   }
   const pick = async (id: string, prompt: string): Promise<void> => {
-    if (await writeClipboard(withIdentity(prompt, picked))) setCopiedId(id)
-  }
-  const pushToCreate = (material: { id: string; title: string; url: string }): void => {
-    void gather.markPicked(material.id)
-    studio.pickMaterial(material)
-    setView('create')
+    if (await writeClipboard(withIdentity(prompt))) setCopiedId(id)
   }
   const startTopicCreate = (topic: PickedTopic): void => {
     studio.pickTopic(topic)
@@ -259,26 +225,6 @@ export function ContentStudio({
   const sendToPublish = (manuscript: PickedManuscript): void => {
     studio.pickManuscript(manuscript)
     setView('publish')
-  }
-  // The reserved addToTopicBank contract, now wired: one gather material
-  // becomes one `source.type:"gather"` topic carrying the material's stable
-  // id as refId, its link, and a create-time snapshot; feedback rides the
-  // gather view's own notice channel.
-  const joinTopicBank = (materialId: string): void => {
-    const material = gather.getState().materials.find(candidate => candidate.id === materialId)
-    if (material === undefined) {
-      gather.showNotice('topic-bank-missing')
-      return
-    }
-    void (async () => {
-      const input: TopicItemInput = gatherMaterialToTopicInput(material, material.gatheredAt)
-      try {
-        await topics.put(input)
-        gather.showNotice('topic-bank-added')
-      } catch {
-        gather.showNotice('topic-bank-failed')
-      }
-    })()
   }
 
   return (
@@ -356,6 +302,8 @@ export function ContentStudio({
             {view === 'topicBank' && (
               <TopicBankView
                 topics={topics}
+                categories={topicCategories}
+                collect={topicCollect.collect}
                 schedule={schedule}
                 onStartCreate={startTopicCreate}
                 writeExport={writeExport}
@@ -367,9 +315,6 @@ export function ContentStudio({
               />
             )}
             {view === 'sentiment' && <SentimentView sentiment={sentiment} topics={topics} t={t} />}
-            {view === 'gather' && (
-              <GatherView gather={gather} onPushToCreate={pushToCreate} addToTopicBank={joinTopicBank} t={t} />
-            )}
             {view === 'accounts' && (
               <AccountsView
                 personas={personas}
@@ -384,7 +329,6 @@ export function ContentStudio({
             {view === 'persona' && (
               <PersonaView personas={personas} t={t} />
             )}
-            {view === 'library' && <ContentLibrary listOutputs={listOutputs} t={t} />}
             {view === 'publish' && (
               <PublishView
                 publish={publish}
@@ -406,39 +350,13 @@ export function ContentStudio({
                 t={t}
               />
             )}
-            {view === 'calendar' && (
-              <ContentCalendar
-                listSchedule={schedule.list}
-                putSchedule={schedule.put}
-                removeSchedule={schedule.remove}
-                notes={notes}
-                topics={topics}
-                writeExport={writeExport}
-                listThemes={listThemes}
-                onNavigate={setView}
-                t={t}
-              />
-            )}
             {view === 'templates' && <TemplateLibraryView templates={templates} t={t} />}
             {view === 'create' && (
               <>
-                {picked !== null && (
-                  <div className={gatherCss.gatherPicked} role="status">
-                    <span>
-                      {t('gather.picked.chip')}
-                      {picked.title}
-                    </span>
-                    <button type="button" className={gatherCss.gatherMini} onClick={() => { studio.clearPickedMaterial() }}>
-                      {t('gather.picked.clear')}
-                    </button>
-                  </div>
-                )}
                 <CreateView
                   create={create}
                   listThemes={listThemes}
                   persona={personaText}
-                  picked={picked}
-                  onClearPicked={() => { studio.clearPickedMaterial() }}
                   pickedTopic={pickedTopic}
                   templateLibrary={templates}
                   onClearPickedTopic={() => { studio.clearPickedTopic() }}

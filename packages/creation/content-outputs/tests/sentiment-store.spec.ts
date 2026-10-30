@@ -6,7 +6,7 @@ import type { SentimentMention, SentimentSettings, SentimentTask, SentimentTaskI
 import { DEFAULT_SENTIMENT_SETTINGS, SENTIMENT_FILENAME } from '../src/sentiment/store.ts'
 import {
   appendSentimentScanFile, deleteSentimentTaskFile, handleSentimentAlertFile,
-  normalizeSentimentTaskInput, putSentimentSettingsFile, putSentimentTaskFile,
+  normalizeSentimentTaskInput, putSentimentAlertDeliveriesFile, putSentimentSettingsFile, putSentimentTaskFile,
   readSentimentFile, setSentimentTaskEnabledFile,
 } from '../src/sentiment/store.ts'
 import { aggregateAlerts, classifyByLexicon, matchesKeywordGroups, needsRefinement, parseRefineBatchOutput } from '../src/sentiment/scan.ts'
@@ -47,6 +47,8 @@ function mention(overrides: Partial<SentimentMention> = {}): SentimentMention {
     polarity: 'neg',
     confidence: 0.9,
     evidence: '投诉',
+    occurrences: 1,
+    heatDelta: 0,
     heat: null,
     author: null,
     ...overrides,
@@ -101,6 +103,73 @@ describe('sentiment store', () => {
 })
 
 describe('appendSentimentScanFile', () => {
+  it('counts a same-content different-URL repost into the original row via the content hash', async () => {
+    const file = FILE()
+    await appendSentimentScanFile(file, [mention()], [])
+    const repost = mention({ id: 'm-2' as SentimentMention['id'], url: 'https://other.example/repost', title: '标题 ', summary: ' 摘要' })
+    await appendSentimentScanFile(file, [repost], [])
+    const state = await readSentimentFile(file)
+    expect(state.mentions.length).toBe(1)
+    expect(state.mentions[0]?.occurrences).toBe(2)
+  })
+
+  it('treats tracking-parameter URL variants as the same mention', async () => {
+    const file = FILE()
+    await appendSentimentScanFile(file, [mention({ url: 'https://Example.com/post-1?utm_source=rss&id=7' })], [])
+    await appendSentimentScanFile(file, [mention({ id: 'm-2' as SentimentMention['id'], url: 'https://example.com/post-1?id=7' })], [])
+    const state = await readSentimentFile(file)
+    expect(state.mentions.length).toBe(1)
+    expect(state.mentions[0]?.occurrences).toBe(2)
+  })
+
+  it('refreshes heat and records the delta when a duplicate recapture carries engagement', async () => {
+    const file = FILE()
+    await appendSentimentScanFile(file, [mention({ heat: { likes: 100, comments: 10, shares: 5 } })], [])
+    await appendSentimentScanFile(file, [mention({
+      id: 'm-2' as SentimentMention['id'], url: 'https://example.com/post-1?utm_source=x',
+      heat: { likes: 150, comments: 30, shares: 5 },
+    })], [])
+    const state = await readSentimentFile(file)
+    expect(state.mentions.length).toBe(1)
+    expect(state.mentions[0]?.occurrences).toBe(2)
+    expect(state.mentions[0]?.heatDelta).toBe(70)
+    expect(state.mentions[0]?.heat).toEqual({ likes: 150, comments: 30, shares: 5 })
+  })
+
+  it('keeps distinct mentions from the same task and dedupes within one batch', async () => {
+    const file = FILE()
+    await appendSentimentScanFile(file, [
+      mention({ id: 'm-1' as SentimentMention['id'], url: 'https://example.com/a', title: '甲', summary: '一' }),
+      mention({ id: 'm-2' as SentimentMention['id'], url: 'https://example.com/b', title: '乙', summary: '二' }),
+      mention({ id: 'm-3' as SentimentMention['id'], url: 'https://example.com/a?x=1', title: '甲', summary: '一' }),
+    ], [])
+    const state = await readSentimentFile(file)
+    expect(state.mentions.length).toBe(2)
+    expect(state.mentions.map(m => m.occurrences).sort()).toEqual([1, 2])
+  })
+
+  it('stores and reads back alert delivery records and defaults old rows to single capture', async () => {
+    const file = FILE()
+    // The stored row omits `occurrences` entirely, as a pre-counter record would.
+    const mentionRow = { ...mention(), occurrences: undefined } as unknown as SentimentMention
+    await appendSentimentScanFile(file, [mentionRow], [])
+    const state = await readSentimentFile(file)
+    expect(state.mentions[0]?.occurrences).toBe(1)
+
+    const delivery = {
+      dingtalk: { status: 'delivered' as const, attempts: 1, lastAt: NOW, lastError: null },
+      wecom: { status: 'pending' as const, attempts: 2, lastAt: NOW, lastError: 'HTTP 500' },
+      email: { status: 'pending' as const, attempts: 0, lastAt: null, lastError: null },
+    }
+    await putSentimentAlertDeliveriesFile(file, [])
+    const aggregated = aggregateAlerts([state.mentions[0] as SentimentMention], DEFAULT_SENTIMENT_SETTINGS, NOW)
+    await appendSentimentScanFile(file, [], aggregated)
+    await putSentimentAlertDeliveriesFile(file, aggregated.map(a => ({ id: a.id, delivery })))
+    const after = await readSentimentFile(file)
+    expect(after.alerts[0]?.delivery?.dingtalk.status).toBe('delivered')
+    expect(after.alerts[0]?.delivery?.wecom.lastError).toBe('HTTP 500')
+  })
+
   it('dedupes by task+url, prunes past retention, and caps the store', async () => {
     const task = await putSentimentTaskFile(FILE(), taskInput(), NOW)
     await appendSentimentScanFile(FILE(), [mention({ taskId: task.id })], [])

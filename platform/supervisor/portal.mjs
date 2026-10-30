@@ -11,13 +11,10 @@
  *                            member.self_password_change（ok/fail 都留痕，
  *                            detail 只含原因码，绝不含密码）。
  * - POST /api/me/revoke-all  下线所有设备（tokenEpoch+1）。审计 auth.revoke_all。
- * - GET  /register?code=     免登录注册页：展示邀请预设（部门/角色/有效期）。
- * - POST /api/register       免登录注册端点：按 IP 复用登录速率限制参数
- *                            （security.json，独立计数桶，daemon 生命周期内
- *                            内存累计）；code 常数时间校验 → 建号（addAccount
- *                            同一函数：白名单+密码策略+scrypt）→ 签发虚拟钥匙
- *                            → 标记邀请已用 → 同步该实例 tool-policy（阶段 9）
- *                            → 审计 member.register（fail detail 只含原因码）。
+ * - GET  /register            企业身份开通页（免邀请码注册）：列出已启用的
+ *                            企业微信/钉钉扫码入口；账号开通由 SSO 回调完成
+ *                            （sso.mjs 的自动开通），本模块不收集凭据。
+ * - POST /api/register       已下线：邀请码注册取消 → 410 Gone（留审计）。
  * - GET  /login              登录页直达（已认证按角色跳 /me 或入口页）。
  *
  * 隐私红线不变：审计与页面只含元数据，永不落密码/密钥/会话正文。
@@ -25,25 +22,15 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { addAccount, loadAccounts, revokeAccountTokens, setPassword, verifyPassword } from './gateway.mjs'
-import { issueVkey, listVkeys } from './relay.mjs'
-import { writeVkeyToHome } from './credentials.mjs'
+import { loadAccounts, revokeAccountTokens, setPassword, verifyPassword } from './gateway.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
-import { checkPasswordPolicy, createLoginRateGuard, loadSecurityConfig } from './security.mjs'
+import { checkPasswordPolicy, loadSecurityConfig } from './security.mjs'
 import { fmtPoints } from './quotas.mjs'
-import { syncInstanceHome } from './toolpolicy.mjs'
-import { consumeInvite, inviteRejectMessage, validateInvite } from './invites.mjs'
+import { enabledSsoProviders } from './sso.mjs'
 import { renderRegisterPage } from './auth-ui.mjs'
 import { clearTwofa, confirmSecret, generateTotpSecret, getTwofaRecord, otpauthUrl, setPendingSecret } from './totp.mjs'
 
 const ROLE_LABELS = { admin: '管理员', auditor: '审计员', employee: '成员' }
-
-/** 取该账号当前有效 vkey 明文（签发后立刻落盘用；找不到返回 null）。 */
-function listVkeysLatestFor(dataDir, account) {
-  try {
-    return listVkeys(dataDir).find((v) => v.account === account && !v.revoked)?.token ?? null
-  } catch { return null }
-}
 
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;')
@@ -254,29 +241,6 @@ async function tfaDisable(ev){ev.preventDefault();
 </script>`)
 }
 
-/** 注册串行队列：invites.json 与 accounts.json 都是读改写热点，全局串行。 */
-let registerQueue = Promise.resolve()
-
-/** 注册限速器按 dataDir 缓存（计数桶必须跨请求存活）。计数桶持久化到
- * data/register-limits.json：daemon 重启后撞码穷举的失败计数与锁定存活。 */
-const registerGuards = new Map()
-function registerGuardFor(dataDir) {
-  let guard = registerGuards.get(dataDir)
-  if (guard === undefined) {
-    // 每次判定现读 security.json：管理台改动即时生效（与登录限速一致）。
-    guard = createLoginRateGuard(() => {
-      const config = loadSecurityConfig(dataDir)
-      return {
-        windowMs: config.loginWindowMinutes * 60_000,
-        maxFails: config.loginMaxFails,
-        lockoutMs: config.lockoutMinutes * 60_000,
-      }
-    }, { dataDir, file: 'register-limits.json' })
-    registerGuards.set(dataDir, guard)
-  }
-  return guard
-}
-
 /**
  * 处理门户员工侧路由（gateway 在裸 portal 主机分支调用；auth/twofaKey 由
  * 网关算好传入）。
@@ -309,19 +273,10 @@ export function handlePortal({ req, res, url, auth, dataDir, manifest, loginPage
   }
 
   if (method === 'GET' && path === '/register') {
-    // 明文 code 白名单（生成格式 inv-<base64url>）：畸形串不经哈希比较直接按
-    // 无效渲染，防查询串内容回流页面（显式防御，不依赖 esc 兜底）。
-    const raw = url.searchParams.get('code') ?? ''
-    const code = /^inv-[A-Za-z0-9_-]+$/.test(raw) ? raw : ''
+    // 企业身份开通页（免邀请码注册）：列出已启用的企业身份登录方式，
+    // 员工扫码后由 SSO 回调自动建号。页面本身不收集任何凭据。
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    const verdict = code === '' ? { ok: false, reason: 'invalid_code' } : validateInvite(dataDir, code)
-    // 统一走 auth-ui.mjs 的渲染器：脚本块完全静态（动态值一律走 data-* 属性），
-    // 拒绝态给出成因与出路，有效态展示邀请信息 + 密码强度实时提示。
-    res.end(renderRegisterPage({
-      code,
-      invite: verdict.ok ? verdict.invite : null,
-      reason: verdict.ok ? '' : verdict.reason,
-    }))
+    res.end(renderRegisterPage({ ssoProviders: enabledSsoProviders(dataDir) }))
     return true
   }
 
@@ -330,7 +285,13 @@ export function handlePortal({ req, res, url, auth, dataDir, manifest, loginPage
   if (method === 'POST' && path === '/api/me/2fa/setup') return respond2faSetup({ req, res, auth, dataDir, twofaKey })
   if (method === 'POST' && path === '/api/me/2fa/confirm') return respond2faConfirm({ req, res, auth, dataDir, twofaKey })
   if (method === 'POST' && path === '/api/me/2fa/disable') return respond2faDisable({ req, res, auth, dataDir, twofaKey })
-  if (method === 'POST' && path === '/api/register') return respondRegister({ req, res, dataDir, manifest })
+  if (method === 'POST' && path === '/api/register') {
+    // 邀请码注册已下线：账号开通改走企业身份扫码（GET /register）。
+    // 410 Gone 明确表达「此入口已永久移除」，而非 404（路径曾经存在）。
+    void auditAppend({ actor: { account: null, role: null, ip: clientIp(req) }, action: 'member.register', target: null, result: 'deny', detail: { reason: 'invite_registration_removed' } })
+    json(res, 410, { error: '邀请码注册已停用，请改用企业身份扫码开通账号', enrollUrl: '/register' })
+    return true
+  }
   return false
 }
 
@@ -432,104 +393,6 @@ function respond2faDisable({ req, res, auth, dataDir, twofaKey }) {
     }
     void auditAppend({ actor, action: 'security.2fa_disabled', target: auth.record.account, result: 'ok', detail: null })
     json(res, 200, { ok: true, message: '两步验证已关闭' })
-  })
-  return true
-}
-
-/**
- * 注册处理（公开端点）：按 IP 限速 → 串行（校验→建号→钥匙→消费→下发→审计）。
- * 两层计数桶（NAT 共享出口不互锁）：无效/缺失邀请码的失败计入「IP 桶」
- * （防撞码穷举，同一 IP 换码重试也共享计数）；有效邀请码下的失败计入
- * 「邀请码+IP 桶」——同一 NAT 出口后，A 的密码手误只锁 A 的邀请码，
- * 不殃及用自己邀请码注册的同事。
- */
-function respondRegister({ req, res, dataDir, manifest }) {
-  if (!sameOrigin(req)) { json(res, 403, { error: 'cross-origin refused' }); return true }
-  const guard = registerGuardFor(dataDir)
-  const ip = clientIp(req)
-  void readJsonBody(req).then((body) => {
-    const actorOf = (role) => ({ account: String(body.account ?? ''), role, ip })
-    const deny = (verdict) => {
-      void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'deny', detail: { reason: 'rate_limited', retryAfterMinutes: verdict.retryAfterMinutes } })
-      json(res, 429, { error: `注册尝试过于频繁，请约 ${verdict.retryAfterMinutes} 分钟后再试` })
-    }
-    const verdict = guard.check('', ip)
-    if (!verdict.allowed) { deny(verdict); return }
-    registerQueue = registerQueue.then(async () => {
-      try {
-        const invite = validateInvite(dataDir, String(body.code ?? ''))
-        // 桶键：无效码 → ''（IP 桶）；有效码 → 邀请码（每邀请独立桶）。
-        const bucket = invite.ok ? String(body.code ?? '') : ''
-        const bucketVerdict = invite.ok ? guard.check(bucket, ip) : { allowed: true }
-        const fail = (reason, message) => {
-          guard.fail(bucket, ip)
-          void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'fail', detail: { reason } })
-          json(res, 400, { error: message })
-        }
-        if (!invite.ok) { fail(invite.reason, inviteRejectMessage(invite.reason)); return }
-        if (!bucketVerdict.allowed) { deny(bucketVerdict); return }
-        const account = typeof body.account === 'string' ? body.account.trim() : ''
-        if (account === '') { fail('missing_account', '账号不能为空'); return }
-        if (body.confirmPassword !== undefined && body.confirmPassword !== body.password) { fail('mismatch', '两次输入的密码不一致'); return }
-        if (loadAccounts(dataDir).accounts.some((a) => a.account === account)) { fail('account_exists', `账号已存在: ${account}`); return }
-        const policy = checkPasswordPolicy(String(body.password ?? ''), account, loadSecurityConfig(dataDir))
-        if (!policy.ok) { fail('weak_password', policy.message); return }
-        let created
-        try {
-          created = addAccount(dataDir, {
-            account,
-            instanceId: invite.invite.instanceId,
-            role: invite.invite.role,
-            displayName: typeof body.displayName === 'string' && body.displayName.trim() !== '' ? body.displayName.trim() : undefined,
-            department: invite.invite.department,
-            password: body.password,
-          })
-        } catch (error) {
-          fail('invalid_account', String(error?.message ?? error))
-          return
-        }
-        issueVkey(dataDir, { account: created.account, instanceId: created.instanceId, models: '*' })
-        // vkey 最后一公里：注册链路此前连明文都不返回，管理员完全拿不到钥匙。
-        // 签发时刻直接把明文写进实例 home（refs.LYZ_VIRTUAL_KEY）——这是注册
-        // 链路唯一把钥匙送到位的途径；失败仅记日志，注册本身照常完成。
-        const vkeyToken = listVkeysLatestFor(dataDir, created.account)
-        const vkeyCred = vkeyToken === null ? { ok: false, reason: 'no_active_vkey' } : writeVkeyToHome(dataDir, created.instanceId, vkeyToken)
-        if (!vkeyCred.ok) console.error('[portal] 注册后 vkey 落盘实例 home 失败:', vkeyCred.reason)
-        if (!vkeyCred.ok) console.error('[portal] 注册后 vkey 落盘实例 home 失败:', vkeyCred.reason)
-        const consumed = consumeInvite(dataDir, String(body.code ?? ''), created.account)
-        if (!consumed.ok) {
-          // 串行队列下不应到达（校验与消费之间无并发窗口）；到达说明数据被
-          // 外部并发修改——如实报错，账号保留由管理员处置。
-          json(res, 409, { error: inviteRejectMessage(consumed.reason) })
-          return
-        }
-        // 阶段 9 复用：按实例归属账号的角色重发该实例 tool-policy（热生效）。
-        let policySynced = false
-        const spec = manifest.instances.find((s) => s.id === created.instanceId)
-        if (spec !== undefined) {
-          try { syncInstanceHome(dataDir, spec); policySynced = true } catch (error) {
-            console.error('[portal] 注册后策略下发失败:', error?.message ?? error)
-          }
-        }
-        guard.success(bucket, ip)
-        void auditAppend({
-          actor: { account: created.account, role: created.role, ip },
-          action: 'member.register',
-          target: created.account,
-          result: 'ok',
-          detail: { role: created.role, department: created.department, instanceId: created.instanceId, policySynced },
-        })
-        json(res, 200, { ok: true, account: created.account, instance: created.instanceId })
-      } catch (error) {
-        // 请求必被响应（对齐 console runLocked）：未预期抛错（如畸形字段类型
-        // 打穿 addAccount 的 scrypt）转 500，客户端绝不挂死。
-        const message = String(error?.message ?? error)
-        console.error('[portal] 注册处理异常:', message)
-        void auditAppend({ actor: actorOf(null), action: 'member.register', target: null, result: 'fail', detail: { reason: 'internal', error: message } })
-        json(res, 500, { error: message })
-      }
-    })
-    registerQueue = registerQueue.catch(() => {})
   })
   return true
 }

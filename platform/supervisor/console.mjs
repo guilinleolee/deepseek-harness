@@ -22,10 +22,10 @@ import { addModel, issueVkey, listUpstreams, listVkeys, monthKey, removeModel, r
 import { writeVkeyToHome } from './credentials.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
+import { loadSsoConfig, saveSsoConfig, SSO_PROVIDERS } from './sso.mjs'
 import { checkPasswordPolicy, createLoginRateGuard, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
 import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
 import { approveForRole, denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
-import { createInvite, listOpenInvites, revokeInvite } from './invites.mjs'
 import { clearTwofa, deriveKey, isTwofaEnabled } from './totp.mjs'
 import { loadNotifyConfig, NOTIFY_SUBJECT_PREFIX, saveNotifyConfig, sendMail } from './notify.mjs'
 import { authenticateServiceToken } from './service-tokens.mjs'
@@ -385,7 +385,6 @@ ${isTwofaEnabled(dataDir, twofaKey, a.account)
   const instanceOptions = manifest.instances.map((s) => `<option value="${s.id}">${s.id}（${state.instances[s.id]?.state ?? '—'}）</option>`).join('')
   const depOptions = departments.map((dep) => `<option value="${esc(dep)}">${esc(dep)}</option>`).join('')
   // 待用邀请（未撤销/未用/未过期），过期时间升序（阶段 10）。
-  const inviteRows = listOpenInvites(dataDir).map((i) => `<tr><td><code>${esc(i.id)}</code></td><td>${esc(i.department)}</td><td>${roleChip(i.role)}</td><td>${esc(i.instanceId)}</td><td>${esc(String(i.expiresAt).replace('T', ' ').slice(0, 16))}</td><td><form class="inline" onsubmit="revokeInvite(event,'${esc(i.id)}')"><button class="warn">撤销</button></form></td></tr>`).join('')
   return `
 <form class="searchbox" method="get" style="margin:0 0 .6rem"><input name="q" value="${esc(q)}" placeholder="搜索姓名 / 账号"><button class="primary">搜索</button><select name="dep" onchange="this.form.submit()"><option value="">全部部门</option>${depOptions}</select>${q !== '' || depFilter !== '' ? '<a class="btn" href="/console/members">清除</a>' : ''}</form>
 <table><tr><th>成员</th><th>账号</th><th>部门</th><th>角色</th><th>实例</th><th>可见模型</th><th>状态</th><th>最后登录</th><th>本月点数 已用/额度</th><th>请求</th><th>操作</th></tr>${rows || '<tr><td colspan="11">无匹配成员</td></tr>'}</table>
@@ -402,12 +401,8 @@ ${isTwofaEnabled(dataDir, twofaKey, a.account)
 <div style="margin:.5rem 0">默认实例 <select name="instance">${instanceOptions}</select> ｜ <label><input type="checkbox" name="disable-missing"> 名册中不存在的账号自动禁用</label> <button class="primary">导入同步</button></div>
 </form>
 <p class="mut" style="font-size:.82rem">同步对账：名册中没有的账号创建（随机密码，需转交）；已有的更新部门/角色/显示名；勾选自动禁用后，名册缺失的非管理员账号将被禁用并下线。OIDC/LDAP 直连属待接入（接口已留）。</p>
-<h2 class="sect">邀请注册（阶段 10）</h2>
-<form class="panel" onsubmit="createInvite(event)">
-<div style="margin-bottom:.5rem">部门 <input name="department" placeholder="如 设计部（留空=未分配）"> 角色 <select name="role"><option value="employee">成员</option><option value="auditor">审计员</option></select> 实例 <select name="instanceId">${instanceOptions}</select> 有效期 <input name="expiresInHours" size="4" value="72" title="小时"> 小时 <button class="primary">生成邀请链接</button></div>
-</form>
-<table><tr><th>邀请 ID</th><th>部门</th><th>角色</th><th>实例</th><th>过期时间</th><th>操作</th></tr>${inviteRows || '<tr><td colspan="6">暂无待用邀请</td></tr>'}</table>
-<p class="mut" style="font-size:.82rem">链接一次性（注册即作废）、含预设部门/角色/实例；明文链接只在生成响应里显示一次，平台只存哈希。撤销后链接立即失效。</p>
+<h2 class="sect">员工自助开通（企业身份）</h2>
+<p class="mut" style="font-size:.82rem">已取消邀请码注册：员工改用企业身份（企业微信 / 钉钉）扫码开通账号，首次登录自动建号，无需管理员线下发码。开关与默认值在「安全与审计 → 企业身份登录」中配置。</p>
 <pre id="out" class="log" style="max-height:none"></pre>
 <p class="mut" style="font-size:.82rem">禁用 = 立即下线 + 吊销虚拟钥匙（Relay 同步拒绝）；启用 = 重新签发钥匙（模型白名单沿用历史）。重置/创建的密码只显示一次。</p>
 <script>
@@ -426,16 +421,6 @@ async function importIdp(ev){ev.preventDefault();
  const j=await r.json();
  if(r.ok){document.getElementById('out').textContent='同步完成：新建 '+j.created.length+'、更新 '+j.updated.length+'、无变化 '+j.unchanged+'、禁用缺失 '+(j.missingDisabled||[]).length+(j.created.length?('\\n新账号凭证：\\n'+j.created.map(c=>c.account+' / '+c.password).join('\\n')):'');
  if(j.created.length===0)setTimeout(()=>location.reload(),1200)}else{document.getElementById('out').textContent='HTTP '+r.status+' '+JSON.stringify(j)}}
-async function createInvite(ev){ev.preventDefault();
- const f=new FormData(ev.target);const payload={};f.forEach((v,k)=>payload[k]=v);
- const r=await fetch('/console/api/invite/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
- const j=await r.json().catch(()=>({}));
- if(r.ok){document.getElementById('out').textContent='邀请已创建（注册链接只显示一次，请立即复制转交）：\\n'+location.origin+j.registerUrl+'\\n过期时间：'+j.expiresAt}
- else document.getElementById('out').textContent='HTTP '+r.status+' '+(j.error||'')}
-async function revokeInvite(ev,id){ev.preventDefault();
- if(!confirm('撤销邀请 '+id+'？链接将立即失效'))return;
- const r=await fetch('/console/api/invite/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id})});
- if(r.ok)setTimeout(()=>location.reload(),600);else alert('撤销失败: '+await r.text())}
 async function resetTwofa(ev,account){ev.preventDefault();
  if(!confirm('重置 '+account+' 的两步验证绑定？其下次登录将只需密码（丢失认证器的救援操作）'))return;
  const r=await fetch('/console/api/member/2fa/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account})});
@@ -1055,9 +1040,8 @@ const AUDIT_ACTION_BY_PATH = {
   '/console/api/instance/stop': 'instance.stop',
   '/console/api/instance/restart': 'instance.restart',
   '/console/api/security/config': 'security.config_change',
+  '/console/api/sso/config': 'security.sso_config_change',
   '/console/api/toolpolicy': 'toolpolicy.change',
-  '/console/api/invite/create': 'invite.create',
-  '/console/api/invite/revoke': 'invite.revoke',
   '/console/api/member/2fa/reset': 'security.2fa_reset',
   '/console/api/notify/config': 'security.notify_change',
   '/console/api/token/issue': 'token.issue',
@@ -1078,11 +1062,10 @@ const POINT_FOR_PATH = {
   '/console/api/member/enable': 'member.change',
   '/console/api/member/models': 'member.change',
   '/console/api/idp/import': 'member.change',
-  '/console/api/invite/create': 'member.change',
-  '/console/api/invite/revoke': 'member.change',
   '/console/api/member/2fa/reset': 'security.change',
   '/console/api/notify/config': 'security.change',
   '/console/api/security/config': 'security.change',
+  '/console/api/sso/config': 'security.change',
   '/console/api/role-matrix': 'security.change',
   '/console/api/provider/add': 'model.change',
   '/console/api/provider/remove': 'model.change',
@@ -1195,7 +1178,6 @@ function auditActionFor(path, body = {}) {
 /** 审计 target：供应商名 / 模型 id / 实例 id / 插件 spec / 部门名 / 成员账号。 */
 function auditTargetFor(path, body = {}) {
   if (path === '/console/api/toolpolicy') return 'tool-policy'
-  if (path.startsWith('/console/api/invite/')) return typeof body.id === 'string' && body.id !== '' ? body.id : null
   if (path.startsWith('/console/api/provider/')) return typeof body.name === 'string' ? body.name : null
   if (path === '/console/api/model/add' || path === '/console/api/model/remove' || path === '/console/api/model/ratio') return typeof body.model === 'string' ? body.model : null
   if (path === '/console/api/department/group-ratio') return typeof body.department === 'string' ? body.department : null
@@ -1223,17 +1205,52 @@ export const withAccountLock = (fn) => {
 
 /* ── 页面：安全与审计 ────────────────────────────────────────────────────── */
 
-function auditPage({ dataDir, query, role }) {
+function auditPage({ dataDir, query, role, manifest }) {
   const filters = auditFiltersFromQuery(query)
   const events = auditQuery({ ...filters, limit: 500 })
   const config = loadSecurityConfig(dataDir)
   const isAdmin = role === 'admin'
   const notifyConfig = loadNotifyConfig(dataDir)
+  const ssoConfig = loadSsoConfig(dataDir)
+  const ssoInstanceOptions = (manifest?.instances ?? []).map((s) => `<option value="${esc(s.id)}">${esc(s.id)}</option>`).join('')
+  // 每个 provider 一张配置卡：启用开关 / 企业身份参数 / 免邀请码自动开通。
+  const ssoPanels = Object.entries(SSO_PROVIDERS).map(([id, meta]) => {
+    const c = ssoConfig[id] ?? {}
+    const label = meta.label
+    const idField = id === 'wecom' ? 'corpId' : 'appKey'
+    const idLabel = id === 'wecom' ? '企业 ID（corpId）' : '应用 Key（appKey）'
+    const secretLabel = id === 'wecom' ? '应用密钥（secret）' : '应用密钥（appSecret）'
+    const disabled = isAdmin ? '' : 'disabled'
+    return `<h2 class="sect">企业身份登录 · ${esc(label)}</h2>
+<form class="panel" onsubmit="saveSso(event,'${esc(id)}')" style="padding:1rem">
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:end">
+<div><label style="margin:0 0 .4rem"><input type="checkbox" name="enabled" ${c.enabled ? 'checked' : ''} ${disabled}> 启用${esc(label)}登录</label></div>
+<div><div class="flabel">${esc(idLabel)}</div><input name="${idField}" value="${esc(c[idField] ?? '')}" ${disabled}></div>
+${id === 'wecom' ? `<div><div class="flabel">AgentId（可选）</div><input name="agentId" value="${esc(c.agentId ?? '')}" ${disabled}></div>` : ''}
+<div><div class="flabel">回调地址（redirectUri）</div><input name="redirectUri" value="${esc(c.redirectUri ?? '')}" ${disabled} placeholder="https://…/api/auth/sso/${esc(id)}/callback"></div>
+<div><div class="flabel">${esc(secretLabel)}（留空 = 不改；已保存${c.secretEnc !== '' ? '：是' : '：否'}）</div><input name="secret" type="password" placeholder="••••••" ${disabled}></div>
+</div>
+<div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--line)">
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:end">
+<div><label style="margin:0 0 .4rem"><input type="checkbox" name="autoProvision" ${c.autoProvision ? 'checked' : ''} ${disabled}> 免邀请码注册：首次扫码自动开通账号</label></div>
+<div><div class="flabel">自动开通角色</div><select name="autoRole" ${disabled}>
+${['employee', 'auditor'].map((r) => `<option value="${r}" ${c.autoRole === r ? 'selected' : ''}>${r === 'employee' ? '成员' : '审计员'}</option>`).join('')}
+</select></div>
+<div><div class="flabel">自动开通部门</div><input name="autoDepartment" value="${esc(c.autoDepartment ?? '')}" ${disabled} placeholder="如 设计部（留空=未分配）"></div>
+<div><div class="flabel">自动开通实例</div><select name="autoInstance" ${disabled}><option value="">（留空=清单首个实例）</option>${ssoInstanceOptions}</select></div>
+</div>
+<p class="mut" style="font-size:.8rem;margin:.6rem 0 0">开启后：员工用${esc(label)}扫码，首次登录即自动建号并进入工作区，无需管理员线下发邀请码。自动开通的角色仅限成员/审计员（管理员只能由现有管理员授予）；员工无法自行提权。</p>
+</div>
+<div style="margin-top:.9rem">${isAdmin
+    ? '<button class="primary">保存企业身份配置</button>'
+    : '<span class="chip gray">审计员为只读角色</span>'}</div>
+</form>`
+  }).join('')
   const actionOptions = [
     ['', '全部动作'], ['auth', 'auth · 登录'], ['member', 'member · 成员'], ['provider', 'provider · 供应商'],
     ['model', 'model · 模型'], ['instance', 'instance · 实例'], ['plugin', 'plugin · 插件'],
     ['quota', 'quota · 配额'], ['audit', 'audit · 审计'], ['security', 'security · 安全'],
-    ['guard', 'guard · 工具拦截'], ['invite', 'invite · 邀请'],
+    ['guard', 'guard · 工具拦截'], ['sso', 'sso · 企业身份'],
   ].map(([value, label]) => `<option value="${value}" ${filters.actionPrefix === value ? 'selected' : ''}>${label}</option>`).join('')
   const resultOptions = [['ok', '成功'], ['deny', '拒绝'], ['fail', '失败']]
     .map(([value, label]) => `<option value="${value}" ${filters.result === value ? 'selected' : ''}>${label}</option>`).join('')
@@ -1302,6 +1319,7 @@ ${['off', 'file', 'smtp'].map((m) => `<option value="${m}" ${notifyConfig.mode =
     ? '<button class="primary">保存通知设置</button>'
     : '<span class="chip gray">审计员为只读角色</span>'} <span class="mut" style="font-size:.8rem;margin-left:.8rem">触发点：配额跨 80%（每账号每月一次，抄送管理员）、建号/禁用/重置密码（通知本人，绝不含密码原文）。</span></div>
 </form>
+${ssoPanels}
 <pre id="out" class="log" style="max-height:none"></pre>
 <script>
 async function saveSecurity(ev){ev.preventDefault();
@@ -1318,6 +1336,18 @@ async function saveNotify(ev){ev.preventDefault();
   adminNotify:String(f.get('adminNotify')||'').split(',').map(function(s){return s.trim()}).filter(Boolean)})});
  var t=await r.text();document.getElementById('out').textContent='HTTP '+r.status+' '+t;
  if(r.ok)setTimeout(()=>location.reload(),800)}
+async function saveSso(ev,provider){ev.preventDefault();
+  var f=new FormData(ev.target);
+  var payload={provider:provider,enabled:f.get("enabled")==="on",
+   autoProvision:f.get("autoProvision")==="on",
+   autoRole:f.get("autoRole"),autoDepartment:f.get("autoDepartment"),autoInstance:f.get("autoInstance"),
+   redirectUri:f.get("redirectUri")};
+  if(provider==="wecom"){payload.corpId=f.get("corpId");payload.agentId=f.get("agentId");var sv=f.get("secret");if(sv)payload.secret=sv;}
+  else{payload.appKey=f.get("appKey");var sv2=f.get("secret");if(sv2)payload.appSecret=sv2;}
+  var r=await fetch("/console/api/sso/config",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+  var t=await r.text();document.getElementById("out").textContent="HTTP "+r.status+" "+t;
+
+  if(r.ok)setTimeout(()=>location.reload(),800)}
 </script>`
 }
 
@@ -1614,6 +1644,36 @@ async function handleApi({ req, res, path, body: rawBody, dataDir, manifest, act
         }
         return
       }
+      case '/console/api/sso/config': {
+        // 企业身份登录配置（企业微信/钉钉）：凭据 + 免邀请码自动开通策略。
+        // secret 只在本次提交里明文出现，落盘时加密（saveSsoConfig 内部处理）；
+        // 响应与审计只回标量元数据，绝不回显密钥。
+        const provider = typeof body.provider === 'string' ? body.provider : ''
+        if (!(provider in SSO_PROVIDERS)) { fail(400, `未知 SSO provider: ${provider}`); return }
+        const patch = { enabled: body.enabled === true }
+        for (const key of ['corpId', 'appKey', 'agentId', 'redirectUri', 'autoRole', 'autoDepartment', 'autoInstance']) {
+          if (body[key] !== undefined) patch[key] = body[key]
+        }
+        patch.autoProvision = body.autoProvision === true
+        const secretField = provider === 'wecom' ? 'secret' : 'appSecret'
+        if (typeof body[secretField] === 'string' && body[secretField] !== '') patch[secretField] = body[secretField]
+        let next
+        try {
+          next = saveSsoConfig(dataDir, { [provider]: patch }, twofaKey)
+        } catch (error) {
+          fail(400, String(error?.message ?? error))
+          return
+        }
+        ok({ ok: true, provider, config: next[provider] }, {
+          provider,
+          enabled: next[provider]?.enabled === true,
+          autoProvision: next[provider]?.autoProvision === true,
+          autoRole: next[provider]?.autoRole,
+          autoInstance: next[provider]?.autoInstance,
+          secretChanged: patch[secretField] !== undefined,
+        })
+        return
+      }
       case '/console/api/security/config': {
         const patch = {}
         for (const key of ['loginWindowMinutes', 'loginMaxFails', 'lockoutMinutes', 'passwordMinLength', 'passwordMinClasses']) {
@@ -1700,33 +1760,6 @@ async function handleApi({ req, res, path, body: rawBody, dataDir, manifest, act
           { ok: true, policy: next, synced },
           { old, new: next, syncedInstances: synced.filter((r) => !r.skipped).map((r) => r.id) },
         )
-        return
-      }
-      case '/console/api/invite/create': {
-        // 邀请只发放 employee/auditor（admin 由既有管理员在成员页创建）；
-        // 明文 code 只随本响应出现一次，审计与存储只落哈希。
-        const role = body.role === 'auditor' ? 'auditor' : 'employee'
-        const instanceId = typeof body.instanceId === 'string' ? body.instanceId : ''
-        if (!manifest.instances.some((s) => s.id === instanceId)) { fail(400, '未知实例'); return }
-        const department = typeof body.department === 'string' && body.department.trim() !== '' ? body.department.trim() : '未分配'
-        if (!isValidEntityName(department)) { fail(400, '部门名格式非法（允许字母数字、@._- 与中文，1–64 字符）'); return }
-        try {
-          const { id, code, expiresAt } = createInvite(dataDir, {
-            department,
-            role,
-            instanceId,
-            expiresInHours: body.expiresInHours === undefined || body.expiresInHours === '' ? undefined : Number(body.expiresInHours),
-          })
-          ok({ ok: true, id, registerUrl: `/register?code=${code}`, expiresAt }, { role, department, instanceId })
-        } catch (error) {
-          fail(400, String(error?.message ?? error))
-        }
-        return
-      }
-      case '/console/api/invite/revoke': {
-        const id = typeof body.id === 'string' ? body.id : ''
-        if (!revokeInvite(dataDir, id)) { fail(404, '邀请不存在或已使用/已撤销'); return }
-        ok({ ok: true })
         return
       }
       case '/console/api/member/2fa/reset': {

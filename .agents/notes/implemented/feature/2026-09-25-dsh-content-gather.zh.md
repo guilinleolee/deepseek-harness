@@ -14,7 +14,7 @@ Status: implemented
 
 并行选题库提示词第七节的三条契约一并带上：素材 id 稳定持久（feed guid，否则规范化链接的 SHA-1——原始 guid 一并保留以便换策略重算）；素材列表/详情布局是可复用的 `SplitDetail` 组件（选题库的详情面板将复用同一接缝）；每张卡片和详情都有「加入选题库」入口，挂预订契约名 `addToTopicBank(materialId)`，在本期以待开放 toast 应答，选题库上线后接入即可。
 
-浏览器侧（`packages/client/ui-content-studio/src/client/gather/`）拥有其余一切，且除此之外不持久化任何东西：源、任务、任务日志只存在 `content-studio.gather.` 前缀下，写入失败（配额/隐私模式）降级为内存并在界面上说明；清空浏览器数据只丢源与任务，磁盘上的素材完整保留。控制器是一个可观察状态对象，快照在每次变更时重建（若 `getSnapshot` 每次返回新对象，`useSyncExternalStore` 会无限重渲染——渲染测试抓住了这一点）。采集只在工作台打开期间进行：30 秒主循环，`visibilitychange` 暂停/恢复，重开工作台后对超间隔任务带 `since` 游标补跑一次——是补偿，不是后台轮询。源级失败启动 1h → 2h → 4h 指数退避（封顶 24h）并门控定时运行；手动触发是用户的显式意图，越过该门控。推送素材到创作视图会在清单里把它标为 `picked`，并给创作视图一个仅含 id、标题、链接的引用（共享 studio controller 上的 `PickedMaterial`——载荷永远不含正文）。
+浏览器侧（`packages/client/ui-content-studio/src/client/`，gather 视图现已移除）曾拥有其余一切，且除此之外不持久化任何东西：源、任务、任务日志只存在 `content-studio.gather.` 前缀下，写入失败（配额/隐私模式）降级为内存并在界面上说明；清空浏览器数据只丢源与任务，磁盘上的素材完整保留。控制器是一个可观察状态对象，快照在每次变更时重建（若 `getSnapshot` 每次返回新对象，`useSyncExternalStore` 会无限重渲染——渲染测试抓住了这一点）。采集只在工作台打开期间进行：30 秒主循环，`visibilitychange` 暂停/恢复，重开工作台后对超间隔任务带 `since` 游标补跑一次——是补偿，不是后台轮询。源级失败启动 1h → 2h → 4h 指数退避（封顶 24h）并门控定时运行；手动触发是用户的显式意图，越过该门控。推送素材到创作视图会在清单里把它标为 `picked`，并给创作视图一个仅含 id、标题、链接的引用（共享 studio controller 上的 `PickedMaterial`——载荷永远不含正文）。
 
 ## 被否决的备选方案
 

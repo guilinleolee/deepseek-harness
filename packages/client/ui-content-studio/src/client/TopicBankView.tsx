@@ -15,12 +15,12 @@ import { clsx } from 'clsx'
 import { IconRefreshOutlineMedium, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ScheduleItemId, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
-import type { ContentTopicsSnapshot, TopicItem, TopicItemInput, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
+import type { ContentTopicsSnapshot, TopicCategoriesSnapshot, TopicCategory, TopicCategoryInput, TopicItem, TopicItemInput, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
+import type { TopicCollectRequest, TopicCollectResult } from '@deepseek-ai/dsh-content-outputs/types'
 import type { CapabilityItem } from './capabilities.ts'
 import { CapabilityPage } from './CapabilityPage.tsx'
 import type { PickedTopic } from './studio-store.ts'
 import { SplitDetail } from './SplitDetail.tsx'
-import { todayDate } from './calendar.ts'
 import type { TemplateController } from './template/template-store.ts'
 import {
   TOPIC_SOURCE_TYPES,
@@ -32,6 +32,7 @@ import {
   loadTopicBankConfig,
   manualTopicInput,
   saveTopicBankConfig,
+  todayDate,
   topicInputOf,
   topicsToMarkdown,
   withAppendedTags,
@@ -66,9 +67,25 @@ export interface TopicBankGateway {
   remove: (id: TopicItem['id']) => Promise<ContentTopicsSnapshot>
 }
 
+/** The contentTopics Remote category face, envelope-unwrapped by the assembler. */
+export interface TopicCategoryGateway {
+  list: () => Promise<TopicCategoriesSnapshot>
+  put: (input: TopicCategoryInput) => Promise<TopicCategoriesSnapshot>
+  remove: (id: TopicCategory['id']) => Promise<TopicCategoriesSnapshot>
+}
+
+/** The keyword topic-collection face, served by the content-outputs Remote. */
+export interface TopicCollectFace {
+  collect: (request: TopicCollectRequest) => Promise<TopicCollectResult>
+}
+
 /** Injected face of the topic-bank view. */
 export interface TopicBankViewInjected {
   topics: TopicBankGateway
+  /** The category face backing the selection-category management bar. */
+  categories: TopicCategoryGateway
+  /** The collection face behind each category's collect button. */
+  collect: TopicCollectFace['collect']
   /** The calendar write face for the plan-date linkage and delete cascade. */
   schedule: TopicBankScheduleFace
   /** Hand one topic to the create view (navigates there). */
@@ -118,6 +135,15 @@ function editFormOf(item: TopicItem): TopicFormState {
   }
 }
 
+/** Draft of the selection-category form; create reads only name + keywords. */
+interface CategoryFormState {
+  readonly mode: 'create' | 'edit'
+  readonly id: string | null
+  readonly name: string
+  readonly keywordsText: string
+  readonly feedsText: string
+}
+
 /** Blank-string-to-null for the form's optional fields. */
 function orNull(value: string): string | null {
   const trimmed = value.trim()
@@ -135,7 +161,7 @@ function parseTagsText(value: string): readonly string[] {
  * @returns the view element tree.
  */
 export function TopicBankView({
-  topics, schedule, onStartCreate, writeExport, listThemes, copiedCapabilityId, pickCapability, templateLibrary, t,
+  topics, categories, collect, schedule, onStartCreate, writeExport, listThemes, copiedCapabilityId, pickCapability, templateLibrary, t,
 }: TopicBankViewProps) {
   const [snapshot, setSnapshot] = useState<ContentTopicsSnapshot | undefined>(undefined)
   const [failed, setFailed] = useState<string | undefined>(undefined)
@@ -153,6 +179,24 @@ export function TopicBankView({
   const [notice, setNotice] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<TopicStatus | null>(null)
   const draggingRef = useRef<string | null>(null)
+  const [catSnapshot, setCatSnapshot] = useState<TopicCategoriesSnapshot | undefined>(undefined)
+  const [catFailed, setCatFailed] = useState<string | undefined>(undefined)
+  const [catOpen, setCatOpen] = useState(false)
+  const [catForm, setCatForm] = useState<CategoryFormState | null>(null)
+  const [catError, setCatError] = useState<string | null>(null)
+  const [confirmingCategory, setConfirmingCategory] = useState<string | null>(null)
+  const [collectingId, setCollectingId] = useState<string | null>(null)
+
+  const loadCategories = async (): Promise<void> => {
+    setCatFailed(undefined)
+    try {
+      setCatSnapshot(await categories.list())
+    } catch (error) {
+      console.error('[content-studio] contentTopics/listCategories failed:', error)
+      setCatFailed(error instanceof Error ? error.message : String(error))
+    }
+  }
+  useEffect(() => { void loadCategories() }, [categories])
 
   const load = async (): Promise<void> => {
     setFailed(undefined)
@@ -400,6 +444,178 @@ export function TopicBankView({
     setConfirming(false)
   }
 
+  /** Save the category form: the keywords ride the same comma-separated
+   * parsing as the topic tags, blanks dropped. */
+  const submitCategory = async (): Promise<void> => {
+    if (catForm === null) return
+    const name = catForm.name.trim()
+    if (name.length === 0) { setCatError(t('topicBank.categories.error.nameRequired')); return }
+    const keywords = parseTagsText(catForm.keywordsText)
+    if (keywords.length === 0) { setCatError(t('topicBank.categories.error.keywordsRequired')); return }
+    try {
+      const input = catForm.id === null
+        ? { name, keywords, feedUrls: parseTagsText(catForm.feedsText) }
+        : { id: catForm.id as TopicCategory['id'], name, keywords, feedUrls: parseTagsText(catForm.feedsText) }
+      setCatSnapshot(await categories.put(input))
+      setCatForm(null)
+      toast(t('topicBank.categories.notice.saved'))
+    } catch (error) {
+      toast(t('topicBank.notice.failed', { detail: error instanceof Error ? error.message : String(error) }))
+    }
+  }
+
+  /** Delete one category by id; topics produced under it stay in the bank. */
+  const performCategoryDelete = async (id: string): Promise<void> => {
+    try {
+      setCatSnapshot(await categories.remove(id as TopicCategory['id']))
+      setConfirmingCategory(null)
+      toast(t('topicBank.categories.notice.deleted'))
+    } catch (error) {
+      toast(t('topicBank.notice.failed', { detail: error instanceof Error ? error.message : String(error) }))
+    }
+  }
+
+  /** Run one collection pass for the category: fetch matched entries, then
+   * upsert each as a keyword-source topic in 'idea'. One failed write stops
+   * the run; the failure toasts and the bank keeps what landed. */
+  const collectForCategory = async (category: TopicCategory): Promise<void> => {
+    if (collectingId !== null) return
+    setCollectingId(category.id)
+    try {
+      const { entries } = await collect({
+        keywords: category.keywords,
+        feedUrls: category.feedUrls ?? [],
+        existingUrls: items.map(item => item.source.url ?? '').filter(url => url.length > 0),
+        existingTitles: items.map(item => item.title),
+      })
+      let last: ContentTopicsSnapshot | undefined
+      for (const entry of entries) {
+        last = await topics.put({
+          title: entry.title,
+          oneLiner: entry.summary,
+          status: 'idea',
+          source: {
+            type: 'keyword',
+            refId: null,
+            url: entry.url,
+            snapshot: { title: entry.title, summary: entry.summary, capturedAt: new Date().toISOString() },
+          },
+          tags: [category.name],
+          description: null,
+          score: null,
+          planDate: null,
+          scheduleItemId: null,
+          topicDir: null,
+        })
+      }
+      if (last !== undefined) setSnapshot(last)
+      toast(entries.length === 0 ? t('topicBank.categories.notice.collectedNone') : t('topicBank.categories.notice.collected', { n: entries.length }))
+    } catch (error) {
+      toast(t('topicBank.notice.failed', { detail: error instanceof Error ? error.message : String(error) }))
+    } finally {
+      setCollectingId(null)
+    }
+  }
+
+  const openCategoryCreate = (): void => {
+    setCatError(null)
+    setCatForm({ mode: 'create', id: null, name: '', keywordsText: '', feedsText: '' })
+    setCatOpen(true)
+  }
+  const openCategoryEdit = (category: TopicCategory): void => {
+    setCatError(null)
+    setCatForm({ mode: 'edit', id: category.id, name: category.name, keywordsText: category.keywords.join(', '), feedsText: (category.feedUrls ?? []).join(', ') })
+    setCatOpen(true)
+  }
+  const patchCatForm = (patch: Partial<CategoryFormState>): void => {
+    setCatForm(current => current === null ? current : { ...current, ...patch })
+  }
+
+  /** The selection-category management bar: a collapsible list of user-owned
+   * keyword categories with create/edit/delete and the inline form. */
+  const categoriesBar = (
+    <section className={tb.categoriesBar} aria-label={t('topicBank.categories.title')}>
+      <div className={tb.categoriesHead}>
+        <span className={tb.controlLabel}>{t('topicBank.categories.title')}</span>
+        <span className={tb.count}>{t('topicBank.count', { n: catSnapshot?.items.length ?? 0 })}</span>
+        <button type="button" className={tb.btn} onClick={() => { setCatOpen(current => !current) }}>
+          {catOpen ? t('topicBank.categories.collapse') : t('topicBank.categories.manage')}
+        </button>
+        <button type="button" className={tb.primary} onClick={openCategoryCreate}>{t('topicBank.categories.new')}</button>
+      </div>
+      {catFailed !== undefined && (
+        <div className={css.libraryState}>
+          <IconWarningOutlineRegular size={14} />
+          <span>{t('topicBank.categories.error.load')}: {catFailed}</span>
+          <button type="button" className={css.retry} onClick={() => { void loadCategories() }}>
+            <IconRefreshOutlineMedium size={14} />
+            {t('library.retry')}
+          </button>
+        </div>
+      )}
+      {catOpen && (
+        <div className={tb.categoriesList}>
+          {(catSnapshot?.items ?? []).map(category => (
+            <div key={category.id} className={tb.categoriesItem}>
+              <span className={tb.categoriesName}>{category.name}</span>
+              {category.keywords.map(keyword => <span key={keyword} className={tb.tag}>{keyword}</span>)}
+              <button
+                type="button"
+                className={tb.btn}
+                disabled={collectingId !== null}
+                onClick={() => { void collectForCategory(category) }}
+              >
+                {collectingId === category.id ? t('topicBank.categories.collecting') : t('topicBank.categories.collect')}
+              </button>
+              <button type="button" className={tb.btn} onClick={() => { openCategoryEdit(category) }}>{t('topicBank.edit')}</button>
+              {confirmingCategory === category.id ? (
+                <span className={tb.categoriesItem}>
+                  <button type="button" className={clsx(tb.btn, tb.btnDanger)} onClick={() => { void performCategoryDelete(category.id) }}>
+                    {t('topicBank.deleteConfirm')}
+                  </button>
+                  <button type="button" className={tb.btn} onClick={() => { setConfirmingCategory(null) }}>{t('topicBank.cancel')}</button>
+                </span>
+              ) : (
+                <button type="button" className={clsx(tb.btn, tb.btnDanger)} onClick={() => { setConfirmingCategory(category.id) }}>
+                  {t('topicBank.delete')}
+                </button>
+              )}
+            </div>
+          ))}
+          {(catSnapshot?.items.length ?? 0) === 0 && <span className={tb.cellMeta}>{t('topicBank.categories.empty')}</span>}
+          {catForm !== null && (
+            <form className={tb.categoriesForm} aria-label={t('topicBank.categories.form')} onSubmit={(event) => { event.preventDefault(); void submitCategory() }}>
+              <input
+                aria-label={t('topicBank.categories.field.name')}
+                className={tb.formInput}
+                value={catForm.name}
+                placeholder={t('topicBank.categories.field.namePlaceholder')}
+                onChange={(event) => { patchCatForm({ name: event.target.value }) }}
+              />
+              <input
+                aria-label={t('topicBank.categories.field.keywords')}
+                className={tb.formInput}
+                value={catForm.keywordsText}
+                placeholder={t('topicBank.categories.field.keywordsPlaceholder')}
+                onChange={(event) => { patchCatForm({ keywordsText: event.target.value }) }}
+              />
+              <input
+                aria-label={t('topicBank.categories.field.feeds')}
+                className={tb.formInput}
+                value={catForm.feedsText}
+                placeholder={t('topicBank.categories.field.feedsPlaceholder')}
+                onChange={(event) => { patchCatForm({ feedsText: event.target.value }) }}
+              />
+              {catError !== null && <p className={tb.formError}>{catError}</p>}
+              <button type="submit" className={tb.primary}>{t('topicBank.save')}</button>
+              <button type="button" className={tb.btn} onClick={() => { setCatForm(null) }}>{t('topicBank.cancel')}</button>
+            </form>
+          )}
+        </div>
+      )}
+    </section>
+  )
+
   const createForm = form !== null && form.mode === 'create' && (
     <div className={clsx(tb.detail, tb.formPanel)}>
       <div className={tb.form}>
@@ -449,6 +665,7 @@ export function TopicBankView({
     return (
       <div>
         {createForm}
+        {categoriesBar}
         <div className={css.libraryState}>{t('topicBank.guide.hint')}</div>
         <div className={tb.guideActions}>
           <button type="button" className={tb.primary} onClick={() => { openCreate() }}>{t('topicBank.new')}</button>
@@ -503,6 +720,8 @@ export function TopicBankView({
           <button type="button" className={tb.btn} onClick={openTemplatePicker}>{t('topicBank.useTemplate')}</button>
         )}
       </header>
+
+      {categoriesBar}
 
       <div className={tb.toolbar}>
         <select aria-label={t('topicBank.view.aria')} className={tb.control} value={config.view} onChange={(event) => { patchConfig({ view: event.target.value as TopicBankConfig['view'] }) }}>

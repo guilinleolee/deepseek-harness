@@ -12,7 +12,8 @@ kind: "package-bundle"
 
 ## 目录
 
-- [收集写面](#收集写面)
+- [收集写面](#gather-写面)
+- [创作写面](#创作写面)
 - [舆情面](#舆情面)
 - [模型体验](#model-experience)
 - [已知限制与暂缓事项](#known-limitations-and-deferred-work)
@@ -29,12 +30,17 @@ kind: "package-bundle"
 gather 的全部存储都位于 `outputs/<主题>/assets/` 下：`_gather.json` 清单与 `*.html` 正文快照。路径受守卫（主题名与文件名必须是单一名称段，拒绝穿越）；清单整体替换一律先做限额裁剪，再经文件锁加原子重命名提交；Windows 上对杀软/索引器造成的瞬时占用按退避重试；网关启动时清扫孤儿临时文件。
 
 - `fetchFeed` 在网关侧拉取并解析一份 feed 文档（RSS 2.0、Atom、RDF、JSON Feed），携带源上的 `ETag`/`Last-Modified` 游标；命中 304 只返回 `notModified`。浏览器自身从不抓取跨源 feed。
+- `collectTopicEntries` 为一个选题分类跑一次关键词收集：分类的 RSS 源（同一白名单）加上每个关键词一页微博访客搜索与 B 站公开视频搜索，按关键词匹配并对照选题库已有的 URL 与标题去重。本方法不落盘——调用方经 topics Remote 将候选 upsert 进选题库。
 - `writeAsset` 对 `*.html` 内容先经 sanitize-html 白名单清洗并截断到正文上限再落盘；其他文本文件只受硬性大小上限约束。
 - `readGatherManifest` / `writeGatherManifest` 读取与整体替换清单；校验失败的条目在 `problems` 中具名，调用方不得在存在 problems 时基于该读取结果写回。
 - `moveAsset` / `deleteAsset` / `readAsset` 覆盖主题内重命名、删除与文本读取。
 - `processMaterial` 经共享 `llm` 服务执行一次显式、排队的模型调用（摘要、要点、选题分、标签）；限流按 `Retry-After` 感知退避重试，调用本身不落任何盘。
 
 保留策略：每源每主题保留最近 50 条 `unread`/`read` 素材；`favorite` 与 `picked` 标记及其快照永不自动清理。
+
+## 创作写面
+
+`extractCreateCopy` 拉取粘贴链接背后的文章页，经 gather 清洗白名单还原为标题加可见正文——只做网络读取，不落任何盘；抓取固定在网关侧，因为浏览器无法访问跨源文章页。非 http(s) URL 在发起请求前即被拒绝；非 2xx 响应、超过响应体积上限的页面、超过存量文本上限的正文（截断并置 `truncated`）是调用方仅有的失败形态。
 
 ## 舆情面
 

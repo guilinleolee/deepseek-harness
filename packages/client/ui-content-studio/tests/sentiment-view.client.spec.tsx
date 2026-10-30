@@ -72,6 +72,8 @@ function mention(overrides: Partial<SentimentMention> = {}): SentimentMention {
     polarity: 'neg',
     confidence: 0.9,
     evidence: 'refund',
+    occurrences: 1,
+    heatDelta: 0,
     heat: null,
     author: null,
     ...overrides,
@@ -137,6 +139,12 @@ function gateway(overrides: Partial<SentimentGateway> = {}): SentimentGateway {
       markdown: '# Daily sentiment report', degraded: false, generatedAt: NOW,
       promptVersion: 'sentiment-report@1', mentionCount: 1, alertCount: 1,
     }),
+    retrySentimentPush: async () => ({ retried: 1, delivered: 2 }),
+    testSentimentPush: async () => ({
+      dingtalk: { attempted: true, error: null },
+      wecom: { attempted: false, error: null },
+      email: { attempted: true, error: 'connection refused' },
+    }),
     ...overrides,
   }
 }
@@ -185,9 +193,10 @@ describe('SentimentView', () => {
     })
     await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
     fireEvent.click(screen.getByText('Dashboard'))
-    // Each day contributes one labelled column carrying its month-day.
+    // Each day contributes one labelled column carrying its month-day;
+    // a day above its predecessor carries the surge marker.
     expect(screen.getByText('10-06')).toBeTruthy()
-    expect(screen.getByText('10-07')).toBeTruthy()
+    expect(screen.getByText('▲10-07')).toBeTruthy()
     expect(screen.getByText('10-08')).toBeTruthy()
   })
 
@@ -204,6 +213,7 @@ describe('SentimentView', () => {
     if (nameBox === undefined) throw new Error('expected a task-name textbox')
     fireEvent.change(nameBox, { target: { value: 'Policy watch' } })
     fireEvent.change(within(dialog).getByRole('textbox', { name: /^Subjects \(one per line/ }), { target: { value: 'Acme' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Negative keywords/ }), { target: { value: 'refund' } })
     fireEvent.change(within(dialog).getByRole('textbox', { name: /^RSS feed URLs/ }), { target: { value: 'https://policy.example/rss' } })
     const [saveButton] = within(dialog).getAllByText('Save')
     if (saveButton === undefined) throw new Error('expected a Save button')
@@ -215,6 +225,64 @@ describe('SentimentView', () => {
 
     fireEvent.click(screen.getByText('Disable'))
     await waitFor(() => { expect(toggleSpy).toHaveBeenCalledOnce() })
+  })
+
+  it('retries pending alert pushes from the alerts tab', async () => {
+    const retrySpy = vi.fn(async () => ({ retried: 2, delivered: 3 }))
+    renderView({ retrySentimentPush: retrySpy })
+    await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
+    fireEvent.click(screen.getByText('Alerts'))
+    fireEvent.click(screen.getByText('Retry push'))
+    await waitFor(() => { expect(retrySpy).toHaveBeenCalledOnce() })
+    await waitFor(() => { expect(screen.getByText('Retried 2 alerts, 3 channel sends delivered')).toBeTruthy() })
+  })
+
+  it('shows the per-channel push state on alert rows with a delivery record', async () => {
+    const delivery = {
+      dingtalk: { status: 'delivered' as const, attempts: 1, lastAt: NOW, lastError: null },
+      wecom: { status: 'pending' as const, attempts: 2, lastAt: NOW, lastError: 'HTTP 500' },
+      email: { status: 'pending' as const, attempts: 0, lastAt: null, lastError: null },
+    }
+    renderView({ getSentiment: async () => snapshot({ alerts: [alert({ delivery })] }) })
+    await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
+    fireEvent.click(screen.getByText('Alerts'))
+    expect(screen.getByText(/retrying/)).toBeTruthy()
+  })
+
+  it('sends a test push from settings and reports per-channel outcomes', async () => {
+    const testSpy = vi.fn(async () => ({
+      dingtalk: { attempted: true, error: null },
+      wecom: { attempted: false, error: null },
+      email: { attempted: true, error: 'HTTP 500' },
+    }))
+    renderView({ testSentimentPush: testSpy })
+    await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
+    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByText('Send test push'))
+    await waitFor(() => { expect(testSpy).toHaveBeenCalledOnce() })
+    await waitFor(() => { expect(screen.getByText(/Test push result — /)).toBeTruthy() })
+  })
+
+  it('blocks the task save with a localized error when every keyword group is empty', async () => {
+    const putSpy = vi.fn(async (input: SentimentTaskInput) => ({ ...task(), ...input }))
+    renderView({ putSentimentTask: putSpy })
+    await waitFor(() => { expect(screen.getByText('Kabage brand watch')).toBeTruthy() })
+
+    fireEvent.click(screen.getByText('New monitor task'))
+    const dialog = screen.getByRole('dialog')
+    const textboxes = within(dialog).getAllByRole('textbox')
+    const [nameBox] = textboxes
+    if (nameBox === undefined) throw new Error('expected a task-name textbox')
+    fireEvent.change(nameBox, { target: { value: 'No keywords' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Subjects \(one per line/ }), { target: { value: 'Acme' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^RSS feed URLs/ }), { target: { value: 'https://policy.example/rss' } })
+    const [saveButton] = within(dialog).getAllByText('Save')
+    if (saveButton === undefined) throw new Error('expected a Save button')
+    fireEvent.click(saveButton)
+    await waitFor(() => {
+      expect(within(dialog).getByText(/Add at least one term in one keyword group/)).toBeTruthy()
+    })
+    expect(putSpy).not.toHaveBeenCalled()
   })
 
   it('shows the mention rows with the polarity tag and the source link', async () => {

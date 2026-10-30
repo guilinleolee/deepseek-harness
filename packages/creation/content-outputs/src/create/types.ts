@@ -164,6 +164,18 @@ export interface CreateRegisterRequest {
   readonly version: number
 }
 
+/** Paste-a-link extraction result: nothing is persisted; the caller adopts it into a draft. */
+export interface CreateExtractResult {
+  /** The final URL after redirects. */
+  readonly url: string
+  /** Page title, empty when the document carries none. */
+  readonly title: string
+  /** Extracted visible prose. */
+  readonly text: string
+  /** Whether the prose was cut at the stored-text cap. */
+  readonly truncated: boolean
+}
+
 /** Non-system asset file names of one theme's `assets/` directory. */
 export interface CreateAssetList {
   readonly files: readonly string[]

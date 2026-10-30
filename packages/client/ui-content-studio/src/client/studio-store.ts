@@ -1,18 +1,11 @@
 /**
  * The open/close controller shared by the sidebar entry and the frame-wide
- * surface, plus the two handoffs into the create view — the picked-material
- * handoff from the gather view and the picked-topic handoff from the topic
- * bank. apply() creates one instance and injects it into both slot
- * registrations — component state cannot cross two slot entries, and no
+ * surface, plus the two handoffs into the create and publish views — the
+ * picked-topic handoff from the topic bank and the picked-manuscript handoff
+ * from the create view. apply() creates one instance and injects it into both
+ * slot registrations — component state cannot cross two slot entries, and no
  * store seat is needed for a single observable.
  */
-
-/** The material currently handed to the create view, if any. */
-export interface PickedMaterial {
-  readonly id: string
-  readonly title: string
-  readonly url: string
-}
 
 /** The topic currently handed to the create view, if any. */
 export interface PickedTopic {
@@ -37,7 +30,7 @@ export interface PickedManuscript {
   readonly topicId?: string | null
 }
 
-/** Observable open state, the two verbs, and the two create-view handoffs. */
+/** Observable open state, the two verbs, and the two view handoffs. */
 export interface ContentStudioController {
   /** Current open state (the useSyncExternalStore snapshot). */
   isOpen(): boolean
@@ -47,12 +40,6 @@ export interface ContentStudioController {
   open(): void
   /** Close the workbench surface. */
   close(): void
-  /** Hand one gathered material to the create view (id reference only, never the body). */
-  pickMaterial(material: PickedMaterial): void
-  /** The current handoff, or null. */
-  pickedMaterial(): PickedMaterial | null
-  /** Clear the handoff once the create view has consumed it. */
-  clearPickedMaterial(): void
   /** Hand one topic-bank topic to the create view (title plus brief fields). */
   pickTopic(topic: PickedTopic): void
   /** The current topic handoff, or null. */
@@ -73,7 +60,6 @@ export interface ContentStudioController {
  */
 export function createContentStudioController(): ContentStudioController {
   let open = false
-  let picked: PickedMaterial | null = null
   let pickedTopic: PickedTopic | null = null
   let pickedManuscript: PickedManuscript | null = null
   const listeners = new Set<() => void>()
@@ -94,16 +80,6 @@ export function createContentStudioController(): ContentStudioController {
     close: () => {
       if (!open) return
       open = false
-      emit()
-    },
-    pickMaterial: (material) => {
-      picked = material
-      emit()
-    },
-    pickedMaterial: () => picked,
-    clearPickedMaterial: () => {
-      if (picked === null) return
-      picked = null
       emit()
     },
     pickTopic: (topic) => {

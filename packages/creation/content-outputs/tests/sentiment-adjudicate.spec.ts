@@ -37,7 +37,7 @@ function mention(): SentimentMention {
     id: 'm-1' as SentimentMention['id'], taskId: 't-1' as SentimentMention['taskId'],
     source: 'weibo', platform: '微博', url: 'https://m.weibo.cn/detail/1', title: '投诉标题',
     summary: '摘要', publishedAt: null, capturedAt: '2026-10-22T08:00:00.000Z', polarity: 'neg',
-    confidence: 0.9, evidence: '投诉', heat: null, author: null,
+    confidence: 0.9, evidence: '投诉', occurrences: 1, heatDelta: 0, heat: null, author: null,
   }
 }
 

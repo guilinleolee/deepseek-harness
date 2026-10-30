@@ -3,7 +3,7 @@
  * operations (append, manual-save merge window, pin, prune), word/reading
  * counts, deliverable naming, export rendering, line diffing, and the
  * selection splice. No React, no I/O — the view and the tests share this
- * module, like `competitors.ts` and `calendar.ts`.
+ * module, like `competitors.ts`.
  */
 
 import type {

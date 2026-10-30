@@ -159,6 +159,40 @@ describe('runSentimentScan depth round', () => {
     expect(batch.mentions.length).toBeGreaterThanOrEqual(6)
   })
 
+  it('skips the LLM refinement stage under the rules analyzer', async () => {
+    let refineCalls = 0
+    const deps: ScanDeps = {
+      now: NOW,
+      expandTerms: async () => ['卡巴格'],
+      refineBatch: async () => {
+        refineCalls += 1
+        return new Map()
+      },
+      fetchWeibo: async () => [entry('https://m.weibo.cn/detail/9', '卡巴格新品上市', '9')],
+    }
+    const batch = await runSentimentScan(
+      CTX, [task({ keywordGroups: [{ polarity: 'any', terms: ['新品'] }], sources: ['weibo'] })], SETTINGS,
+      { ...AI, analyzer: 'rules' }, deps,
+    )
+    expect(refineCalls).toBe(0)
+    expect(batch.result.refinement).toBe('skipped')
+    expect(batch.mentions[0]?.polarity).toBe('neu')
+  })
+
+  it('degrades to the lexicon verdicts when the LLM refinement fails', async () => {
+    const deps: ScanDeps = {
+      now: NOW,
+      expandTerms: async () => ['卡巴格'],
+      refineBatch: async () => { throw new Error('llm down') },
+      fetchWeibo: async () => [entry('https://m.weibo.cn/detail/9', '卡巴格新品上市', '9')],
+    }
+    const batch = await runSentimentScan(
+      CTX, [task({ keywordGroups: [{ polarity: 'any', terms: ['新品'] }], sources: ['weibo'] })], SETTINGS, AI, deps,
+    )
+    expect(batch.result.refinement).toBe('degraded')
+    expect(batch.mentions[0]?.polarity).toBe('neu')
+  })
+
   it('skips the depth round when the negative heat stays low', async () => {
     const searched: string[] = []
     const deps: ScanDeps = {

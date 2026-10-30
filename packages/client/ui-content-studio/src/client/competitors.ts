@@ -232,6 +232,162 @@ function recencyKey(work: CompetitorWork): number {
   return Date.parse(work.publishedAt ?? work.importedAt)
 }
 
+/** Sort orders the works library offers. */
+export type WorkSort = 'newest' | 'score' | 'collects'
+
+/**
+ * Sort the works library. `newest` is publication-first; `score` is the
+ * interaction score; `collects` ranks by the saves/shares count — tutorial
+ * accounts collect far more than they like, so like-only rankings hide their
+ * real top works.
+ * @param works - the works to sort (not mutated).
+ * @param sort - the chosen order.
+ * @returns the sorted copy, best first.
+ */
+export function sortWorks(works: readonly CompetitorWork[], sort: WorkSort): readonly CompetitorWork[] {
+  const copy = [...works]
+  if (sort === 'newest') return copy.sort((a, b) => recencyKey(b) - recencyKey(a))
+  if (sort === 'score') return copy.sort((a, b) => interactionScore(b.metrics) - interactionScore(a.metrics))
+  return copy.sort((a, b) => (b.metrics.at(-1)?.shares ?? 0) - (a.metrics.at(-1)?.shares ?? 0))
+}
+
+/** One work entry of the browser-sync export payload (see `importSyncPayload`). */
+export interface SyncWorkPayload {
+  readonly platformWorkId?: string
+  readonly title: string
+  readonly url?: string
+  readonly publishedAt?: string
+  readonly likes?: number
+  readonly comments?: number
+  readonly shares?: number
+  readonly views?: number
+  readonly body?: string
+  /** Top comment texts harvested from the work's detail page, best-effort order. */
+  readonly hotComments?: readonly string[]
+}
+
+/** The browser-sync export payload the ego-browser collector writes. */
+export interface SyncPayload {
+  readonly version: 1
+  readonly platform: CompetitorPlatform
+  readonly account: {
+    readonly name: string
+    readonly homepageUrl?: string
+    readonly bio?: string
+    readonly followers?: string
+  }
+  readonly works: readonly SyncWorkPayload[]
+}
+
+/** Result of applying one sync payload: manifest counts plus the matched account patch. */
+export interface SyncImportResult {
+  readonly manifest: CompetitorManifest
+  readonly added: number
+  readonly updated: number
+  /** Body assets to write for synced works carrying body text or hot comments. */
+  readonly assets: ReadonlyArray<{ file: string; content: string }>
+  /** Registry fields the payload refreshes, keyed by the matched account id; absent when no account matched. */
+  readonly accountPatch?: { accountId: string; followerTier?: string; positioning?: string }
+}
+
+/**
+ * Apply one browser-sync export payload: every work entry upserts through the
+ * same dedup path as manual import (title fallback included), and the account
+ * named by the payload refreshes its follower tier (and positioning, only
+ * when the stored one is empty). The payload is a convenience export, not a
+ * trusted wire: malformed entries are skipped, not fatal.
+ * @param json - the collector's JSON file content.
+ * @param manifest - the current theme manifest.
+ * @param accounts - the current account registry, for the name+platform match.
+ * @returns the next manifest, the added/updated counts, and the account patch.
+ */
+export function importSyncPayload(
+  json: string,
+  manifest: CompetitorManifest,
+  accounts: readonly CompetitorAccount[],
+): SyncImportResult {
+  let parsed: unknown
+  try { parsed = JSON.parse(json) } catch { return { manifest, added: 0, updated: 0, assets: [] } }
+  const record = parsed as Record<string, unknown>
+  if (record.version !== 1 || !Array.isArray(record.works)) return { manifest, added: 0, updated: 0, assets: [] }
+  const platform = COMPETITOR_PLATFORMS.includes(record.platform as CompetitorPlatform)
+    ? record.platform as CompetitorPlatform
+    : undefined
+  const accountName = typeof record.account === 'object' && record.account !== null
+    && typeof (record.account as Record<string, unknown>).name === 'string'
+    ? (record.account as { name: string }).name.trim()
+    : ''
+  if (platform === undefined || accountName.length === 0) return { manifest, added: 0, updated: 0, assets: [] }
+  const account = accounts.find(candidate => candidate.platform === platform && candidate.name.trim() === accountName)
+  const payload = record as unknown as SyncPayload
+  const assets: Array<{ file: string; content: string }> = []
+  let next = manifest
+  let added = 0
+  let updated = 0
+  for (const entry of payload.works) {
+    if (typeof entry !== 'object' || entry === null || typeof entry.title !== 'string' || entry.title.trim().length === 0) continue
+    // Works with body or comments land a body asset so the AI teardown reads
+    // them; the file name is stable per platform id, so re-syncs overlay the
+    // same file while a stored textFile is never downgraded.
+    const hasBodyContent = (entry.body !== undefined && entry.body.trim().length > 0)
+      || (entry.hotComments !== undefined && entry.hotComments.some(comment => typeof comment === 'string' && comment.trim().length > 0))
+    const textFile = hasBodyContent && entry.platformWorkId !== undefined && entry.platformWorkId.trim().length > 0
+      ? `sync-${entry.platformWorkId.trim()}.md`
+      : undefined
+    if (textFile !== undefined) {
+      assets.push({ file: textFile, content: buildSyncAssetMarkdown(entry) })
+    }
+    const upsert = upsertWork(next, {
+      accountId: account?.id ?? 'unassigned',
+      accountName,
+      platform,
+      platformWorkId: entry.platformWorkId ?? '',
+      title: entry.title.trim(),
+      ...(entry.url !== undefined && entry.url.length > 0 ? { url: entry.url } : {}),
+      ...(entry.publishedAt !== undefined && entry.publishedAt.length > 0 ? { publishedAt: entry.publishedAt } : {}),
+      ...(textFile !== undefined ? { textFile } : {}),
+      metrics: {
+        t: new Date().toISOString(),
+        likes: Math.max(entry.likes ?? 0, 0),
+        comments: Math.max(entry.comments ?? 0, 0),
+        shares: Math.max(entry.shares ?? 0, 0),
+        ...(entry.views !== undefined && entry.views > 0 ? { views: Math.round(entry.views) } : {}),
+      },
+    })
+    next = upsert.manifest
+    if (upsert.updated) updated += 1
+    else added += 1
+  }
+  const followers = typeof payload.account.followers === 'string' ? payload.account.followers.trim() : ''
+  const bio = typeof payload.account.bio === 'string' ? payload.account.bio.trim() : ''
+  const accountPatch = account === undefined ? undefined : {
+    accountId: account.id,
+    ...(followers.length > 0 ? { followerTier: followers } : {}),
+    ...(account.positioning.length === 0 && bio.length > 0 ? { positioning: bio.slice(0, 120) } : {}),
+  }
+  const base = { manifest: next, added, updated, assets }
+  return accountPatch === undefined ? base : { ...base, accountPatch }
+}
+
+/**
+ * Render one synced work's body asset: the work body when the collector
+ * captured it, then the harvested hot comments as a list — both are teardown
+ * inputs, and the comment section doubles as the audience-insight source.
+ * @param entry - the payload work entry.
+ * @returns the markdown file content.
+ */
+export function buildSyncAssetMarkdown(entry: SyncWorkPayload): string {
+  const lines = [`# ${entry.title.trim()}`, '']
+  if (entry.body !== undefined && entry.body.trim().length > 0) lines.push(entry.body.trim(), '')
+  const comments = (entry.hotComments ?? []).map(comment => typeof comment === 'string' ? comment.trim() : '').filter(comment => comment.length > 0)
+  if (comments.length > 0) {
+    lines.push('## 热门评论', '')
+    for (const comment of comments) lines.push(`- ${comment}`)
+    lines.push('')
+  }
+  return `${lines.join('\n')}\n`
+}
+
 /**
  * Upsert one manually imported work into the manifest. The dedup key is
  * `platform + accountId + platformWorkId`; an existing work keeps its id,
@@ -372,9 +528,41 @@ export function aggregateAccountDigest(accountName: string, platform: Competitor
   return lines.join('\n').slice(0, 1000)
 }
 
+/**
+ * Aggregate one account into the audit digest for the eight-dimension health
+ * check: registry facts (follower tier, positioning, monetization) plus the
+ * works-side distribution facts the audit dimensions score against — recency,
+ * medians (never averages), heat ranks, save counts. Capped like the report
+ * digest so the audit prompt stays inside the token budget.
+ * @param account - the account under audit.
+ * @param works - the account's works from the theme manifest.
+ * @returns the digest text (≤1000 characters).
+ */
+export function aggregateAuditDigest(account: CompetitorAccount, works: readonly CompetitorWork[]): string {
+  const latest = (work: CompetitorWork) => work.metrics.at(-1)
+  const med = (values: readonly number[]): number => median(values)
+  const heatCounts = { hot: 0, normal: 0, cold: 0 }
+  for (const heat of heatByWork(works).values()) heatCounts[heat.level] += 1
+  const newest = [...works].sort((a, b) => recencyKey(b) - recencyKey(a))[0]
+  const daysSinceNewest = newest === undefined ? undefined
+    : Math.round((Date.now() - recencyKey(newest)) / (24 * 60 * 60 * 1000))
+  const lines = [
+    `账号：${account.name}（平台：${account.platform}）`,
+    `档案：粉丝量级 ${account.followerTier || '未填'}；定位 ${account.positioning || '未填'}；变现方式 ${account.monetization || '未填'}`,
+    `作品数：${works.length}（导入估算）`,
+    `互动中位数：赞 ${med(works.map(work => latest(work)?.likes ?? 0))} / 藏 ${med(works.map(work => latest(work)?.shares ?? 0))} / 评 ${med(works.map(work => latest(work)?.comments ?? 0))}`,
+    `互动率代理：点赞中位数 ÷ 粉丝数（粉丝量级为文本，未折算）`,
+    `账号内热度分布：爆款 ${heatCounts.hot} / 正常 ${heatCounts.normal} / 冷门 ${heatCounts.cold}（P90/P50 相对分位）`,
+    `用户标记爆款：${works.filter(work => work.hot).length} 条；已拆解：${works.filter(work => work.analysis.status === 'done').length} 条`,
+    `最新作品距今：${daysSinceNewest === undefined || !Number.isFinite(daysSinceNewest) ? '未知' : `${daysSinceNewest} 天`}；发布节奏：约 ${works.length > 1 ? (works.length / Math.max(spanWeeks(works), 0.1)).toFixed(1) : String(works.length)} 条/周（导入估算）`,
+    `钩子类型频次：${formatCounts(countTop(works.map(work => (work.analysis.result?.hookType ?? '').split(/[（(]/u)[0]?.trim() ?? '').filter(value => value.length > 0)), works.filter(work => work.analysis.status === 'done').length)}`,
+    `收藏最高：${[...works].sort((a, b) => (latest(b)?.shares ?? 0) - (latest(a)?.shares ?? 0))[0]?.title ?? '无'}`,
+  ]
+  return lines.join('\n').slice(0, 1000)
+}
+
 /** Count occurrences, descending, keeping at most the top eight. */
-function countTop(values: readonly string[]): ReadonlyArray<readonly [string, number]> {
-  const counts = new Map<string, number>()
+function countTop(values: readonly string[]): ReadonlyArray<readonly [string, number]> {  const counts = new Map<string, number>()
   for (const value of values) {
     const key = value.trim()
     if (key.length === 0) continue

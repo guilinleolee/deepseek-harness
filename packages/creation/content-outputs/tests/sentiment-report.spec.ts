@@ -36,7 +36,7 @@ function mention(overrides: Partial<SentimentMention> = {}): SentimentMention {
     id: 'm-1' as SentimentMention['id'], taskId: 'st-1' as SentimentTask['id'],
     source: 'rss', platform: 'news.example', url: 'https://news.example/a', title: '投诉标题',
     summary: '摘要', publishedAt: NOW, capturedAt: NOW, polarity: 'neg', confidence: 0.9,
-    evidence: '投诉', heat: null, author: null, ...overrides,
+    evidence: '投诉', occurrences: 1, heatDelta: 0, heat: null, author: null, ...overrides,
   }
 }
 

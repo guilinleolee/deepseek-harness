@@ -13,7 +13,7 @@ export type TopicItemId = Branded<'TopicItemId'>
 export type TopicStatus = 'idea' | 'todo' | 'creating' | 'done' | 'shelved'
 
 /** Where one topic came from. */
-export type TopicSourceType = 'manual' | 'gather' | 'benchmark' | 'interaction'
+export type TopicSourceType = 'manual' | 'gather' | 'benchmark' | 'interaction' | 'keyword'
 
 /** Who produced a topic score. */
 export type TopicScoreSource = 'manual' | 'ai'
@@ -122,6 +122,45 @@ export interface TopicItem {
   readonly createdAt: string
   /** Last-write time, ISO 8601; the list ordering key. */
   readonly updatedAt: string
+}
+
+/** Stable identity of one topic category. */
+export type TopicCategoryId = Branded<'TopicCategoryId'>
+
+/** One user-owned topic-selection category: a name plus the keywords its topics are watched under. */
+export interface TopicCategory {
+  readonly id: TopicCategoryId
+  /** Display name; unique by equality but not enforced at the store. */
+  readonly name: string
+  /** Keyword terms of the category, OR-matched; never empty. */
+  readonly keywords: readonly string[]
+  /** RSS feed URLs the category collects from; stored records predating the field read as empty. */
+  readonly feedUrls?: readonly string[]
+  /** Creation time, ISO 8601; preserved across upserts. */
+  readonly createdAt: string
+  /** Last-write time, ISO 8601; the list ordering key. */
+  readonly updatedAt: string
+}
+
+/** Input face of a category upsert: `id` absent creates a new category. Timestamps are store-managed. */
+export interface TopicCategoryInput {
+  readonly id?: TopicCategoryId
+  /** Display name; never empty. */
+  readonly name: string
+  /** Keyword terms; blank terms are dropped on normalize, the rest must be non-empty. */
+  readonly keywords: readonly string[]
+  /** RSS feed URLs; blank entries are dropped on normalize. Absent inputs store an empty list. */
+  readonly feedUrls?: readonly string[]
+}
+
+/** Point-in-time category list returned by the content-topics Remote. */
+export interface TopicCategoriesSnapshot {
+  /** Absolute file the categories were read from. */
+  readonly file: string
+  /** Categories sorted by `updatedAt`, newest first. */
+  readonly items: readonly TopicCategory[]
+  /** Stored records that failed validation, named but not dropped silently. */
+  readonly problems: readonly string[]
 }
 
 /** Point-in-time topic bank returned by the content-topics Remote. */

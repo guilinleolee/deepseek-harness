@@ -17,10 +17,10 @@ import type {
   ContentOutputsSnapshot, OutputProject, SentimentSnapshot, SentimentStats,
 } from '@deepseek-ai/dsh-content-outputs/types'
 import {
-  aggregateAccountDigest, buildIdeaMarkdown, COMPETITOR_PLATFORMS, competitorWorkToTopicInput,
-  exportAccounts, heatByWork, importAccounts, interactionScore, isAccountStale, loadAccounts,
-  newId, saveAccounts, upsertWork,
-  type CompetitorAccount,
+  aggregateAccountDigest, aggregateAuditDigest, buildIdeaMarkdown, COMPETITOR_PLATFORMS, competitorWorkToTopicInput,
+  exportAccounts, heatByWork, importAccounts, importSyncPayload, interactionScore, isAccountStale, loadAccounts,
+  newId, saveAccounts, sortWorks, upsertWork,
+  type CompetitorAccount, type WorkSort,
 } from './competitors.ts'
 import type { TopicBankGateway } from './TopicBankView.tsx'
 import type { StudioKey } from './locales.ts'
@@ -84,6 +84,9 @@ const PRIORITY_CLASS = {
   medium: css.statusDraft ?? '',
   low: css.badgeIncoming ?? '',
 } as const
+
+/** Hidden file-input id of the browser-sync import button. */
+const syncInputId = 'comp-sync-import'
 
 /** Empty-manifest stand-in while no theme is open. */
 const EMPTY_MANIFEST: CompetitorManifest = { formatVersion: 0, syncedAt: {}, works: [], reports: [] }
@@ -182,6 +185,7 @@ export function CompetitorsView(props: CompetitorsViewProps) {
   const [workFormState, setWorkFormState] = useState<WorkForm>(workForm('', 'xhs'))
   const [query, setQuery] = useState('')
   const [flagFilter, setFlagFilter] = useState<'all' | 'hot' | 'favorite' | 'analyzed' | 'unanalyzed'>('all')
+  const [workSort, setWorkSort] = useState<WorkSort>('newest')
   const [selectedWorkId, setSelectedWorkId] = useState<string | undefined>(undefined)
   const [previewText, setPreviewText] = useState<string | undefined>(undefined)
   const [commentsDraft, setCommentsDraft] = useState('')
@@ -268,8 +272,8 @@ export function CompetitorsView(props: CompetitorsViewProps) {
       }
       return true
     })
-    return [...filtered].sort((a, b) => Date.parse(b.publishedAt ?? b.importedAt) - Date.parse(a.publishedAt ?? a.importedAt))
-  }, [current.works, flagFilter, query])
+    return sortWorks(filtered, workSort)
+  }, [current.works, flagFilter, query, workSort])
   const selectedWork = current.works.find(work => work.id === selectedWorkId)
   const selectedReport = current.reports.find(report => report.id === selectedReportId)
 
@@ -342,6 +346,38 @@ export function CompetitorsView(props: CompetitorsViewProps) {
     anchor.download = 'competitor-accounts.json'
     anchor.click()
     URL.revokeObjectURL(url)
+  }
+
+  const importSyncFile = async (file: File): Promise<void> => {
+    if (manifest === undefined) return
+    void act(async () => {
+      const result = importSyncPayload(await file.text(), manifest, accounts)
+      if (result.added === 0 && result.updated === 0) {
+        setActionError(t('comp.syncInvalid'))
+        return
+      }
+      // Body/comment assets land before the manifest commit so a committed
+      // work never points at a missing file.
+      for (const asset of result.assets) {
+        await writeAsset({ theme, file: asset.file, content: asset.content })
+      }
+      await commitManifest({
+        ...result.manifest,
+        syncedAt: result.accountPatch === undefined
+          ? result.manifest.syncedAt
+          : { ...result.manifest.syncedAt, [result.accountPatch.accountId]: new Date().toISOString() },
+      })
+      if (result.accountPatch !== undefined) {
+        persistAccounts(accounts.map(candidate => candidate.id === result.accountPatch!.accountId
+          ? {
+            ...candidate,
+            ...(result.accountPatch!.followerTier !== undefined ? { followerTier: result.accountPatch!.followerTier } : {}),
+            ...(result.accountPatch!.positioning !== undefined ? { positioning: result.accountPatch!.positioning } : {}),
+          }
+          : candidate))
+      }
+      setActionError(t('comp.syncResult', { added: result.added, updated: result.updated }))
+    })
   }
 
   const submitWork = (): void => {
@@ -477,7 +513,7 @@ export function CompetitorsView(props: CompetitorsViewProps) {
     })
   }
 
-  const generate = (kind: 'account' | 'compare', ids: readonly string[]): void => {
+  const generate = (kind: 'account' | 'compare' | 'audit', ids: readonly string[]): void => {
     if (manifest === undefined || generating) return
     const chosen = accounts.filter(account => ids.includes(account.id))
     if (chosen.length !== ids.length) return
@@ -486,7 +522,9 @@ export function CompetitorsView(props: CompetitorsViewProps) {
       try {
         const digests: CompetitorAccountDigest[] = chosen.map(account => ({
           name: account.name,
-          digest: aggregateAccountDigest(account.name, account.platform, current.works.filter(work => work.accountId === account.id)),
+          digest: kind === 'audit'
+            ? aggregateAuditDigest(account, current.works.filter(work => work.accountId === account.id))
+            : aggregateAccountDigest(account.name, account.platform, current.works.filter(work => work.accountId === account.id)),
         }))
         const result = await generateCompetitorReport({ kind, accounts: digests })
         const id = newId('cr')
@@ -504,6 +542,7 @@ export function CompetitorsView(props: CompetitorsViewProps) {
         }
         await commitManifest({ ...manifest, reports: [report, ...manifest.reports] })
         setSelectedReportId(id)
+        if (kind === 'audit') setSection('reports')
       } finally {
         setGenerating(false)
       }
@@ -590,6 +629,8 @@ export function CompetitorsView(props: CompetitorsViewProps) {
           }}
           manifest={manifest}
           onCollect={(ids) => { collectNow(ids) }}
+          onAudit={(account) => { generate('audit', [account.id]) }}
+          generating={generating}
           t={t}
         />
       )}
@@ -617,12 +658,28 @@ export function CompetitorsView(props: CompetitorsViewProps) {
                 <option value="analyzed">{t('comp.filterAnalyzed')}</option>
                 <option value="unanalyzed">{t('comp.filterUnanalyzed')}</option>
               </select>
+              <select
+                className={css.compInput}
+                value={workSort}
+                onChange={(event) => { setWorkSort(event.currentTarget.value as WorkSort) }}
+                aria-label={t('comp.sort')}
+              >
+                <option value="newest">{t('comp.sort.newest')}</option>
+                <option value="score">{t('comp.sort.score')}</option>
+                <option value="collects">{t('comp.sort.collects')}</option>
+              </select>
               <input className={css.compInput} placeholder={t('comp.search')} value={query} onChange={(event) => { setQuery(event.currentTarget.value) }} />
             </div>
             <div className={css.compImportRow}>
               <button type="button" className={css.retry} disabled={theme.length === 0} onClick={() => { setImportOpen(!importOpen) }}>
                 {importOpen ? t('comp.importClose') : t('comp.importOpen')}
               </button>
+              <label className={css.retry} htmlFor={syncInputId}>{t('comp.syncImport')}</label>
+              <input id={syncInputId} type="file" accept="application/json,.json" className={css.compFileInput} onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                if (file !== undefined) void importSyncFile(file)
+                event.currentTarget.value = ''
+              }} />
               <span className={css.listMeta}>{t('comp.workCount', { n: current.works.length })}</span>
             </div>
             {importOpen && (
@@ -774,7 +831,7 @@ export function CompetitorsView(props: CompetitorsViewProps) {
                     className={clsx(css.listRowButton, report.id === selectedReportId && css.listRowCopied)}
                     onClick={() => { setSelectedReportId(report.id) }}
                   >
-                    <span className={css.listTitle}>{t(report.kind === 'account' ? 'comp.reportKindAccount' : 'comp.reportKindCompare')} · {report.accountNames.join(' vs ')}</span>
+                    <span className={css.listTitle}>{t(report.kind === 'account' ? 'comp.reportKindAccount' : report.kind === 'compare' ? 'comp.reportKindCompare' : 'comp.reportKindAudit')} · {report.accountNames.join(' vs ')}</span>
                     <span className={css.listMeta}>{report.createdAt.slice(0, 10)} · {t('comp.reportWorks', { n: report.workCount })}</span>
                   </button>
                 ))}
@@ -814,6 +871,15 @@ function WorkRow({ work, heat, pending, active, onOpen, t }: {
         {' '}
         <span className={clsx(css.badge, work.analysis.status === 'done' ? css.badgeDone : work.analysis.status === 'failed' ? css.compBadgeFailed : css.badgeIncoming)}>{t(analysisKey)}</span>
       </span>
+      {work.metrics.length > 0 && (
+        <span className={css.listMeta}>
+          {t('comp.metricTriple', {
+            likes: work.metrics.at(-1)?.likes ?? 0,
+            collects: work.metrics.at(-1)?.shares ?? 0,
+            comments: work.metrics.at(-1)?.comments ?? 0,
+          })}
+        </span>
+      )}
     </button>
   )
 }
@@ -946,7 +1012,7 @@ function WorkImportForm({ form, accounts, onForm, onSubmit, disabled, t }: {
 }
 
 /** The account registry section. */
-function AccountsSection({ accounts, form, onForm, onSubmit, onRemove, onImport, onExport, onToggle, manifest, onCollect, t }: {
+function AccountsSection({ accounts, form, onForm, onSubmit, onRemove, onImport, onExport, onToggle, manifest, onCollect, onAudit, generating, t }: {
   accounts: readonly CompetitorAccount[]
   form: AccountForm | undefined
   onForm: (form: AccountForm | undefined) => void
@@ -957,6 +1023,8 @@ function AccountsSection({ accounts, form, onForm, onSubmit, onRemove, onImport,
   onToggle: (account: CompetitorAccount) => void
   manifest: CompetitorManifest | undefined
   onCollect: (ids: readonly string[]) => void
+  onAudit: (account: CompetitorAccount) => void
+  generating: boolean
   t: PropsLocale<'content-studio'>['t']
 }) {
   const fileInputId = 'comp-account-import'
@@ -1027,6 +1095,7 @@ function AccountsSection({ accounts, form, onForm, onSubmit, onRemove, onImport,
                 </span>
                 {account.positioning.length > 0 && <span className={css.listMeta}>{account.positioning}</span>}
                 <div className={css.compActions}>
+                  <button type="button" className={css.retry} disabled={generating || manifest === undefined || manifest.works.every(work => work.accountId !== account.id)} onClick={() => { onAudit(account) }} title={t('comp.accountAuditHint')}>{t('comp.accountAudit')}</button>
                   <button type="button" className={css.retry} onClick={() => { onToggle(account) }}>{account.enabled ? t('comp.accountDisable') : t('comp.accountEnable')}</button>
                   <button type="button" className={css.retry} disabled={manifest === undefined} onClick={() => { onCollect([account.id]) }}><IconRefreshOutlineMedium size={12} /> {t('comp.markCollectedOne')}</button>
                   <button type="button" className={css.retry} onClick={() => { onForm(accountForm(account)) }}>{t('comp.accountEdit')}</button>

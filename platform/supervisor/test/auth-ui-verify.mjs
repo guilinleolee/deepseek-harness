@@ -14,7 +14,6 @@ import assert from 'node:assert/strict'
 import {
   AUTH_ERROR_TEXT,
   AUTH_UI_CSS,
-  INVITE_REJECT_REASON,
   ROLE_LABELS,
   describeAuthError,
   escapeHtml,
@@ -51,18 +50,11 @@ const XSS = '"><script>alert(1)</script>'
 /** 哨兵：若出现在渲染结果里，说明密码明文被回显。 */
 const SECRET = 'Sup3rSecret-Passw0rd!'
 
-const invite = {
-  department: '研发中心',
-  role: 'employee',
-  instanceId: 'e01',
-  expiresAt: '2099-12-31T23:59:59.000Z',
-}
-
 const loginHtml = renderLoginPage({ portalHostname: 'portal.example.com', ssoProviders: ['wecom', 'dingtalk'] })
 const loginPlain = renderLoginPage()
 const totpHtml = renderLoginPage({ stage: 'totp' })
-const registerHtml = renderRegisterPage({ code: 'inv-demo-code', invite })
-const registerRejected = renderRegisterPage({ code: 'inv-demo-code', reason: 'code_expired' })
+const registerHtml = renderRegisterPage({ ssoProviders: ['wecom', 'dingtalk'] })
+const registerRejected = renderRegisterPage({ error: '企业身份登录未启用，请联系管理员' })
 
 /**
  * 判断渲染结果里是否存在「可执行」的注入脚本。
@@ -283,7 +275,7 @@ check('B11 页面内联脚本含五类错误分支（不落笼统「登录失败
 
 /* ── C. 注册页：结构 ───────────────────────────────────────────────────── */
 
-section('C. 注册页 · 结构')
+section('C. 企业身份开通页 · 结构')
 
 check('C01 渲染结果为完整 HTML 文档', () => {
   assert.ok(registerHtml.startsWith('<!doctype html>'), '缺少 doctype')
@@ -294,157 +286,51 @@ check('C02 含 viewport meta（响应式）', () => {
   assert.ok(/<meta name="viewport" content="width=device-width, initial-scale=1[^"]*">/i.test(registerHtml), '缺少 viewport')
 })
 
-check('C03 邀请码隐藏域存在（type="hidden" name="code"）', () => {
-  const tag = tagById(registerHtml, 'code')
-  assert.ok(/type="hidden"/.test(tag), `邀请码域不是隐藏域：${tag}`)
-  assert.ok(/name="code"/.test(tag), `邀请码域缺少 name=code：${tag}`)
-  assert.ok(tag.includes('inv-demo-code'), '邀请码未写入隐藏域')
+check('C03 已取消邀请码注册：页面无邀请码输入/隐藏域', () => {
+  assert.ok(!/name="code"/i.test(registerHtml), '仍存在邀请码字段')
+  assert.ok(!/id="code-retry"/i.test(registerHtml), '仍存在换邀请码输入')
+  assert.ok(!/邀请码/.test(registerHtml), '页面仍出现「邀请码」文案')
+  assert.ok(!/invite/i.test(registerHtml), '页面仍出现 invite 相关内容')
 })
 
-check('C04 显示名输入存在', () => {
-  const tag = tagById(registerHtml, 'dn')
-  assert.ok(tag.includes('name="displayName"'), tag)
-  assert.ok(/<label for="dn">/.test(registerHtml), '缺少显示名 label')
+check('C04 页面不收集任何凭据（无密码/账号输入）', () => {
+  assert.ok(!/type="password"/i.test(registerHtml), '仍存在密码输入')
+  assert.ok(!/name="password"/i.test(registerHtml), '仍存在密码字段')
+  assert.ok(!/name="account"/i.test(registerHtml), '仍存在账号输入')
 })
 
-check('C05 账号输入存在且 autocomplete=username', () => {
-  const tag = tagById(registerHtml, 'acc')
-  assert.ok(tag.includes('name="account"'), tag)
-  assert.ok(tag.includes('autocomplete="username"'), tag)
+check('C05 列出已启用的企业身份入口并链接到 SSO start', () => {
+  assert.ok(registerHtml.includes('/api/auth/sso/wecom/start'), '缺少企业微信开通入口')
+  assert.ok(registerHtml.includes('/api/auth/sso/dingtalk/start'), '缺少钉钉开通入口')
+  assert.ok(registerHtml.includes('企业微信'), '缺少企业微信文案')
+  assert.ok(registerHtml.includes('钉钉'), '缺少钉钉文案')
 })
 
-check('C06 密码输入 type=password 且 autocomplete=new-password', () => {
-  const tag = tagById(registerHtml, 'pw')
-  assert.ok(/type="password"/.test(tag), tag)
-  assert.ok(/autocomplete="new-password"/.test(tag), tag)
+check('C06 说明开通流程（扫码 → 首次登录自动建号）', () => {
+  assert.ok(registerHtml.includes('开通账号'), '缺少开通账号标题')
+  assert.ok(registerHtml.includes('扫码'), '缺少扫码说明')
+  assert.ok(registerHtml.includes('自动'), '缺少自动开通说明')
 })
 
-check('C07 确认密码输入存在', () => {
-  const tag = tagById(registerHtml, 'pw2')
-  assert.ok(/type="password"/.test(tag), tag)
-  assert.ok(tag.includes('name="confirmPassword"'), tag)
+check('C07 无 SSO 启用时给出联系管理员的指引', () => {
+  const empty = renderRegisterPage({})
+  assert.ok(empty.includes('管理员'), '空态缺少管理员指引')
+  assert.ok(!empty.includes('/api/auth/sso/'), '空态不应出现 SSO 入口')
 })
 
-check('C08 密码强度实时提示区存在', () => {
-  assert.ok(/id="pw-rules"/.test(registerHtml), '缺少强度规则区')
-  assert.ok(/id="pw-hint"/.test(registerHtml), '缺少强度提示文案')
-  assert.ok(/aria-live="polite"/.test(registerHtml), '强度提示缺少 aria-live')
+check('C08 已有账号可回到登录页', () => {
+  assert.ok(registerHtml.includes('href="/login"'), '缺少登录页链接')
 })
 
-check('C09 强度规则覆盖「最少 8 位」与三类字符', () => {
-  assert.ok(registerHtml.includes('至少 8 位'), '缺少长度规则')
-  assert.ok(registerHtml.includes('小写字母'), '缺少小写规则')
-  assert.ok(registerHtml.includes('大写字母'), '缺少大写规则')
-  assert.ok(registerHtml.includes('数字'), '缺少数字规则')
-  assert.ok(registerHtml.includes('三类字符'), '缺少三类字符口径说明')
+check('C09 页面无脚本块（不含任何动态逻辑）', () => {
+  assert.ok(!/<script/i.test(registerHtml), '开通页不应包含脚本块')
 })
 
-check('C10 强度校验逻辑与后端口径一致（长度≥8 且 3 类）', () => {
-  assert.ok(/value\.length >= 8/.test(registerHtml), '缺少长度判定')
-  assert.ok(/\/\[a-z\]\//.test(registerHtml), '缺少小写判定')
-  assert.ok(/\/\[A-Z\]\//.test(registerHtml), '缺少大写判定')
-  assert.ok(/\/\[0-9\]\//.test(registerHtml), '缺少数字判定')
-  assert.ok(/classes >= 3/.test(registerHtml), '缺少三类字符判定')
+check('C10 provider id 走白名单过滤（防路径注入）', () => {
+  const evil = renderRegisterPage({ ssoProviders: ['../../etc/passwd', 'wecom'] })
+  assert.ok(!evil.includes('/api/auth/sso/..'), '路径注入未被过滤')
+  assert.ok(evil.includes('/api/auth/sso/wecom/start'), '合法 provider 被误删')
 })
-
-check('C11 确认密码一致性提示存在', () => {
-  assert.ok(/id="pw2-hint"/.test(registerHtml), '缺少一致性提示')
-  assert.ok(registerHtml.includes('两次输入的密码一致'), '缺少一致性文案')
-})
-
-check('C12 邀请信息展示：部门 / 角色 / 实例 / 有效期', () => {
-  assert.ok(registerHtml.includes('研发中心'), '缺少部门')
-  assert.ok(registerHtml.includes('成员'), '缺少角色中文标签')
-  assert.ok(registerHtml.includes('e01'), '缺少实例')
-  assert.ok(registerHtml.includes('2099-12-31'), '缺少有效期')
-})
-
-check('C13 角色标签映射正确（admin/auditor/employee）', () => {
-  assert.equal(ROLE_LABELS.admin, '管理员')
-  assert.equal(ROLE_LABELS.auditor, '审计员')
-  assert.equal(ROLE_LABELS.employee, '成员')
-  const html = renderRegisterPage({ invite: { ...invite, role: 'admin' } })
-  assert.ok(html.includes('管理员'), 'admin 未映射为管理员')
-})
-
-check('C14 有效期倒计时元素存在', () => {
-  assert.ok(/id="countdown"/.test(registerHtml), '缺少倒计时元素')
-  assert.ok(/setInterval\(tick, 1000\)/.test(registerHtml), '缺少倒计时定时器')
-})
-
-check('C15 错误区 role="alert"', () => {
-  assert.ok(/role="alert"/.test(registerHtml), '缺少 role="alert"')
-  assert.ok(/id="register-error"/.test(registerHtml), '缺少错误区容器')
-})
-
-check('C16 表单 POST 到同源 /api/register', () => {
-  assert.ok(/<form id="register-form" method="post" action="\/api\/register"/.test(registerHtml), '表单 action 不是 /api/register')
-})
-
-check('C17 存在 type="submit" 提交按钮', () => {
-  assert.ok(/<button[^>]*id="register-submit"[^>]*type="submit"/.test(registerHtml), '缺少提交按钮')
-})
-
-check('C18 提交中按钮禁用逻辑存在', () => {
-  assert.ok(/submit\.disabled = true/.test(registerHtml), '缺少提交时禁用按钮')
-  assert.ok(/submit\.textContent = '提交中…'/.test(registerHtml), '缺少提交中文案')
-})
-
-/* ── D. 注册页：邀请码拒绝原因与出路 ──────────────────────────────────── */
-
-section('D. 注册页 · 邀请码四类原因')
-
-check('D01 邀请码无效 → 提示「无效」并给出出路', () => {
-  const html = renderRegisterPage({ reason: 'invalid_code' })
-  assert.ok(html.includes('无效'), '缺少无效提示')
-  assert.ok(html.includes('联系'), '缺少联系管理员出路')
-  assert.ok(html.includes('换一个邀请码'), '缺少换邀请码出路')
-  assert.ok(html.includes('href="/login"'), '缺少直接登录出路')
-})
-
-check('D02 邀请码过期 → 提示「过期」并给出出路', () => {
-  const html = renderRegisterPage({ reason: 'code_expired' })
-  assert.ok(html.includes('过期'), '缺少过期提示')
-  assert.ok(html.includes('重新生成'), '缺少重新生成出路')
-  assert.ok(html.includes('直接登录'), '缺少直接登录出路')
-})
-
-check('D03 邀请码已使用 → 提示「已被使用」并给出出路', () => {
-  const html = renderRegisterPage({ reason: 'code_used' })
-  assert.ok(html.includes('已被使用') || html.includes('已使用'), '缺少已使用提示')
-  assert.ok(html.includes('只能注册一次'), '缺少一次性说明')
-  assert.ok(html.includes('直接登录'), '缺少直接登录出路')
-})
-
-check('D04 邀请码已撤销 → 提示「撤销」并给出出路', () => {
-  const html = renderRegisterPage({ reason: 'code_revoked' })
-  assert.ok(html.includes('撤销'), '缺少撤销提示')
-  assert.ok(html.includes('联系'), '缺少联系出路')
-})
-
-check('D05 四类原因文案互不相同', () => {
-  const reasons = Object.keys(INVITE_REJECT_REASON)
-  const details = reasons.map((key) => INVITE_REJECT_REASON[key].detail)
-  assert.equal(new Set(details).size, details.length, '存在重复文案')
-  for (const key of reasons) {
-    const item = INVITE_REJECT_REASON[key]
-    assert.ok(item.title.length > 0 && item.detail.length > 0 && item.remedy.length > 0, `${key} 文案不完整`)
-  }
-})
-
-check('D06 拒绝面板提供「换一个邀请码」输入框', () => {
-  assert.ok(/id="code-retry"/.test(registerRejected), '缺少换码输入框')
-  assert.ok(/<label for="code-retry">/.test(registerRejected), '换码输入框缺少 label')
-  assert.ok(/id="code-retry-apply"/.test(registerRejected), '缺少使用该邀请码按钮')
-})
-
-check('D07 未知 reason 安全降级（不抛异常、不误报）', () => {
-  const html = renderRegisterPage({ reason: 'weird_reason' })
-  assert.ok(!html.includes('weird_reason'), '未知原因码被原样渲染')
-  assert.ok(html.includes('register-form'), '页面结构被破坏')
-})
-
-/* ── E. XSS 防护 ───────────────────────────────────────────────────────── */
 
 section('E. XSS 防护')
 
@@ -472,34 +358,34 @@ check('E04 注册页 error 注入被转义', () => {
   assert.ok(!hasExecutablePayload(html), 'error 注入产生可执行脚本')
 })
 
-check('E05 注册页 invite.department 注入被转义', () => {
-  const html = renderRegisterPage({ invite: { ...invite, department: XSS } })
+check('E05 开通页错误文案注入被转义', () => {
+  const html = renderRegisterPage({ error: XSS })
   assert.ok(!hasExecutablePayload(html), 'department 注入产生可执行脚本')
   assert.ok(html.includes('&lt;script&gt;'), '未看到转义后的文案')
 })
 
-check('E06 注册页 invite.role 注入被转义', () => {
-  const html = renderRegisterPage({ invite: { ...invite, role: XSS } })
+check('E06 开通页 provider label 注入被转义', () => {
+  const html = renderRegisterPage({ ssoProviders: [{ id: 'wecom', label: XSS }] })
   assert.ok(!hasExecutablePayload(html), 'role 注入产生可执行脚本')
 })
 
-check('E07 注册页 invite.expiresAt 注入被转义', () => {
-  const html = renderRegisterPage({ invite: { ...invite, expiresAt: XSS } })
+check('E07 开通页空态提示注入被转义', () => {
+  const html = renderRegisterPage({ error: XSS, ssoProviders: [] })
   assert.ok(!hasExecutablePayload(html), 'expiresAt 注入产生可执行脚本')
 })
 
 check('E08 注册页邀请码 code 注入被转义', () => {
-  const html = renderRegisterPage({ code: XSS, invite })
+  const html = renderRegisterPage({ ssoProviders: [XSS] })
   assert.ok(!hasExecutablePayload(html), 'code 注入产生可执行脚本')
 })
 
-check('E09 注册页 invite.instanceId 注入被转义', () => {
-  const html = renderRegisterPage({ invite: { ...invite, instanceId: XSS } })
+check('E09 开通页 provider id 注入被转义', () => {
+  const html = renderRegisterPage({ ssoProviders: [XSS] })
   assert.ok(!hasExecutablePayload(html), 'instanceId 注入产生可执行脚本')
 })
 
 check('E10 注入后所有 <script> 块均不含载荷', () => {
-  const pages = [renderLoginPage({ error: XSS, notice: XSS, portalHostname: XSS }), renderRegisterPage({ error: XSS, invite: { ...invite, department: XSS, role: XSS, instanceId: XSS, expiresAt: XSS }, code: XSS })]
+  const pages = [renderLoginPage({ error: XSS, notice: XSS, portalHostname: XSS }), renderRegisterPage({ error: XSS, ssoProviders: ['wecom'] })]
   for (const html of pages) {
     for (const block of scriptBlocks(html)) {
       assert.ok(!block.includes('alert(1)'), '脚本块内出现注入代码')
@@ -535,7 +421,7 @@ check('F01 密码输入框不带 value 属性', () => {
 })
 
 check('F02 渲染函数忽略任何密码字段（不回显）', () => {
-  const html = renderRegisterPage({ invite: { ...invite, password: SECRET }, error: SECRET })
+  const html = renderRegisterPage({ ssoProviders: [{ id: 'wecom', label: SECRET, password: SECRET }] })
   assert.ok(!html.includes(SECRET), '密码哨兵出现在渲染结果中')
 })
 
@@ -571,11 +457,11 @@ check('G03 拒绝态注册页每个可见 input 都有 label 或 aria-label', ()
   assert.deepEqual(missing, [], `缺少标签的输入：${missing.join(' | ')}`)
 })
 
-check('G04 表单具备提交语义', () => {
+check('G04 表单具备提交语义（登录页有表单；开通页无表单）', () => {
   assert.ok(/<form[^>]*method="post"/.test(loginHtml), '登录表单缺少 method=post')
-  assert.ok(/<form[^>]*method="post"/.test(registerHtml), '注册表单缺少 method=post')
   assert.ok(/<button[^>]*type="submit"/.test(loginHtml), '登录页缺少提交按钮')
-  assert.ok(/<button[^>]*type="submit"/.test(registerHtml), '注册页缺少提交按钮')
+  assert.ok(!/<form/i.test(registerHtml), '开通页不应含表单（不收集凭据）')
+  assert.ok(!/<button[^>]*type="submit"/.test(registerHtml), '开通页不应含提交按钮')
 })
 
 check('G05 错误区 role="alert"（登录页 + 注册页）', () => {
@@ -592,7 +478,7 @@ check('G07 页面语言与标题存在', () => {
   assert.ok(/<html lang="zh-CN">/.test(loginHtml), '登录页缺少 lang')
   assert.ok(/<html lang="zh-CN">/.test(registerHtml), '注册页缺少 lang')
   assert.ok(/<title>卡巴格 · 登录<\/title>/.test(loginHtml), '登录页标题异常')
-  assert.ok(/<title>卡巴格 · 邀请注册<\/title>/.test(registerHtml), '注册页标题异常')
+  assert.ok(/<title>卡巴格 · 开通账号<\/title>/.test(registerHtml), '开通页标题异常')
 })
 
 check('G08 主区域有可访问名称（aria-labelledby）', () => {
@@ -658,8 +544,8 @@ check('I02 renderLoginPage 无参数时可用（默认全空）', () => {
 
 check('I03 renderRegisterPage 无参数时可用（邀请缺失也不崩）', () => {
   const html = renderRegisterPage()
-  assert.ok(html.includes('register-form'), '缺少表单')
-  assert.ok(html.includes('id="invite-panel"'), '缺少邀请信息面板')
+  assert.ok(html.includes('开通账号'), '缺少开通页内容')
+  assert.ok(!html.includes('id="invite-panel"'), '仍存在邀请信息面板')
 })
 
 check('I04 导出面完整（模块契约）', () => {
@@ -703,7 +589,7 @@ check('J05 登录页关键节点齐备', () => {
 })
 
 check('J06 注册页关键节点齐备', () => {
-  const nodes = ['register-form', 'register-error', 'code', 'dn', 'acc', 'pw', 'pw2', 'pw-rules', 'pw-hint', 'pw2-hint', 'invite-panel', 'countdown', 'register-submit']
+  const nodes = ['register-error', 'sso-list', 'enroll-guide']
   for (const id of nodes) {
     assert.ok(registerHtml.includes(`id="${id}"`), `缺少节点 #${id}`)
   }
@@ -723,31 +609,28 @@ check('J07 表单提交端点均为同源相对路径', () => {
 
 section('K. 加固回归 · 脚本静态化与插值点全检')
 
-check('K01 脚本块完全静态：不同动态输入下脚本内容逐字一致', () => {
-  const a = renderLoginPage({ portalHostname: 'a.example.com', error: '甲', notice: '乙', ssoProviders: ['wecom'] })
-  const b = renderLoginPage({ portalHostname: '"><script>alert(1)</script>', error: '丙', notice: '丁', ssoProviders: [] })
+check('K01 页面脚本块内容不随动态输入变化（脚本静态化）', () => {
+  const a = renderLoginPage({ error: 'x', notice: 'y', portalHostname: 'z' })
+  const b = renderLoginPage({ error: 'X', notice: 'Y', portalHostname: 'Z' })
   const sa = scriptBlocks(a)
   const sb = scriptBlocks(b)
   assert.equal(sa.length, 1, `登录页脚本块数量异常：${sa.length}`)
-  assert.equal(sb.length, 1, `登录页脚本块数量异常：${sb.length}`)
-  assert.equal(sa[0], sb[0], '脚本块内容随动态输入变化，说明仍有插值残留')
+  assert.equal(sa[0], sb[0], '登录页脚本块内容随动态输入变化，说明仍有插值残留')
 
-  const c = renderRegisterPage({ code: 'inv-a', invite })
-  const d = renderRegisterPage({ code: '"><script>alert(1)</script>', invite: { ...invite, department: '<img src=x onerror=alert(1)>' } })
-  const sc = scriptBlocks(c)
-  const sd = scriptBlocks(d)
-  assert.equal(sc.length, 1, `注册页脚本块数量异常：${sc.length}`)
-  assert.equal(sc[0], sd[0], '注册页脚本块内容随动态输入变化，说明仍有插值残留')
+  // 开通页不含任何脚本块（无表单、无动态逻辑）——插值残留无处可藏。
+  const c = renderRegisterPage({ ssoProviders: ['wecom'] })
+  const d = renderRegisterPage({ error: '"><script>alert(1)</script>', ssoProviders: ['wecom'] })
+  assert.equal(scriptBlocks(c).length, 0, '开通页不应包含脚本块')
+  assert.equal(scriptBlocks(d).length, 0, '开通页不应包含脚本块')
+  assert.ok(!hasExecutablePayload(d), '开通页错误文案破开了页面')
 })
 
 check('K02 动态值改由 data-* 属性承载（不在脚本块内）', () => {
   assert.ok(/id="auth-root"[^>]*data-host=/.test(loginHtml), '登录页缺少 data-host 载体')
   assert.ok(/id="auth-root"[^>]*data-stage=/.test(loginHtml), '登录页缺少 data-stage 载体')
   assert.ok(/id="auth-root"[^>]*data-errors=/.test(loginHtml), '登录页缺少 data-errors 载体')
-  assert.ok(/id="auth-root"[^>]*data-expires=/.test(registerHtml), '注册页缺少 data-expires 载体')
-  assert.ok(/id="auth-root"[^>]*data-errors=/.test(registerHtml), '注册页缺少 data-errors 载体')
+  assert.ok(/id="auth-root"[^>]*data-errors=/.test(registerHtml), '开通页缺少 data-errors 载体')
   assert.ok(loginHtml.includes('root.dataset.host'), '前端未从 dataset 读取 host')
-  assert.ok(registerHtml.includes('root.dataset.expires'), '前端未从 dataset 读取 expires')
 })
 
 check('K03 错误文案含 </script> 时页面不破', () => {
@@ -759,22 +642,16 @@ check('K03 错误文案含 </script> 时页面不破', () => {
   assert.ok(html.includes('&lt;/script&gt;'), '未看到转义后的文案')
   assert.ok(html.includes('id="login-form"'), '表单结构被破坏')
   const reg = renderRegisterPage({ error: payload })
-  assert.ok(!hasExecutablePayload(reg), '注册页错误文案破开了页面')
-  assert.ok(!scriptBlockBreakout(reg), '注册页错误文案切断了脚本块')
-  assert.equal(scriptBlocks(reg).length, 1, '注册页脚本块数量异常')
+  assert.ok(!hasExecutablePayload(reg), '开通页错误文案破开了页面')
+  assert.ok(!scriptBlockBreakout(reg), '开通页错误文案切断了脚本块')
+  assert.equal(scriptBlocks(reg).length, 0, '开通页脚本块数量异常')
 })
 
-check('K04 邀请码含单引号与双引号时不破', () => {
-  const code = `inv-'"><script>alert(1)</script>&key='`
-  const html = renderRegisterPage({ code, invite })
-  assert.ok(!hasExecutablePayload(html), '邀请码破开了页面')
-  assert.ok(!scriptBlockBreakout(html), '邀请码切断了脚本块')
-  assert.equal(scriptBlocks(html).length, 1, '脚本块数量异常')
-  const tag = tagById(html, 'code')
-  assert.ok(/&quot;/.test(tag), `双引号未转义：${tag}`)
-  assert.ok(/&#39;/.test(tag), `单引号未转义：${tag}`)
-  // 隐藏域属性闭合完好：value="..." 之后紧跟 aria-label
-  assert.ok(/value="[^"]*"\s+aria-label="邀请码"/.test(tag), `隐藏域属性结构异常：${tag}`)
+check('K04 开通页无任何隐藏域与表单（不收集凭据）', () => {
+  const html = renderRegisterPage({ ssoProviders: ['wecom'] })
+  assert.ok(!/type="hidden"/i.test(html), '开通页不应有隐藏域')
+  assert.ok(!/<form/i.test(html), '开通页不应有表单')
+  assert.ok(tagById(html, 'code') === '', '仍存在邀请码隐藏域')
 })
 
 check('K05 页面里不含任何 password 字段值回显', () => {
@@ -783,8 +660,8 @@ check('K05 页面里不含任何 password 字段值回显', () => {
   const pages = {
     登录页: renderLoginPage({ portalHostname: 'x', ssoProviders: [{ id: 'wecom', label: '企业微信', password: secret }] }),
     TOTP页: renderTotpPage({ portalHostname: 'x', ssoProviders: [{ id: 'wecom', label: '企业微信', password: secret }] }),
-    注册页: renderRegisterPage({ code: 'inv-1', invite: { ...invite, password: secret, confirmPassword: secret, newPassword: secret, oldPassword: secret, passwordHash: secret } }),
-    拒绝态注册页: renderRegisterPage({ code: 'inv-1', reason: 'code_expired', invite: { ...invite, password: secret } }),
+    开通页: renderRegisterPage({ ssoProviders: [{ id: 'wecom', label: secret, password: secret }] }),
+    开通页空态: renderRegisterPage({ ssoProviders: [{ id: 'wecom', label: secret, password: secret }] }),
   }
   for (const [name, html] of Object.entries(pages)) {
     assert.ok(!html.includes(secret), `${name} 回显了 password 字段值`)
@@ -794,8 +671,8 @@ check('K05 页面里不含任何 password 字段值回显', () => {
   assert.ok(!viaSlot.includes(secret), 'error/notice 通道回显了敏感值')
   assert.ok(viaSlot.includes('********'), '敏感值未被替换为掩码')
   const regSlot = renderRegisterPage({ error: secret, sensitive: [secret] })
-  assert.ok(!regSlot.includes(secret), '注册页 error 通道回显了敏感值')
-  assert.ok(regSlot.includes('********'), '注册页敏感值未被替换为掩码')
+  assert.ok(!regSlot.includes(secret), '开通页 error 通道回显了敏感值')
+  assert.ok(regSlot.includes('********'), '开通页敏感值未被替换为掩码')
 })
 
 check('K06 password 类键名在渲染结果中不可见', () => {
@@ -805,6 +682,7 @@ check('K06 password 类键名在渲染结果中不可见', () => {
     assert.ok(!/value="[^"]*"/.test(tagById(html, 'pw2')), '确认密码输入框带 value')
   }
 })
+
 
 /* ── 汇总 ──────────────────────────────────────────────────────────────── */
 

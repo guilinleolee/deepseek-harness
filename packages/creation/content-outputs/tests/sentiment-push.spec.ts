@@ -7,7 +7,9 @@
 import { describe, expect, it } from 'vitest'
 import type { SentimentAlert, SentimentAlertId, SentimentMention, SentimentSettings, SentimentTask } from '../src/sentiment/types.ts'
 import {
-  SENTIMENT_PUSH_ALERT_CAP, formatAlertMessage, pushAlertRound, pushDingtalk, pushEmail, pushWecom,
+  SENTIMENT_PUSH_ALERT_CAP, SENTIMENT_PUSH_MAX_ATTEMPTS, SENTIMENT_PUSH_RETRY_COOLDOWN_MS,
+  advanceAlertDelivery, advanceChannelDelivery, formatAlertMessage, freshChannelDelivery, isAlertRetryDue,
+  isChannelRetryDue, pushAlertRound, pushDingtalk, pushEmail, pushTestRound, pushWecom,
 } from '../src/sentiment/push.ts'
 
 const NOW = '2026-10-11T08:30:00.000Z'
@@ -78,8 +80,8 @@ describe('pushAlertRound', () => {
     }
     const off = await pushAlertRound(settings({ notifyEnabled: false }), [alert()], [task()], NOW, { fetchImpl })
     const none = await pushAlertRound(settings(), [], [task()], NOW, { fetchImpl })
-    expect(off.dingtalk).toBeNull()
-    expect(none.wecom).toBeNull()
+    expect(off.dingtalk).toEqual({ attempted: false, error: null })
+    expect(none.wecom).toEqual({ attempted: false, error: null })
     expect(posts).toHaveLength(0)
   })
 
@@ -91,8 +93,8 @@ describe('pushAlertRound', () => {
       return new Response('{}', { status: 200 })
     }
     const result = await pushAlertRound(settings(), [alert()], [task()], NOW, { fetchImpl })
-    expect(result.dingtalk).toBeNull()
-    expect(result.wecom).toBeNull()
+    expect(result.dingtalk).toEqual({ attempted: true, error: null })
+    expect(result.wecom).toEqual({ attempted: true, error: null })
     expect(bodies).toHaveLength(2)
     for (const body of bodies) {
       const text = (body as { text: { content: string } }).text.content
@@ -111,8 +113,60 @@ describe('pushAlertRound', () => {
       settings({ wecomWebhook: null }), [alert()], [task()], NOW, { fetchImpl },
     )
     expect(posts).toHaveLength(1)
-    expect(result.dingtalk).toBe('HTTP 500')
-    expect(result.wecom).toBeNull()
+    expect(result.dingtalk).toEqual({ attempted: true, error: 'HTTP 500' })
+    expect(result.wecom).toEqual({ attempted: false, error: null })
+  })
+})
+
+describe('alert delivery states', () => {
+  it('advances pending → delivered on success and counts failures to a terminal failed', () => {
+    const fresh = freshChannelDelivery()
+    const ok = advanceChannelDelivery(fresh, { attempted: true, error: null }, NOW)
+    expect(ok).toEqual({ status: 'delivered', attempts: 1, lastAt: NOW, lastError: null })
+    let current = fresh
+    for (let attempt = 1; attempt < SENTIMENT_PUSH_MAX_ATTEMPTS; attempt += 1) {
+      current = advanceChannelDelivery(current, { attempted: true, error: 'HTTP 500' }, NOW)
+      expect(current.status).toBe('pending')
+    }
+    const terminal = advanceChannelDelivery(current, { attempted: true, error: 'HTTP 500' }, NOW)
+    expect(terminal.status).toBe('failed')
+    expect(terminal.attempts).toBe(SENTIMENT_PUSH_MAX_ATTEMPTS)
+    expect(advanceChannelDelivery(terminal, { attempted: true, error: null }, NOW)).toBe(terminal)
+  })
+
+  it('gates retries by cooldown, cap, and status', () => {
+    const fresh = freshChannelDelivery()
+    expect(isChannelRetryDue(fresh, new Date(Date.parse(NOW) + 1))).toBe(true)
+    const tried = { status: 'pending' as const, attempts: 1, lastAt: NOW, lastError: 'HTTP 500' }
+    expect(isChannelRetryDue(tried, new Date(Date.parse(NOW) + SENTIMENT_PUSH_RETRY_COOLDOWN_MS - 1))).toBe(false)
+    expect(isChannelRetryDue(tried, new Date(Date.parse(NOW) + SENTIMENT_PUSH_RETRY_COOLDOWN_MS))).toBe(true)
+    const capped = { ...tried, attempts: SENTIMENT_PUSH_MAX_ATTEMPTS }
+    expect(isChannelRetryDue(capped, new Date())).toBe(false)
+    const delivered = { ...tried, status: 'delivered' as const }
+    expect(isChannelRetryDue(delivered, new Date())).toBe(false)
+  })
+
+  it('skips handled, untracked, and all-cooling-down alerts in retry selection', () => {
+    const now = new Date()
+    const delivery = advanceAlertDelivery(alert(), {
+      dingtalk: { attempted: true, error: 'HTTP 500' }, wecom: { attempted: false, error: null }, email: { attempted: false, error: null },
+    }, NOW)
+    const pending = alert({ delivery })
+    expect(isAlertRetryDue(pending, new Date(Date.parse(NOW) + SENTIMENT_PUSH_RETRY_COOLDOWN_MS))).toBe(true)
+    expect(isAlertRetryDue(alert({ delivery, handled: true, handledAt: NOW }), now)).toBe(false)
+    expect(isAlertRetryDue(alert(), now)).toBe(false)
+  })
+
+  it('sends the test message to configured channels only, ignoring the notify switch', async () => {
+    const posts: string[] = []
+    const fetchImpl: typeof fetch = async (input) => {
+      posts.push(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
+      return new Response('{}', { status: 200 })
+    }
+    const result = await pushTestRound(settings({ notifyEnabled: false }), { fetchImpl })
+    expect(posts).toHaveLength(2)
+    expect(result.dingtalk).toEqual({ attempted: true, error: null })
+    expect(result.email).toEqual({ attempted: false, error: null })
   })
 })
 

@@ -193,7 +193,7 @@ describe('ContentWorkbench', () => {
     expect(within(todo).getByText('×5')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Schedule due today'))
-    expect(onNavigate).toHaveBeenCalledWith('calendar')
+    expect(onNavigate).toHaveBeenCalledWith('topicBank')
     fireEvent.click(screen.getByText('Comments awaiting a reply'))
     expect(onNavigate).toHaveBeenCalledWith('interaction')
     fireEvent.click(screen.getByText('Sentiment alerts to handle'))

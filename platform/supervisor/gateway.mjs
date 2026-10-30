@@ -482,9 +482,10 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
         res.end(JSON.stringify(getState()))
         return
       }
-      // 门户员工侧（阶段 10）：/me 个人中心、/login 直达、/register 邀请注册、
-      // /api/register 与 /api/me/* 自服务端点。portal 不响应时 console 接管。
-      if (handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard: loginGuard })) return
+      // 门户员工侧（阶段 10）：/me 个人中心、/login 直达、SSO 企业身份登录、
+      // /api/me/* 自服务端点。portal 不响应时 console 接管。
+      // manifest 传给 SSO：自动开通时据此选目标实例。
+      if (handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard: loginGuard, manifest })) return
       if (handlePortal({ req, res, url, auth, dataDir, manifest, loginPage, twofaKey })) return
       // 管理台（总览 + 成员/模型/实例/插件操作页）统一委托 console.mjs：
       // 仅 admin；页面未登录回登录页；POST API 另校验 Origin 同源。

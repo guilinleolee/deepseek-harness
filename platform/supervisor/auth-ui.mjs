@@ -284,29 +284,14 @@ body{
 .sso-btn:hover{border-color:var(--accent);color:var(--accent)}
 .auth-foot{margin-top:1.1rem;font-size:.85rem;color:var(--muted);text-align:center}
 .auth-foot a{color:var(--accent)}
-.invite-panel{
+.info-panel{
   background:var(--info-bg);border:1px solid var(--info-border);border-radius:10px;
-  padding:.75rem .9rem;margin-bottom:1rem;font-size:.85rem;color:var(--text);
+  padding:.85rem .95rem;margin-bottom:1rem;font-size:.86rem;color:var(--text);
 }
-.invite-panel .k{color:var(--muted)}
-.invite-panel b{font-weight:600}
-.reject-panel{
-  background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:10px;
-  padding:.85rem .95rem;margin-bottom:1rem;font-size:.87rem;
-}
-.reject-panel h2{margin:0 0 .4rem;font-size:.95rem;color:var(--warn)}
-.reject-panel ul{margin:.5rem 0 0;padding-left:1.1rem}
-.reject-panel li{margin:.2rem 0}
-.inline-code{display:flex;gap:.5rem;align-items:flex-end;margin-top:.6rem}
-.inline-code .field{flex:1;margin-bottom:0}
-.inline-code .btn{width:auto;margin-top:0;white-space:nowrap}
-.countdown{font-variant-numeric:tabular-nums;font-weight:600}
 @media (max-width:560px){
   .auth-shell{padding:1.1rem .8rem;align-items:flex-start}
   .auth-card{max-width:none;padding:1.35rem 1.1rem;border-radius:12px}
   .auth-head h1{font-size:1.28rem}
-  .inline-code{flex-direction:column;align-items:stretch}
-  .inline-code .btn{width:100%}
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
@@ -422,7 +407,7 @@ ${field({ id: 'acc', label: '账号（企业邮箱）', type: 'email', name: 'ac
 ${portalHint}
 </form>
 ${ssoButtons(ssoProviders)}
-<p class="auth-foot">还没有账号？<a href="/register">用邀请码注册</a></p>
+<p class="auth-foot">还没有账号？<a href="/register">用企业身份开通</a></p>
 </section>
 </main>
 <script>
@@ -547,83 +532,44 @@ export function renderTotpPage (options = {}) {
   return renderLoginPage({ ...options, stage: 'totp' })
 }
 
-/* ── 邀请注册页 ────────────────────────────────────────────────────────── */
-
-/** 邀请被拒的原因码 → 中文说明 + 出路（与 invites.mjs 的 reason 语义对齐）。 */
-export const INVITE_REJECT_REASON = {
-  invalid_code: {
-    title: '邀请码无效',
-    detail: '邀请链接无效，请核对链接是否完整（邀请码可能被截断或复制有误）。',
-    remedy: '请重新复制完整邀请链接；若链接来自邮件，请检查是否换行断行。',
-  },
-  code_expired: {
-    title: '邀请码已过期',
-    detail: '邀请链接已过期，超过有效期后不能再用于注册。',
-    remedy: '请联系企业管理员重新生成一条邀请链接。',
-  },
-  code_used: {
-    title: '邀请码已被使用',
-    detail: '该邀请链接已被使用过，每个邀请只能注册一次。',
-    remedy: '如果这是您本人的账号，请直接登录；需要新账号请联系管理员重新生成邀请。',
-  },
-  code_revoked: {
-    title: '邀请码已被撤销',
-    detail: '该邀请链接已被管理员撤销，不再接受注册。',
-    remedy: '请联系企业管理员确认原因并重新生成邀请链接。',
-  },
-}
-
-/** 邀请信息面板：部门 / 角色 / 实例 / 有效期倒计时（无邀请时显示占位符）。 */
-const invitePanel = (invite) => {
-  const department = invite?.department ? escapeHtml(invite.department) : '—'
-  const roleKey = String(invite?.role ?? '')
-  const role = invite?.role ? escapeHtml(ROLE_LABELS[roleKey] ?? roleKey) : '—'
-  const instance = invite?.instanceId ? escapeHtml(invite.instanceId) : '—'
-  const expires = invite?.expiresAt ? escapeHtml(invite.expiresAt) : '—'
-  return `<div class="invite-panel" id="invite-panel">
-<span class="k">邀请有效</span> ｜ 部门：<b>${department}</b> ｜ 角色：<b>${role}</b> ｜ 实例：<b>${instance}</b>
-<div class="hint" style="margin-top:.3rem">有效期至 ${expires}（剩余 <span class="countdown" id="countdown">—</span>），每个邀请仅可注册一次。</div>
-</div>`
-}
+/* ── 企业身份开通页（免邀请码注册）────────────────────────────────────── */
 
 /**
- * 渲染邀请注册页。
+ * 渲染「企业身份开通账号」页。
  *
- * 脚本块同样是完全静态的：过期时间与错误文案表经 escapeHtml 放进
- * data-* 属性，动态值不进入脚本上下文。
+ * 取消邀请码注册后，自助开通账号的唯一凭据是企业身份（企业微信/钉钉 SSO）：
+ * 员工点按钮 → 跳供应商扫码 → 回调首次登录自动建号 → 直接进工作区。
+ * 页面本身不收集任何凭据（无密码、无邀请码），因此没有表单提交逻辑。
  *
  * @param {object} [options]
- * @param {string} [options.code=''] 明文邀请码（只进隐藏域与链接，不外泄）
- * @param {object|null} [options.invite=null] 校验通过的邀请对象
- *        （department / role / instanceId / expiresAt）
- * @param {string} [options.error=''] 服务端错误文案（例如注册提交失败原因）
- * @param {string} [options.reason=''] 邀请被拒的原因码（见 INVITE_REJECT_REASON）
+ * @param {Array} [options.ssoProviders=[]] 已启用的第三方登录 provider 列表
+ * @param {string} [options.error=''] 服务端错误文案
  * @param {string[]} [options.sensitive=[]] 需要在页面上遮蔽的敏感值
- *        （例如上游请求体里回传的密码）；这些值一律以 ******** 呈现
  * @returns {string} 完整 HTML 字符串
  */
 export function renderRegisterPage (options = {}) {
-  const { code = '', invite = null, error = '', reason = '', sensitive = [] } = options
-  const reject = reason && INVITE_REJECT_REASON[reason] ? INVITE_REJECT_REASON[reason] : null
-  const rejectPanel = reject === null
+  const { error = '', ssoProviders = [], sensitive = [] } = options
+  const list = Array.isArray(ssoProviders) ? ssoProviders : []
+  const items = []
+  for (const raw of list) {
+    const id = safeSegment(typeof raw === 'string' ? raw : raw?.id)
+    if (id === '') continue
+    const text = typeof raw === 'string'
+      ? escapeHtml(SSO_PROVIDER_LABELS[id] ?? id)
+      : escapeHtml(raw?.label ?? SSO_PROVIDER_LABELS[id] ?? id)
+    items.push(`<a class="sso-btn" href="/api/auth/sso/${id}/start" rel="noopener">使用${text}账号开通</a>`)
+  }
+  const enrollList = items.length === 0
     ? ''
-    : `<div class="reject-panel" id="reject-panel" role="alert">
-<h2>${escapeHtml(reject.title)}</h2>
-<p style="margin:0">${escapeHtml(reject.detail)}</p>
-<ul>
-<li>${escapeHtml(reject.remedy)}</li>
-<li>换一个邀请码：把新邀请码填入下方输入框后继续注册。</li>
-<li>已有账号？<a href="/login">直接登录</a>。</li>
-</ul>
-<div class="inline-code">
-<div class="field">
-<label for="code-retry">换一个邀请码</label>
-<input id="code-retry" name="code_retry" type="text" autocomplete="off" placeholder="inv-…">
-</div>
-<button class="btn btn-secondary" id="code-retry-apply" type="button">使用该邀请码</button>
-</div>
+    : `<div class="sso-list" id="sso-list">
+${items.join('\n')}
 </div>`
-  const expiresAt = invite?.expiresAt ? String(invite.expiresAt) : ''
+  const emptyNotice = items.length === 0
+    ? `<div class="info-panel" id="sso-empty" role="status">
+<p style="margin:0">管理员尚未配置企业身份登录，暂时无法自助开通账号。</p>
+<p style="margin:.45rem 0 0">请联系企业管理员在管理台「安全与审计 → 企业身份登录」中启用企业微信或钉钉后，再回到本页。</p>
+</div>`
+    : ''
 
   const html = `<!doctype html>
 <html lang="zh-CN">
@@ -632,209 +578,31 @@ export function renderRegisterPage (options = {}) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="same-origin">
-<title>卡巴格 · 邀请注册</title>
+<title>卡巴格 · 开通账号</title>
 <style>${AUTH_UI_CSS}</style>
 </head>
 <body>
-<main class="auth-shell" id="auth-root" data-expires="${dataAttr(expiresAt)}" data-errors="${dataJson(AUTH_ERROR_TEXT)}">
+<main class="auth-shell" id="auth-root" data-expires="" data-errors="${dataJson(AUTH_ERROR_TEXT)}">
 <section class="auth-card" aria-labelledby="auth-title">
 <header class="auth-head">
 <p class="brand">卡巴格企业平台</p>
-<h1 id="auth-title">邀请注册</h1>
-<p class="auth-sub">${invite ? '按管理员分配的邀请信息创建你的企业账号' : '请填写以下信息完成注册'}</p>
+<h1 id="auth-title">开通账号</h1>
+<p class="auth-sub">使用企业身份扫码，首次登录即自动开通你的工作区账号</p>
 </header>
 ${alertBox({ id: 'register-error', tone: 'error', role: 'alert', text: error })}
-${rejectPanel}
-${invitePanel(invite)}
-<form id="register-form" method="post" action="/api/register" novalidate>
-<input type="hidden" id="code" name="code" value="${escapeHtml(code)}" aria-label="邀请码">
-${field({ id: 'dn', label: '显示名（可选）', type: 'text', name: 'displayName', autocomplete: 'nickname' })}
-${field({ id: 'acc', label: '账号（企业邮箱）', type: 'email', name: 'account', autocomplete: 'username', required: true })}
-<div class="field">
-<label for="pw">密码</label>
-<input id="pw" name="password" type="password" autocomplete="new-password" required>
-<ul class="rules" id="pw-rules">
-<li id="rule-length" data-rule="length">至少 8 位字符</li>
-<li id="rule-lower" data-rule="lower">包含小写字母</li>
-<li id="rule-upper" data-rule="upper">包含大写字母</li>
-<li id="rule-digit" data-rule="digit">包含数字</li>
+<div class="info-panel" id="enroll-guide">
+<p style="margin:0">开通流程：</p>
+<ul style="margin:.45rem 0 0;padding-left:1.1rem">
+<li>点击下方按钮，跳转到企业微信或钉钉的扫码页面。</li>
+<li>用企业身份完成扫码与授权，平台据此确认你属于本企业。</li>
+<li>首次登录会自动创建你的账号与工作区，之后直接扫码进入，无需密码。</li>
 </ul>
-<p class="hint" id="pw-hint" aria-live="polite">密码至少 8 位，且需包含大写字母、小写字母、数字三类字符。</p>
 </div>
-<div class="field">
-<label for="pw2">确认密码</label>
-<input id="pw2" name="confirmPassword" type="password" autocomplete="new-password" required>
-<p class="hint" id="pw2-hint" aria-live="polite">请再次输入相同的密码。</p>
-</div>
-<button class="btn" id="register-submit" type="submit">注册并加入企业</button>
-</form>
+${emptyNotice}
+${enrollList}
 <p class="auth-foot">已有账号？<a href="/login">直接登录</a></p>
 </section>
 </main>
-<script>
-(function () {
-  /* 动态值一律从 data-* 读取：脚本块内没有任何插值，payload 无法进入脚本上下文 */
-  var root = document.getElementById('auth-root')
-  var ERRORS = JSON.parse(root.dataset.errors)
-  var EXPIRES = root.dataset.expires || ''
-  var form = document.getElementById('register-form')
-  var errBox = document.getElementById('register-error')
-  var errText = errBox.querySelector('.alert-text')
-  var submit = document.getElementById('register-submit')
-  var code = document.getElementById('code')
-  var dn = document.getElementById('dn')
-  var acc = document.getElementById('acc')
-  var pw = document.getElementById('pw')
-  var pw2 = document.getElementById('pw2')
-  var pwHint = document.getElementById('pw-hint')
-  var pw2Hint = document.getElementById('pw2-hint')
-  var countdown = document.getElementById('countdown')
-
-  function showError (msg) { errText.textContent = msg; errBox.hidden = false }
-  function clearError () { errText.textContent = ''; errBox.hidden = true }
-
-  /* 密码强度：与后端 checkPasswordPolicy 同口径（长度 ≥ 8 且覆盖三类字符） */
-  function checkStrength (value) {
-    var hasLower = /[a-z]/.test(value)
-    var hasUpper = /[A-Z]/.test(value)
-    var hasDigit = /[0-9]/.test(value)
-    var classes = (hasLower ? 1 : 0) + (hasUpper ? 1 : 0) + (hasDigit ? 1 : 0)
-    return {
-      length: value.length >= 8,
-      lower: hasLower,
-      upper: hasUpper,
-      digit: hasDigit,
-      classes: classes,
-      ok: value.length >= 8 && classes >= 3
-    }
-  }
-
-  function renderStrength () {
-    var s = checkStrength(pw.value)
-    var map = { length: 'rule-length', lower: 'rule-lower', upper: 'rule-upper', digit: 'rule-digit' }
-    for (var key in map) {
-      if (Object.prototype.hasOwnProperty.call(map, key)) {
-        document.getElementById(map[key]).setAttribute('data-ok', s[key] ? 'true' : 'false')
-      }
-    }
-    if (pw.value === '') {
-      pwHint.textContent = '密码至少 8 位，且需包含大写字母、小写字母、数字三类字符。'
-      pwHint.setAttribute('data-state', '')
-    } else if (s.ok) {
-      pwHint.textContent = '密码强度合格（长度与字符类别均已满足要求）。'
-      pwHint.setAttribute('data-state', 'ok')
-    } else {
-      var lack = []
-      if (!s.length) lack.push('长度不足 8 位')
-      if (s.classes < 3) lack.push('字符类别不足 3 类')
-      pwHint.textContent = '尚未满足要求：' + lack.join('；') + '。'
-      pwHint.setAttribute('data-state', 'warn')
-    }
-  }
-
-  function renderConfirm () {
-    if (pw2.value === '') {
-      pw2Hint.textContent = '请再次输入相同的密码。'
-      pw2Hint.setAttribute('data-state', '')
-      return
-    }
-    if (pw2.value === pw.value) {
-      pw2Hint.textContent = '两次输入的密码一致。'
-      pw2Hint.setAttribute('data-state', 'ok')
-    } else {
-      pw2Hint.textContent = '两次输入的密码不一致，请重新确认。'
-      pw2Hint.setAttribute('data-state', 'error')
-    }
-  }
-
-  /* 有效期倒计时：每秒刷新，剩余不足 10 分钟时转为警示色 */
-  function tick () {
-    if (!countdown) return
-    if (!EXPIRES) { countdown.textContent = '—'; return }
-    var left = Date.parse(EXPIRES) - Date.now()
-    if (isNaN(left)) { countdown.textContent = '—'; return }
-    if (left <= 0) { countdown.textContent = '已过期'; countdown.setAttribute('data-state', 'error'); return }
-    var m = Math.floor(left / 60000)
-    var h = Math.floor(m / 60)
-    countdown.textContent = h + ' 小时 ' + (m % 60) + ' 分钟'
-    countdown.setAttribute('data-state', left < 600000 ? 'warn' : '')
-  }
-
-  pw.addEventListener('input', renderStrength)
-  pw2.addEventListener('input', renderConfirm)
-  tick()
-  setInterval(tick, 1000)
-
-  var retry = document.getElementById('code-retry')
-  var retryApply = document.getElementById('code-retry-apply')
-  if (retry && retryApply) {
-    retryApply.addEventListener('click', function () {
-      var v = retry.value.trim()
-      if (v === '') { showError('请输入新的邀请码。'); return }
-      code.value = v
-      clearError()
-      acc.focus()
-    })
-  }
-
-  form.addEventListener('submit', function (ev) {
-    ev.preventDefault()
-    clearError()
-    renderStrength()
-    renderConfirm()
-    var s = checkStrength(pw.value)
-    if (pw.value.length < 8 || s.classes < 3) {
-      showError('密码不满足要求：至少 8 位且覆盖大写字母、小写字母、数字三类字符。')
-      pw.focus()
-      return
-    }
-    if (pw.value !== pw2.value) {
-      showError('两次输入的密码不一致。')
-      pw2.focus()
-      return
-    }
-    if (acc.value.trim() === '') {
-      showError('账号不能为空。')
-      acc.focus()
-      return
-    }
-    submit.disabled = true
-    submit.textContent = '提交中…'
-    fetch('/api/register', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        code: code.value,
-        account: acc.value.trim(),
-        displayName: dn.value.trim(),
-        password: pw.value,
-        confirmPassword: pw2.value
-      })
-    }).then(function (r) {
-      return r.json().catch(function () { return {} }).then(function (j) { return { status: r.status, body: j } })
-    }).then(function (res) {
-      if (res.status === 200) {
-        submit.textContent = '注册成功，正在跳转登录页…'
-        setTimeout(function () { location.href = '/login' }, 1200)
-        return
-      }
-      submit.disabled = false
-      submit.textContent = '注册并加入企业'
-      var msg = (res.body && res.body.error) ? String(res.body.error) : ''
-      if (res.status === 429) {
-        var m = /(\\d+)\\s*分钟/.exec(msg)
-        showError('注册尝试过于频繁，请约 ' + (m ? m[1] : '若干') + ' 分钟后再试。')
-        return
-      }
-      showError(msg || ('注册失败（HTTP ' + res.status + '）'))
-    }).catch(function () {
-      submit.disabled = false
-      submit.textContent = '注册并加入企业'
-      showError(ERRORS.network)
-    })
-  })
-})();
-</script>
 </body>
 </html>
 `

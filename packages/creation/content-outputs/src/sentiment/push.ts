@@ -7,8 +7,12 @@
  * failure degrades to a console note and never fails the scan.
  */
 
-import type { SentimentAlert, SentimentSettings, SentimentTask } from './types.ts'
+import type { SentimentAlert, SentimentAlertChannelDelivery, SentimentAlertDelivery, SentimentPushChannelOutcome, SentimentPushRoundResult, SentimentSettings, SentimentTask } from './types.ts'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+
+/** Wire aliases: the push vocabulary is declared on the public type subpath. */
+export type PushChannelOutcome = SentimentPushChannelOutcome
+export type PushRoundResult = SentimentPushRoundResult
 
 /** Deadline of one webhook POST; a slow IM endpoint must not pin the scan. */
 export const SENTIMENT_PUSH_TIMEOUT_MS = 10_000
@@ -16,19 +20,18 @@ export const SENTIMENT_PUSH_TIMEOUT_MS = 10_000
 /** Alerts pushed per scan, most severe first (cost and noise bound). */
 export const SENTIMENT_PUSH_ALERT_CAP = 5
 
+/** Attempts per channel before a delivery is terminal `failed`. */
+export const SENTIMENT_PUSH_MAX_ATTEMPTS = 5
+
+/** Minimum gap between two delivery attempts of one channel (retry cooldown). */
+export const SENTIMENT_PUSH_RETRY_COOLDOWN_MS = 10 * 60_000
+
 /** Injection face for tests: the fetch implementation defaults to the global one. */
 export interface PushDeps {
   readonly fetchImpl?: typeof fetch
   readonly now?: () => Date
   /** The mail transport factory; defaults to nodemailer's createTransport. */
   readonly createTransport?: (options: unknown) => { sendMail: (mail: unknown) => Promise<unknown> }
-}
-
-/** Outcome of one push round: per-channel success or the error message. */
-export interface PushRoundResult {
-  readonly dingtalk: string | null
-  readonly wecom: string | null
-  readonly email: string | null
 }
 
 /** Level 1 is the most severe; sort ascending so the worst alerts push first. */
@@ -130,7 +133,7 @@ export async function pushEmail(
  * @param alerts - the scan's new alerts; empty means no message at all.
  * @param tasks - the stored tasks.
  * @param at - the scan instant.
- * @returns per-channel outcomes (null = sent ok or channel not configured).
+ * @returns per-channel outcomes (`attempted: false` = disabled, unconfigured, or nothing to send).
  */
 export async function pushAlertRound(
   settings: SentimentSettings,
@@ -139,12 +142,112 @@ export async function pushAlertRound(
   at: string,
   deps: PushDeps = {},
 ): Promise<PushRoundResult> {
-  if (!settings.notifyEnabled || alerts.length === 0) return { dingtalk: null, wecom: null, email: null }
+  const skipped: PushChannelOutcome = { attempted: false, error: null }
+  if (!settings.notifyEnabled || alerts.length === 0) return { dingtalk: skipped, wecom: skipped, email: skipped }
   const message = formatAlertMessage(alerts, tasks, at)
   const [dingtalk, wecom, email] = await Promise.all([
     settings.dingtalkWebhook !== null ? pushDingtalk(settings.dingtalkWebhook, message, deps) : Promise.resolve(null),
     settings.wecomWebhook !== null ? pushWecom(settings.wecomWebhook, message, deps) : Promise.resolve(null),
     pushEmail(settings, message, deps),
   ])
-  return { dingtalk, wecom, email }
+  return {
+    dingtalk: settings.dingtalkWebhook === null ? skipped : { attempted: true, error: dingtalk },
+    wecom: settings.wecomWebhook === null ? skipped : { attempted: true, error: wecom },
+    // The email channel is configured only with host + recipient + password all present.
+    email: settings.smtpHost === null || settings.email === null || settings.smtpPassword === null
+      ? skipped
+      : { attempted: true, error: email },
+  }
+}
+
+/** The initial delivery record of a channel: not yet attempted. */
+export function freshChannelDelivery(): SentimentAlertChannelDelivery {
+  return { status: 'pending', attempts: 0, lastAt: null, lastError: null }
+}
+
+/** The initial per-channel delivery record set of a fresh alert. */
+export function freshAlertDelivery(): SentimentAlertDelivery {
+  return { dingtalk: freshChannelDelivery(), wecom: freshChannelDelivery(), email: freshChannelDelivery() }
+}
+
+/**
+ * Advance one channel's delivery record with one round outcome: an
+ * unattempted channel keeps its record, a success turns `delivered`, and a
+ * failure counts the attempt and stays `pending` until the cap makes it
+ * terminal `failed`.
+ */
+export function advanceChannelDelivery(
+  current: SentimentAlertChannelDelivery,
+  outcome: PushChannelOutcome,
+  nowIso: string,
+): SentimentAlertChannelDelivery {
+  if (!outcome.attempted) return current
+  // Terminal `failed` stays put; the cap is only reset by a new scan event.
+  if (current.status === 'failed') return current
+  if (outcome.error === null) return { status: 'delivered', attempts: current.attempts + 1, lastAt: nowIso, lastError: null }
+  const attempts = current.attempts + 1
+  return attempts >= SENTIMENT_PUSH_MAX_ATTEMPTS
+    ? { status: 'failed', attempts, lastAt: nowIso, lastError: outcome.error }
+    : { status: 'pending', attempts, lastAt: nowIso, lastError: outcome.error }
+}
+
+/**
+ * Whether one channel is due for a retry: not delivered or terminally
+ * failed, under the attempt cap, and past the cooldown since the last try
+ * (a never-attempted channel is always due).
+ */
+export function isChannelRetryDue(current: SentimentAlertChannelDelivery, now: Date): boolean {
+  if (current.status !== 'pending' || current.attempts >= SENTIMENT_PUSH_MAX_ATTEMPTS) return false
+  if (current.lastAt === null) return true
+  return now.getTime() - Date.parse(current.lastAt) >= SENTIMENT_PUSH_RETRY_COOLDOWN_MS
+}
+
+/**
+ * Whether one alert should join the next retry round: every stored channel
+ * is due. Alerts without a delivery record predate tracking and never retry.
+ */
+export function isAlertRetryDue(alert: SentimentAlert, now: Date): boolean {
+  if (alert.handled || alert.delivery === undefined || alert.delivery === null) return false
+  return isChannelRetryDue(alert.delivery.dingtalk, now)
+    || isChannelRetryDue(alert.delivery.wecom, now)
+    || isChannelRetryDue(alert.delivery.email, now)
+}
+
+/**
+ * Advance one alert's delivery record with one round's outcomes, starting
+ * from the fresh record when the alert carries none.
+ */
+export function advanceAlertDelivery(
+  alert: SentimentAlert,
+  round: PushRoundResult,
+  nowIso: string,
+): SentimentAlertDelivery {
+  const base = alert.delivery ?? freshAlertDelivery()
+  return {
+    dingtalk: advanceChannelDelivery(base.dingtalk, round.dingtalk, nowIso),
+    wecom: advanceChannelDelivery(base.wecom, round.wecom, nowIso),
+    email: advanceChannelDelivery(base.email, round.email, nowIso),
+  }
+}
+
+/**
+ * Send one test message through every configured channel, regardless of the
+ * `notifyEnabled` switch (the point is to verify the configuration).
+ * @returns per-channel outcomes; unconfigured channels are `attempted: false`.
+ */
+export async function pushTestRound(settings: SentimentSettings, deps: PushDeps = {}): Promise<PushRoundResult> {
+  const message = '【企业舆情告警】这是一条测试推送。收到即表示该渠道配置可用。'
+  const [dingtalk, wecom, email] = await Promise.all([
+    settings.dingtalkWebhook !== null ? pushDingtalk(settings.dingtalkWebhook, message, deps) : Promise.resolve(null),
+    settings.wecomWebhook !== null ? pushWecom(settings.wecomWebhook, message, deps) : Promise.resolve(null),
+    pushEmail(settings, message, deps),
+  ])
+  const skipped: PushChannelOutcome = { attempted: false, error: null }
+  return {
+    dingtalk: settings.dingtalkWebhook === null ? skipped : { attempted: true, error: dingtalk },
+    wecom: settings.wecomWebhook === null ? skipped : { attempted: true, error: wecom },
+    email: settings.smtpHost === null || settings.email === null || settings.smtpPassword === null
+      ? skipped
+      : { attempted: true, error: email },
+  }
 }

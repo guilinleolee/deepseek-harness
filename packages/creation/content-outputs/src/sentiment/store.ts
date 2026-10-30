@@ -7,10 +7,10 @@
 
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import type {
-  SentimentAlert, SentimentAlertAdjudication, SentimentMention, SentimentPolarity, SentimentReport, SentimentSettings, SentimentSource, SentimentTask,
+  SentimentAlert, SentimentAlertAdjudication, SentimentAlertDelivery, SentimentAlertId, SentimentMention, SentimentPolarity, SentimentReport, SentimentSettings, SentimentSource, SentimentTask,
   SentimentTaskId, SentimentTaskInput, SentimentManifest, SentimentSnapshot,
 } from './types.ts'
 import { SENTIMENT_SOURCES } from './types.ts'
@@ -42,6 +42,39 @@ export const SENTIMENT_MAX_TASKS = 50
 export const SENTIMENT_MIN_INTERVAL_MINUTES = 30
 
 const trimTerm = (term: string): string => term.trim()
+
+/** Query parameters stripped before URL dedup (tracking and rotation noise). */
+const DEDUP_STRIPPED_PARAMS = /^(utm_|spm|from|share_|scene|chksm|issp|nsukey|ref|fbclid|igshid)/iu
+
+/**
+ * Normalize one URL for dedup: drop the fragment, lowercase the host, and
+ * strip tracking parameters. Unparseable strings pass through unchanged.
+ */
+export function normalizeSentimentUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    parsed.hash = ''
+    parsed.hostname = parsed.hostname.toLowerCase()
+    const kept = [...parsed.searchParams.entries()].filter(([key]) => !DEDUP_STRIPPED_PARAMS.test(key))
+    parsed.search = ''
+    for (const [key, value] of kept) parsed.searchParams.append(key, value)
+    return parsed.toString()
+  } catch {
+    // Not a parseable URL: dedup falls back to the raw string.
+    return url
+  }
+}
+
+/** First dedup key of one mention: the normalized URL, scoped to its task. */
+function sentimentUrlKey(taskId: string, url: string): string {
+  return `${taskId}:url:${normalizeSentimentUrl(url)}`
+}
+
+/** Second dedup key: the content hash of title + summary, scoped to its task. */
+function sentimentContentKey(taskId: string, title: string, summary: string | null): string {
+  const text = `${title.trim()}\n${summary?.trim() ?? ''}`.slice(0, SENTIMENT_MAX_TEXT * 2)
+  return `${taskId}:content:${createHash('sha256').update(text).digest('hex')}`
+}
 
 const POLARITIES: readonly SentimentPolarity[] = ['pos', 'neu', 'neg']
 
@@ -93,6 +126,8 @@ function isMention(value: unknown): value is SentimentMention {
   if (!isTimestamp(value.capturedAt) || !POLARITIES.includes(value.polarity as SentimentPolarity)) return false
   if (typeof value.confidence !== 'number' || !Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1) return false
   if (!isNullableText(value.evidence, SENTIMENT_MAX_TEXT) || !isNullableText(value.author, 200)) return false
+  if (value.occurrences !== undefined && (typeof value.occurrences !== 'number' || !Number.isInteger(value.occurrences) || value.occurrences < 1)) return false
+  if (value.heatDelta !== undefined && (typeof value.heatDelta !== 'number' || !Number.isInteger(value.heatDelta))) return false
   return value.heat === null || isRecord(value.heat)
 }
 
@@ -106,6 +141,7 @@ function isAlert(value: unknown): value is SentimentAlert {
   if (!value.mentionIds.every(id => isText(id, 64))) return false
   if (typeof value.handled !== 'boolean') return false
   if (!(isTimestamp(value.createdAt) && (value.handledAt === null || isTimestamp(value.handledAt)))) return false
+  if (value.delivery !== undefined && value.delivery !== null && !isAlertDelivery(value.delivery)) return false
   if (value.adjudication === undefined || value.adjudication === null) return true
   if (!isRecord(value.adjudication)) return false
   const adjudication = value.adjudication
@@ -113,6 +149,20 @@ function isAlert(value: unknown): value is SentimentAlert {
     && isText(adjudication.cautious, SENTIMENT_MAX_TEXT)
     && isText(adjudication.conclusion, SENTIMENT_MAX_TEXT)
     && isTimestamp(adjudication.at)
+}
+
+/** Validate one stored per-channel delivery record. */
+function isChannelDelivery(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  if (value.status !== 'pending' && value.status !== 'delivered' && value.status !== 'failed') return false
+  if (typeof value.attempts !== 'number' || !Number.isInteger(value.attempts) || value.attempts < 0) return false
+  if (!(value.lastAt === null || isTimestamp(value.lastAt))) return false
+  return value.lastError === null || isNullableText(value.lastError, SENTIMENT_MAX_TEXT)
+}
+
+function isAlertDelivery(value: unknown): value is SentimentAlertDelivery {
+  return isRecord(value)
+    && isChannelDelivery(value.dingtalk) && isChannelDelivery(value.wecom) && isChannelDelivery(value.email)
 }
 
 export const DEFAULT_SENTIMENT_SETTINGS: SentimentSettings = {
@@ -222,8 +272,18 @@ export function parseSentimentManifest(raw: string): SentimentParse {
   const mentions: SentimentMention[] = []
   if (Array.isArray(root.mentions)) {
     for (const mention of root.mentions) {
-      if (isMention(mention)) mentions.push(mention)
-      else problems.push(`dropped one invalid sentiment mention: ${JSON.stringify(mention).slice(0, 120)}`)
+      if (!isMention(mention)) {
+        problems.push(`dropped one invalid sentiment mention: ${JSON.stringify(mention).slice(0, 120)}`)
+        continue
+      }
+      // Same-version safe read: rows stored before occurrence counting read
+      // as single-capture with no heat change.
+      const normalized = {
+        ...mention,
+        ...(mention.occurrences === undefined ? { occurrences: 1 as const } : {}),
+        ...(mention.heatDelta === undefined ? { heatDelta: 0 as const } : {}),
+      }
+      mentions.push(normalized)
     }
   }
   const alerts: SentimentAlert[] = []
@@ -430,10 +490,12 @@ export async function putSentimentSettingsFile(file: string, settings: Sentiment
 }
 
 /**
- * Append one scan batch under a file lock: dedupes mentions by task+url,
- * prunes past the retention window and hard caps, merges new alerts, and
- * returns the post-write snapshot counts.
- * @returns how many new mentions and alerts were written.
+ * Append one scan batch under a file lock: dedupes mentions by normalized
+ * URL and content hash within the task (a duplicate bumps the original's
+ * `occurrences` instead of adding a row), prunes past the retention window
+ * and hard caps, merges new alerts, and returns the post-write snapshot
+ * counts.
+ * @returns how many new mention rows and alerts were written.
  */
 export async function appendSentimentScanFile(
   file: string,
@@ -442,24 +504,78 @@ export async function appendSentimentScanFile(
 ): Promise<{ captured: number; alerts: number }> {
   return withFileLock(file, async () => {
     const state = await readForWrite(file)
-    const seen = new Set(state.mentions.map(m => `${m.taskId}:${m.url}`))
-    const fresh = newMentions.filter(m => !seen.has(`${m.taskId}:${m.url}`))
-    const retentionCutoff = Date.now() - (state.settings.retentionDays * 24 * 60 * 60 * 1000)
-    const keptMentions = [...state.mentions, ...fresh]
-      .filter(m => Date.parse(m.capturedAt) >= retentionCutoff)
+    // Mention identity: both dedup keys map onto the row object that first
+    // carried them; a duplicate bumps its `occurrences` count.
+    const rows: SentimentMention[] = [...state.mentions]
+    const keyOwner = new Map<string, SentimentMention>()
+    for (const row of rows) {
+      keyOwner.set(sentimentUrlKey(row.taskId, row.url), row)
+      keyOwner.set(sentimentContentKey(row.taskId, row.title, row.summary), row)
+    }
+    const extra = new Map<SentimentMention, { count: number; latest: SentimentMention }>()
+    for (const mention of newMentions) {
+      const owner = keyOwner.get(sentimentUrlKey(mention.taskId, mention.url))
+        ?? keyOwner.get(sentimentContentKey(mention.taskId, mention.title, mention.summary))
+      if (owner === undefined) {
+        keyOwner.set(sentimentUrlKey(mention.taskId, mention.url), mention)
+        keyOwner.set(sentimentContentKey(mention.taskId, mention.title, mention.summary), mention)
+        rows.push(mention)
+        continue
+      }
+      const previous = extra.get(owner)
+      extra.set(owner, { count: (previous?.count ?? 0) + 1, latest: mention })
+    }
+    const heatTotal = (heat: SentimentMention['heat']): number => heat === null ? 0 : heat.likes + heat.comments + heat.shares
+    const counted = rows.map(row => {
+      const bump = extra.get(row)
+      if (bump === undefined) return row
+      // A duplicate refreshes engagement: adopt the newest heat readings and
+      // record the delta against the stored row (0 when either side is heat-less).
+      const latestHeat = bump.latest.heat
+      const heatDelta = latestHeat === null ? row.heatDelta : heatTotal(latestHeat) - heatTotal(row.heat)
+      return {
+        ...row,
+        occurrences: row.occurrences + bump.count,
+        heat: latestHeat === null ? row.heat : latestHeat,
+        heatDelta,
+      }
+    })
+    const keptMentions = counted
+      .filter(m => Date.parse(m.capturedAt) >= Date.now() - (state.settings.retentionDays * 24 * 60 * 60 * 1000))
       .sort(compareMentions)
       .slice(0, SENTIMENT_MAX_MENTIONS)
     const keptAlerts = [...newAlerts, ...state.alerts]
       .sort(compareAlerts)
       .slice(0, SENTIMENT_MAX_ALERTS)
     await writeSnapshot(file, state.tasks, keptMentions, keptAlerts, state.settings, state.report)
-    return { captured: fresh.length, alerts: newAlerts.length }
+    return { captured: newMentions.length - [...extra.values()].reduce((sum, entry) => sum + entry.count, 0), alerts: newAlerts.length }
+  })
+}
+
+/**
+ * Persist one batch of alert push-delivery records under a file lock.
+ * Unknown ids are skipped (the alert may have been pruned mid-push);
+ * updates with no matching alert write nothing.
+ */
+export async function putSentimentAlertDeliveriesFile(
+  file: string,
+  updates: readonly { readonly id: SentimentAlertId; readonly delivery: SentimentAlertDelivery }[],
+): Promise<void> {
+  if (updates.length === 0) return
+  await withFileLock(file, async () => {
+    const state = await readForWrite(file)
+    const byId = new Map(updates.map(update => [update.id, update.delivery]))
+    const nextAlerts = state.alerts.map(alert => {
+      const delivery = byId.get(alert.id)
+      return delivery === undefined ? alert : { ...alert, delivery }
+    })
+    if (nextAlerts.every((alert, index) => alert === state.alerts[index])) return
+    await writeSnapshot(file, state.tasks, state.mentions, nextAlerts, state.settings, state.report)
   })
 }
 
 /** Mark one alert handled. Unknown ids reject. */
-export async function handleSentimentAlertFile(file: string, id: string, now: string = new Date().toISOString()): Promise<void> {
-  await withFileLock(file, async () => {
+export async function handleSentimentAlertFile(file: string, id: string, now: string = new Date().toISOString()): Promise<void> {  await withFileLock(file, async () => {
     const state = await readForWrite(file)
     const alert = state.alerts.find(a => a.id === id)
     if (alert === undefined) throw new Error(`unknown sentiment alert: ${id}`)

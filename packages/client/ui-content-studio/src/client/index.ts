@@ -27,7 +27,6 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { createContentStudioController } from './studio-store.ts'
 import { StudioEntry } from './StudioEntry.tsx'
 import { ContentStudio, type ContentStudioInjected } from './ContentStudio.tsx'
-import { createGatherController } from './gather/gather-store.ts'
 import { createPersonaController } from './persona/persona-store.ts'
 import { createTemplateController } from './template/template-store.ts'
 import { createPublishController } from './publish/publish-store.ts'
@@ -38,7 +37,6 @@ import { en, zh, type StudioKey } from './locales.ts'
 export { createContentStudioController, type ContentStudioController } from './studio-store.ts'
 export { CAPABILITY_ITEMS, STUDIO_TABS, capabilityGroups } from './capabilities.ts'
 export type { CapabilityGroup, CapabilityItem, CapabilityMaturity, StudioTab } from './capabilities.ts'
-export { createGatherController, type GatherController, type GatherState } from './gather/gather-store.ts'
 export { createPersonaController, type PersonaController, type PersonaGateway, type PersonaState } from './persona/persona-store.ts'
 export { createTemplateController, type TemplateController, type TemplateGateway, type TemplatePickTarget, type TemplateState } from './template/template-store.ts'
 export { createPublishController, type PublishController, type PublishGateway, type PublishState } from './publish/publish-store.ts'
@@ -51,7 +49,7 @@ export type { CreateGateway } from './CreateView.tsx'
 export type { TopicBankGateway, TopicBankScheduleFace } from './TopicBankView.tsx'
 export {
   DEFAULT_TOPIC_BANK_CONFIG, TOPIC_BANK_CONFIG_VERSION, TOPIC_SOURCE_TYPES, TOPIC_STATUSES,
-  collectTags, filterTopics, formatScore, groupByStatus, gatherMaterialToTopicInput,
+  collectTags, filterTopics, formatScore, groupByStatus,
   loadTopicBankConfig, manualTopicInput, parseTopicsMarkdown, planWindowRange, saveTopicBankConfig,
   topicInputOf, topicToMarkdown, topicsToMarkdown, weekStart, withAppendedTags,
 } from './topic-bank.ts'
@@ -153,6 +151,7 @@ function mainApply(ctx: Context): void {
     writeAsset: (theme, file, content) => unwrap('contentOutputs.writeAsset', ctx.remote.contentOutputs.writeAsset({ theme, file, content })),
     publishCreateFinal: (theme, request) => unwrap('contentOutputs.publishCreateFinal', ctx.remote.contentOutputs.publishCreateFinal(theme, request)),
     registerCreatePublish: (theme, request) => unwrap('contentOutputs.registerCreatePublish', ctx.remote.contentOutputs.registerCreatePublish(theme, request)),
+    extractCreateCopy: url => unwrap('contentOutputs.extractCreateCopy', ctx.remote.contentOutputs.extractCreateCopy(url)),
     readCreateMetadata: theme => unwrap('contentOutputs.readCreateMetadata', ctx.remote.contentOutputs.readCreateMetadata(theme)),
     writeCreateMetadata: (theme, metadata) => unwrap('contentOutputs.writeCreateMetadata', ctx.remote.contentOutputs.writeCreateMetadata(theme, metadata)),
     generateCreateContent: request => unwrap('contentOutputs.generateCreateContent', ctx.remote.contentOutputs.generateCreateContent(request)),
@@ -180,62 +179,23 @@ function mainApply(ctx: Context): void {
       return result.value
     },
   }
-  const notes: ContentStudioInjected['notes'] = {
-    list: () => unwrap('contentSchedule.getNotes', ctx.remote.contentSchedule.getNotes()),
-    put: (id, text) => unwrap('contentSchedule.putNote', ctx.remote.contentSchedule.putNote(id, text)),
-  }
   const topics: ContentStudioInjected['topics'] = {
     list: () => unwrap('contentTopics.list', ctx.remote.contentTopics.list()),
     put: input => unwrap('contentTopics.put', ctx.remote.contentTopics.put(input)),
     remove: id => unwrap('contentTopics.delete', ctx.remote.contentTopics.delete(id)),
   }
+  const topicCollect: ContentStudioInjected['topicCollect'] = {
+    collect: request => unwrap('contentOutputs.collectTopicEntries', ctx.remote.contentOutputs.collectTopicEntries(request)),
+  }
+  const topicCategories: ContentStudioInjected['topicCategories'] = {
+    list: () => unwrap('contentTopics.listCategories', ctx.remote.contentTopics.listCategories()),
+    put: input => unwrap('contentTopics.putCategory', ctx.remote.contentTopics.putCategory(input)),
+    remove: id => unwrap('contentTopics.deleteCategory', ctx.remote.contentTopics.deleteCategory(id)),
+  }
   // The topic bank's Markdown export reuses contentOutputs' guarded asset
   // write — no second file-write face for the plugin.
   const writeExport: ContentStudioInjected['writeExport'] = (theme, file, content) =>
     unwrap('contentOutputs.writeAsset', ctx.remote.contentOutputs.writeAsset({ theme, file, content }))
-  const gatherGateway: Parameters<typeof createGatherController>[0]['gateway'] = {
-    fetchFeed: async (request) => {
-      const result = await ctx.remote.contentOutputs.fetchFeed(request)
-      if (!result.ok) throw new Error(`contentOutputs.fetchFeed failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    writeAsset: async (write) => {
-      const result = await ctx.remote.contentOutputs.writeAsset(write)
-      if (!result.ok) throw new Error(`contentOutputs.writeAsset failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    readAsset: async (theme, file) => {
-      const result = await ctx.remote.contentOutputs.readAsset(theme, file)
-      if (!result.ok) throw new Error(`contentOutputs.readAsset failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    readManifest: async (theme) => {
-      const result = await ctx.remote.contentOutputs.readGatherManifest(theme)
-      if (!result.ok) throw new Error(`contentOutputs.readGatherManifest failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    writeManifest: async (theme, manifest) => {
-      const result = await ctx.remote.contentOutputs.writeGatherManifest(theme, manifest)
-      if (!result.ok) throw new Error(`contentOutputs.writeGatherManifest failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    moveAsset: async (move) => {
-      const result = await ctx.remote.contentOutputs.moveAsset(move)
-      if (!result.ok) throw new Error(`contentOutputs.moveAsset failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    deleteAsset: async (theme, file) => {
-      const result = await ctx.remote.contentOutputs.deleteAsset(theme, file)
-      if (!result.ok) throw new Error(`contentOutputs.deleteAsset failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-    processMaterial: async (request) => {
-      const result = await ctx.remote.contentOutputs.processMaterial(request)
-      if (!result.ok) throw new Error(`contentOutputs.processMaterial failed: ${result.error.code}: ${result.error.message}`)
-      return result.value
-    },
-  }
-  const gather = createGatherController({ gateway: gatherGateway, listOutputs, schedulePut: input => schedule.put(input) })
   // The persona face: the `_personas.json` manifest plus the explicit AI
   // helpers, on the same contentOutputs Remote as every other write face.
   const personas: ContentStudioInjected['personas'] = createPersonaController({
@@ -271,6 +231,8 @@ function mainApply(ctx: Context): void {
     adjudicateSentimentAlert: id => unwrap('contentOutputs.adjudicateSentimentAlert', ctx.remote.contentOutputs.adjudicateSentimentAlert(id)),
     sentimentStats: () => unwrap('contentOutputs.sentimentStats', ctx.remote.contentOutputs.sentimentStats()),
     generateSentimentReport: () => unwrap('contentOutputs.generateSentimentReport', ctx.remote.contentOutputs.generateSentimentReport()),
+    retrySentimentPush: () => unwrap('contentOutputs.retrySentimentPush', ctx.remote.contentOutputs.retrySentimentPush()),
+    testSentimentPush: () => unwrap('contentOutputs.testSentimentPush', ctx.remote.contentOutputs.testSentimentPush()),
   }
   const competitors: ContentStudioInjected['competitors'] = {
     // The benchmark side's 收录为选题 rides the shared topic-bank face.
@@ -395,9 +357,9 @@ function mainApply(ctx: Context): void {
       order: 50,
       locale: NS,
       inject: () => ({
-        studio, listOutputs, gather, schedule, notes, competitors, create, personas, sentiment: sentimentGateway, listThemes,
+        studio, listOutputs, schedule, competitors, create, personas, sentiment: sentimentGateway, listThemes,
         sentimentRead: { getSentiment: sentimentGateway.getSentiment, sentimentStats: sentimentGateway.sentimentStats },
-        topics, writeExport, publish, review, interaction, readInteractions, readReviewManifest,
+        topics, topicCategories, topicCollect, writeExport, publish, review, interaction, readInteractions, readReviewManifest,
         templates,
       }),
     }, ContentStudio)

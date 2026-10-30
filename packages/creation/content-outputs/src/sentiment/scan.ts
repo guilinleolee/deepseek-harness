@@ -164,6 +164,8 @@ export interface ScanEngineConfig {
   readonly model: string
   readonly timeoutMs: number
   readonly maxOutputTokens: number
+  /** `rules` skips the LLM refinement stage entirely; `llm-review` (default) refines the ambiguous. */
+  readonly analyzer?: 'rules' | 'llm-review'
 }
 
 export interface ScanDeps {
@@ -210,6 +212,8 @@ function mentionOfEntry(
     polarity,
     confidence,
     evidence,
+    occurrences: 1,
+    heatDelta: 0,
     heat: entry.heat,
     author: entry.author,
   }
@@ -370,6 +374,8 @@ export async function runSentimentScan(
           polarity,
           confidence: lexicon.confidence,
           evidence: lexicon.evidence,
+          occurrences: 1,
+          heatDelta: 0,
           heat: null,
           author: null,
         })
@@ -409,15 +415,27 @@ export async function runSentimentScan(
   }
 
   // Stage-2 LLM refinement: batch the ambiguous/low-confidence mentions.
-  const ambiguous = mentions
+  // The rules analyzer skips the stage; an LLM failure degrades to the
+  // lexicon verdicts instead of failing the scan.
+  const refinement: NonNullable<SentimentScanResult['refinement']> = ai.analyzer === 'rules' ? 'skipped' : 'ok'
+  const ambiguous = refinement === 'skipped' ? [] : mentions
     .map((mention, index) => ({ index, mention }))
     .filter(({ mention }) => needsRefinement({ polarity: mention.polarity, confidence: mention.confidence, evidence: mention.evidence }))
     .slice(0, deps.llmBatchCap ?? SENTIMENT_LLM_BATCH_CAP)
   if (ambiguous.length > 0) {
-    const verdicts = await (deps.refineBatch ?? refineBatchWithLlm)(ctx, policy, ambiguous.map(({ index, mention }) => ({
-      index,
-      text: `${mention.title}\n${mention.summary}`,
-    })))
+    let verdicts: Map<number, LexiconVerdict>
+    try {
+      verdicts = await (deps.refineBatch ?? refineBatchWithLlm)(ctx, policy, ambiguous.map(({ index, mention }) => ({
+        index,
+        text: `${mention.title}\n${mention.summary}`,
+      })))
+    } catch {
+      return {
+        result: { captured: mentions.length, alerts: 0, at: nowIso, refinement: 'degraded' },
+        mentions,
+        alerts: aggregateAlerts(mentions, settings, nowIso),
+      }
+    }
     for (const { index, mention } of ambiguous) {
       const verdict = verdicts.get(index)
       if (verdict === undefined) continue
@@ -432,7 +450,7 @@ export async function runSentimentScan(
 
   const newAlerts = aggregateAlerts(mentions, settings, nowIso)
   return {
-    result: { captured: mentions.length, alerts: newAlerts.length, at: nowIso },
+    result: { captured: mentions.length, alerts: newAlerts.length, at: nowIso, refinement },
     mentions,
     alerts: newAlerts,
   }

@@ -82,7 +82,7 @@ function isReport(value: unknown): value is CompetitorReport {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>
   return typeof record.id === 'string' && record.id.length > 0
-    && (record.kind === 'account' || record.kind === 'compare')
+    && (record.kind === 'account' || record.kind === 'compare' || record.kind === 'audit')
     && isStringArray(record.accountIds) && record.accountIds.length > 0
     && isStringArray(record.accountNames) && record.accountNames.length > 0
     && typeof record.ref === 'string' && record.ref.length > 0

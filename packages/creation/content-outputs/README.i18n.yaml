@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/creation/content-outputs/README.md
-README.md: 27a049deb663f71435e66aa9dd104e595dc72093
-README.zh.md: a16175eec7a5bedf8148e852d476bc46b95feca1
+/:
+  en: bb7d3f77280c090c
+  zh: 5981a39bf656cac7
+/deepseek-ai-dsh-content-outputs:
+  en: cf9ef73affa20677
+  zh: d3050002920cdde7
+/deepseek-ai-dsh-content-outputs/summary:
+  en: a43a759914860b73
+  zh: 8dccba9660633e39
+/deepseek-ai-dsh-content-outputs/table-of-contents:
+  en: 12bc9bd34e006888
+  zh: 7b2ecc21c60af149
+/deepseek-ai-dsh-content-outputs/gather-write-face:
+  en: 58511bd4e320d54f
+  zh: 6d8253ca7ba3cc17
+/deepseek-ai-dsh-content-outputs/create-write-face:
+  en: fdb1c0bd29125a1a
+  zh: f605fb256162a31a
+/deepseek-ai-dsh-content-outputs/sentiment-faces:
+  en: 6d3bb2448b4773a0
+  zh: 9f5c25f203845e4e
+/deepseek-ai-dsh-content-outputs/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-content-outputs/model-experience/explicit-one-shot-ai-remotes:
+  en: da97470442ee44c0
+  zh: d2be62656bcbc5e2
+/deepseek-ai-dsh-content-outputs/model-experience/explicit-one-shot-ai-remotes/what-the-model-sees:
+  en: 27f51ae59f2a1010
+  zh: 1d8c17d86234d69d
+/deepseek-ai-dsh-content-outputs/model-experience/explicit-one-shot-ai-remotes/token-effect:
+  en: a6040aa0e63ba54e
+  zh: a203b304d06c49de
+/deepseek-ai-dsh-content-outputs/model-experience/explicit-one-shot-ai-remotes/kv-cache-effect:
+  en: 865c93318aff5fee
+  zh: f318f6ea18ad64c8
+/deepseek-ai-dsh-content-outputs/known-limitations-and-deferred-work:
+  en: 541f03732224ae60
+  zh: 3fd12c2e668eef62
+/deepseek-ai-dsh-content-outputs/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

@@ -8,7 +8,6 @@ import {
   filterTopics,
   formatScore,
   groupByStatus,
-  gatherMaterialToTopicInput,
   loadTopicBankConfig,
   manualTopicInput,
   parseTopicsMarkdown,
@@ -235,24 +234,6 @@ describe('markdown export schema', () => {
 })
 
 describe('upsert inputs', () => {
-  it('builds a gather join carrying the material identity and snapshot', () => {
-    expect(gatherMaterialToTopicInput({ id: 'm-1', title: '素材', url: 'https://a.example', summary: '摘要' }, '2026-09-25T02:00:00.000Z')).toEqual({
-      title: '素材',
-      oneLiner: '摘要',
-      status: 'idea',
-      source: { type: 'gather', refId: 'm-1', url: 'https://a.example', snapshot: { title: '素材', summary: '摘要', capturedAt: '2026-09-25T02:00:00.000Z' } },
-      tags: [],
-      description: null,
-      score: null,
-      planDate: null,
-      scheduleItemId: null,
-      topicDir: null,
-    })
-    const withoutSummary = gatherMaterialToTopicInput({ id: 'm-2', title: '素材', url: 'https://a.example' }, '2026-09-25T02:00:00.000Z')
-    expect(withoutSummary.oneLiner).toBeNull()
-    expect(withoutSummary.source.snapshot?.summary).toBeNull()
-  })
-
   it('builds a manual topic with only the title and the idea start', () => {
     expect(manualTopicInput('新选题')).toEqual({
       title: '新选题',

@@ -20,15 +20,18 @@
  * verifyPassword/saveAccounts）的引用是 hoisted 函数声明的循环引用，ESM
  * 合法且只在请求期调用（模块求值期不触碰）。
  */
-import { randomBytes } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { writeJsonAtomic } from './atomic-write.mjs'
 
 import { auditAppend, clientIp } from './audit.mjs'
-import { saveAccounts, verifyPassword } from './gateway.mjs'
+import { addAccount, saveAccounts, verifyPassword } from './gateway.mjs'
 import { withAccountLock } from './console.mjs'
+import { issueVkey } from './relay.mjs'
+import { writeVkeyToHome } from './credentials.mjs'
+import { generatePassword } from './security.mjs'
 import { decryptText, deriveKey, encryptText } from './totp.mjs'
 
 const SSO_FILE = 'sso.json'
@@ -42,14 +45,20 @@ export const SSO_PROVIDERS = {
   dingtalk: { label: '钉钉' },
 }
 
+/** 自动开通允许落地的角色（admin 只能由管理台显式授予，绝不自动产生）。 */
+const AUTO_ROLES = ['employee', 'auditor']
+
 const DEFAULT_SSO = () => ({
   wecom: {
     enabled: false, corpId: '', agentId: '', secretEnc: '', redirectUri: '',
     authorizeBase: 'https://open.weixin.qq.com', apiBase: 'https://qyapi.weixin.qq.com',
+    // 自动开通（免邀请码注册）：企业身份首次登录即建号。
+    autoProvision: false, autoRole: 'employee', autoDepartment: '', autoInstance: '',
   },
   dingtalk: {
     enabled: false, appKey: '', redirectUri: '',
     authorizeBase: 'https://login.dingtalk.com', apiBase: 'https://api.dingtalk.com',
+    autoProvision: false, autoRole: 'employee', autoDepartment: '', autoInstance: '',
   },
 })
 
@@ -113,6 +122,21 @@ export function saveSsoConfig(dataDir, patch, key) {
       target[field] = value.trim()
     }
     for (const field of ['corpId', 'appKey', 'agentId']) {
+      if (entry[field] !== undefined) {
+        if (typeof entry[field] !== 'string') throw new Error(`${provider}.${field} 必须是字符串`)
+        target[field] = entry[field].trim()
+      }
+    }
+    // 自动开通配置（免邀请码注册）：角色白名单与实例 id 形态校验在此收口，
+    // 避免把「任意角色/任意实例」写进配置后被自动开通路径放大。
+    if (entry.autoProvision !== undefined) target.autoProvision = entry.autoProvision === true
+    if (entry.autoRole !== undefined) {
+      if (typeof entry.autoRole !== 'string' || !AUTO_ROLES.includes(entry.autoRole)) {
+        throw new Error(`${provider}.autoRole 只支持 ${AUTO_ROLES.join('/')}`)
+      }
+      target.autoRole = entry.autoRole
+    }
+    for (const field of ['autoDepartment', 'autoInstance']) {
       if (entry[field] !== undefined) {
         if (typeof entry[field] !== 'string') throw new Error(`${provider}.${field} 必须是字符串`)
         target[field] = entry[field].trim()
@@ -295,14 +319,83 @@ async function bind(ev){ev.preventDefault();
 </script>`
 
 /**
+ * 企业身份自动开通（免邀请码注册）。
+ *
+ * 背景：邀请码注册要求管理员先在管理台发码，员工再凭码建号——多一次人工
+ * 往返，且码要靠线下传递。企业微信/钉钉已能证明「此人属于本企业」，因此
+ * 首次扫码登录即可直接建号（Just-In-Time Provisioning）：
+ *   - 身份来源是企业 IdP（可信），不再是线下人工发放的凭据；
+ *   - 账号名由 IdP 身份派生（provider + userid/unionId 的稳定摘要），
+ *     天然唯一且不与真人邮箱冲突；
+ *   - 角色/部门/实例由管理员在 SSO 配置里预先定好（autoRole/autoDepartment/
+ *     autoInstance），员工无法自行提权——autoRole 白名单不含 admin；
+ *   - 密码是随机生成的不可知值（仅占位，登录只走 SSO），不进任何通知。
+ *
+ * @returns {{ok:true, record} | {ok:false, reason, message}}
+ */
+export async function provisionFromSso({ dataDir, provider, identity, config, manifest, ip }) {
+  const role = AUTO_ROLES.includes(config.autoRole) ? config.autoRole : 'employee'
+  const department = typeof config.autoDepartment === 'string' && config.autoDepartment !== '' ? config.autoDepartment : '未分配'
+  // 实例取管理员配置；未配置时回落到清单首个实例（保证账号有归属实例，
+  // 否则网关按 instanceId 路由会 403）。
+  const instanceId = (typeof config.autoInstance === 'string' && config.autoInstance !== '')
+    ? config.autoInstance
+    : (manifest?.instances?.[0]?.id ?? '')
+  if (instanceId === '') return { ok: false, reason: 'no_instance', message: 'SSO 自动开通未配置目标实例' }
+
+  // 账号名：provider + 身份摘要（sha256 前 12 位十六进制）。
+  // 身份原文（unionId/userid）不进账号名——它属于企业目录标识，落进审计与
+  // 页面即成个人信息；摘要后既唯一又不可反查。
+  const digest = createHash('sha256').update(String(identity.ssoId)).digest('hex').slice(0, 12)
+  const account = `${provider}-${digest}`
+
+  return await withAccountLock(async () => {
+    const store = JSON.parse(readFileSync(join(dataDir, 'accounts.json'), 'utf8'))
+    const existing = store.accounts.find((a) => a.account === account)
+    if (existing !== undefined) {
+      // 账号已存在（同一身份重复开通）：补齐绑定后直接登录，不重复建号。
+      existing.ssoIds = Array.isArray(existing.ssoIds) ? existing.ssoIds : []
+      if (!existing.ssoIds.includes(identity.ssoId)) existing.ssoIds.push(identity.ssoId)
+      saveAccounts(dataDir, store)
+      return { ok: true, record: existing }
+    }
+    // addAccount 内部自己读改写 accounts.json——它返回后必须重新读一次，
+    // 否则拿旧 store 回写会把刚建的账号覆盖掉（丢账号）。
+    const created = addAccount(dataDir, {
+      account,
+      instanceId,
+      role,
+      displayName: typeof identity.name === 'string' && identity.name.trim() !== '' ? identity.name.trim() : undefined,
+      department,
+      // 随机不可知密码：只作存储占位，密码登录实际不可用（走 SSO）。
+      password: generatePassword(),
+    })
+    const fresh = JSON.parse(readFileSync(join(dataDir, 'accounts.json'), 'utf8'))
+    const record = fresh.accounts.find((a) => a.account === account)
+    if (record === undefined) return { ok: false, reason: 'create_failed', message: '账号写入后回读失败' }
+    record.ssoIds = [identity.ssoId]
+    saveAccounts(dataDir, fresh)
+    // 虚拟钥匙 + 实例 home 凭据（与建号链路同一原语，vkey 最后一公里）。
+    try {
+      const { token } = issueVkey(dataDir, { account, instanceId, models: '*' })
+      writeVkeyToHome(dataDir, instanceId, token)
+    } catch (error) {
+      console.error('[sso] 自动开通后签发 vkey 失败:', error?.message ?? error)
+    }
+    return { ok: true, record }
+  })
+}
+
+/**
  * SSO 路由（gateway 在裸 portal 主机分支调用）。
  * @param issueSession - (res, record, ip) => void：签发 JWT Cookie（gateway
  *   提供，与密码登录同一令牌语义：sub/epoch/TTL；传 ip 时同时刷新 lastLogin）。
  * @param twofaKey - 敏感配置派生根（sso secret 加密同源）。
  * @param guard - 登录限流器（绑定密码错误计入同桶；可缺省=不限流，测试用）。
+ * @param manifest - 实例清单（自动开通时选目标实例；可缺省=不自动开通）。
  * @returns true 表示已响应。
  */
-export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard = null }) {
+export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard = null, manifest = null }) {
   const ip = clientIp(req)
   const match = /^\/api\/auth\/sso\/(\w+)\/(start|callback)$/.exec(url.pathname)
   if (match !== null) {
@@ -333,7 +426,7 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
       return true
     }
     void resolveSsoIdentity(provider, code, dataDir, twofaKey)
-      .then((identity) => {
+      .then(async (identity) => {
         const accounts = JSON.parse(readFileSync(join(dataDir, 'accounts.json'), 'utf8'))
         const record = accounts.accounts.find((a) => Array.isArray(a.ssoIds) && a.ssoIds.includes(identity.ssoId))
         if (record !== undefined) {
@@ -345,6 +438,29 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
           void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.sso_login', target: record.account, result: 'ok', detail: { provider, ssoId: identity.ssoId } })
           issueSession(res, record, ip)
           res.writeHead(303, { location: record.role === 'employee' ? '/me' : '/' })
+          res.end()
+          return
+        }
+        // 未绑定：provider 开启「自动开通」时直接建号（免邀请码注册），
+        // 否则回落到「输入账号密码完成绑定」的旧流程。
+        const providerConfig = loadSsoConfig(dataDir)[provider]
+        if (providerConfig?.autoProvision === true) {
+          const provisioned = await provisionFromSso({ dataDir, provider, identity, config: providerConfig, manifest, ip })
+          if (provisioned.ok !== true) {
+            void auditAppend({ actor: null, action: 'auth.sso_provision', target: null, result: 'fail', detail: { provider, reason: provisioned.reason } })
+            res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+            res.end(`账号自动开通失败：${provisioned.message}`)
+            return
+          }
+          const created = provisioned.record
+          if (created.disabled) {
+            res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+            res.end('账号已禁用，请联系管理员。')
+            return
+          }
+          void auditAppend({ actor: { account: created.account, role: created.role, ip }, action: 'auth.sso_provision', target: created.account, result: 'ok', detail: { provider, role: created.role, instanceId: created.instanceId, department: created.department } })
+          issueSession(res, created, ip)
+          res.writeHead(303, { location: created.role === 'employee' ? '/me' : '/' })
           res.end()
           return
         }

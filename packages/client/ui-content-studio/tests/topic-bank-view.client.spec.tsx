@@ -9,12 +9,13 @@
  */
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ContentTopicsSnapshot, TopicItem, TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
+import type { ContentTopicsSnapshot, TopicCategoriesSnapshot, TopicCategory, TopicCategoryInput, TopicItem, TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
+import type { TopicCollectResult } from '@deepseek-ai/dsh-content-outputs/types'
 import type { ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { TopicBankView, type TopicBankGateway, type TopicBankViewProps } from '../src/client/TopicBankView.tsx'
-import { todayDate } from '../src/client/calendar.ts'
-import { manualTopicInput } from '../src/client/topic-bank.ts'
+import { TopicBankView, type TopicBankGateway, type TopicBankViewProps, type TopicCategoryGateway, type TopicCollectFace } from '../src/client/TopicBankView.tsx'
+
+import { manualTopicInput, todayDate } from '../src/client/topic-bank.ts'
 import type { TemplateController, TemplatePickDraft, TemplatePickTarget } from '../src/client/template/template-store.ts'
 import type { TemplateId } from '@deepseek-ai/dsh-content-outputs/types'
 import type { PickedTopic } from '../src/client/studio-store.ts'
@@ -89,6 +90,42 @@ function fakeTopics(items: readonly TopicItem[]) {
   return { gateway: { list, put, remove } satisfies TopicBankGateway, list, put, remove, state }
 }
 
+/** An in-memory fake of the contentTopics Remote's category semantics. */
+function fakeCategories(items: readonly TopicCategory[] = []) {
+  const state = { items: [...items] }
+  const list = vi.fn(async (): Promise<TopicCategoriesSnapshot> => ({ file: '_topic-categories.json', items: [...state.items], problems: [] }))
+  const put = vi.fn(async (input: TopicCategoryInput): Promise<TopicCategoriesSnapshot> => {
+    const now = new Date().toISOString()
+    const id = (input.id ?? `cat-${state.items.length + 1}`) as TopicCategory['id']
+    const exists = state.items.some(item => item.id === id)
+    const stored: TopicCategory = {
+      id,
+      name: input.name,
+      keywords: [...input.keywords],
+      createdAt: exists ? state.items.find(item => item.id === id)?.createdAt ?? now : now,
+      updatedAt: now,
+    }
+    state.items = exists ? state.items.map(item => item.id === id ? stored : item) : [...state.items, stored]
+    return { file: '_topic-categories.json', items: [...state.items], problems: [] }
+  })
+  const remove = vi.fn(async (id: string): Promise<TopicCategoriesSnapshot> => {
+    state.items = state.items.filter(item => item.id !== id)
+    return { file: '_topic-categories.json', items: [...state.items], problems: [] }
+  })
+  return { gateway: { list, put, remove } satisfies TopicCategoryGateway, list, put, remove, state }
+}
+
+/** One stored category for the management-bar tests. */
+function defaultCategory(): TopicCategory {
+  return {
+    id: 'cat-1' as TopicCategory['id'],
+    name: 'AI 编程',
+    keywords: ['AI 编程', 'Copilot'],
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+  }
+}
+
 /** Localized `t` with `{name}` interpolation, matching the runtime's contract. */
 function makeT(): PropsLocale<'content-studio'>['t'] {
   const dict = en as Record<string, string>
@@ -110,8 +147,11 @@ function renderView(
     remove: vi.fn(async (_id: string): Promise<unknown> => undefined),
   }
   const onStartCreate = vi.fn((_topic: PickedTopic): void => {})
+  const categoryGateway = fakeCategories()
   const props = {
     topics: bank,
+    categories: categoryGateway.gateway,
+    collect: vi.fn(async (): Promise<TopicCollectResult> => ({ entries: [] })),
     schedule,
     onStartCreate,
     writeExport: vi.fn(async (_theme: string, _file: string, _content: string): Promise<unknown> => ({ truncated: false })),
@@ -126,6 +166,8 @@ function renderView(
     onStartCreate,
     writeExport: props.writeExport,
     listThemes: props.listThemes,
+    categoryGateway,
+    collect: props.collect as TopicCollectFace['collect'],
   }
 }
 
@@ -477,6 +519,120 @@ describe('TopicBankView', () => {
   })
 })
 
+describe('TopicBankView selection categories', () => {
+  it('creates a category with its keywords through the management bar', async () => {
+    const { categoryGateway } = await renderBank('2026-09-30')
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.new'] }))
+    fireEvent.change(screen.getByRole('textbox', { name: en['topicBank.categories.field.name'] }), { target: { value: ' AI 编程 ' } })
+    fireEvent.change(screen.getByRole('textbox', { name: en['topicBank.categories.field.keywords'] }), { target: { value: ' Copilot, , 智能体 ' } })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.save'] }))
+    await waitFor(() => {
+      expect(categoryGateway.put).toHaveBeenCalledWith({ name: 'AI 编程', keywords: ['Copilot', '智能体'], feedUrls: [] })
+    })
+    await waitFor(() => {
+      expect(screen.getByText('AI 编程')).toBeTruthy()
+    })
+  })
+
+  it('rejects a category without keywords instead of writing', async () => {
+    const { categoryGateway } = await renderBank('2026-09-30')
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.new'] }))
+    fireEvent.change(screen.getByRole('textbox', { name: en['topicBank.categories.field.name'] }), { target: { value: '空分类' } })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.save'] }))
+    await waitFor(() => {
+      expect(screen.getByText(en['topicBank.categories.error.keywordsRequired'])).toBeTruthy()
+    })
+    expect(categoryGateway.put).not.toHaveBeenCalled()
+  })
+
+  it('edits a stored category and keeps the id', async () => {
+    const gateway = fakeCategories([defaultCategory()])
+    await renderBank('2026-09-30', { categories: gateway.gateway })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.manage'] }))
+    await waitFor(() => {
+      expect(screen.getAllByText('AI 编程').length).toBeGreaterThan(0)
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.edit'] }))
+    fireEvent.change(screen.getByRole('textbox', { name: en['topicBank.categories.field.keywords'] }), { target: { value: 'AI 编程, Agents' } })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.save'] }))
+    await waitFor(() => {
+      expect(gateway.put).toHaveBeenCalledWith({ id: 'cat-1', name: 'AI 编程', keywords: ['AI 编程', 'Agents'], feedUrls: [] })
+    })
+  })
+
+  it('deletes a category behind the confirm step', async () => {
+    const gateway = fakeCategories([defaultCategory()])
+    await renderBank('2026-09-30', { categories: gateway.gateway })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.manage'] }))
+    await waitFor(() => {
+      expect(screen.getAllByText('AI 编程').length).toBeGreaterThan(0)
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.delete'] }))
+    // The confirm step replaces the row's delete button, so 'Delete' matches only it.
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.deleteConfirm'] }))
+    await waitFor(() => {
+      expect(gateway.remove).toHaveBeenCalledWith('cat-1')
+    })
+  })
+
+  it('shows the empty hint while no category is stored', async () => {
+    await renderBank('2026-09-30')
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.manage'] }))
+    await waitFor(() => {
+      expect(screen.getByText(en['topicBank.categories.empty'])).toBeTruthy()
+    })
+  })
+
+  it('collects keyword topics for a category and upserts them into the bank', async () => {
+    const gateway = fakeCategories([defaultCategory()])
+    const bank = fakeTopics(defaultBank('2026-09-30'))
+    const collect = vi.fn(async (): Promise<TopicCollectResult> => ({
+      entries: [{ title: '收集题', summary: '摘要一句', url: 'https://weibo.example/9', publishedAt: null, source: 'weibo' as const, author: null }],
+    }))
+    renderView(bank.gateway, { categories: gateway.gateway, collect })
+    await waitFor(() => {
+      expect(screen.getByText('AI 工具')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.manage'] }))
+    await waitFor(() => {
+      expect(screen.getAllByText('AI 编程').length).toBeGreaterThan(0)
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.collect'] }))
+    await waitFor(() => {
+      expect(collect).toHaveBeenCalledWith(expect.objectContaining({ keywords: ['AI 编程', 'Copilot'], feedUrls: [] }))
+    })
+    await waitFor(() => {
+      expect(bank.put).toHaveBeenCalledWith(expect.objectContaining({
+        title: '收集题',
+        status: 'idea',
+        tags: ['AI 编程'],
+        source: expect.objectContaining({ type: 'keyword', url: 'https://weibo.example/9' }),
+      }))
+    })
+    await waitFor(() => {
+      expect(screen.getByText(en['topicBank.categories.notice.collected'].replace('{n}', '1'))).toBeTruthy()
+    })
+  })
+
+  it('toasts the empty-collection outcome without writing topics', async () => {
+    const gateway = fakeCategories([defaultCategory()])
+    const bank = fakeTopics(defaultBank('2026-09-30'))
+    renderView(bank.gateway, { categories: gateway.gateway })
+    await waitFor(() => {
+      expect(screen.getByText('AI 工具')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.manage'] }))
+    await waitFor(() => {
+      expect(screen.getAllByText('AI 编程').length).toBeGreaterThan(0)
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['topicBank.categories.collect'] }))
+    await waitFor(() => {
+      expect(screen.getByText(en['topicBank.categories.notice.collectedNone'])).toBeTruthy()
+    })
+    expect(bank.put).not.toHaveBeenCalled()
+  })
+})
+
 describe('topic-bank locale pins', () => {
   // Every dictionary stem the view and the frame reference. Catalog ids are
   // locale stems by convention; the nav id is `nav.topicBank`.
@@ -508,7 +664,6 @@ describe('topic-bank locale pins', () => {
     'topicBank.export.theme', 'topicBank.export.noTheme', 'topicBank.export.button',
     'topicBank.notice.created', 'topicBank.notice.saved', 'topicBank.notice.deleted', 'topicBank.notice.batchDone',
     'topicBank.notice.exported', 'topicBank.notice.failed',
-    'gather.notice.topicBankAdded', 'gather.notice.topicBankFailed', 'gather.notice.topicBankMissing',
   ] as const
 
   it('carries every topic-bank stem in both dictionaries', () => {
@@ -527,5 +682,14 @@ describe('topic-bank locale pins', () => {
     expect(zhDict['topics.title']).toBeUndefined()
     expect(enDict['nav.topics']).toBeUndefined()
     expect(enDict['topics.title']).toBeUndefined()
+    // The 信息 / 内容 / 日历 columns are removed; their nav vocabulary retires.
+    expect(zhDict['nav.gather']).toBeUndefined()
+    expect(zhDict['nav.content']).toBeUndefined()
+    expect(zhDict['nav.calendar']).toBeUndefined()
+    expect(zhDict['nav.library']).toBeUndefined()
+    expect(enDict['nav.gather']).toBeUndefined()
+    expect(enDict['nav.content']).toBeUndefined()
+    expect(enDict['nav.calendar']).toBeUndefined()
+    expect(enDict['nav.library']).toBeUndefined()
   })
 })

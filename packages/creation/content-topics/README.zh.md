@@ -10,6 +10,8 @@ kind: "package-bundle"
 
 内容创作库的选题库 Remote：`contentTopics/list|put|delete`，落在产物库根目录的一个系统文件 `_topics.json` 上（默认 `<dsh home>/outputs`，可用 `root` 配置覆盖）。`_` 前缀让产物扫描器把它当作系统条目，库目录保持为 agent 也能读取的唯一内容创作磁盘面。
 
+选题分类走同一根目录下的第二个 sidecar `_topic-categories.json`，经 `contentTopics/listCategories|putCategory|deleteCategory` 读写：供 `contentOutputs/collectTopicEntries` 按关键词收集的命名关键词分组，存储沿用选题库的锁、校验与 upsert 语义。
+
 ## 目录
 
 - [开发备注](#dev-note)

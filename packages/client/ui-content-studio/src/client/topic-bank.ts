@@ -5,7 +5,7 @@
  * kanban grouping, and the Markdown export whose frontmatter is emitted and
  * parsed by one strict schema so export → import round-trips losslessly.
  * No React, no I/O — the view and the tests share this module, like
- * `calendar.ts`, `create.ts`, and `competitors.ts`.
+ * `create.ts` and `competitors.ts`.
  */
 
 import type { TopicItem, TopicItemInput, TopicSourceType, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
@@ -156,6 +156,15 @@ export function formatDate(year: number, month: number, day: number): string {
   const monthText = String(month).padStart(2, '0')
   const dayText = String(day).padStart(2, '0')
   return `${year}-${monthText}-${dayText}`
+}
+
+/**
+ * Today's local date as the filter and plan-date baseline.
+ * @returns the zero-padded `YYYY-MM-DD` date of the current day.
+ */
+export function todayDate(): string {
+  const now = new Date()
+  return formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate())
 }
 
 /**
@@ -384,37 +393,6 @@ export function parseTopicsMarkdown(markdown: string): ParsedTopicMarkdown | nul
     planDate,
     updatedAt,
     description: body.trim().length === 0 ? null : body.trim(),
-  }
-}
-
-/**
- * Build a create-topic input from one gather material join: the material's
- * stable id rides along as `source.refId`, its link and create-time capture
- * as `source.url` / `source.snapshot`, and the record starts in `idea`.
- * @param material - the joined gather material.
- * @param capturedAt - the capture instant, ISO 8601.
- * @returns the upsert input for the contentTopics Remote.
- */
-export function gatherMaterialToTopicInput(
-  material: { id: string; title: string; url: string; summary?: string },
-  capturedAt: string,
-): TopicItemInput {
-  return {
-    title: material.title,
-    oneLiner: material.summary ?? null,
-    status: 'idea',
-    source: {
-      type: 'gather',
-      refId: material.id,
-      url: material.url,
-      snapshot: { title: material.title, summary: material.summary ?? null, capturedAt },
-    },
-    tags: [],
-    description: null,
-    score: null,
-    planDate: null,
-    scheduleItemId: null,
-    topicDir: null,
   }
 }
 

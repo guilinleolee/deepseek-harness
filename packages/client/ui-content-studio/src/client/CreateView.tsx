@@ -1,6 +1,6 @@
 /**
- * The create workbench view: three entries (blank new as the main path,
- * paste-a-topic, and the topic-bank push once that column ships), then the
+ * The create workbench view: two entries (paste-a-link with the extract-copy
+ * button as the main path, and paste-a-topic), then the
  * editor — one-shot generation, selection rewrites with a diff preview,
  * version snapshots with a pin/prune quota, the local banned-word pre-check,
  * and the copy-plus-register publish handoff. The capability card catalog
@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { clsx } from 'clsx'
 import type {
-  CreateContentType, CreateEvaluation, CreateManifest, CreatePublishRequest, CreatePublishResult,
+  CreateContentType, CreateEvaluation, CreateExtractResult, CreateManifest, CreatePublishRequest, CreatePublishResult,
   CreateRegisterRequest, CreateRewriteOperation, CreateRewriteRequest, CreateStateRead,
   CreateStyleKey, CreateAiResult, CreateTemplate, CreateTemplateInput, OutputMetadata,
 } from '@deepseek-ai/dsh-content-outputs/types'
@@ -26,7 +26,7 @@ import {
 } from './create.ts'
 import { scanBannedWords, type BannedHit } from './banned-words.ts'
 import type { TemplateController } from './template/template-store.ts'
-import type { PickedMaterial, PickedTopic } from './studio-store.ts'
+import type { PickedTopic } from './studio-store.ts'
 import type { StudioKey } from './locales.ts'
 import workbenchCss from './ContentStudio.module.css'
 import css from './CreateView.module.css'
@@ -38,6 +38,7 @@ export interface CreateGateway {
   writeAsset(theme: string, file: string, content: string): Promise<{ truncated: boolean }>
   publishCreateFinal(theme: string, request: CreatePublishRequest): Promise<CreatePublishResult>
   registerCreatePublish(theme: string, request: CreateRegisterRequest): Promise<void>
+  extractCreateCopy(url: string): Promise<CreateExtractResult>
   readCreateMetadata(theme: string): Promise<{ metadata: OutputMetadata | null; problem: string | null }>
   writeCreateMetadata(theme: string, metadata: OutputMetadata): Promise<void>
   listCreateAssets(theme: string): Promise<{ files: readonly string[] }>
@@ -78,9 +79,6 @@ export interface CreateViewProps {
   readonly listThemes: () => Promise<readonly string[]>
   /** The active account persona text, applied as the inline style reference. */
   readonly persona: string
-  /** Material handed over from the gather view, if any. */
-  readonly picked: PickedMaterial | null
-  readonly onClearPicked: () => void
   /** Topic handed over from the topic bank, if any. */
   readonly pickedTopic: PickedTopic | null
   readonly onClearPickedTopic: () => void
@@ -108,7 +106,7 @@ export interface CreateViewProps {
   readonly t: PropsLocale<'content-studio'>['t']
 }
 
-type EntryMode = 'blank' | 'paste'
+type EntryMode = 'link' | 'paste'
 
 /** The loaded editor state; every field is component-local until saved. */
 interface EditorState {
@@ -147,17 +145,19 @@ function parseBrief(pasted: string): { title: string; rest: string } {
  * @returns the view element tree.
  */
 export function CreateView({
-  create, listThemes, persona, picked, onClearPicked, pickedTopic, onClearPickedTopic, topics, schedule,
+  create, listThemes, persona, pickedTopic, onClearPickedTopic, topics, schedule,
   onSendToPublish, catalog, templateLibrary, t,
 }: CreateViewProps) {
   const [showCatalog, setShowCatalog] = useState(false)
-  const [entryMode, setEntryMode] = useState<EntryMode>('blank')
+  const [entryMode, setEntryMode] = useState<EntryMode>('link')
   const [themeChoice, setThemeChoice] = useState<'new' | 'existing'>('new')
   const [newThemeName, setNewThemeName] = useState('')
   const [existingTheme, setExistingTheme] = useState('')
   const [themes, setThemes] = useState<readonly string[]>([])
   const [title, setTitle] = useState('')
   const [pasted, setPasted] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [extracting, setExtracting] = useState(false)
   const [entryError, setEntryError] = useState<string | null>(null)
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -202,18 +202,8 @@ export function CreateView({
     return () => { alive = false }
   }, [listThemes])
 
-  // The gather handoff lands once: turn it into a reference line.
-  useEffect(() => {
-    if (picked === null) return
-    const line = `${picked.title}（${picked.url}）`
-    setTitle(current => current.length > 0 ? current : picked.title)
-    setPasted(current => current.length > 0 ? `${current}\n${line}` : line)
-    setEntryMode('paste')
-    onClearPicked()
-  }, [picked, onClearPicked])
-
   // The topic-bank handoff lands once: title plus the brief fields fold into
-  // the paste entry (mirroring the gather handoff), and the topic id rides
+  // the paste entry, and the topic id rides
   // into the manifest's topicRef so the finalize write-back can find it.
   useEffect(() => {
     if (pickedTopic === null) return
@@ -233,27 +223,54 @@ export function CreateView({
   const words = countWords(text)
   const minutes = editor === null ? 1 : readingMinutes(words, editor.manifest.contentType)
 
-  const startBlank = (): void => {
-    const trimmed = title.trim()
+  /**
+   * Paste-a-link entry: fetch the article prose, open the editor seeded with
+   * it, and register the link as the draft's gather source. The user title
+   * wins when filled; otherwise the page title (or the URL) stands in.
+   */
+  const extractCopy = async (): Promise<void> => {
+    if (extracting) return
+    const url = linkUrl.trim()
+    if (url.length === 0) { setEntryError(t('create.entry.linkRequired')); return }
     const themeName = newThemeName.trim()
-    if (trimmed.length === 0) { setEntryError(t('create.error.title')); return }
     if (themeChoice === 'new' && themeName.length === 0) { setEntryError(t('create.error.theme')); return }
     setEntryError(null)
     setError(null)
     setNotice(null)
-    const manifest = { ...defaultManifest(newId(), 'gzh-article'), topicRef: topicRefOf(trimmed) }
-    setEditor({
-      theme: themeChoice === 'new' ? themeName : existingTheme,
-      manifest,
-      text: '',
-      title: trimmed,
-      publishedFile: null,
-    })
-    setDirty(false)
-    setBanned(null)
-    setRewritePreview(null)
-    setOverwritePending(null)
-    setRegisterRetry(null)
+    setExtracting(true)
+    try {
+      const result = await create.extractCreateCopy(url)
+      if (result.text.trim().length === 0) {
+        setEntryError(t('create.entry.extractEmpty'))
+        return
+      }
+      const workTitle = title.trim().length > 0 ? title.trim() : (result.title.trim().length > 0 ? result.title.trim() : result.url)
+      const manifest = {
+        ...defaultManifest(newId(), 'gzh-article'),
+        topicRef: topicRefOf(workTitle),
+        sources: [{
+          kind: 'gather' as const, refId: null, file: null,
+          title: result.title.trim().length > 0 ? result.title.trim() : result.url,
+          url: result.url, addedAt: new Date().toISOString(),
+        }],
+      }
+      setEditor({
+        theme: themeChoice === 'new' ? themeName : existingTheme,
+        manifest,
+        text: result.text,
+        title: workTitle,
+        publishedFile: null,
+      })
+      setDirty(false)
+      setBanned(null)
+      setRewritePreview(null)
+      setOverwritePending(null)
+      setRegisterRetry(null)
+    } catch (cause) {
+      setEntryError(t('create.entry.extractFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
+    } finally {
+      setExtracting(false)
+    }
   }
 
   const startPasted = (): void => {
@@ -789,15 +806,34 @@ export function CreateView({
         {!showCatalog && (
           <div className={workbenchCss.compForm}>
             <div className={css.entryGrid}>
-              <button type="button" className={clsx(css.entryCard, entryMode === 'blank' && css.entryCardActive)} onClick={() => { setEntryMode('blank') }}>
-                <span className={css.entryCardTitle}>{t('create.entry.blank')}</span>
-                <span className={css.entryCardHint}>{t('create.entry.blankHint')}</span>
+              <button type="button" className={clsx(css.entryCard, entryMode === 'link' && css.entryCardActive)} onClick={() => { setEntryMode('link') }}>
+                <span className={css.entryCardTitle}>{t('create.entry.link')}</span>
+                <span className={css.entryCardHint}>{t('create.entry.linkHint')}</span>
               </button>
               <button type="button" className={clsx(css.entryCard, entryMode === 'paste' && css.entryCardActive)} onClick={() => { setEntryMode('paste') }}>
                 <span className={css.entryCardTitle}>{t('create.entry.paste')}</span>
                 <span className={css.entryCardHint}>{t('create.entry.pasteHint')}</span>
               </button>
             </div>
+            {entryMode === 'link' && (
+              <div className={workbenchCss.compFormRow}>
+                <span className={workbenchCss.compFieldLabel}>{t('create.entry.linkLabel')}</span>
+                <input
+                  className={workbenchCss.compInput}
+                  value={linkUrl}
+                  placeholder={t('create.entry.linkPlaceholder')}
+                  onChange={(event) => { setLinkUrl(event.target.value) }}
+                />
+                <button
+                  type="button"
+                  className={workbenchCss.retry}
+                  disabled={extracting}
+                  onClick={() => { void extractCopy() }}
+                >
+                  {extracting ? t('create.entry.extracting') : t('create.entry.extract')}
+                </button>
+              </div>
+            )}
             {entryMode === 'paste' && (
               <div className={workbenchCss.compFormRow}>
                 <span className={workbenchCss.compFieldLabel}>{t('create.entry.pastePlaceholder')}</span>
@@ -811,7 +847,7 @@ export function CreateView({
             )}
             <div className={workbenchCss.compFormRow}>
               <span className={workbenchCss.compFieldLabel}>{t('create.entry.title')}</span>
-              {entryMode === 'blank' && <input className={workbenchCss.compInput} value={title} placeholder={t('create.entry.titlePlaceholder')} onChange={(event) => { setTitle(event.target.value) }} />}
+              {entryMode === 'link' && <input className={workbenchCss.compInput} value={title} placeholder={t('create.entry.titleOptional')} onChange={(event) => { setTitle(event.target.value) }} />}
             </div>
             <div className={workbenchCss.compFormRow}>
               <span className={workbenchCss.compFieldLabel}>{t('create.entry.theme')}</span>
@@ -839,14 +875,11 @@ export function CreateView({
             </div>
             {entryError !== null && <span className={css.aiError}>{entryError}</span>}
             <div className={workbenchCss.compActions}>
-              <button
-                type="button"
-                className={workbenchCss.retry}
-                onClick={() => {
-                  if (entryMode === 'blank') { startBlank() } else { startPasted() }
-                }}>
-                {t('create.entry.start')}
-              </button>
+              {entryMode === 'paste' && (
+                <button type="button" className={workbenchCss.retry} onClick={() => { startPasted() }}>
+                  {t('create.entry.start')}
+                </button>
+              )}
               {themes.map(name => (
                 <button key={name} type="button" className={workbenchCss.chip} onClick={() => { void openTheme(name) }}>
                   {name}
@@ -1230,7 +1263,7 @@ export function CreateView({
                   <span>{source.file ?? source.title}</span>
                   {missing && <span className={css.aiError}>{t('create.sources.missing')}</span>}
                   <span className={css.versionActions}>
-                    <button type="button" onClick={() => { removeSource(source.file) }}>{t('gather.picked.clear')}</button>
+                    <button type="button" onClick={() => { removeSource(source.file) }}>{t('create.sources.remove')}</button>
                   </span>
                 </div>
               )

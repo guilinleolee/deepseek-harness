@@ -8,9 +8,9 @@
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
-  SentimentAlert, SentimentAlertId, SentimentPolarity, SentimentReport, SentimentScanResult,
-  SentimentSettings, SentimentSnapshot, SentimentStats, SentimentTask, SentimentTaskId,
-  SentimentTaskInput,
+  SentimentAlert, SentimentAlertDelivery, SentimentAlertId, SentimentPolarity, SentimentPushRoundResult,
+  SentimentReport, SentimentScanResult, SentimentSettings, SentimentSnapshot, SentimentStats, SentimentTask,
+  SentimentTaskId, SentimentTaskInput,
 } from '@deepseek-ai/dsh-content-outputs/types'
 import type { TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
 import css from './SentimentView.module.css'
@@ -29,6 +29,8 @@ export interface SentimentGateway {
   adjudicateSentimentAlert: (id: SentimentAlertId) => Promise<SentimentAlert>
   sentimentStats: () => Promise<SentimentStats>
   generateSentimentReport: () => Promise<SentimentReport>
+  retrySentimentPush: () => Promise<{ retried: number; delivered: number }>
+  testSentimentPush: () => Promise<SentimentPushRoundResult>
 }
 
 /** The topic-bank write face the alert→topic reflow rides. */
@@ -104,6 +106,21 @@ function joinTerms(terms: readonly string[]): string {
   return terms.join('；')
 }
 
+/** Summarize one alert's per-channel delivery into one display state. */
+function pushStateOf(delivery: SentimentAlertDelivery): 'delivered' | 'failed' | 'retrying' | 'pending' {
+  const channels = [delivery.dingtalk, delivery.wecom, delivery.email]
+  if (channels.some(channel => channel.status === 'failed')) return 'failed'
+  if (channels.every(channel => channel.status === 'delivered')) return 'delivered'
+  if (channels.some(channel => channel.status === 'pending' && channel.attempts > 0)) return 'retrying'
+  return 'pending'
+}
+
+const PUSH_CHANNELS = [
+  ['dingtalk', 'sentiment.settings.chDingtalk'],
+  ['wecom', 'sentiment.settings.chWecom'],
+  ['email', 'sentiment.settings.chEmail'],
+] as const
+
 /** Build the wire input from the dialog state (skipping empty groups). */
 function toTaskInput(form: TaskFormState): SentimentTaskInput | { error: string } {
   if (form.name.trim().length === 0) return { error: 'sentiment.error.taskName' }
@@ -116,6 +133,7 @@ function toTaskInput(form: TaskFormState): SentimentTaskInput | { error: string 
   if (neg.length > 0) groups.push({ polarity: 'neg', terms: neg })
   const neu = splitTerms(form.kwNeutral)
   if (neu.length > 0) groups.push({ polarity: 'any', terms: neu })
+  if (groups.length === 0) return { error: 'sentiment.error.keywords' }
   const feedUrls = splitTerms(form.feedUrlsText)
   const sources: SentimentTaskInput['sources'] = ['rss', ...(form.useWeibo ? ['weibo' as const] : []), ...(form.useBili ? ['bili' as const] : [])]
   if (feedUrls.length === 0 && !form.useWeibo && !form.useBili) return { error: 'sentiment.error.sources' }
@@ -149,6 +167,7 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [settingsDraft, setSettingsDraft] = useState<SentimentSettings | null>(null)
   const [reportGenerating, setReportGenerating] = useState(false)
+  const [pushTesting, setPushTesting] = useState(false)
   const [adjudicatingId, setAdjudicatingId] = useState<SentimentAlertId | null>(null)
   const [adjudicationOpenId, setAdjudicationOpenId] = useState<SentimentAlertId | null>(null)
 
@@ -202,7 +221,9 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
     setNotice(t('sentiment.scan.running'))
     try {
       const result = await sentiment.scanSentiment()
-      setNotice(t('sentiment.scan.done', { n: result.captured }))
+      setNotice(result.refinement === 'degraded'
+        ? t('sentiment.scan.done.degraded', { n: result.captured })
+        : t('sentiment.scan.done', { n: result.captured }))
       await load()
     } catch (error) {
       setNotice(error instanceof Error ? `${t('sentiment.scan.failed')}：${error.message.slice(0, 160)}` : t('sentiment.scan.failed'))
@@ -283,8 +304,37 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
     }
   }
 
-  const editTask = (task: SentimentTask): void => {
-    const groupOf = (polarity: SentimentPolarity | 'any'): string =>
+  const runRetryPush = async (): Promise<void> => {
+    try {
+      const result = await sentiment.retrySentimentPush()
+      await load()
+      flashNotice(result.retried === 0 ? t('sentiment.push.retryNone') : t('sentiment.push.retried', { n: result.retried, m: result.delivered }))
+    } catch (error) {
+      setNotice(error instanceof Error ? `${t('sentiment.push.failed')}：${error.message.slice(0, 160)}` : t('sentiment.push.failed'))
+    }
+  }
+
+  const runTestPush = async (): Promise<void> => {
+    if (pushTesting) return
+    setPushTesting(true)
+    try {
+      const result = await sentiment.testSentimentPush()
+      const detail = PUSH_CHANNELS
+        .map(([channel, labelKey]) => {
+          const outcome = result[channel]
+          if (!outcome.attempted) return `${t(labelKey)}：${t('sentiment.push.unconfigured')}`
+          return `${t(labelKey)}：${outcome.error === null ? t('sentiment.push.ok') : `${t('sentiment.push.err')}${outcome.error}`}`
+        })
+        .join('；')
+      flashNotice(`${t('sentiment.push.testDone')} ${detail}`)
+    } catch (error) {
+      setNotice(error instanceof Error ? `${t('sentiment.push.failed')}：${error.message.slice(0, 160)}` : t('sentiment.push.failed'))
+    } finally {
+      setPushTesting(false)
+    }
+  }
+
+  const editTask = (task: SentimentTask): void => {    const groupOf = (polarity: SentimentPolarity | 'any'): string =>
       joinTerms(task.keywordGroups.filter(group => group.polarity === polarity).flatMap(group => [...group.terms]))
     setTaskForm({
       id: task.id,
@@ -323,6 +373,9 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
 
       {notice !== null && <div className={css.sentimentMockSaved} role="status">{notice}</div>}
       {loadError && <div className={css.sentimentMockSaved} role="alert">{t('sentiment.loadFailed')}</div>}
+      {(snapshot?.problems.length ?? 0) > 0 && (
+        <div className={css.sentimentMockSaved} role="alert">{t('sentiment.problems', { n: snapshot?.problems.length ?? 0 })}</div>
+      )}
 
       <div className={css.sentimentTabs} role="tablist">
         {TABS.map(({ key, labelKey }) => (
@@ -478,15 +531,17 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
           <div className={css.sentimentChartCard}>
             <strong>{t('sentiment.chart.trend')}</strong>
             <div className={css.sentimentTrend}>
-              {(stats?.trend ?? []).map((day) => {
-                const max = Math.max(1, day.pos + day.neu + day.neg)
-                return (
-                  <div key={day.day} className={css.sentimentTrendCol} title={`${day.day}: +${String(day.pos)} ~${String(day.neu)} -${String(day.neg)}`}>
-                    <div className={css.sentimentTrendBar} style={{ height: `${String(Math.round(((day.pos + day.neu + day.neg) / max) * 80))}px` }} />
-                    <span className={css.sentimentTrendDay}>{day.day.slice(5)}</span>
-                  </div>
-                )
-              })}
+            {(stats?.trend ?? []).map((day, index) => {
+              const max = Math.max(1, day.pos + day.neu + day.neg)
+              const previous = stats?.trend[index - 1]
+              const surged = previous !== undefined && day.pos + day.neu + day.neg > previous.pos + previous.neu + previous.neg
+              return (
+                <div key={day.day} className={css.sentimentTrendCol} title={`${day.day}: +${String(day.pos)} ~${String(day.neu)} -${String(day.neg)}${surged ? `（${t('sentiment.chart.surge')}）` : ''}`}>
+                  <div className={css.sentimentTrendBar} style={{ height: `${String(Math.round(((day.pos + day.neu + day.neg) / max) * 80))}px` }} />
+                  <span className={css.sentimentTrendDay}>{surged ? `▲${day.day.slice(5)}` : day.day.slice(5)}</span>
+                </div>
+              )
+            })}
             </div>
           </div>
           <div className={css.sentimentChartCard}>
@@ -516,7 +571,14 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
               {(snapshot?.mentions ?? []).slice(0, 100).map(mention => (
                 <tr key={mention.id}>
                   <td>{mention.platform}</td>
-                  <td>{mention.capturedAt.slice(0, 16).replace('T', ' ')}</td>
+                  <td>{mention.capturedAt.slice(0, 16).replace('T', ' ')}
+                    {mention.occurrences > 1 && (
+                      <span className={css.sentimentFieldHint} title={t('sentiment.occurrences', { n: mention.occurrences })}>{` ×${String(mention.occurrences)}`}</span>
+                    )}
+                    {mention.heatDelta !== 0 && (
+                      <span className={css.sentimentFieldHint}>{mention.heatDelta > 0 ? ' ▲' : ' ▼'}</span>
+                    )}
+                  </td>
                   <td className={css.sentimentSummary}>{mention.title}</td>
                   <td><span className={SENTIMENT_TAG_CLASS[mention.polarity]}>{t(SENTIMENT_LABEL_KEYS[mention.polarity])}</span></td>
                   <td>
@@ -566,6 +628,9 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
 
       {tab === 'alerts' && (
         <section className={css.sentimentSection}>
+          <div className={css.sentimentActionBar}>
+            <button type="button" className={css.sentimentGhost} onClick={() => { void runRetryPush() }}>{t('sentiment.push.retry')}</button>
+          </div>
           <table className={css.sentimentTable}>
             <thead>
               <tr>
@@ -581,7 +646,11 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
                     <td><span className={css[`sentimentLevel${alert.level}`]}>{t(`sentiment.level.${alert.level}`)}</span></td>
                     <td className={css.sentimentSummary}>{alert.summary}</td>
                     <td>{alert.reason}</td>
-                    <td>{alert.handled ? t('sentiment.alerts.state.done') : t('sentiment.alerts.state.open')}</td>
+                    <td>{alert.handled ? t('sentiment.alerts.state.done') : t('sentiment.alerts.state.open')}
+                      {alert.delivery != null && (
+                        <span className={css.sentimentFieldHint}>{' · '}{t(`sentiment.push.state.${pushStateOf(alert.delivery)}`)}</span>
+                      )}
+                    </td>
                     <td className={css.sentimentRowActions}>
                       <button type="button" className={css.sentimentGhost} disabled={adjudicatingId === alert.id} onClick={() => { void adjudicateAlert(alert.id) }}>
                         {adjudicatingId === alert.id ? t('sentiment.adjudicate.running') : t('sentiment.adjudicate.run')}
@@ -657,7 +726,12 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
             </Field>
             <p className={css.sentimentHint}>{t('sentiment.settings.pushHint')}</p>
           </div>
-          <button type="button" className={css.sentimentPrimary} onClick={() => { void saveSettings() }}>{t('sentiment.settings.save')}</button>
+          <div className={css.sentimentActionBar}>
+            <button type="button" className={css.sentimentPrimary} onClick={() => { void saveSettings() }}>{t('sentiment.settings.save')}</button>
+            <button type="button" className={css.sentimentGhost} disabled={pushTesting} onClick={() => { void runTestPush() }}>
+              {pushTesting ? t('sentiment.push.testing') : t('sentiment.push.test')}
+            </button>
+          </div>
         </section>
       )}
     </div>

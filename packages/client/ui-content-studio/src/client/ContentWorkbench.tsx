@@ -1,6 +1,6 @@
 /**
  * The workbench home (Easel-style dashboard): greeting, verb chips and the
- * five quick-create entries, the today's-todo list merged from three
+ * four quick-create entries, the today's-todo list merged from three
  * sources, eight stat cards over four Remotes (outputs, schedule, topics,
  * interactions) plus a per-theme review digest, the topic-to-publish funnel,
  * two sentiment cards, and a 2×3 panel grid — quick-create rows, recent
@@ -46,7 +46,7 @@ export interface ContentWorkbenchInjected {
 
 /** Every view the home can hop to. */
 export type WorkbenchView =
-  | 'create' | 'library' | 'calendar' | 'topicBank' | 'gather'
+  | 'create' | 'topicBank'
   | 'competitors' | 'persona' | 'publish' | 'review' | 'interaction' | 'sentiment'
 
 /** Full props: the injected face, view navigation/chat, and the locale seat. */
@@ -62,9 +62,8 @@ export type ContentWorkbenchProps = ContentWorkbenchInjected & {
 /** Quick-create panel rows: these capability ids, in this order. */
 const QUICK_IDS: readonly CapabilityItem['id'][] = ['social-card', 'gzh-article', 'short-script', 'multi-platform', 'pre-publish']
 
-/** The five quick-create entries and the view each one opens. */
+/** The four quick-create entries and the view each one opens. */
 const NEW_ENTRIES: readonly { view: WorkbenchView; key: StudioKey }[] = [
-  { view: 'gather', key: 'nav.gather' },
   { view: 'competitors', key: 'nav.competitors' },
   { view: 'topicBank', key: 'nav.topicBank' },
   { view: 'persona', key: 'nav.persona' },
@@ -386,11 +385,11 @@ ${item.prompt}` : item.prompt
         key: `project:${project.topic}`,
         at: project.updatedAt,
         label: `「${project.title}」· ${t(`status.${project.status}`)}`,
-        view: 'library',
+        view: 'create',
       })
     }
     for (const item of items.filter(candidate => candidate.status !== 'published' && candidate.date >= today).slice(0, 5)) {
-      entries.push({ key: `schedule:${item.id}`, at: item.date, label: `${t('workbench.tl.due')}「${item.title}」`, view: 'calendar' })
+      entries.push({ key: `schedule:${item.id}`, at: item.date, label: `${t('workbench.tl.due')}「${item.title}」`, view: 'topicBank' })
     }
     const manifest = interactions.state === 'ok' ? interactions.value.manifest : null
     if (manifest !== null) {
@@ -421,7 +420,7 @@ ${item.prompt}` : item.prompt
         key: 'todo:schedule',
         count: dueToday.length,
         label: t('workbench.todo.due'),
-        view: 'calendar',
+        view: 'topicBank',
         urgent: false,
       })
     }
@@ -530,7 +529,7 @@ ${item.prompt}` : item.prompt
           <IconSparkleRegular size={14} />
           {t('nav.create')}
         </button>
-        <button type="button" className={css.chip} onClick={() => { onNavigate('calendar') }}>
+        <button type="button" className={css.chip} onClick={() => { onNavigate('topicBank') }}>
           <IconChecklistOutlineMedium size={14} />
           {t('action.schedule')}
         </button>
@@ -680,8 +679,8 @@ ${item.prompt}` : item.prompt
         <section className={css.panel}>
           <header className={css.panelHead}>
             <h2 className={css.panelTitle}><IconFolderOpenOutlineRegular size={13} />{t('panel.recentFinals')}</h2>
-            <button type="button" className={css.panelMore} onClick={() => { onNavigate('library') }}>
-              {t('nav.library')} →
+            <button type="button" className={css.panelMore} onClick={() => { onNavigate('create') }}>
+              {t('nav.create')} →
             </button>
           </header>
           {panelState(outputs, () => { void loadOutputs() })
@@ -692,7 +691,7 @@ ${item.prompt}` : item.prompt
                   key={project.topic}
                   type="button"
                   className={css.listRowButton}
-                  onClick={() => { onNavigate('library') }}
+                  onClick={() => { onNavigate('create') }}
                 >
                   <span className={css.listTitle}>{project.title}</span>
                   <span className={css.listMeta}>{t(`status.${project.status}`)}</span>

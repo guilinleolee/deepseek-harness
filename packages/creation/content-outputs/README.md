@@ -13,6 +13,7 @@ Remote gateway over the content-creation outputs library: the read-only projecti
 ## Table of Contents
 
 - [Gather write face](#gather-write-face)
+- [Create write face](#create-write-face)
 - [Sentiment faces](#sentiment-faces)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
@@ -29,12 +30,17 @@ The library convention is one directory per creation under the library root (def
 All gather storage lives under `outputs/<theme>/assets/`: the `_gather.json` manifest and `*.html` body snapshots. Paths are guarded (plain theme name, plain file name, traversal rejected); every manifest replacement is quota-trimmed, committed under a file lock with an atomic rename, and on Windows the commit retries the antivirus/indexer pinning codes with backoff; orphaned temp files are swept at gateway start.
 
 - `fetchFeed` fetches and parses one feed document server-side (RSS 2.0, Atom, RDF, JSON Feed) with the source's `ETag`/`Last-Modified` cursors; a 304 returns `notModified` and nothing else. The browser never fetches cross-origin feeds itself.
+- `collectTopicEntries` runs one keyword topic-collection pass for a selection category: the category's RSS feeds (same allowlist) plus one page of weibo visitor search and bilibili public video search per keyword, keyword-matched and deduplicated against the bank's existing URLs and titles. Nothing is persisted here — the caller upserts the candidates through the topics Remote.
 - `writeAsset` sanitizes `*.html` content through the sanitize-html allowlist and truncates it to the body cap before it reaches disk; other text files pass through with a hard size cap.
 - `readGatherManifest` / `writeGatherManifest` read and replace the manifest; entries that fail validation are named in `problems`, and a caller must not write back over a manifest with problems.
 - `moveAsset` / `deleteAsset` / `readAsset` cover renames inside one theme, deletion, and text reads.
 - `processMaterial` runs one explicit, queued model call (summary, key points, topic score, tags) through the shared `llm` service; rate limits retry with `Retry-After`-aware backoff, and nothing is persisted by the call itself.
 
 Retention: per source, the newest 50 `unread`/`read` materials stay in a theme; `favorite` and `picked` markers and their snapshots are never removed automatically.
+
+## Create write face
+
+`extractCreateCopy` fetches the article page behind a pasted link and reduces it to title plus visible prose through the gather sanitization allowlist — network reading only, nothing is persisted, and the fetch happens gateway-side because the browser cannot reach cross-origin article pages. Non-http(s) URLs are rejected before fetching; a non-2xx response, a page over the response-size cap, or prose past the stored-text cap (which truncates and flags `truncated`) are the only failure modes the caller sees.
 
 ## Sentiment faces
 

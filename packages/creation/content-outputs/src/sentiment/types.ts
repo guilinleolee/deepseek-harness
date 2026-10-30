@@ -79,12 +79,47 @@ export interface SentimentMention {
   readonly confidence: number
   /** The evidence line the classification grounded on (null for neutral-no-hit). */
   readonly evidence: string | null
+  /** How many scans captured this same mention (URL or content match); 1 on first capture. */
+  readonly occurrences: number
+  /** Engagement change attributed to the last duplicate capture (0 on first capture or heat-less sources). */
+  readonly heatDelta: number
   readonly heat: { readonly likes: number; readonly comments: number; readonly shares: number } | null
   readonly author: string | null
 }
 
 /** Re-export of the stored report document (defined in the report engine). */
 export type { SentimentReport } from './report.ts'
+
+/** Delivery state of one alert push channel. */
+export interface SentimentAlertChannelDelivery {
+  /** `delivered` = sent ok; `pending` = awaiting retry; `failed` = attempts exhausted. */
+  readonly status: 'pending' | 'delivered' | 'failed'
+  readonly attempts: number
+  readonly lastAt: string | null
+  readonly lastError: string | null
+}
+
+/** Per-channel push delivery record of one alert; a missing record on a stored alert predates delivery tracking and never retried. */
+export interface SentimentAlertDelivery {
+  readonly dingtalk: SentimentAlertChannelDelivery
+  readonly wecom: SentimentAlertChannelDelivery
+  readonly email: SentimentAlertChannelDelivery
+}
+
+/** Outcome of one push channel in one round: whether it fired, and its error. */
+export interface SentimentPushChannelOutcome {
+  /** True when the channel was configured and the round actually sent to it. */
+  readonly attempted: boolean
+  /** null = sent ok (or the channel was not attempted); else the failure message. */
+  readonly error: string | null
+}
+
+/** Outcome of one push round: per-channel success or the error message. */
+export interface SentimentPushRoundResult {
+  readonly dingtalk: SentimentPushChannelOutcome
+  readonly wecom: SentimentPushChannelOutcome
+  readonly email: SentimentPushChannelOutcome
+}
 
 /** One dual-perspective adjudication of one alert (the debate verdict). */
 export interface SentimentAlertAdjudication {
@@ -112,6 +147,8 @@ export interface SentimentAlert {
   readonly handledAt: string | null
   /** The dual-perspective adjudication, present after the first run. */
   readonly adjudication?: SentimentAlertAdjudication | null
+  /** Per-channel push delivery; absent on alerts stored before delivery tracking (those never push again). */
+  readonly delivery?: SentimentAlertDelivery
 }
 
 /** Module settings, persisted with the manifest. */
@@ -199,4 +236,6 @@ export interface SentimentScanResult {
   readonly captured: number
   readonly alerts: number
   readonly at: string
+  /** Refinement-stage outcome: `skipped` under the rules analyzer, `degraded` when the LLM stage failed and the lexicon verdicts stood. */
+  readonly refinement?: 'ok' | 'degraded' | 'skipped'
 }

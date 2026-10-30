@@ -10,6 +10,8 @@ English | [中文](README.zh.md)
 
 Topic-bank Remote for the content-creation library: `contentTopics/list|put|delete` over one system file — `_topics.json` at the outputs library root (default `<dsh home>/outputs`, override with the `root` config field). The `_` prefix keeps the outputs scanner treating it as a system entry, so the library directory stays the single content-creation surface on disk the agent can also read.
 
+Selection categories ride a second sidecar, `_topic-categories.json`, through `contentTopics/listCategories|putCategory|deleteCategory`: named keyword lists that `contentOutputs/collectTopicEntries` collects against, under the same lock, validation, and upsert semantics.
+
 ## Table of Contents
 
 - [Dev Note](#dev-note)
