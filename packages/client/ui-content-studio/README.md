@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Content Studio is the web workbench for the content-creation domain: one install adds a sidebar entry that opens a frame-wide surface whose left nav renders the workbench home, sentiment, competitors, topic bank, create, publish, review, interaction, accounts, persona, and template views, all reading and writing the outputs library through the plugin's self-mounted `contentOutputs` / `contentSchedule` / `contentTopics` Remotes. The shipped web profile already includes it; install it into any other DSH web profile with one command. Picking a capability copies a structured instruction template (【…】 fill-in markers) to the clipboard — the paste-into-session hop is the user's one action because no composer-draft seam exists yet.
+Content Studio is the web workbench for the content-creation domain: one install adds a sidebar entry that opens a frame-wide surface whose left nav renders the workbench home, sentiment, competitors, topic bank, create, publish, review, interaction, accounts, persona, and template views, all reading and writing the outputs library through the plugin's self-mounted Remotes. The shipped web profile already includes it; install it into any other DSH web profile with one command. Picking a capability copies a structured instruction template (【…】 fill-in markers) to the clipboard — the paste-into-session hop is the user's one action because no composer-draft seam exists yet.
 
 ## Table of Contents
 
@@ -43,24 +43,6 @@ The competitors works library gained two collection affordances beyond manual im
 
 The **Sentiment** view (企业舆情分析) is the opinion-monitoring surface over the `_sentiment.json` faces: monitor-task management (keyword groups with polarity bias, per-task source toggles over RSS feeds plus weibo visitor search and bilibili public hot search — one anonymous page each on the first subject, degraded to an empty page on any block, with the account blacklist now live against social authors), a dashboard with polarity shares, the 14-day trend, and the per-platform top list, the mention list linking each classified row to its original article, an alert inbox of task+day aggregated negative events (level 1–4 from heat against the configured threshold) where each row also offers a one-click reflow into the topic bank as an `idea` tagged 舆情 through the shared topics Remote, an AI report tab (one gateway call renders the five-section daily report over the stored snapshot, with a Markdown download link and an explicit degraded banner when the model call fell back to the data-only template), and a settings form (the push master switch, Dingtalk/WeCom webhook URLs, the SMTP transport fields, thresholds, domain and account blacklists, retention). The scan is manual-first — one button runs the gateway's single-slot scan (RSS fetch through the shared gather fetcher, lexicon presale, batched LLM refinement for the ambiguous, alert aggregation, then one digest per configured channel — webhooks and SMTP email — when new alerts land). Everything persists through the `contentOutputs` sentiment Remotes; nothing is simulated.
 
-<a id="model-experience"></a>
-## Model Experience
-
-Indirectly, through the `dsh-content-outputs` Remotes its buttons trigger: that gateway assembles every framed request on the shared `llm` service, while this package owns only the click, the pending state, and the retry affordance.
-
-#### KV Cache effect
-
-None; this package never assembles or sends a provider request, so it owns no request prefix.
-
-<a id="known-limitations-and-deferred-work"></a>
-## Known Limitations and Deferred Work
-
-One orienting sentence, then top-level bullets naming current package constraints.
-
-- **No composer hand-off** — picking a capability copies the instruction instead of prefilling a session draft; a runtime draft/prefill seam would remove the paste hop.
-- **The capability catalog is static** — menu items are shipped data, not derived from the mounted skill registry, so maturity badges must be maintained by hand until a catalog RPC exists.
-- **Single-surface state** — open/closed state lives in one controller instance per apply; the surface is not per-session and holds no session context.
-
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -88,6 +70,24 @@ The plugin mounts its own host Remote contributions (`contentOutputs`, `contentS
 - [content-outputs package](../../creation/content-outputs/README.md) — the Remote gateway behind every write face.
 - [Slots subsystem page](../../../docs/subsystems/slots.md) — the registration seam the two slot installs use.
 - [Bilingual UI copy decision note](../../../.agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.md) — why every label routes through the locale dictionaries.
+
+-----
+
+## Model Experience
+
+Indirectly, through the `dsh-content-outputs` Remotes its buttons trigger: that gateway assembles every framed request on the shared `llm` service, while this package owns only the click, the pending state, and the retry affordance.
+
+#### KV Cache effect
+
+None; this package never assembles or sends a provider request, so it owns no request prefix.
+
+## Known Limitations and Deferred Work
+
+One orienting sentence, then top-level bullets naming current package constraints.
+
+- **No composer hand-off** — picking a capability copies the instruction instead of prefilling a session draft; a runtime draft/prefill seam would remove the paste hop.
+- **The capability catalog is static** — menu items are shipped data, not derived from the mounted skill registry, so maturity badges must be maintained by hand until a catalog RPC exists.
+- **Single-surface state** — open/closed state lives in one controller instance per apply; the surface is not per-session and holds no session context.
 
 -----
 
