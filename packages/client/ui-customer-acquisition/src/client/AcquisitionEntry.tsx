@@ -3,7 +3,7 @@
  * while the column is wide, a 16px icon on the 56px rail. Clicking opens the
  * frame-wide panel through the shared controller.
  */
-import { IconSparkle16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSparkleRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PanelController } from './panel-controller.ts'
 
@@ -27,7 +27,7 @@ export function AcquisitionEntry({ wide, panel, t }: AcquisitionEntryProps) {
       aria-label={t('entry.aria')}
       onClick={() => { panel.open() }}
     >
-      <IconSparkle16 size={wide ? 16 : 18} />
+      <IconSparkleRegular size={wide ? 16 : 18} />
       {wide && <span>{t('entry.label')}</span>}
     </button>
   )

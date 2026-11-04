@@ -9,7 +9,7 @@
  * `shell.overlay` hole; both share one open/close controller created here.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { TypertClientRemote } from '@deepseek-ai/dsh-typert-protocol'
+import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import customerAcquisitionRemote from '@deepseek-ai/dsh-customer-acquisition/remote'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay') into this
 // program so the surface registration below typechecks.
@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { AcquisitionEntry } from './AcquisitionEntry.tsx'
 import { AcquisitionWorkbench } from './AcquisitionWorkbench.tsx'
 import type { WorkbenchInjected } from './injected.ts'
@@ -33,7 +34,7 @@ export type { AcquisitionKey } from './locales.ts'
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Same carrier face api-remotes declares; identical merge is additive. */
-    remote: TypertClientRemote
+    remote: ClientRemote
   }
 }
 

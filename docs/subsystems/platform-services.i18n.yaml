@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for platform-services.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/platform-services.md
+/platform-services:
+  en: 9577c36bdb72d5c2
+  zh: bdc590e33b90d4c2
+/platform-services/quant-research:
+  en: 3f4889ba056767fe
+  zh: 1829485570bfbb0b
+/platform-services/customer-acquisition:
+  en: 7c6536d053d069af
+  zh: 01612c6f7973a675
+/platform-services/geo-diagnosis:
+  en: d06e298c53d356a6
+  zh: fa7ceb3dcdde8fe3
+/platform-services/dragon-assets-bridge:
+  en: f3faebaa7735a9b8
+  zh: 0afb725aad7f7536

@@ -70,7 +70,8 @@ export class QuantResearchService extends TypertRemoteService {
     this.domain = domain
   }
 
-  /** Authoritative domain, valid after init; a miss is a broken lifecycle. */
+  /** Authoritative domain, valid after init; a miss is a broken lifecycle.
+   * @returns the open durable domain. */
   requireDomain(): QuantDomain {
     if (this.domain === undefined) {
       throw new Error('quant-research: durable domain is not initialized')
@@ -80,6 +81,7 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * List all virtual accounts, projected to wire summaries.
+   * @returns every account summary, sorted by name.
    */
   @Remote('listAccounts')
   async listAccountsRemote(): Promise<AccountListValue> {
@@ -93,6 +95,8 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * Read one account's full state.
+   * @param ref - the account by id or by unique name.
+   * @returns the account's wire summary; rejects when neither id nor name matches.
    */
   @Remote('getAccountState')
   async getAccountStateRemote(ref: AccountRef): Promise<AccountSummaryValue> {
@@ -115,6 +119,7 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * List research notes, newest first, projected to wire summaries.
+   * @returns every note summary, newest first.
    */
   @Remote('listNotes')
   async listNotesRemote(): Promise<NoteListValue> {
@@ -128,6 +133,7 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * List persisted backtest snapshots, newest first, without equity points.
+   * @returns every snapshot summary, newest first.
    */
   @Remote('listResultSnapshots')
   async listResultSnapshotsRemote(): Promise<SnapshotListValue> {
@@ -141,6 +147,8 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * Read one snapshot's equity curve.
+   * @param ref - the snapshot id to read.
+   * @returns the snapshot's equity curve; rejects for an unknown id.
    */
   @Remote('getEquityCurve')
   async getEquityCurveRemote(ref: { result_id: string }): Promise<EquityCurveValue> {

@@ -59,7 +59,7 @@ export interface Config {
    * Absolute filesystem path to the `dragon-assets/` mirror root.
    * Default: `<workspace>/dragon-assets`.
    */
-  dragonAssetsRoot: string
+  dragonAssetsRoot?: string
 }
 
 /** Index snapshot returned by {@link DragonAssetIndex.loadAll}. */

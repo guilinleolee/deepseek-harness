@@ -20,7 +20,7 @@
 import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
-import type { AgentFamily, AgentId, AgentRole, Config, RoleSearchQuery } from './types'
+import type { AgentFamily, AgentId, AgentRole, Config, RoleSearchQuery } from './types.ts'
 
 const DEFAULT_RELATIVE_ROOT = 'dragon-assets'
 const AGENTS_DIRECTORY = 'agents'
@@ -50,7 +50,7 @@ export class AgentRoster extends Service {
   private readonly exclude: ReadonlySet<string>
   private current: readonly AgentRole[] = []
 
-  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Partial<AgentRosterConfig> = {}) {
+  constructor(ctx: import('@deepseek-ai/cordis').Context, config: AgentRosterConfig = {}) {
     super(ctx, 'agentRoster')
     this.root = resolveRoot(config.dragonAssetsRoot)
     this.exclude = new Set([...DEFAULT_EXCLUDES, ...(config.excludeSubdirs ?? [])])
@@ -112,7 +112,9 @@ export class AgentRoster extends Service {
     return this.current.find(role => role.id === id)
   }
 
-  /** Return every role belonging to one family bucket. */
+  /** Return every role belonging to one family bucket.
+   * @param family - the family bucket to select.
+   * @returns every cached role in that family, in roster order. */
   byFamily(family: AgentFamily): readonly AgentRole[] {
     return this.current.filter(role => role.family === family)
   }
@@ -303,5 +305,5 @@ function matchesNeedle(role: AgentRole, needle: string): boolean {
 }
 
 export default AgentRoster
-export type { AgentFamily, AgentId, AgentRole, Config, RoleSearchQuery } from './types'
+export type { AgentFamily, AgentId, AgentRole, Config, RoleSearchQuery } from './types.ts'
 export type { AgentRosterConfig }

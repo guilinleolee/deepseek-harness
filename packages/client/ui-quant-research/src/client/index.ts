@@ -10,7 +10,7 @@
  * @module @deepseek-ai/dsh-client-ui-quant-research/client
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { TypertClientRemote } from '@deepseek-ai/dsh-typert-protocol'
+import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { AccountListValue, NoteListValue } from '@deepseek-ai/dsh-quant-research/types'
 import quantResearchRemote from '@deepseek-ai/dsh-quant-research/remote'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay') into this
@@ -20,6 +20,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { QuantEntry } from './QuantEntry.tsx'
 import { QuantPanel, type QuantPanelInjected } from './QuantPanel.tsx'
 import { createPanelController } from './panel-controller.ts'
@@ -33,7 +34,7 @@ export type { QuantKey } from './locales.ts'
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Same carrier face api-remotes declares; identical merge is additive. */
-    remote: TypertClientRemote
+    remote: ClientRemote
   }
 }
 

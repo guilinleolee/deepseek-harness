@@ -21,7 +21,7 @@ export interface BarDatum {
  * @returns per-bar geometry (width percent, label).
  */
 export function barGeometry(data: readonly BarDatum[]): { label: string; widthPercent: number }[] {
-  return data.map((datum) => ({
+  return data.map(datum => ({
     label: datum.label,
     widthPercent: Math.max(0, Math.min(1, datum.value)) * 100,
   }))
@@ -162,7 +162,6 @@ export function compareLinesPoints(
   height: number,
   pad: number,
 ): { x: number; y: number }[][] {
-  const maxLength = Math.max(...lines.map(line => line.values.length), 1)
   const allValues = lines.flatMap(line => [...line.values])
   const min = allValues.length === 0 ? 0 : Math.min(...allValues)
   const max = allValues.length === 0 ? 0 : Math.max(...allValues)

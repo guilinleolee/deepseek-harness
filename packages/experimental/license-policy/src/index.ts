@@ -28,7 +28,7 @@ import type {
   LicenseEvaluation,
   LicenseSeverity,
   LicenseTier,
-} from './types'
+} from './types.ts'
 
 const DEFAULT_AGPL_ATTRIBUTION = [
   'WARNING: This asset is licensed under AGPL-3.0.',
@@ -54,7 +54,7 @@ export class LicensePolicy extends Service {
   private readonly rejectUnknown: boolean
   private readonly agplAttribution: string
 
-  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Partial<Config> = {}) {
+  constructor(ctx: import('@deepseek-ai/cordis').Context, config: Config = {}) {
     super(ctx, 'licensePolicy')
     this.rejectUnknown = config.rejectUnknown ?? false
     this.agplAttribution = config.agplAttribution ?? DEFAULT_AGPL_ATTRIBUTION
@@ -196,4 +196,4 @@ function attributionFor(tier: LicenseTier): string {
 }
 
 export default LicensePolicy
-export type { Config, LicenseDecision, LicenseEvaluation, LicenseSeverity, LicenseTier } from './types'
+export type { Config, LicenseDecision, LicenseEvaluation, LicenseSeverity, LicenseTier } from './types.ts'

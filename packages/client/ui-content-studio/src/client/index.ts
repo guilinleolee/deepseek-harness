@@ -11,7 +11,7 @@
  * registration waits on its declaration through `slots.inject()`.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { TypertClientRemote } from '@deepseek-ai/dsh-typert-protocol'
+import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PersonaAiRequest, PersonaAiResult } from '@deepseek-ai/dsh-content-outputs/types'
 import contentOutputsRemote from '@deepseek-ai/dsh-content-outputs/remote'
 import contentScheduleRemote from '@deepseek-ai/dsh-content-schedule/remote'
@@ -23,6 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { createContentStudioController } from './studio-store.ts'
 import { StudioEntry } from './StudioEntry.tsx'
 import { ContentStudio, type ContentStudioInjected } from './ContentStudio.tsx'
@@ -60,7 +61,7 @@ export type { StudioKey } from './locales.ts'
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Same carrier face api-remotes declares; identical merge is additive. */
-    remote: TypertClientRemote
+    remote: ClientRemote
   }
 }
 
