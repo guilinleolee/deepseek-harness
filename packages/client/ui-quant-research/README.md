@@ -1,24 +1,8 @@
----
-description: "The quant-research web panel plugin: a sidebar entry plus a frame-wide research-only placeholder surface."
-kind: "package-bundle"
----
 # @deepseek-ai/dsh-client-ui-quant-research
 
 English | [中文](README.zh.md)
 
-## Summary
-
-The quant-research web panel plugin: a sidebar entry plus a frame-wide placeholder surface stating the plugin's research-only scope. Phase 1 ships the mount point and the disclaimer; the charts, the report cards, and the core package's Remote face arrive with phase 2. The node half is an empty apply so the plugin can appear in a host cordis.yml; everything user-visible lives in the browser half exported as `./client`.
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Surface](#surface)
-- [Model Experience](#model-experience)
-- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
-- [Dev Note](#dev-note)
-
------
+The quant-research web panel plugin: a sidebar entry plus a frame-wide surface with read-only views of the PET virtual accounts, the research notes, and the persisted backtest result snapshots, fed by the core package's Remote face mounted through this plugin itself (`ctx.remote.$mount`). Charts render as inline SVG (`charts.tsx` — a position-weight bar row and a sparkline); there is no chart-library dependency. The node half is an empty apply so the plugin can appear in a host cordis.yml; everything user-visible lives in the browser half exported as `./client`.
 
 ## Installation
 
@@ -31,17 +15,20 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 ## Surface
 
 - A `sidebar.footer.action` entry opens the panel from both sidebar states (wide row and rail icon).
-- A `shell.overlay` surface renders the placeholder card: the research-only disclaimer, the no-live-trading statement, and what ships in later phases. Escape or the close button dismisses it.
+- A `shell.overlay` surface renders:
+  - **Virtual accounts** — one card per account (name, cash, equity) with an inline-SVG bar row of the position weights; expanding a card refetches the full state through `getAccountState` and shows the position count.
+  - **Research notes** — the newest-first list (title, symbol, date) read from the `research_notes` table.
+  - **Backtest results** — one card per persisted snapshot (symbol, SMA windows, total return, max drawdown, trade count, date); expanding fetches the stored equity curve through `getEquityCurve` and draws it as an inline-SVG sparkline. Picking another snapshot from the card's compare select overlays both curves on one shared scale (`CompareLines` — two polylines, a color-keyed legend, pure `compareLinesPoints` geometry).
 
-Both registrations share one open/close controller and install for their declarations' lifetimes.
+Both registrations share one open/close controller and install for their declarations' lifetimes. The plugin mounts the core package's Remote contribution before registering the slots and registers the `quant-research` locale namespace (zh/en) for its copy.
 
 ## Model Experience
 
-### Placeholder panel
+### Research panel
 
 #### What the model sees
 
-Nothing. The `sidebar.footer.action` entry and the `shell.overlay` surface are presentational; phase 1 adds no prompts, tools, or Remote reads.
+Nothing. The `sidebar.footer.action` entry and the `shell.overlay` surface are presentational; the panel adds no prompts, tools, or request-prefix content.
 
 #### Token effect
 
@@ -53,15 +40,6 @@ Independent of live requests: the panel never touches a request prefix.
 
 ## Known Limitations and Deferred Work
 
-- **Placeholder by design** — the real panel (kline/indicator/equity cards, backtest reports) lands with phase 2, together with the core package's Remote face and its locale dictionaries.
-- **No locale dictionaries yet** — the placeholder copy is fixed Chinese; the locale namespace arrives with the real panel.
-
-<a id="dev-note"></a>
-### Dev Note
-
-<details>
-<summary>Working context for maintainers — click to expand</summary>
-
-None.
-
-</details>
+- **Read-only by design** — every mutation (account creation, rebalance, note saving) goes through the model-facing tools with their own compliance and approval flows; the Remote face exposes reads only, so the panel cannot bypass the gate.
+- **Equity curves are snapshot-fed** — cards render the curve persisted at `quant_run_backtest` time (downsampled to 240 points, newest 50 runs); live jobs (optimization, walk-forward) do not snapshot, so their runs do not appear.
+- **Panel charts are static SVG** — the bar row, sparkline, and comparison have no tooltips or zoom; interactive charts stay an explicit review item against bundle size.

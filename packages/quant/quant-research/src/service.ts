@@ -10,21 +10,27 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
-import { AccountId, quantResearchDomainSpec } from './domain/spec.ts'
-import type { Account } from './domain/spec.ts'
+import { quantResearchDomainSpec } from './domain/spec.ts'
+import { AccountId, ResultSnapshotId } from './domain/spec.ts'
+import type { Account, ResearchNote, ResultSnapshot } from './domain/spec.ts'
+import type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
+} from './types.ts'
+export type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
+} from './types.ts'
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** The quant-research Remote-face service, mounted by this plugin. */
+    quantResearch: QuantResearchService
+  }
+}
 
 /** Domain type alias for the quant-research service. */
 type QuantDomain = Domain<typeof quantResearchDomainSpec>
-
-/** Account summary projected to the wire (no internal bookkeeping fields). */
-export interface AccountSummaryValue {
-  readonly account_id: string
-  readonly name: string
-  readonly cash: number
-  readonly initial_cash: number
-  readonly equity: number
-  readonly positions: readonly { readonly symbol: string; readonly shares: number; readonly avg_cost: number; readonly market_value: number }[]
-}
 
 /**
  * Storage-backed quant-research Remote service. Opens the domain at init,
@@ -36,14 +42,26 @@ export class QuantResearchService extends TypertRemoteService {
   private domain: QuantDomain | undefined
 
   /**
-   * @param ctx - host context providing storage.
+   * Share the caller-owned domain when one is handed in; otherwise open the
+   * domain here and own its lifetime. The plugin body (which already opened
+   * the domain for the tool layer) passes its handle, so the Remote face and
+   * the tools read one facility instance — the domain facility is
+   * single-open per name.
+   * @param sharedDomain - an already-open domain handle the caller owns.
    */
-  constructor(ctx: Context) {
+  constructor(ctx: Context, sharedDomain?: QuantDomain) {
     super(ctx, 'quantResearch')
+    this.shared = sharedDomain !== undefined
+    if (this.shared) {
+      this.domain = sharedDomain
+    }
   }
 
-  /** Open the domain and bind its lifetime to this fiber. */
+  private readonly shared: boolean
+
+  /** Open the domain (when not shared) and bind its lifetime to this fiber. */
   protected async [Service.init](): Promise<void> {
+    if (this.shared) return
     const domain = await this.ctx.storageDomain.open(quantResearchDomainSpec)
     this.ctx.effect(() => async () => {
       this.domain = undefined
@@ -52,7 +70,8 @@ export class QuantResearchService extends TypertRemoteService {
     this.domain = domain
   }
 
-  /** Authoritative domain, valid after init; a miss is a broken lifecycle. */
+  /** Authoritative domain, valid after init; a miss is a broken lifecycle.
+   * @returns the open durable domain. */
   requireDomain(): QuantDomain {
     if (this.domain === undefined) {
       throw new Error('quant-research: durable domain is not initialized')
@@ -62,9 +81,10 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * List all virtual accounts, projected to wire summaries.
+   * @returns every account summary, sorted by name.
    */
   @Remote('listAccounts')
-  async listAccountsRemote(): Promise<{ accounts: AccountSummaryValue[] }> {
+  async listAccountsRemote(): Promise<AccountListValue> {
     const domain = this.requireDomain()
     const accounts: AccountSummaryValue[] = []
     for (const [, account] of domain.table('accounts').entries()) {
@@ -75,9 +95,11 @@ export class QuantResearchService extends TypertRemoteService {
 
   /**
    * Read one account's full state.
+   * @param ref - the account by id or by unique name.
+   * @returns the account's wire summary; rejects when neither id nor name matches.
    */
   @Remote('getAccountState')
-  async getAccountStateRemote(ref: { account_id?: string; name?: string }): Promise<AccountSummaryValue> {
+  async getAccountStateRemote(ref: AccountRef): Promise<AccountSummaryValue> {
     const domain = this.requireDomain()
     const table = domain.table('accounts')
     let account: Account | undefined
@@ -93,6 +115,76 @@ export class QuantResearchService extends TypertRemoteService {
       throw new Error(`未找到账户：${ref.account_id ?? ref.name ?? '(未指定)'}`)
     }
     return projectAccount(account)
+  }
+
+  /**
+   * List research notes, newest first, projected to wire summaries.
+   * @returns every note summary, newest first.
+   */
+  @Remote('listNotes')
+  async listNotesRemote(): Promise<NoteListValue> {
+    const domain = this.requireDomain()
+    const notes: NoteSummaryValue[] = []
+    for (const [, note] of domain.table('research_notes').entries()) {
+      notes.push(projectNote(note))
+    }
+    return { notes: notes.sort((a, b) => b.created_at - a.created_at) }
+  }
+
+  /**
+   * List persisted backtest snapshots, newest first, without equity points.
+   * @returns every snapshot summary, newest first.
+   */
+  @Remote('listResultSnapshots')
+  async listResultSnapshotsRemote(): Promise<SnapshotListValue> {
+    const domain = this.requireDomain()
+    const snapshots: ResultSnapshotSummaryValue[] = []
+    for (const [, snapshot] of domain.table('result_snapshots').entries()) {
+      snapshots.push(projectSnapshot(snapshot))
+    }
+    return { snapshots: snapshots.sort((a, b) => b.created_at - a.created_at) }
+  }
+
+  /**
+   * Read one snapshot's equity curve.
+   * @param ref - the snapshot id to read.
+   * @returns the snapshot's equity curve; rejects for an unknown id.
+   */
+  @Remote('getEquityCurve')
+  async getEquityCurveRemote(ref: { result_id: string }): Promise<EquityCurveValue> {
+    const domain = this.requireDomain()
+    const snapshot = domain.table('result_snapshots').get(ResultSnapshotId(ref.result_id))
+    if (snapshot === undefined) {
+      throw new Error(`未找到回测快照：${ref.result_id}`)
+    }
+    return {
+      result_id: snapshot.id,
+      symbol: snapshot.symbol,
+      equity: snapshot.equity.map(point => ({ date: point.date, value: point.value })),
+    }
+  }
+}
+
+/** Project a domain ResearchNote record to the wire summary shape. */
+function projectNote(note: ResearchNote): NoteSummaryValue {
+  return {
+    note_id: note.id,
+    title: note.title,
+    body: note.body,
+    symbol: note.symbol ?? null,
+    tags: [...note.tags],
+    created_at: note.created_at,
+  }
+}
+
+/** Project a domain ResultSnapshot record to the wire summary shape (no equity points). */
+function projectSnapshot(snapshot: ResultSnapshot): ResultSnapshotSummaryValue {
+  return {
+    result_id: snapshot.id,
+    symbol: snapshot.symbol,
+    params: { ...snapshot.params },
+    metrics: { ...snapshot.metrics },
+    created_at: snapshot.created_at,
   }
 }
 

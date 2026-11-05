@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write examples/quant-research/README.md
 /quant-research-example:
-  en: 555f536046c7c572
-  zh: 747afdfa34709155
+  en: c7d354ddd5c4f551
+  zh: e76e1432958a91cc
 /quant-research-example/keyless-snapshot:
-  en: 75626e6774ae8e4c
-  zh: 9efaad4d5387049d
+  en: d7523a9779b8eb07
+  zh: 54e698df0a05679a
 /quant-research-example/real-run:
   en: 8a18f235b8cceae9
   zh: ff745d13ad9d327e

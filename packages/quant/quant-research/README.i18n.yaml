@@ -2,33 +2,24 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/quant/quant-research/README.md
-/:
-  en: 61cac1793ce357f5
-  zh: 22b9da13ad8467ad
 /deepseek-ai-dsh-quant-research:
-  en: f9c0468699e0685a
-  zh: 3592ee6c390bf677
-/deepseek-ai-dsh-quant-research/summary:
-  en: 7d294de81235300c
-  zh: 282d59ea23df91b6
-/deepseek-ai-dsh-quant-research/table-of-contents:
-  en: 4f1b46a829beb63d
-  zh: c9823db8cf364c47
+  en: bf0814fb9ac774a5
+  zh: ba64b3050c8f16d9
 /deepseek-ai-dsh-quant-research/installation:
   en: 7f25955ed3b4184d
-  zh: 92d6b41150dc9784
+  zh: 032889f2b5029784
 /deepseek-ai-dsh-quant-research/configuration:
   en: 1508ac7574feabe0
-  zh: 22c4f60625a8a865
+  zh: 2ea07c972b6cbd7f
 /deepseek-ai-dsh-quant-research/architecture:
-  en: 0586df322493613c
-  zh: 5aa4446eb4f7f9ea
+  en: 6df8a03ae8db1752
+  zh: 7f1a85d678147ed4
 /deepseek-ai-dsh-quant-research/compliance-gate-red-lines:
-  en: 51fc651633436ed2
-  zh: 11dd8329ace0f36c
+  en: 04f7f1f50335ce94
+  zh: 2ca090d20d827a9e
 /deepseek-ai-dsh-quant-research/tools:
-  en: 287accc1794f156b
-  zh: 166f4435a9019d3a
+  en: b56444470576bdc1
+  zh: dadce6bc86754260
 /deepseek-ai-dsh-quant-research/session-events:
   en: 21a39d3ed6fbb2d6
   zh: cc2dc8bd13eba5e9
@@ -39,17 +30,14 @@
   en: 1419d1350101267a
   zh: b6d60f1f309aaec4
 /deepseek-ai-dsh-quant-research/model-experience/research-tools/what-the-model-sees:
-  en: e0fad43167054127
-  zh: c98c61eed59dea16
+  en: 01d3f5f6d01c46bf
+  zh: 0d820abe89213a7d
 /deepseek-ai-dsh-quant-research/model-experience/research-tools/token-effect:
-  en: 6dcc90200a5bda1a
-  zh: 0c94441b96e1980d
+  en: 5bdb0eef9074e3f7
+  zh: 8fc01c810d95c593
 /deepseek-ai-dsh-quant-research/model-experience/research-tools/kv-cache-effect:
   en: c89cff4064839128
   zh: ac3dc749d8118ee4
 /deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work:
-  en: c757e735945263f1
-  zh: a904d958372d4a79
-/deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work/dev-note:
-  en: e67f633dc6fe7773
-  zh: b23ea3e6cbd56734
+  en: 87028aef9b3e8ec5
+  zh: f816707da4b9d766

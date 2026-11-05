@@ -56,3 +56,40 @@ native/system/test/bin/
 # 本机 DSH 配置草案（含 IdP clientSecret 明文，绝不入库）。
 # 真实配置在卡巴格平台侧：platform/supervisor/data/sso.json（secret 走 AES-256-GCM 加密落盘）。
 /cordis.patch.yml
+.ui-review/
+# 天龙引擎资产镜像（21,225 文件 · 289 MB · 数据层不进入 DSH release）
+# 详见 dragon-assets/README.md
+dragon-assets/skills/**/__pycache__/
+dragon-assets/**/.git/
+dragon-assets/**/node_modules/
+dragon-assets/**/.pytest_cache/
+dragon-assets/**/.cache/
+dragon-assets/**/.streamlit/
+dragon-assets/**/.vscode/
+dragon-assets/**/*.pyc
+dragon-assets/**/*.wasm
+dragon-assets/**/*.map
+dragon-assets/**/*.node
+dragon-assets/**/*.gif
+dragon-assets/**/*.png
+dragon-assets/**/*.jpg
+dragon-assets/**/*.jpeg
+dragon-assets/**/*.webp
+dragon-assets/**/*.pdf
+dragon-assets/**/*.mp4
+dragon-assets/**/*.wav
+dragon-assets/**/*.mp3
+dragon-assets/skill-updater/reports/
+# 镜像内嵌的 GitHub Actions workflow / actions —— GitHub OAuth token 没有 `workflow`
+# scope 不能 push 修改 workflow 文件，所以从镜像排除
+dragon-assets/**/.github/workflows/
+dragon-assets/**/.github/actions/
+# 商业策略 / 内部规划文档 —— 不进入 DSH release
+商业化路线图.md
+# 获客插件的规划与演练产物（非源码） —— 等真正写代码时再纳入版本控制
+packages/extensions/dsh-lead-gen/PRD-corrections.md
+packages/extensions/dsh-lead-gen/commercialization.md
+packages/extensions/dsh-lead-gen/IMPLEMENTATION_PLAN.md
+packages/extensions/dsh-lead-gen/rehearsal/
+# Generated company-signed CUA release record.
+/packages/experimental/cua-macos/cua-helper.json

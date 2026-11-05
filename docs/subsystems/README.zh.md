@@ -51,7 +51,7 @@
 | [subagent.md](subagent.zh.md) | subagent seam：命名提供方注册表、`SubagentStartRequest`/`Result`/`Run`、启动时与运行时能力拆分 |
 | [voice-input.md](voice-input.zh.md) | 实验性具名语音识别、临时音频和受版本保护的草稿插入 |
 | [translation.md](translation.zh.md) | 实验性免登录文本翻译与显式 Provider 请求 |
-| [agent-team.md](agent-team.zh.md) | Agent Teams：隐式 Lead 身份、具名 continuable teammate、直接 peer inbox 投递 与共享任务 DAG |
+| [agent-team.md](agent-team.zh.md) | Agent Teams：子代理树共享的任务 DAG 与任务归属 |
 | [liveshare.md](liveshare.zh.md) | 可选的 LiveShare bundle：嵌套分享模式、fork 的上限与持久性、上限安装，以及共享会话外部驱动轮次所受的约束 |
 | [claude-code-mods.md](claude-code-mods.zh.md) | 经实验性桥接运行的 Claude Code 模组：与 Claude Code 不同的每个事件、`$` 成员、链规则、绘制特性与示例模组 |
 | [web.md](web.zh.md) | Web 访问 seam：`WebSearchRequest`/`Result`、`WebFetchRequest`/`Result`、`WebFetchBody`、提供方可用性、`WebError` |
@@ -74,5 +74,6 @@
 | [session-telemetry.md](session-telemetry.zh.md) | 对外会话上报能力 seam：`SessionTelemetryRecord`/`SessionTelemetrySeverity`、`SessionTelemetrySink` 约定和 `session-telemetry/record` 脱敏 waterfall（瀑布式事件） |
 | [otel.md](otel.zh.md) | 共享普通事件与 Session 日志 OTLP 通道 |
 | [product-telemetry.md](product-telemetry.zh.md) | 显式产品分析事件提交与 OTLP/HTTP 传输 |
+| [platform-services.md](platform-services.zh.md) | 产品平台服务：量化研究、获客（含 GEO 诊断）与 dragon-assets 桥接栈 |
 
 > 这些页面上的类型声明及其 JSDoc 与源码等价，并由 `pnpm run verify-type-equiv` 检查漂移（见 [development.md](../development.zh.md#documenting-types-verbatim-ts-type-equiv)）。普通块保留完整声明；`public-api` 块保留去除实现体的公开 class 声明。Cordis 服务与事件使用每页生成的 **Cordis API** 小节。

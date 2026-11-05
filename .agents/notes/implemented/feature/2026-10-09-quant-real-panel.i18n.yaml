@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-09-quant-real-panel.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-quant-real-panel.md
+/agent-note-the-real-panel-mounts-its-own-remote-face-and-draws-inline-svg:
+  en: 2c50a1cb81f569a2
+  zh: d43c54274d9dfa98
+/agent-note-the-real-panel-mounts-its-own-remote-face-and-draws-inline-svg/problem:
+  en: 72598b1f727bd056
+  zh: d0587fcc31f1e56d
+/agent-note-the-real-panel-mounts-its-own-remote-face-and-draws-inline-svg/decision:
+  en: 740d472081ec93fe
+  zh: 5cd3962b4853b0c6
+/agent-note-the-real-panel-mounts-its-own-remote-face-and-draws-inline-svg/alternatives-considered:
+  en: e0cf1f997d2b5865
+  zh: f8df8ef63b6c73f3
+/agent-note-the-real-panel-mounts-its-own-remote-face-and-draws-inline-svg/consequences:
+  en: 32f7e166a03566e0
+  zh: eb8f8e9307da61e3

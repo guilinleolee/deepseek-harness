@@ -2,42 +2,30 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-quant-research/README.md
-/:
-  en: 05f5a2a8d8d766bf
-  zh: a36027c830e7e5d7
 /deepseek-ai-dsh-client-ui-quant-research:
-  en: 92e2e8e3d7a1a655
-  zh: 159252d53e064de0
-/deepseek-ai-dsh-client-ui-quant-research/summary:
-  en: 71319dac3f754bba
-  zh: 0bb4e5c1991bd4c1
-/deepseek-ai-dsh-client-ui-quant-research/table-of-contents:
-  en: 0e94dcbdbebafb77
-  zh: ae74f3207fd68b88
+  en: af43bdcdbfb3d347
+  zh: fd17e5e63c8f4cc3
 /deepseek-ai-dsh-client-ui-quant-research/installation:
   en: 95e625d61f8d2ab5
-  zh: 2deb181442382f0e
+  zh: 286f14b325c76475
 /deepseek-ai-dsh-client-ui-quant-research/surface:
-  en: fcb1ac39828df2e2
-  zh: 85cbad145124e755
+  en: 5bd131a5b118613b
+  zh: 13230d17e51cad70
 /deepseek-ai-dsh-client-ui-quant-research/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
-/deepseek-ai-dsh-client-ui-quant-research/model-experience/placeholder-panel:
-  en: e2079f507e6cdae1
-  zh: 0894ff1f728feddb
-/deepseek-ai-dsh-client-ui-quant-research/model-experience/placeholder-panel/what-the-model-sees:
-  en: d942b272b8f8471a
-  zh: d942b272b8f8471a
-/deepseek-ai-dsh-client-ui-quant-research/model-experience/placeholder-panel/token-effect:
+/deepseek-ai-dsh-client-ui-quant-research/model-experience/research-panel:
+  en: 454ddcf1980173c0
+  zh: ed4aa6eea9b48fa0
+/deepseek-ai-dsh-client-ui-quant-research/model-experience/research-panel/what-the-model-sees:
+  en: 30a32c1aecaf52a0
+  zh: 4db5fac8e0f3e2b9
+/deepseek-ai-dsh-client-ui-quant-research/model-experience/research-panel/token-effect:
   en: 5b83ac7ce1ea1346
-  zh: 5b83ac7ce1ea1346
-/deepseek-ai-dsh-client-ui-quant-research/model-experience/placeholder-panel/kv-cache-effect:
+  zh: 145d8f0588197d78
+/deepseek-ai-dsh-client-ui-quant-research/model-experience/research-panel/kv-cache-effect:
   en: b09bb41d5c9e36af
-  zh: d5c6759ff111beba
+  zh: 8df1f421fc4e3b65
 /deepseek-ai-dsh-client-ui-quant-research/known-limitations-and-deferred-work:
-  en: 19f677e664e404e7
-  zh: 68fc79ab37494d47
-/deepseek-ai-dsh-client-ui-quant-research/known-limitations-and-deferred-work/dev-note:
-  en: e67f633dc6fe7773
-  zh: cdd2a143b725accd
+  en: 108f8765c790433c
+  zh: a6c7c3910d786acb

@@ -45,6 +45,8 @@ describe('apply', () => {
   it('composes the runtime, registers the three tools, and unwinds on dispose', async () => {
     const { ctx, register, close, open } = preparedContext()
     const disposer = await apply(ctx, resolveConfig(undefined, { platform: 'linux', dshHome: '/tmp' }))
+    // The plugin body opens the domain once and hands the handle to the
+    // service fiber — the storage-domain facility is single-open per name.
     expect(open).toHaveBeenCalledTimes(1)
     const names = register.mock.calls.map(call => (call[0] as { name: string }).name)
     expect(names).toEqual([
@@ -54,8 +56,10 @@ describe('apply', () => {
       'quant_compute_factor', 'quant_factor_ic',
       'quant_save_note', 'quant_list_notes', 'quant_export_report',
       'quant_compare_backtests', 'quant_research_report', 'quant_optimize_params', 'quant_walk_forward',
+      'quant_factor_cross_ic', 'quant_list_snapshots', 'quant_delete_snapshot',
     ])
     await disposer()
+    // The single open also means a single close (the service shares it).
     expect(close).toHaveBeenCalledTimes(1)
   })
 

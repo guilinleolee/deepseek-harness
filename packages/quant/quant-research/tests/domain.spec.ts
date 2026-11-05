@@ -37,11 +37,11 @@ describe('account/order schemas', () => {
 })
 
 describe('quantResearchDomainSpec', () => {
-  it('freezes the v2 contract: audit trail plus PET accounts and orders', () => {
+  it('freezes the v3 contract: audit trail, PET accounts and orders, notes, and result snapshots', () => {
     expect(quantResearchDomainSpec.name).toBe('quant_research')
-    expect(quantResearchDomainSpec.version).toBe(2)
+    expect(quantResearchDomainSpec.version).toBe(3)
     expect(Object.keys(quantResearchDomainSpec.tables)).toEqual([
-      'compliance_denials', 'accounts', 'orders', 'research_notes',
+      'compliance_denials', 'accounts', 'orders', 'research_notes', 'result_snapshots',
     ])
   })
 })

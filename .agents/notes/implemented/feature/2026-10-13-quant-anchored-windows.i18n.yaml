@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-13-quant-anchored-windows.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-quant-anchored-windows.md
+/agent-note-anchored-rolling-windows-and-per-window-snapshots:
+  en: 5374b6ae46c72d1f
+  zh: af3057ae3ab03a6b
+/agent-note-anchored-rolling-windows-and-per-window-snapshots/problem:
+  en: 8c4559a41d755c36
+  zh: 6273543b75fc2b09
+/agent-note-anchored-rolling-windows-and-per-window-snapshots/decision:
+  en: f12611879b9c8598
+  zh: eb7c3cd5c1950ca8
+/agent-note-anchored-rolling-windows-and-per-window-snapshots/alternatives-considered:
+  en: d68db0f22dccd4c0
+  zh: ff06fac3688db3ef
+/agent-note-anchored-rolling-windows-and-per-window-snapshots/consequences:
+  en: d755c558f9344d75
+  zh: da11ed17f5ad39ce

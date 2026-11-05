@@ -20,6 +20,7 @@ import { quantResearchDomainSpec } from './domain/spec.ts'
 import { DataSourceBreaker } from './pdat/datasource.ts'
 import { QuantKernelClient } from './kernel-client/client.ts'
 import { registerQuantTools } from './tools.ts'
+import { QuantResearchService } from './service.ts'
 
 export { Config, DATA_SOURCES, defaultKernelCommand, resolveConfig } from './config.ts'
 export type { Config as QuantResearchConfig, QuantDataSource, ResolvedConfig } from './config.ts'
@@ -29,14 +30,18 @@ export {
 } from './errors.ts'
 export type { QuantErrorCode, QuantEnvelope } from './errors.ts'
 export {
-  AccountId, OrderId, accountSchema, complianceDenialSchema, orderSchema, quantResearchDomainSpec,
+  AccountId, OrderId, ResultSnapshotId, accountSchema, complianceDenialSchema, orderSchema,
+  quantResearchDomainSpec, resultSnapshotSchema,
 } from './domain/spec.ts'
-export type { Account, ComplianceDenial, ComplianceDenialId, Order } from './domain/spec.ts'
+export type { Account, ComplianceDenial, ComplianceDenialId, Order, ResultSnapshot } from './domain/spec.ts'
 export {
   BARS_HARD_LIMIT, BROKER_MARKERS, CONFIDENCE_LIMITS, DEFAULT_GRID_SPEC, FAST_WINDOW_LIMITS, FEE_RATE_HARD_LIMIT,
-  GRID_COMBO_HARD_LIMIT, INITIAL_CASH_HARD_LIMIT, SHOCK_LIMITS, SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
+  GRID_COMBO_HARD_LIMIT, HORIZON_LIMITS, INITIAL_CASH_HARD_LIMIT, PANEL_SIZE_LIMITS, SHOCK_LIMITS,
+  SLOW_WINDOW_LIMITS, TOOL_PREFIX, TRAIN_RATIO_LIMITS,
   collectArgStrings, denialAuditCallback, inspectBarCap, inspectBacktestCaps, inspectBrokerMarkers,
-  inspectConfidenceCap, inspectGridCaps, inspectShockCap, inspectToolCall, inspectTrainRatioCap,
+  inspectAnchorCap, inspectConfidenceCap, inspectCrossPanelCaps, inspectGridCaps,
+  inspectRollingWindowsCap, inspectShockCap,
+  inspectToolCall, inspectTrainRatioCap,
   installQuantComplianceGate, recordComplianceDenial,
 } from './compliance.ts'
 export type { ComplianceDenialInput, ComplianceVerdict, GridAxisSpec } from './compliance.ts'
@@ -96,19 +101,35 @@ export {
 } from './pcpt/optimize.ts'
 export type { GridComboResult, GridSpec, RankMetric } from './pcpt/optimize.ts'
 export {
-  TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS, formatWalkForwardSummary, runWalkForward, splitBars,
+  ANCHOR_LIMITS, ROLLING_WINDOWS_LIMITS, TRAIN_RATIO_LIMITS as WALK_FORWARD_TRAIN_RATIO_LIMITS,
+  formatRollingWalkForwardSummary, formatWalkForwardSummary, runRollingWalkForward, runWalkForward,
+  splitAnchoredWindows, splitBars, splitRollingWindows, validateAnchoredParams, validateRollingParams,
   validateWalkForwardParams,
 } from './pcpt/walk-forward.ts'
-export type { WalkForwardSplit } from './pcpt/walk-forward.ts'
+export {
+  alignPanel, crossSectionIC, factorOnDates, formatCrossICSummary, summarizeIC,
+} from './paat/cross-ic.ts'
+export type { CrossICPoint, CrossICSummary } from './paat/cross-ic.ts'
+export type { RollingWindow, RollingWindowResult, WalkForwardSplit } from './pcpt/walk-forward.ts'
 export {
   DEFAULT_BACKTEST_BARS, DEFAULT_BACKTEST_FAST, DEFAULT_BACKTEST_SLOW, DEFAULT_KLINE_BARS,
   accountCreateTool, accountStateTool, assessRiskTool, computeFactorTool, computeIndicatorTool,
-  compareBacktestsTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool, listNotesTool,
+  compareBacktestsTool, crossFactorICTool, executeRebalanceTool, exportReportTool, factorICTool, getKlineTool,
+  listNotesTool, snapshotDeleteTool, snapshotListTool,
   optimizeParamsTool, registerQuantTools, researchReportTool, runBacktestTool, stressTestTool,
   walkForwardTool,
 } from './tools.ts'
 export type { JobsStartFace, QuantToolDeps } from './tools.ts'
-export { QuantResearchService, type AccountSummaryValue } from './service.ts'
+export { QuantResearchService } from './service.ts'
+export type {
+  AccountListValue, AccountRef, AccountSummaryValue, EquityCurveValue, EquityPointValue, NoteListValue,
+  NoteSummaryValue, ResultSnapshotSummaryValue, SnapshotListValue,
+} from './types.ts'
+export {
+  EQUITY_SNAPSHOT_MAX_POINTS, SNAPSHOT_KEEP_LIMIT, downsampleEquity, listSnapshots, requireSnapshot,
+  saveSnapshot,
+} from './pcpt/snapshots.ts'
+export type { ResultSnapshotsTable, SnapshotSaveInput } from './pcpt/snapshots.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'quant-research'
@@ -144,6 +165,10 @@ export function resolveKernelScriptPath(
 export async function apply(ctx: Context, config?: Config): Promise<() => Promise<void>> {
   const resolved = resolveConfig(config, { platform: process.platform, dshHome: defaultDshHome() })
   const domain = await ctx.storageDomain.open(quantResearchDomainSpec)
+  // The Remote-face service shares the plugin body's domain handle: the
+  // storage-domain facility is single-open per name, and the tool layer and
+  // the Remote reads must observe one facility instance.
+  const serviceFiber = await ctx.plugin(QuantResearchService, domain).await()
   const runtimeFiber = await ctx.plugin({
     name: 'quant-research:runtime',
     inject: ['tools', 'approval'],
@@ -173,6 +198,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
         accounts: domain.table('accounts'),
         orders: domain.table('orders'),
         notes: domain.table('research_notes'),
+        snapshots: domain.table('result_snapshots'),
         approval: runtimeCtx.approval,
         // Resolved per call: the jobs service may mount after this plugin.
         jobs: () => runtimeCtx.get('jobs'),
@@ -189,6 +215,7 @@ export async function apply(ctx: Context, config?: Config): Promise<() => Promis
   }).await()
   return async () => {
     await runtimeFiber.dispose()
+    await serviceFiber.dispose()
     await domain.close()
   }
 }

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-14-quant-compare-card.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-14-quant-compare-card.md
+/agent-note-the-panel-compares-two-snapshots-on-one-scale:
+  en: 106f61afd61081b9
+  zh: e7e761d8bbe93248
+/agent-note-the-panel-compares-two-snapshots-on-one-scale/problem:
+  en: bef06cf4ae75c425
+  zh: cef3579bbd4d9791
+/agent-note-the-panel-compares-two-snapshots-on-one-scale/decision:
+  en: 6dce12dcf7870dd3
+  zh: b7bed21e821f3d95
+/agent-note-the-panel-compares-two-snapshots-on-one-scale/alternatives-considered:
+  en: 1c2cd11aa22fb8e2
+  zh: 64c12c924162caaf
+/agent-note-the-panel-compares-two-snapshots-on-one-scale/consequences:
+  en: 841014352c5fecd4
+  zh: 126cb71a7a1f22ba

@@ -195,9 +195,14 @@ function fakeJobs(): {
       start(spec: JobSpec): ReturnType<typeof JobId> {
         specs.push(spec)
         counter += 1
-        const hooks = spec.run({ append() {}, progress() {} } as never)
+        const id = JobId(`quant-optimize-${String(counter)}`)
+        const hooks = spec.run({
+          id,
+          append: () => 0,
+          progress: () => {},
+        } as never)
         hooksByIndex.set(spec, hooks)
-        return JobId(`quant-optimize-${String(counter)}`)
+        return id
       },
     },
     specs,
@@ -213,6 +218,7 @@ function depsWith(kernel: QuantKernelClient, jobs?: () => unknown): QuantToolDep
     accounts: new Map() as never,
     orders: new Map() as never,
     notes: new Map() as never,
+    snapshots: new Map() as never,
   }
   return jobs === undefined ? base : { ...base, jobs: jobs as QuantToolDeps['jobs'] }
 }

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-14-quant-example-revival.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-14-quant-example-revival.md
+/agent-note-the-example-composition-rides-the-current-architecture:
+  en: c079b8625b53bf14
+  zh: 37a4c61f4d13e35c
+/agent-note-the-example-composition-rides-the-current-architecture/problem:
+  en: b48f3314d612d13f
+  zh: 545c5ea63633e30b
+/agent-note-the-example-composition-rides-the-current-architecture/decision:
+  en: 585216e7f72eabe4
+  zh: 666f8fb17ffb5b15
+/agent-note-the-example-composition-rides-the-current-architecture/alternatives-considered:
+  en: c3122fedb64ec7af
+  zh: a832c3654e01156a
+/agent-note-the-example-composition-rides-the-current-architecture/consequences:
+  en: d67cfa1001ade01c
+  zh: 6e23c21b7dfc1dd5

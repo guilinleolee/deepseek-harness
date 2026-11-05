@@ -150,6 +150,19 @@
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
 
+    # The API gateway: the transport-agnostic dispatch face every client shape
+    # shares. The base layer's agent-default-model service owns the default model.
+    - id: api-gateway
+      name: '@deepseek-ai/dsh-host-apiproxy'
+
+    # One shared MCP server fleet: Settings-configured servers plus servers
+    # that installed plugins register, with status and recovery over Remote.
+    # Credential templates and OAuth grants resolve through the credentials
+    # provider, so the manager starts after it.
+    - id: mcp-manager
+      name: '@deepseek-ai/dsh-mcp-manager'
+      inject: [credentials]
+
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
 

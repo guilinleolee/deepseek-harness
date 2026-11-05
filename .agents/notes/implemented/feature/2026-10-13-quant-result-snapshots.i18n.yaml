@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-13-quant-result-snapshots.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-quant-result-snapshots.md
+/agent-note-result-snapshots-carry-the-equity-curve-to-the-panel:
+  en: 03ce47d018ae6c0d
+  zh: 0fa07a25805227c4
+/agent-note-result-snapshots-carry-the-equity-curve-to-the-panel/problem:
+  en: fb876c84e4912293
+  zh: 856324f7e24c9290
+/agent-note-result-snapshots-carry-the-equity-curve-to-the-panel/decision:
+  en: 4f8a0935e86a9682
+  zh: 95c5b1dc891610dd
+/agent-note-result-snapshots-carry-the-equity-curve-to-the-panel/alternatives-considered:
+  en: 4cca51c34df678d6
+  zh: 6e632feed51ccb7d
+/agent-note-result-snapshots-carry-the-equity-curve-to-the-panel/consequences:
+  en: 4d6a68add7938225
+  zh: ec901dc3a47668b4
