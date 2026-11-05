@@ -37,6 +37,7 @@ import { auditAppend, initAudit } from './audit.mjs'
 import { syncAllHomes, transcribeGuardEvents } from './toolpolicy.mjs'
 import { writeVkeyToHome } from './credentials.mjs'
 import { createServiceToken, revokeServiceToken } from './service-tokens.mjs'
+import { syncIdpLifecycle } from './sync-idp.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DATA = join(HERE, 'data')
@@ -61,6 +62,8 @@ const RESTART_RESET_UPTIME_MS = 5 * 60_000
 const MAX_RESTARTS_IN_WINDOW = 5
 const DISK_WALK_ENTRY_CAP = 50_000
 const GUARD_TRANSCRIBE_INTERVAL_MS = 30_000
+// IdP 生命周期对账周期：Casdoor 里冻结/删除用户后，平台账号最迟 5 分钟失效。
+const IDP_SYNC_INTERVAL_MS = 5 * 60_000
 
 const instanceHome = (id) => join(HOMES, id)
 const instanceLog = (id) => join(LOGS, `${id}.log`)
@@ -172,7 +175,24 @@ function launchInstance(spec, state) {
   })
   const log = createWriteStream(instanceLog(spec.id), { flags: 'a' })
   log.write(`\n=== ${new Date().toISOString()} spawn pid=${child.pid} port=${spec.port} home=${home}\n`)
-  child.stdout.pipe(log, { end: false })
+  // 实例 stdout 同时喂给日志与 launch token 解析器：dsh web 启动后打印
+  // 「dsh web: http://127.0.0.1:<port>/?token=<launchToken>」。网关要靠它把
+  // 浏览器送进实例的 browser-auth 门（否则「进入我的工作区」永远停在
+  // "dsh web authentication required"）。token 每次实例重启都会变，故从
+  // stdout 实时取并写进 state，而不是启动时读一次。
+  const LAUNCH_TOKEN_RE = /dsh web:\s*\S*\?token=(\S+)/
+  let stdoutTail = ''
+  const feedStdout = (chunk) => {
+    log.write(chunk)
+    stdoutTail += chunk.toString()
+    if (stdoutTail.length > 4096) stdoutTail = stdoutTail.slice(-2048)
+    const match = LAUNCH_TOKEN_RE.exec(stdoutTail)
+    if (match && rec.launchToken !== match[1]) {
+      rec.launchToken = match[1]
+      writeState(state)
+    }
+  }
+  child.stdout.on('data', feedStdout)
   child.stderr.pipe(log, { end: false })
   children.set(spec.id, { child, log })
 
@@ -362,6 +382,9 @@ async function daemon() {
       health: { lastOkAt: null, latencyMs: null },
       memoryKB: null,
       diskBytes: null,
+      // 实例的 DSH browser-auth 启动令牌（每次重启由 stdout 解析得到，
+      // 见 launchInstance）。网关用它把已认证的浏览器送进实例的认证门。
+      launchToken: null,
     }
   }
   writeState(state)
@@ -396,6 +419,18 @@ async function daemon() {
     void transcribeGuardEvents(DATA, MANIFEST, auditAppend)
       .catch((error) => console.error('[toolpolicy] guard 事件转写失败:', error?.message ?? error))
   }, GUARD_TRANSCRIBE_INTERVAL_MS)
+
+  // IdP 生命周期对账：Casdoor 里冻结/删除用户 → 禁用平台账号（断会话 + 吊钥匙）。
+  // 失败只记日志不动账号（fail-safe：宁可漏禁，不可因 IdP 抖动把全员锁死）。
+  setInterval(() => {
+    void syncIdpLifecycle({ dataDir: DATA, ip: '127.0.0.1' })
+      .then((result) => {
+        if (result.ok && result.disabled.length > 0) {
+          console.log(`[idp-sync] 已禁用 ${result.disabled.length} 个账号: ${result.disabled.join(', ')}`)
+        }
+      })
+      .catch((error) => console.error('[idp-sync] 对账失败:', error?.message ?? error))
+  }, IDP_SYNC_INTERVAL_MS)
 
   for (const spec of MANIFEST.instances) launchInstance(spec, state)
 
@@ -810,6 +845,24 @@ async function main() {
     }
     const t = await transcribeGuardEvents(DATA, MANIFEST, auditAppend)
     console.log(`guard 拒绝事件转写 ${t.transcribed} 条${t.instances.length > 0 ? `（${t.instances.join(', ')}）` : ''}`)
+    return
+  }
+  if (cmd === 'sync-idp') {
+    // sync-idp [--dry-run]：手动触发 IdP 生命周期对账。
+    // Casdoor 里被冻结/删除的用户 → 平台账号禁用（旧会话失效 + 虚拟钥匙吊销）。
+    // daemon 每 5 分钟自动做同样的事，此命令用于即时生效与部署验收。
+    initAudit(DATA)
+    const dryRun = process.argv.includes('--dry-run')
+    const result = await syncIdpLifecycle({ dataDir: DATA, dryRun, ip: '127.0.0.1' })
+    if (!result.ok) {
+      console.log(`对账未执行：${result.reason}${result.message ? `（${result.message}）` : ''}`)
+      console.log('（未做任何禁用：IdP 不可用或返回空时一律不动账号）')
+      return
+    }
+    console.log(`检查 ${result.checked} 个已绑定账号`)
+    console.log(result.disabled.length > 0
+      ? `${dryRun ? '[dry-run] 将禁用' : '已禁用'}：${result.disabled.join(', ')}`
+      : '无需禁用（IdP 侧账号均有效）')
     return
   }
   if (cmd === 'add-service-token') {

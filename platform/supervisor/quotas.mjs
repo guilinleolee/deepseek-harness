@@ -9,7 +9,7 @@
  * 读取走 mtime 缓存（relay 每请求调用，改动 ≤ 下一请求生效）；daemon 单进程承载
  * 网关/管理台/Relay，initQuotas 在建服时配置一次目录（写入口按 dataDir 幂等初始化）。
  */
-import { mkdirSync, readFileSync, statSync } from 'node:fs'
+import { mkdirSync, readFileSync, statSync, utimesSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { writeJsonAtomic } from './atomic-write.mjs'
@@ -23,7 +23,7 @@ export const DEFAULT_RATIOS = { models: {}, defaultCompletionRatio: 3, groups: {
 export const DEFAULT_RATIO_SET = { ratio: 1, completionRatio: DEFAULT_RATIOS.defaultCompletionRatio, groupRatio: 1 }
 
 let ratiosDir = null
-const cache = { file: null, mtime: -1, value: null }
+const cache = { file: null, mtime: -1, size: -1, value: null }
 
 const validPositive = (value) => typeof value === 'number' && Number.isFinite(value) && value > 0
 
@@ -42,9 +42,18 @@ export function initQuotas(dataDir) {
 }
 
 function writeRatiosFile(file, ratios) {
+  const previous = cache.mtime
   writeJsonAtomic(file, ratios)
+  // mtime 推进到严格大于上一次观测值：同一毫秒内的两次写盘不会让读侧命中
+  // 陈旧缓存（缓存键含 size，双保险）。
+  try {
+    const st = statSync(file)
+    const next = Math.max(Date.now(), Math.floor(previous) + 1)
+    utimesSync(file, st.atime, next / 1000)
+  } catch { /* 推进失败不影响读侧（size 参与比较） */ }
   cache.file = file
   cache.mtime = statSync(file).mtimeMs
+  cache.size = statSync(file).size
   cache.value = ratios
 }
 
@@ -84,17 +93,25 @@ function normalizeRatios(parsed, missing) {
   return { ratios, dirty }
 }
 
-/** mtime 缓存读取 ratios.json；缺省自动生成，非法配置剔除后重写。 */
+/**
+ * mtime+size 缓存读取 ratios.json；缺省自动生成，非法配置剔除后重写。
+ *
+ * 缓存键含 size：只比 mtime 时，「同一时间片内改写文件」（外部工具或另一个
+ * 进程直接写）会命中陈旧缓存——读到的倍率表不是磁盘上的最新形态。
+ */
 export function loadRatios() {
   if (ratiosDir === null) throw new Error('quotas 未初始化数据目录（需先 initQuotas）')
   const file = join(ratiosDir, RATIOS_FILE)
   let mtime = null
+  let size = null
   try {
-    mtime = statSync(file).mtimeMs
+    const st = statSync(file)
+    mtime = st.mtimeMs
+    size = st.size
   } catch {
     mtime = null
   }
-  if (mtime !== null && cache.file === file && cache.mtime === mtime && cache.value !== null) return cache.value
+  if (mtime !== null && cache.file === file && cache.mtime === mtime && cache.size === size && cache.value !== null) return cache.value
   let parsed = null
   const missing = mtime === null
   if (!missing) {

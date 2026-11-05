@@ -24,7 +24,7 @@ import type { AiCallPolicy } from '../gather/ai.ts'
 /** Timeout reason code carried by aborted review AI calls. */
 export const REVIEW_AI_TIMEOUT_CODE = 'REVIEW_AI_TIMEOUT'
 
-/** Prompt vocabulary version pinned into every result for provenance. */
+/** Prompt vocabulary version pinned into every result for origin. */
 export const REVIEW_PROMPT_VERSION = 1
 
 /** The fixed six report sections; the template is frozen so outputs stay snapshot-testable. */
@@ -208,7 +208,7 @@ export class ReviewAiProcessor {
    * every other failure surfaces immediately so the UI can offer its retry
    * button.
    * @param request - the diagnosis request.
-   * @returns the markdown diagnosis with its provenance.
+   * @returns the markdown diagnosis with its origin.
    */
   async analyzeWork(request: ReviewAnalyzeWorkRequest): Promise<ReviewAiResult> {
     const framed = frameAnalyzeRequest(request, this.policy.maxInputChars)
@@ -219,7 +219,7 @@ export class ReviewAiProcessor {
    * Generate one period report through the model. The caller stores the
    * markdown; on failure it renders the data-only fallback itself.
    * @param request - the report request.
-   * @returns the markdown report with its provenance.
+   * @returns the markdown report with its origin.
    */
   async generateReport(request: ReviewGenerateReportRequest): Promise<ReviewAiResult> {
     const framed = frameReportRequest(request, this.policy.maxInputChars)

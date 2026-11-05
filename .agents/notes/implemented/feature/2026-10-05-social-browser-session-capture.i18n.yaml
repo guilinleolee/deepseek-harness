@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-05-social-browser-session-capture.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-05-social-browser-session-capture.md
-2026-10-05-social-browser-session-capture.md: 64acd8817c8f774defe039b433886f5ea9c0c684
-2026-10-05-social-browser-session-capture.zh.md: 1303395fbd7915e77d4396477f60c462908821e2
+/agent-note-social-profile-capture-lands-as-a-browser-session-read-behind-a-frequency-gate-not-a-scraper:
+  en: cc48b71c246da1f9
+  zh: 086dc9ff248aa86f
+/agent-note-social-profile-capture-lands-as-a-browser-session-read-behind-a-frequency-gate-not-a-scraper/problem:
+  en: e4fb0ec7da58ad7b
+  zh: 6f703d6218c9eff5
+/agent-note-social-profile-capture-lands-as-a-browser-session-read-behind-a-frequency-gate-not-a-scraper/decision:
+  en: bd65f16ea9919e6b
+  zh: 3e0506a816abf9d4
+/agent-note-social-profile-capture-lands-as-a-browser-session-read-behind-a-frequency-gate-not-a-scraper/alternatives-considered:
+  en: 508faf4db2543615
+  zh: 4f2b6e42c5a7f669
+/agent-note-social-profile-capture-lands-as-a-browser-session-read-behind-a-frequency-gate-not-a-scraper/consequences:
+  en: f017888fee2b71b2
+  zh: 2aef31ff044a86d5

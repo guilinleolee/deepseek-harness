@@ -1,4 +1,4 @@
-# 获客插件 P4：数据看板与八页工作台
+# Agent Note: 获客插件 P4：数据看板与八页工作台
 
 Status: implemented
 

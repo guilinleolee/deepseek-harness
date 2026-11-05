@@ -12,14 +12,15 @@ kind: "package-bundle"
 
 ## 目录
 
-- [安装](#安装)
-- [接线方式](#接线方式)
+- [安装](#installation)
+- [接线方式](#how-it-wires)
 - [模型体验](#model-experience)
 - [已知限制与暂缓事项](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
 -----
 
+<a id="installation"></a>
 ## 安装
 
 ```sh
@@ -28,6 +29,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-client-ui-customer-acquisition
 
 重启 profile：侧边栏底部出现获客运营入口，工作台经 `shell.overlay` 打开。
 
+<a id="how-it-wires"></a>
 ## 接线方式
 
 浏览器 apply 经 `ctx.remote.$mount()` 挂载 `@deepseek-ai/dsh-customer-acquisition` 生成的 `./remote` 工件，然后在声明了精确服务名 `remote.customerAcquisition` 的 fiber 上注册两个槽位（命名空间服务只解析进 inject 列出该名字的 fiber）。入口与面板共享一个开合控制器；文案走 `customer-acquisition` locale 命名空间。

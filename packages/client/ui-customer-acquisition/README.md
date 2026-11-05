@@ -38,7 +38,7 @@ The browser apply mounts the generated `./remote` contribution of `@deepseek-ai/
 
 #### What the model sees
 
-Nothing. This package registers no tool, prompt section, or model-facing context; it is a browser-side consumer of the Remote face.
+Nothing. This package registers no tool, prompt section, or model-facing context; it is a browser-side consumer of the `@deepseek-ai/dsh-customer-acquisition` Remote face, whose tools the main plugin owns.
 
 #### Token effect
 

@@ -1,7 +1,7 @@
 /**
  * The sentiment report engine: framing caps the model input, the
  * deterministic fallback renders on any model failure, and generation
- * stamps provenance (prompt version, degraded flag, coverage counts).
+ * stamps origin (prompt version, degraded flag, coverage counts).
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -83,7 +83,7 @@ describe('degradedSentimentReport', () => {
 })
 
 describe('generateSentimentReport', () => {
-  it('returns the model markdown with provenance on success', async () => {
+  it('returns the model markdown with origin on success', async () => {
     const ctx = { llm: {} } as unknown as Context
     const policy = { provider: 'minimax-0801', model: 'MiniMax-M3', timeoutMs: 60_000, maxOutputTokens: 4_000 }
     vi.stubGlobal('streamLlmTextSentinel', undefined)
@@ -124,6 +124,7 @@ describe('generateSentimentReport section-wise', () => {
   it('generates per-section bodies and binds them into the markdown plus ir', async () => {
     vi.doMock('../src/gather/ai.ts', () => ({
       streamLlmText: async (_ctx: unknown, _policy: unknown, system: string) => `正文(${system.includes('事件全景') ? '危机' : system.includes('今日概览') ? '概览' : '节'})`,
+      // oxlint-disable-next-line typescript/no-extraneous-class -- the mock must expose the module token as a class reference
       AiCallPolicy: class {},
     }))
     vi.resetModules()
@@ -150,6 +151,7 @@ describe('generateSentimentReport section-wise', () => {
         if (first) { first = false; throw new Error('one section down') }
         return '正常正文'
       },
+      // oxlint-disable-next-line typescript/no-extraneous-class -- the mock must expose the module token as a class reference
       AiCallPolicy: class {},
     }))
     vi.resetModules()

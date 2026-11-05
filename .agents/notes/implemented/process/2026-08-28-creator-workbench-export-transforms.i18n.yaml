@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-28-creator-workbench-export-transforms.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-28-creator-workbench-export-transforms.md
-2026-08-28-creator-workbench-export-transforms.md: 2c18838f4af354e12aeea4adafffe6961ba5ab60
-2026-08-28-creator-workbench-export-transforms.zh.md: 17c86d223be0c6728d2b1dec0266091638f71842
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback:
+  en: 59c86dfaa19ff869
+  zh: b4a20b9f8634a3bf
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/problem:
+  en: fed32761667a3af3
+  zh: 4a8ccba404dadaf2
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/decision:
+  en: e9142d978fffe732
+  zh: dd5503a6fa66dd2d
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/alternatives-considered:
+  en: 9dc42c3ed367c4fa
+  zh: 964c65f36e5199cd
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/consequences:
+  en: 6e1667dae163e9ae
+  zh: fafb170581130025

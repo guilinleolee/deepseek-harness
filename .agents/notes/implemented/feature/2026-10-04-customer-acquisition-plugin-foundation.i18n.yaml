@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-04-customer-acquisition-plugin-foundation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-customer-acquisition-plugin-foundation.md
-2026-10-04-customer-acquisition-plugin-foundation.md: f3f4c3c53f5d3930bb59ec8194746715720e0447
-2026-10-04-customer-acquisition-plugin-foundation.zh.md: 3718034edca3a83c255708a73f48101b548ab884
+/agent-note-customer-acquisition-plugin-foundation-p0:
+  en: 008721a596875841
+  zh: c70f7dcc0d78da51
+/agent-note-customer-acquisition-plugin-foundation-p0/problem:
+  en: f6e7e4733a201d71
+  zh: 06d58de03a6c05fe
+/agent-note-customer-acquisition-plugin-foundation-p0/decision:
+  en: cda9fceebdf1084e
+  zh: 3dd5f6749a7263f0
+/agent-note-customer-acquisition-plugin-foundation-p0/alternatives-considered:
+  en: ae97f4c9555e49de
+  zh: 8f6057f9d59efe25
+/agent-note-customer-acquisition-plugin-foundation-p0/consequences:
+  en: b0508bb4eca9760b
+  zh: 1f8e55cdf6961aff

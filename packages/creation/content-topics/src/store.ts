@@ -125,7 +125,7 @@ export function normalizeInput(input: TopicItemInput): { item?: TopicItem; detai
   if (typeof input.title !== 'string' || input.title.trim().length === 0) return { detail: 'title must be a non-empty string' }
   if (!isNullableString(input.oneLiner)) return { detail: 'oneLiner must be a string or null' }
   if (!STATUSES.includes(input.status)) return { detail: 'unknown status' }
-  if (!isSource(input.source)) return { detail: 'source must be a valid provenance object' }
+  if (!isSource(input.source)) return { detail: 'source must be a valid origin object' }
   if (!isStringArray(input.tags)) return { detail: 'tags must be an array of strings' }
   if (!isNullableString(input.description)) return { detail: 'description must be a string or null' }
   if (input.score !== null && !isScore(input.score)) return { detail: 'score must be a valid evaluation or null' }

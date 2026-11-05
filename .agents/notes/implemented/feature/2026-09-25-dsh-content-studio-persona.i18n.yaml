@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-25-dsh-content-studio-persona.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-dsh-content-studio-persona.md
-2026-09-25-dsh-content-studio-persona.md: db0f01eec54e7a4912b2c2b45e9e41391993ac5f
-2026-09-25-dsh-content-studio-persona.zh.md: 05fde5e16e814226b727d4ee7e4d735afb172d1a
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed:
+  en: c11d3b0be3dbe0dd
+  zh: 69cc4492bd878d5d
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/problem:
+  en: 4c6269ca89f2ffef
+  zh: 26fd9e9517bb8b08
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/decision:
+  en: dea8b6852f64c2c2
+  zh: 30ecba82a3ad8f29
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/latent-bug-this-work-uncovered-fixed-across-all-four-ai-faces:
+  en: d649d0b0dbeb0a97
+  zh: bca704cb6f903991
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/deviations-from-the-plan-text:
+  en: c09e8769e61dda4e
+  zh: 6969e26d631cf425
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/alternatives-considered:
+  en: 695977105e1ada9f
+  zh: eca5de4331205828
+/agent-note-the-persona-view-stores-account-personas-as-one-global-manifest-and-the-packed-prompt-is-rendered-where-it-is-previewed/consequences:
+  en: 9c07f3fc8b261e08
+  zh: c3414c6c19ed76f8

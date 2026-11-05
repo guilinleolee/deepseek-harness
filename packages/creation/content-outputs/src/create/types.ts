@@ -53,7 +53,7 @@ export const CREATE_REWRITE_OPERATIONS: readonly CreateRewriteOperation[] = [
 /** Style choices of the `style` operation, in toolbar order. */
 export const CREATE_STYLES: readonly CreateStyleKey[] = ['professional', 'friendly', 'hardcore', 'story', 'concise']
 
-/** Style provenance stored with every version: inline text today, profile refs once the persona column lands. */
+/** Style origin stored with every version: inline text today, profile refs once the persona column lands. */
 export interface CreateProfileRef {
   readonly mode: 'profile' | 'inline'
   /** Style text digest (≤500 chars) so historical versions stay explainable. */
@@ -217,7 +217,7 @@ export interface CreateRewriteRequest {
   readonly text: string
 }
 
-/** Result of both AI faces: the text plus its provenance. */
+/** Result of both AI faces: the text plus its origin. */
 export interface CreateAiResult {
   readonly text: string
   /** The split variants when the call produced more than one; null otherwise. */

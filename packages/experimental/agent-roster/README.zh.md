@@ -12,16 +12,16 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 
 ## 目录
 
-- [读取哪些文件](#读取哪些文件)
-- [配置](#配置)
+- [读取哪些文件](#what-it-reads)
+- [配置](#config)
 - [Service API](#service-api)
-- [已知限制与延后工作](#已知限制与延后工作)
 - [开发备注](#dev-note)
 
 -----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="what-it-reads"></a>
 ## 读取哪些文件
 
 `dragon-assets/agents/` 含 182 个 .md + 三个保留子目录（`shibazi/`、`zcf/`、`.gitnexus/`）。本包行为：
@@ -44,6 +44,7 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 - **license** — YAML frontmatter 中首条 `license:` 行
 - **path** — 工作区相对路径
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |

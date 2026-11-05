@@ -26,7 +26,7 @@ const BASE: TopicItem = {
   updatedAt: '2026-09-20T08:00:00.000Z',
 }
 
-/** A record carrying every optional payload: provenance snapshot and AI score. */
+/** A record carrying every optional payload: origin snapshot and AI score. */
 const SOURCED: TopicItem = {
   ...BASE,
   id: 'g' as TopicItem['id'],

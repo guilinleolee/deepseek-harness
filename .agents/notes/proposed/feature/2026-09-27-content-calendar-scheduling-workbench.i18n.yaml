@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-27-content-calendar-scheduling-workbench.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-27-content-calendar-scheduling-workbench.md
-2026-09-27-content-calendar-scheduling-workbench.md: 8e496bc318fe42e12623f0b85801b43fc2971380
-2026-09-27-content-calendar-scheduling-workbench.zh.md: 45c531cc5a61b88239523c4e4e7ff8261ced9967
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves:
+  en: c10b893598223bc0
+  zh: 9fd87bcccaaa1cb2
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/problem:
+  en: 3c31d03bf3f2cdbd
+  zh: 9c93d456c1d440ab
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/proposal:
+  en: 16c3b32d86220451
+  zh: 346d0f60ac951ba3
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/alternatives-considered:
+  en: 40d2ad024995eea5
+  zh: f9545e773333865e
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/acceptance-criteria:
+  en: cb7d2cff46678d67
+  zh: 8a18e76b616f6a18
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/risks:
+  en: 17d9224ce0bb9685
+  zh: 9fe66601fe7a9c87
+/agent-note-the-content-calendar-becomes-a-scheduling-workbench-whose-events-are-the-stored-schedule-items-themselves/testing:
+  en: fd2d345536704ff4
+  zh: 170a10fce120067b

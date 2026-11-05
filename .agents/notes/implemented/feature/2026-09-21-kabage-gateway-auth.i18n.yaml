@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-kabage-gateway-auth.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-kabage-gateway-auth.md
+/agent-note-host:
+  en: 5a415ea00eccea89
+  zh: 250fb84a086a4da7
+/agent-note-host/problem:
+  en: ca08fce1176bc97d
+  zh: 7f229ac09f44c119
+/agent-note-host/decision:
+  en: caba9f2c75de1ab7
+  zh: 291c05288f45f0e4
+/agent-note-host/alternatives-considered:
+  en: 0c22ab786e0ced7f
+  zh: f58001605b3fa43a
+/agent-note-host/consequences:
+  en: 99e74dbbdae7a93d
+  zh: c78f2b7807a47a32

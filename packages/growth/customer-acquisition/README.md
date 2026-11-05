@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger (module 2) and AI lead scoring (module 3); P3 adds nurture copy and follow-up SOPs; P4 adds the dashboard. As of 2026-10-29 the 22 single-action template/CRUD tools are consolidated into six `*_manage` action-union faces — 29 main-package tools (33 with the GEO sibling). The frozen data contract and the full tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
+Customer-acquisition operations for DSH: compliance-enforced GEO diagnosis, a lead ledger, and AI lead scoring, delivered as one plugin for OPC deployments. P0 shipped the foundation — the frozen v1 storage domain, the PermissionContext seam, the pre-execute compliance gate, the audit trail, and the browser Remote gateway the web panel mounts. P1 adds the lead ledger and AI lead scoring; P3 adds nurture copy and follow-up SOPs; P4 adds the dashboard. Template/CRUD tools are consolidated into six `*_manage` action-union faces (29 main-package tools, 33 with the GEO sibling). The frozen data contract and the tool manifest live in [docs/data-contract.md](docs/data-contract.md) and [docs/tools-manifest.md](docs/tools-manifest.md).
 
 ## Table of Contents
 

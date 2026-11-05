@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-09-21-kabage-gateway-auth.zh.md) | English
+English | [中文](2026-09-21-kabage-gateway-auth.zh.md)
 
 ## Problem
 

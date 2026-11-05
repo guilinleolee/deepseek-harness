@@ -185,7 +185,7 @@ describe('geo scan end-to-end over the composed stack', () => {
     }
   })
 
-  it('projects an orphan report with its provenance degraded and fails loud on a ghost scan', async () => {
+  it('projects an orphan report with its origin degraded and fails loud on a ghost scan', async () => {
     const harness = await setupHarness(routes(ROUND1_HOME))
     try {
       const domain = harness.ctx.storageDomain.get('customer_acquisition') as never as {

@@ -12,19 +12,20 @@ DSH 的获客运营插件：合规边界内的 GEO 诊断、线索台账与 AI �
 
 ## 目录
 
-- [安装](#安装)
-- [配置](#配置)
-- [存储域](#存储域)
-- [PermissionContext 能力缝](#permissioncontext-能力缝)
-- [合规校验器（红线）](#合规校验器红线)
-- [线索台账（模块 2）](#线索台账模块-2)
-- [AI 线索打分（模块 3）](#ai-线索打分模块-3)
-- [工具](#工具)
-- [Remote 面](#remote-面)
+- [安装](#installation)
+- [配置](#configuration)
+- [存储域](#domain)
+- [PermissionContext 能力缝](#permissioncontext-seam)
+- [合规校验器（红线）](#compliance-gate-red-lines)
+- [线索台账（模块 2）](#lead-ledger-module-2)
+- [AI 线索打分（模块 3）](#ai-lead-scoring-module-3)
+- [工具](#tools)
+- [Remote 面](#remote-face)
 - [开发备注](#dev-note)
 
 -----
 
+<a id="installation"></a>
 ## 安装
 
 ```sh
@@ -33,6 +34,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-customer-acquisition
 
 bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-customer-acquisition` 面板，一条命令安装完整功能，重启 profile 后生效。
 
+<a id="configuration"></a>
 ## 配置
 
 行级配置（插件行的 `config:`）调整 AI 面（线索抽取、线索打分）内部模型调用的路由：
@@ -49,14 +51,17 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 
 全部字段可选、默认值如上（`provider` = 已注册的 LLM provider 路由，`timeoutMs` = 单次调用截止，限 1000-300000，`maxOutputTokens` = 输出上限，限 256-32000）；越界值在插件加载时 fail loud。红线限值（页数上限、超时上限、批量上限）是代码常量并由合规校验器二次执行——不可配置。运行时用户可调项全部存在域的 `settings` 全局槽中，经 `customer_acquisition_settings_set` 修改。
 
+<a id="domain"></a>
 ## 存储域
 
 `ctx.storageDomain.open(customerAcquisitionDomainSpec)` 打开 `customer_acquisition` 域（version 1）：十三张 KV 表（`leads`、`lead_followups`、`lead_documents`、`score_runs`、`score_run_items`、`icp_profiles`、`score_templates`、`content_templates`、`generated_contents`、`sop_templates`、`sop_tasks`、`geo_scans`、`geo_reports`、`audit_logs`）加 `settings` 全局槽。记录 schema 全部为 zod；开放枚举（`source`、文案 `type`、`industry`）以普通字符串存储，新增已知值不需要 bump 域版本。契约已冻结：任何结构性变更必须 bump 版本并经所有者确认。
 
+<a id="permissioncontext-seam"></a>
 ## PermissionContext 能力缝
 
 `ctx.permissionContext` 是本包拥有的 Service Definition：`resolve(request): Promise<ResolvedOperator>`，返回 `{ userId, displayName, capabilities }`。内置 `LocalPermissionProvider` 对每次调用恒返回本地默认用户（`local-default`）并持有全量能力——无登录、无角色。卡巴格企业平台经自己的 bundle patch 以同名键替换 Provider，把平台角色映射到 `capabilities`；本插件不感知角色名、不引用任何平台私有包。每次工具执行与每个写 Remote 方法都按调用解析操作者；list 与写路径在服务端按 `lead_scope` 过滤 `owner_id`。
 
+<a id="compliance-gate-red-lines"></a>
 ## 合规校验器（红线）
 
 一个 `tools/pre-execute` 监听器执行全部 `customer_acquisition_*` 调用的红线，其余调用经 `next()` 委托：
@@ -70,14 +75,17 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 
 每条红线至少一个非法路径单测。
 
+<a id="lead-ledger-module-2"></a>
 ## 线索台账（模块 2）
 
 `LeadLedgerService` 是线索、跟进与挂接资料的唯一权威；线索台账工具是它的薄投影。归属权限在服务端逐调用强制：`lead_scope=own` 的操作者只能读自己名下与公海（`owner_id` 缺省）的线索、只能写自己名下的；公海经 `lead_assign` 领取，`lead_transfer` 不带目标归属人即释放回公海。删除是软删（回收站）——`lead_restore` 恢复，`lead_purge` 物理删除线索及其全部跟进、文档、打分记录、生成产物与 SOP 任务，需 `can_delete_any_lead`。挂接资料（单份 2 万字符）是打分与文案生成的知识注入源。`lead_extract` 只解析本次提供的文本——一次模型调用，无任何网络采集——只返回字段不写库，确认后经 `lead_manage` action=create 落库。导出渲染 Markdown 表格或防公式注入 CSV 并写审计。
 
+<a id="ai-lead-scoring-module-3"></a>
 ## AI 线索打分（模块 3）
 
 打分是每条线索一次模型调用：服务解析 ICP 画像与提示词模板（显式 id → 启用中的全局默认 → 行业精确匹配 → 无行业模板 → 任一启用），渲染模板的 `{{lead}}`/`{{icp_profile}}`/`{{dimensions}}`/`{{knowledge}}` 占位符，严格校验 JSON 答案（维度全覆盖且各一次、分数 0-100、理由非空），落库时逐分项保存权重快照——之后改权重不歪曲历史，历史可复算。加权总分映射意向标签（≥80 高、≥60 中、≥30 低、否则无效）并回填线索。`score_batch` 串行至多 50 条，单条失败不中断批次。画像与模板 CRUD 需 `can_manage_global_templates`；被任何打分记录引用的画像/模板拒绝删除（请停用）。三套行业包——实体门店、B2B 工厂商贸、软件服务商——挂载时按固定 `seed-*` id 幂等播种，绝不覆盖用户修改。
 
+<a id="tools"></a>
 ## 工具
 
 | 名称 | 功能 |
@@ -101,6 +109,7 @@ bundle patch 同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-cu
 | `customer_acquisition_sop_generate_tasks` / `sop_task_manage` | 按意向等级生成跟进任务清单；任务查看/流转合一。 |
 | `customer_acquisition_report_overview` | 获客数据看板（线索、意向/来源/打分分布、SOP 完成率、GEO 统计）。 |
 
+<a id="remote-face"></a>
 ## Remote 面
 
 `CustomerAcquisitionService` 经 `TypertRemoteService` 发布 `customerAcquisition.getSettings`、`customerAcquisition.updateSettings`、`customerAcquisition.listAuditLogs`；生成的 `./remote` 工件由浏览器面板挂载。每个写操作都经能力缝解析 web 操作者并写审计。

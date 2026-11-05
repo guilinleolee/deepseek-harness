@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-30-dsh-content-studio-competitor-browser-sync.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-30-dsh-content-studio-competitor-browser-sync.md
+/agent-note-the-competitors-view-imports-browser-synced-collections-instead-of-growing-an-in-client-crawler:
+  en: 17e1dfa0fe64eb51
+  zh: 482caaf8e3c0519f
+/agent-note-the-competitors-view-imports-browser-synced-collections-instead-of-growing-an-in-client-crawler/problem:
+  en: ed66272df9ef398d
+  zh: 4912cad5ee02ea11
+/agent-note-the-competitors-view-imports-browser-synced-collections-instead-of-growing-an-in-client-crawler/decision:
+  en: 5b58672c65928a75
+  zh: 4728a0ed368ea974
+/agent-note-the-competitors-view-imports-browser-synced-collections-instead-of-growing-an-in-client-crawler/alternatives-considered:
+  en: 708097487afe3ffa
+  zh: 306f67fb3d853980
+/agent-note-the-competitors-view-imports-browser-synced-collections-instead-of-growing-an-in-client-crawler/consequences:
+  en: 5be21f44d1c2f869
+  zh: 013f385221701283

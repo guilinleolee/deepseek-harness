@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The topic-bank view surface: the table and kanban faces over SplitDetail,
- * the detail panel (AI entry disabled, provenance snapshot), create/edit/
+ * the detail panel (AI entry disabled, origin snapshot), create/edit/
  * delete flows with the schedule cascade and one-way plan-date linkage,
  * batch actions, Markdown export, and the versioned localStorage config
  * migration. The gateway is an in-memory fake with the store's upsert
@@ -291,7 +291,7 @@ describe('TopicBankView', () => {
     const ai = within(detail).getByText(en['topicBank.aiOptimize']).closest('button')
     expect(ai?.disabled).toBe(true)
     expect(ai?.title).toBe(en['topicBank.aiPending'])
-    // Provenance: the source family, the external link, the read-only snapshot.
+    // Origin: the source family, the external link, the read-only snapshot.
     expect(detail.textContent).toContain(en['topic.source.gather'])
     expect(within(detail).getByText(en['topicBank.snapshotLabel'])).toBeTruthy()
     expect(within(detail).getByText('素材标题')).toBeTruthy()

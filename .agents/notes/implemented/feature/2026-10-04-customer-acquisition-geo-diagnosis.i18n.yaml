@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-04-customer-acquisition-geo-diagnosis.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-customer-acquisition-geo-diagnosis.md
-2026-10-04-customer-acquisition-geo-diagnosis.md: a9180374809ab5ba2fa932afd2a9673996576e66
-2026-10-04-customer-acquisition-geo-diagnosis.zh.md: 7df51edff192c695162904d01725924bd311c583
+/agent-note-customer-acquisition-geo-diagnosis-p2:
+  en: 15483dfb5e75a765
+  zh: 992cf79dd69ddd3a
+/agent-note-customer-acquisition-geo-diagnosis-p2/problem:
+  en: a4d97b9a9e6617bc
+  zh: 0f07c3208869dbc3
+/agent-note-customer-acquisition-geo-diagnosis-p2/decision:
+  en: 5ef76babaa917376
+  zh: 8ed1e1b81c9f9a84
+/agent-note-customer-acquisition-geo-diagnosis-p2/alternatives-considered:
+  en: 0b52c8e52fce5ebb
+  zh: a5b6ec1d803ca23a
+/agent-note-customer-acquisition-geo-diagnosis-p2/consequences:
+  en: 2c05eff8487360b0
+  zh: d143298b1d13e7dc

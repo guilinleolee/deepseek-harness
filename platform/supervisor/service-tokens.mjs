@@ -12,7 +12,7 @@
  *   管理台 API）；readonly 角色仅放行只读白名单端点（白名单在 gateway.mjs）。
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, readFileSync, statSync } from 'node:fs'
+import { mkdirSync, readFileSync, statSync, utimesSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { writeJsonAtomic } from './atomic-write.mjs'
@@ -28,23 +28,35 @@ function isUnsafeKey(key) {
 
 const sha256Hex = (text) => createHash('sha256').update(text, 'utf8').digest('hex')
 
-/** mtime 缓存读取（按 dataDir 键控——多目录并存时互不串扰，P2-7；文件损坏按空表处理）。 */
-const caches = new Map() // dataDir -> { mtimeMs, tokens }
+/**
+ * mtime 缓存读取（按 dataDir 键控——多目录并存时互不串扰，P2-7；文件损坏按空表处理）。
+ *
+ * 缓存键含 (mtimeMs, size)：只比 mtime 会在「同一时间片内改写」时命中陈旧缓存——
+ * 撤销令牌的写盘与上一次写可能落在同一毫秒，此时被撤销的令牌会短暂复活
+ * （与「撤销后下一请求即生效」的承诺冲突）。size 参与比较后，任何内容变化
+ * 都会让缓存失效；写盘侧另做 mtime 递增（见 saveTokens）以覆盖「同毫秒且
+ * 同长度」的极端情况。
+ */
+const caches = new Map() // dataDir -> { mtimeMs, size, tokens }
 function loadTokens(dataDir) {
   let state = caches.get(dataDir)
   if (state === undefined) {
-    state = { mtimeMs: -1, tokens: [] }
+    state = { mtimeMs: -1, size: -1, tokens: [] }
     caches.set(dataDir, state)
   }
   let mtimeMs
+  let size
   try {
-    mtimeMs = statSync(join(dataDir, TOKENS_FILE)).mtimeMs
+    const st = statSync(join(dataDir, TOKENS_FILE))
+    mtimeMs = st.mtimeMs
+    size = st.size
   } catch {
     state.mtimeMs = -1
+    state.size = -1
     state.tokens = []
     return []
   }
-  if (state.mtimeMs === mtimeMs) return state.tokens
+  if (state.mtimeMs === mtimeMs && state.size === size) return state.tokens
   let tokens = []
   try {
     const parsed = JSON.parse(readFileSync(join(dataDir, TOKENS_FILE), 'utf8'))
@@ -53,15 +65,34 @@ function loadTokens(dataDir) {
     }
   } catch { /* 损坏按空表 */ }
   state.mtimeMs = mtimeMs
+  state.size = size
   state.tokens = tokens
   return tokens
+}
+
+/**
+ * 写盘后把 mtime 推进到「严格大于上一次观测值」：保证下一请求一定看到不同的
+ * mtime（即使内容长度相同、落在同一毫秒内），从而不会命中陈旧缓存。
+ */
+function bumpMtimeForward(path, previousMtimeMs) {
+  try {
+    const st = statSync(path)
+    const next = Math.max(Date.now(), Math.floor(previousMtimeMs) + 1)
+    utimesSync(path, st.atime, next / 1000)
+    return next
+  } catch {
+    return null
+  }
 }
 
 function saveTokens(dataDir, tokens) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, TOKENS_FILE)
+  const previous = caches.get(dataDir)?.mtimeMs ?? -1
   writeJsonAtomic(path, { tokens })
-  caches.set(dataDir, { mtimeMs: statSync(path).mtimeMs, tokens })
+  const bumped = bumpMtimeForward(path, previous)
+  const st = statSync(path)
+  caches.set(dataDir, { mtimeMs: bumped ?? st.mtimeMs, size: st.size, tokens })
 }
 
 /**

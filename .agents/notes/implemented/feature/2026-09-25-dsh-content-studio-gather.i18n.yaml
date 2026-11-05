@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-25-dsh-content-studio-gather.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-dsh-content-studio-gather.md
-2026-09-25-dsh-content-studio-gather.md: 6db875539563c769c48c644eec555e82546520b2
-2026-09-25-dsh-content-studio-gather.zh.md: 9abbbff832de9936736abf03154ae264cf00f3fc
+/agent-note-the-gather-view-lands-inside-the-workbench-overlay-with-a-gateway-side-write-face-browser-side-configuration-and-no-background-polling:
+  en: a4de2acb71205a31
+  zh: 9d372f116469e7ce
+/agent-note-the-gather-view-lands-inside-the-workbench-overlay-with-a-gateway-side-write-face-browser-side-configuration-and-no-background-polling/problem:
+  en: 3b5541c1c3c3f707
+  zh: ad07d6ce96ed8f7f
+/agent-note-the-gather-view-lands-inside-the-workbench-overlay-with-a-gateway-side-write-face-browser-side-configuration-and-no-background-polling/decision:
+  en: 146bb134df90e553
+  zh: 8c08c67a8108b3a5
+/agent-note-the-gather-view-lands-inside-the-workbench-overlay-with-a-gateway-side-write-face-browser-side-configuration-and-no-background-polling/alternatives-considered:
+  en: c5b23423774caeda
+  zh: f24b72eef99866d9
+/agent-note-the-gather-view-lands-inside-the-workbench-overlay-with-a-gateway-side-write-face-browser-side-configuration-and-no-background-polling/consequences:
+  en: 91e00225be2e7e1a
+  zh: 1cdd9b28067f8a45

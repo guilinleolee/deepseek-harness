@@ -27,16 +27,16 @@ import { fetchSiteText, type PersonaSiteFetchDeps } from './site.ts'
 /** Timeout reason code carried by aborted persona AI calls. */
 export const PERSONA_AI_TIMEOUT_CODE = 'PERSONA_AI_TIMEOUT'
 
-/** Prompt version of the blank-field fill face; stamped into adopted fields' provenance. */
+/** Prompt version of the blank-field fill face; stamped into adopted fields' origin. */
 export const PERSONA_FILL_PROMPT_VERSION = 'persona-fill@2'
 
-/** Prompt version of the résumé extraction face; stamped into adopted fields' provenance. */
+/** Prompt version of the résumé extraction face; stamped into adopted fields' origin. */
 export const PERSONA_RESUME_PROMPT_VERSION = 'persona-resume@2'
 
-/** Prompt version of the website extraction face; stamped into adopted fields' provenance. */
+/** Prompt version of the website extraction face; stamped into adopted fields' origin. */
 export const PERSONA_SITE_PROMPT_VERSION = 'persona-site@2'
 
-/** Prompt version of the social-profile extraction face; stamped into adopted fields' provenance. */
+/** Prompt version of the social-profile extraction face; stamped into adopted fields' origin. */
 export const PERSONA_SOCIAL_PROMPT_VERSION = 'persona-social@2'
 
 /** Prompt version of the report face; stamped onto the stored report. */
@@ -170,7 +170,7 @@ export function parsePersonaReportOutput(text: string): string {
 
 /**
  * Render one saved entry as the report prompt's fact sheet: every non-empty
- * field with its provenance mark, the style and hard constraints, and the
+ * field with its origin mark, the style and hard constraints, and the
  * embedded text assets. AI-sourced values carry the "（AI 推断，供参考）"
  * annotation so the report never presents an inference as a user fact.
  * @param entry - the saved persona entry.

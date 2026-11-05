@@ -53,7 +53,7 @@ dragon-assets/
 - **`DRAGON_SYNC_PLAN.md`** — phase plan, path mapping, exclude list, stage execution
 - **`DRAGON_INTEGRATION.md`** — maintainer manual (5-min orientation, fault tolerance, future PRs)
 
-### 5. CI performance fix (commit `ee23b01d8e`)
+### 5. CI performance fix
 
 - `scripts/gen-third-party-notices.ts` now skips paths starting with `dragon-assets/` before parsing each manifest, dropping discovery from 410+ to ~253 (still well above the 100-floor guard).
 - `scripts/test-skip-dragon-assets.spec.ts` asserts the 100-floor guard is still met, zero dragon-assets paths leak, and the walk completes in <5s on a 21k-file mirror.
@@ -127,7 +127,7 @@ The bridge exposes the 1,224 indexed assets as a queryable cache. It does **not*
 - [x] All 4 experimental packages pass oxlint with 0 errors
 - [x] `DRAGON_INTEGRATION.md` and `DRAGON_SYNC_PLAN.md` reviewed and complete
 - [x] `dragon-assets/.gitignore` excludes all 12,152 non-text binaries / sub-products
-- [x] `scripts/gen-third-party-notices.ts` dragon-assets skip applied (commit `ee23b01d8e`); pre-commit runs in <5s
+- [x] `scripts/gen-third-party-notices.ts` dragon-assets skip applied ; pre-commit runs in <5s
 - [x] vitest spec `scripts/test-skip-dragon-assets.spec.ts` asserts the 100-floor guard and dragon-assets leak count
 
 ## Reviewer Focus Areas
@@ -141,15 +141,15 @@ The bridge exposes the 1,224 indexed assets as a queryable cache. It does **not*
 ## Commit Log
 
 ```
-ee23b01d8e fix(gen-third-party-notices): skip dragon-assets/ subtree in manifest discovery
-0bda2d3b00 fix(dragon-assets): add skills root files, re-add previously reset dirs
-becc3b4a7c fix(dragon-assets): re-add LICENSE-ATTRIBUTION.md and README.md
-982af9f6d2 feat(dragon-assets): mirror skills, runtime, memory, ip-profiles, docs, prompts, tests, market, output, index, top-level
-283dc8294c feat(experimental): add skill-index (100% coverage, 19 tests)
-aa0fa0e07e feat(experimental): add agent-roster, license-policy, dragon-bridge (100% coverage)
-6471775b39 feat(dragon-assets): mirror agents + commands (320+ md files)
-614483498a feat(dragon-assets): mirror index + top-level docs (1,224 assets)
-cc2fd69a96 feat(dragon-bridge): add top-level docs, tsconfig paths, oxlint ignores
+ fix(gen-third-party-notices): skip dragon-assets/ subtree in manifest discovery
+ fix(dragon-assets): add skills root files, re-add previously reset dirs
+ fix(dragon-assets): re-add LICENSE-ATTRIBUTION.md and README.md
+ feat(dragon-assets): mirror skills, runtime, memory, ip-profiles, docs, prompts, tests, market, output, index, top-level
+ feat(experimental): add skill-index (100% coverage, 19 tests)
+ feat(experimental): add agent-roster, license-policy, dragon-bridge (100% coverage)
+ feat(dragon-assets): mirror agents + commands (320+ md files)
+ feat(dragon-assets): mirror index + top-level docs (1,224 assets)
+ feat(dragon-bridge): add top-level docs, tsconfig paths, oxlint ignores
 ```
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

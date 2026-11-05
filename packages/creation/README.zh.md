@@ -12,10 +12,11 @@ creation 族拥有 agent 写入成品的持久化磁盘面：产物库根目录�
 
 ## 目录
 
-- [包](#包)
+- [包](#packages)
 - [开发备注](#dev-note)
 
 -----
+<a id="packages"></a>
 
 | 包 | 职责 | ctx key |
 |---|---|---|

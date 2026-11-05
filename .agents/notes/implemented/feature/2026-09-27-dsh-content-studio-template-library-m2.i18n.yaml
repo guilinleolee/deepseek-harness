@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-27-dsh-content-studio-template-library-m2.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-27-dsh-content-studio-template-library-m2.md
-2026-09-27-dsh-content-studio-template-library-m2.md: da0627bb45246b1f89c2f466950fb2e69c27f994
-2026-09-27-dsh-content-studio-template-library-m2.zh.md: 71cf3ac8efdfb12b75cdac4908125d818bf3c894
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack:
+  en: 07d4d0aa24e0edb2
+  zh: 5970a4d53bbc75bd
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack/problem:
+  en: 0e86583bc0bb24a6
+  zh: 8fb4447e24ab9181
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack/decision:
+  en: 931e5a983e570379
+  zh: b866132d170eadaa
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack/deviations-from-the-plan-text:
+  en: ba0c1d7eb5d1c526
+  zh: 8f86efa2ef9f34ef
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack/alternatives-considered:
+  en: 5751e49d5b55da7a
+  zh: 276f03ff4ee00910
+/agent-note-template-library-m2-the-picker-s-structured-draft-the-topic-bank-as-the-second-consumer-and-a-bundled-starter-pack/consequences:
+  en: 964a02e68247a653
+  zh: 9fb866cd71217d34

@@ -39,7 +39,7 @@ export type InteractionStyle = 'formal' | 'friendly' | 'humorous' | 'brief'
 export const INTERACTION_STYLES: readonly InteractionStyle[] = ['formal', 'friendly', 'humorous', 'brief']
 
 /**
- * Provenance wrapper (the persona convention): who produced a tagging and
+ * Origin wrapper (the persona convention): who produced a tagging and
  * under which prompt. The unclassified default reads `{ value: "unknown",
  * source: "user", aiMeta: null }` — `unknown` renders nowhere, so the
  * placeholder never masquerades as a manual verdict.
@@ -240,7 +240,7 @@ export interface InteractionReplyDraftResult {
   readonly content: string
 }
 
-/** Result of the reply-draft face: the fixed candidate set plus provenance. */
+/** Result of the reply-draft face: the fixed candidate set plus origin. */
 export interface InteractionReplyResult {
   readonly drafts: readonly InteractionReplyDraftResult[]
   readonly model: string

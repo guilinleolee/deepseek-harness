@@ -29,7 +29,7 @@ export interface TopicSourceSnapshot {
 }
 
 /**
- * Provenance of one topic: the source family plus enough identity and
+ * Origin of one topic: the source family plus enough identity and
  * captured material to survive the source going away — the id keeps a future
  * in-app jump target alive, the snapshot keeps the content readable when the
  * original link dies.

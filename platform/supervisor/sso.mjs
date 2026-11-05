@@ -43,6 +43,36 @@ export const SSO_PENDING_LIMIT = 5000
 export const SSO_PROVIDERS = {
   wecom: { label: '企业微信' },
   dingtalk: { label: '钉钉' },
+  casdoor: { label: 'Casdoor' },
+}
+
+/**
+ * provider 的字段差异表：身份标识字段名 / 密钥输入字段名 / 展示文案。
+ *
+ * 为什么要有这张表：管理台 UI（console.mjs）与保存逻辑（saveSsoConfig）
+ * 此前各自写死 `provider === 'wecom' ? ... : ...` 的二元分支——第三个
+ * provider 落地时会被静默写成错误字段名（新增的非企业微信 provider 会被
+ * 一律当成钉钉处理，存出 appKey/appSecret 而真实身份标识是 clientId）。
+ * 单一数据源，UI 与落盘共用，第三个 provider 不再需要改二元分支。
+ *
+ * 密钥的**密文**字段统一是 `secretEnc`（getSsoSecret 读它）；这里的
+ * secretField 只是「明文输入」的字段名，各 provider 叫法不同。
+ * extraIdField/extraIdLabel 为可选的附加标识字段（仅企业微信有 AgentId）。
+ */
+export const PROVIDER_FIELDS = {
+  wecom: {
+    idField: 'corpId', idLabel: '企业 ID（corpId）',
+    secretField: 'secret', secretLabel: '应用密钥（secret）',
+    extraIdField: 'agentId', extraIdLabel: 'AgentId（可选）',
+  },
+  dingtalk: {
+    idField: 'appKey', idLabel: '应用 Key（appKey）',
+    secretField: 'appSecret', secretLabel: '应用密钥（appSecret）',
+  },
+  casdoor: {
+    idField: 'clientId', idLabel: 'Client ID（clientId）',
+    secretField: 'secret', secretLabel: 'Client Secret（secret）',
+  },
 }
 
 /** 自动开通允许落地的角色（admin 只能由管理台显式授予，绝不自动产生）。 */
@@ -58,6 +88,14 @@ const DEFAULT_SSO = () => ({
   dingtalk: {
     enabled: false, appKey: '', redirectUri: '',
     authorizeBase: 'https://login.dingtalk.com', apiBase: 'https://api.dingtalk.com',
+    autoProvision: false, autoRole: 'employee', autoDepartment: '', autoInstance: '',
+  },
+  // Casdoor 是 OIDC 授权码模式：authorize/token/userinfo 三个端点都由
+  // authorizeBase/apiBase 决定，指向本地 mock 即可全流程验证。
+  casdoor: {
+    enabled: false, clientId: '', secretEnc: '', redirectUri: '',
+    authorizeBase: 'http://127.0.0.1:8000', apiBase: 'http://127.0.0.1:8000',
+    organization: '',
     autoProvision: false, autoRole: 'employee', autoDepartment: '', autoInstance: '',
   },
 })
@@ -111,6 +149,8 @@ export function saveSsoConfig(dataDir, patch, key) {
   const config = loadSsoConfig(dataDir)
   for (const [provider, entry] of Object.entries(patch ?? {})) {
     if (isUnsafeKey(provider) || !(provider in SSO_PROVIDERS)) throw new Error(`未知 SSO provider: ${provider}`)
+    // 每个 provider 必须在字段差异表里登记，否则 UI 与落盘的字段名无从确定。
+    if (!(provider in PROVIDER_FIELDS)) throw new Error(`SSO provider 缺少字段定义: ${provider}`)
     if (entry === null || typeof entry !== 'object') throw new Error(`${provider} 配置必须是对象`)
     const target = config[provider]
     if (entry.enabled !== undefined) target.enabled = entry.enabled === true
@@ -121,7 +161,13 @@ export function saveSsoConfig(dataDir, patch, key) {
       }
       target[field] = value.trim()
     }
-    for (const field of ['corpId', 'appKey', 'agentId']) {
+    // 身份标识字段按 provider 取（corpId / appKey / clientId…），不再全量放行——
+    // 全量放行会把「给企业微信配 clientId」这类无意义组合静默存进配置。
+    const providerFields = PROVIDER_FIELDS[provider]
+    const idFields = providerFields.extraIdField === undefined
+      ? [providerFields.idField]
+      : [providerFields.idField, providerFields.extraIdField]
+    for (const field of idFields) {
       if (entry[field] !== undefined) {
         if (typeof entry[field] !== 'string') throw new Error(`${provider}.${field} 必须是字符串`)
         target[field] = entry[field].trim()
@@ -136,13 +182,17 @@ export function saveSsoConfig(dataDir, patch, key) {
       }
       target.autoRole = entry.autoRole
     }
-    for (const field of ['autoDepartment', 'autoInstance']) {
+    // organization：OIDC provider 所属的用户组织（Casdoor 用它圈定用户范围，
+    // 对账同步 sync-idp.mjs 也靠它拉用户列表）。非 OIDC provider 可留空。
+    for (const field of ['autoDepartment', 'autoInstance', 'organization']) {
       if (entry[field] !== undefined) {
         if (typeof entry[field] !== 'string') throw new Error(`${provider}.${field} 必须是字符串`)
         target[field] = entry[field].trim()
       }
     }
-    const secretField = provider === 'wecom' ? 'secret' : 'appSecret'
+    // 明文字段名按 provider（企业微信/Casdoor 叫 secret，钉钉叫 appSecret）；
+    // 落盘一律写进 secretEnc，由 getSsoSecret 统一解密。
+    const secretField = PROVIDER_FIELDS[provider].secretField
     if (typeof entry[secretField] === 'string' && entry[secretField] !== '') {
       if (key === null) throw new Error('SSO 加密根未初始化（缺 auth-secret）')
       target.secretEnc = encryptText(key, entry[secretField])
@@ -166,6 +216,14 @@ export function buildAuthorizeUrl(provider, config, state, redirectUri) {
     return `${config.authorizeBase}/connect/oauth2/authorize?appid=${enc(config.corpId)}`
       + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=snsapi_base`
       + `&state=${enc(state)}&agentid=${enc(config.agentId)}#wechat_redirect`
+  }
+  if (provider === 'casdoor') {
+    // Casdoor 走标准 OIDC 授权码：client_id + redirect_uri + response_type=code
+    // + scope（openid 必需，profile/email 用于展示名与邮箱）+ state。
+    // Casdoor 的 authorize 路径是 /login/oauth/authorize（discovery 实测值）。
+    return `${config.authorizeBase}/login/oauth/authorize?client_id=${enc(config.clientId)}`
+      + `&redirect_uri=${enc(redirectUri)}&response_type=code&scope=${enc('openid profile email')}`
+      + `&state=${enc(state)}`
   }
   // users/me 的用户令牌按授权时申请的 scope 发放：必须显式带上 Contact.User.Read
   //（缺失时钉钉 403 Forbidden.AccessDenied.AccessTokenPermissionDenied，应用后台
@@ -201,6 +259,46 @@ export async function resolveSsoIdentity(provider, code, dataDir, key, fetchImpl
     const userBody = await userRes.json()
     if (typeof userBody.userid !== 'string' || userBody.userid === '') throw new Error('企业微信用户接口未返回 userid')
     return { ssoId: `wecom:${userBody.userid}`, name: userBody.name }
+  }
+  if (provider === 'casdoor') {
+    const secret = getSsoSecret(dataDir, provider, key)
+    // Casdoor token 端点（discovery 实测 /api/login/oauth/access_token）支持
+    // client_secret_basic / client_secret_post；这里走 Basic，与 discovery 的
+    // token_endpoint_auth_methods_supported 一致，且 clientSecret 不进 URL。
+    const basic = Buffer.from(`${config.clientId}:${secret}`).toString('base64')
+    const tokenRes = await fetchImpl(`${config.apiBase}/api/login/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        authorization: `Basic ${basic}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: config.redirectUri,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!tokenRes.ok) throw new Error(`Casdoor token 接口失败（HTTP ${tokenRes.status}）${await errBody(tokenRes)}`)
+    const tokenBody = await tokenRes.json()
+    if (typeof tokenBody.access_token !== 'string' || tokenBody.access_token === '') throw new Error('Casdoor token 接口未返回 access_token')
+    // userinfo 端点是 /api/userinfo（不是 /api/login/oauth/userinfo——后者 404）。
+    const userRes = await fetchImpl(`${config.apiBase}/api/userinfo`, {
+      headers: { authorization: `Bearer ${tokenBody.access_token}` },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!userRes.ok) throw new Error(`Casdoor 用户接口失败（HTTP ${userRes.status}）${await errBody(userRes)}`)
+    const userBody = await userRes.json()
+    // sub 是 OIDC subject（跨组织稳定的外部标识），id 是 Casdoor 内部主键；
+    // 优先用 sub，缺失时回落到 id，保证 ssoId 永远可绑定。
+    const identity = typeof userBody.sub === 'string' && userBody.sub !== '' ? userBody.sub : userBody.id
+    if (typeof identity !== 'string' || identity === '') throw new Error('Casdoor 用户接口未返回 sub/id')
+    const name = typeof userBody.name === 'string' && userBody.name !== ''
+      ? userBody.name
+      : (typeof userBody.preferred_username === 'string' && userBody.preferred_username !== ''
+          ? userBody.preferred_username
+          : userBody.displayName)
+    return { ssoId: `casdoor:${identity}`, name }
   }
   const secret = getSsoSecret(dataDir, provider, key)
   // 钉钉新版 OAuth2 契约（2026-10-03 真机探针核对）：换用户令牌的端点是
@@ -395,7 +493,7 @@ export async function provisionFromSso({ dataDir, provider, identity, config, ma
  * @param manifest - 实例清单（自动开通时选目标实例；可缺省=不自动开通）。
  * @returns true 表示已响应。
  */
-export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard = null, manifest = null }) {
+export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard = null, manifest = null, redirectHost = null }) {
   const ip = clientIp(req)
   const match = /^\/api\/auth\/sso\/(\w+)\/(start|callback)$/.exec(url.pathname)
   if (match !== null) {
@@ -413,7 +511,13 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
         res.end('SSO 登录请求过于繁忙，请稍后重试')
         return true
       }
-      res.writeHead(303, { location: buildAuthorizeUrl(provider, config, state, config.redirectUri) })
+      // 实例子域用**本子域**的回调地址：回跳仍落在同一主机 → 会话 Cookie
+      // 由浏览器按该主机签发（host-only），跨子域共用 Cookie 的问题自然消失。
+      // redirectHost 由网关按规范子域算出，不取请求的 Host 头。
+      const redirectUri = redirectHost === null
+        ? config.redirectUri
+        : `http://${redirectHost}/api/auth/sso/${provider}/callback`
+      res.writeHead(303, { location: buildAuthorizeUrl(provider, config, state, redirectUri) })
       res.end()
       return true
     }
@@ -437,7 +541,8 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
           }
           void auditAppend({ actor: { account: record.account, role: record.role, ip }, action: 'auth.sso_login', target: record.account, result: 'ok', detail: { provider, ssoId: identity.ssoId } })
           issueSession(res, record, ip)
-          res.writeHead(303, { location: record.role === 'employee' ? '/me' : '/' })
+          // 子域登录成功 → 回工作区根路径（门户主机才去 /me 个人中心）。
+          res.writeHead(303, { location: redirectHost === null ? (record.role === 'employee' ? '/me' : '/') : '/' })
           res.end()
           return
         }
@@ -460,7 +565,7 @@ export function handleSso({ req, res, url, dataDir, issueSession, twofaKey, guar
           }
           void auditAppend({ actor: { account: created.account, role: created.role, ip }, action: 'auth.sso_provision', target: created.account, result: 'ok', detail: { provider, role: created.role, instanceId: created.instanceId, department: created.department } })
           issueSession(res, created, ip)
-          res.writeHead(303, { location: created.role === 'employee' ? '/me' : '/' })
+          res.writeHead(303, { location: redirectHost === null ? (created.role === 'employee' ? '/me' : '/') : '/' })
           res.end()
           return
         }

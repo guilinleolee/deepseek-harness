@@ -12,16 +12,16 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 
 ## 目录
 
-- [读取哪些文件](#读取哪些文件)
-- [配置](#配置)
+- [读取哪些文件](#what-it-reads)
+- [配置](#config)
 - [Service API](#service-api)
-- [已知限制与延后工作](#已知限制与延后工作)
 - [开发备注](#dev-note)
 
 -----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="what-it-reads"></a>
 ## 读取哪些文件
 
 `dragon-assets/` 镜像包含天龙引擎 `scripts/build-index.py` 生成的五个 jsonl 文件：
@@ -36,6 +36,7 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 
 本包并发读取所有五个文件，冻结快照后提供查询接口。索引由天龙上游刷新；本包**只读不写**。
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |

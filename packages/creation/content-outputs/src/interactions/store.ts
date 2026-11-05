@@ -71,7 +71,7 @@ function isStyle(value: unknown): value is (typeof INTERACTION_STYLES)[number] {
   return typeof value === 'string' && (INTERACTION_STYLES as readonly string[]).includes(value)
 }
 
-/** Whether the value is one well-formed provenance tagging. */
+/** Whether the value is one well-formed origin tagging. */
 function isTagging<T extends string>(value: unknown, values: readonly T[]): value is { value: T; source: 'user' | 'ai'; aiMeta: { promptVersion: string; at: string } | null } {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>

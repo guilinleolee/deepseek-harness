@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/experimental/skill-index/README.md
-README.md: 3e74d5fa3696a22775742d27f4ec9500276b6b90
-README.zh.md: 439270dbe2625131cf2d3847387bcedba324dd2a
+/:
+  en: 6bc773fcf9b187c8
+  zh: 9c3e8cd9b4cdf390
+/dsh-experimental-skill-index:
+  en: 8b61105118b0afa4
+  zh: a286a5188062483e
+/dsh-experimental-skill-index/summary:
+  en: 497d8d89a6f3b5ee
+  zh: 308211edd62bcbd1
+/dsh-experimental-skill-index/table-of-contents:
+  en: 192ef5b885b5b90b
+  zh: 8c03560d58dbfaf9
+/dsh-experimental-skill-index/what-it-reads:
+  en: 360f62a4fc78ba11
+  zh: 03aa0a293cce40dc
+/dsh-experimental-skill-index/config:
+  en: 8ce9bd81dfb06ebb
+  zh: 44b7072a8b16c01f
+/dsh-experimental-skill-index/service-api:
+  en: 2df3fcf613dfa400
+  zh: 284cf5f506c6aa14
+/dsh-experimental-skill-index/model-experience:
+  en: a5f922b6fd126eba
+  zh: dfc5d5042eda6c2d
+/dsh-experimental-skill-index/model-experience/kv-cache-effect:
+  en: 4f0eadf94828e66e
+  zh: 4f8a6ec170ebbfb6
+/dsh-experimental-skill-index/known-limitations-and-deferred-work:
+  en: 8d185fde8e3fa2d0
+  zh: 48399d475f08df6b
+/dsh-experimental-skill-index/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

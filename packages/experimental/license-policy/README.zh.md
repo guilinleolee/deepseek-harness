@@ -12,16 +12,16 @@ kind: "package-reference"
 
 ## 目录
 
-- [Tier → 决策矩阵](#tier--决策矩阵)
+- [Tier → 决策矩阵](#tier--decision-matrix)
 - [Service API](#service-api)
-- [配置](#配置)
-- [已知限制与延后工作](#已知限制与延后工作)
+- [配置](#config)
 - [开发备注](#dev-note)
 
 -----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="tier--decision-matrix"></a>
 ## Tier → 决策矩阵
 
 | Tier | 严重度 | 默认 decision | 说明 |
@@ -58,6 +58,7 @@ ctx.licensePolicy.assertAllowed('MIT', ['allow', 'attribute'])
 // throws when the decision is outside the allowed set
 ```
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |

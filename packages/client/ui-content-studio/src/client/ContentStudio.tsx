@@ -50,6 +50,9 @@ const COPIED_FEEDBACK_MS = 1600
 /** The top-level views; the workbench home is the entry view. */
 type StudioView = 'sentiment' | 'workbench' | 'competitors' | 'topicBank' | 'create' | 'publish' | 'review' | 'interaction' | 'accounts' | 'persona' | 'templates'
 
+/** Two-pane data views that need the full main column, not the 960px reading width. */
+const WIDE_VIEWS: ReadonlySet<StudioView> = new Set(['competitors', 'topicBank'])
+
 /** The nav order exactly as specified. */
 const NAV_ITEMS: readonly { view: StudioView; key: StudioKey }[] = [
   { view: 'workbench', key: 'nav.workbench' },
@@ -126,7 +129,8 @@ const BADGE_CLASS: Record<CapabilityMaturity, string> = {
  */
 export function ContentStudio({
   studio, listOutputs, schedule, competitors, create, personas, sentiment, listThemes,
-  sentimentRead, topics, topicCategories, topicCollect, writeExport, publish, review, interaction, readInteractions, readReviewManifest, templates, t,
+  sentimentRead, topics, topicCategories, topicCollect, writeExport, publish, review,
+  interaction, readInteractions, readReviewManifest, templates, t,
 }: ContentStudioProps) {
   const open = useSyncExternalStore(
     fn => studio.subscribe(fn),
@@ -280,7 +284,7 @@ export function ContentStudio({
             <IconCloseOutlineRegular size={16} />
           </button>
 
-          <div className={css.frame}>
+          <div className={clsx(css.frame, WIDE_VIEWS.has(view) && css.frameWide)}>
             {view === 'workbench' && (
               <ContentWorkbench
                 listOutputs={listOutputs}

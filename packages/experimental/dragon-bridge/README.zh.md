@@ -12,17 +12,17 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 
 ## 目录
 
-- [依赖](#依赖)
+- [依赖](#dependencies)
 - [Service API](#service-api)
-- [配置](#配置)
-- [跨包契约](#跨包契约)
-- [已知限制与延后工作](#已知限制与延后工作)
+- [配置](#config)
+- [跨包契约](#cross-package-contract)
 - [开发备注](#dev-note)
 
 -----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="dependencies"></a>
 ## 依赖
 
 本包是纯门面，三个上游包必须先注册；`loadAll()` 触发每个 sibling 的 refresh 并复用其结果。典型 composition：
@@ -57,12 +57,14 @@ ctx.dragonBridge.rejected()       // decision === 'reject'
 
 每个 asset 都携带源记录（skill/command/hook/plugin 用 `AssetIndexEntry`，agent 用 `AgentRole`）、归一化后的 license tier、以及完整的 `LicenseEvaluation`，便于调用方在工具描述里展示 attribution 文本。
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `safeOnly` | `false` | 为 `true` 时，默认 `search()` 自动过滤掉 `artifact-only` 与 `reject`；显式传 `decision` 可覆盖该过滤。|
 
+<a id="cross-package-contract"></a>
 ## 跨包契约
 
 ```

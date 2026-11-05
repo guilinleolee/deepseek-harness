@@ -155,6 +155,12 @@
 /session-persistence-event-catalog/events/plan/plan-mode-log-only:
   en: 9ae5537eeae238de
   zh: 6be761c7fd83fdce
+/session-persistence-event-catalog/events/quant:
+  en: bf08c2f370fca123
+  zh: bf08c2f370fca123
+/session-persistence-event-catalog/events/quant/quant-kernel-fault-log-only:
+  en: 88e3e3c9b04d665b
+  zh: 811e82907c504eb2
 /session-persistence-event-catalog/events/request:
   en: a8df82440ebdf5f8
   zh: a8df82440ebdf5f8

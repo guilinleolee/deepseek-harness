@@ -12,13 +12,14 @@ GEO（生成式引擎优化）网站诊断——获客运营功能的模块 1。
 
 ## 目录
 
-- [安装](#安装)
-- [合规边界（红线 1）](#合规边界红线-1)
-- [工具](#工具)
+- [安装](#installation)
+- [合规边界（红线 1）](#compliance-boundary-red-line-1)
+- [工具](#tools)
 - [开发备注](#dev-note)
 
 -----
 
+<a id="installation"></a>
 ## 安装
 
 ```sh
@@ -27,10 +28,12 @@ dsh plugin --profile web add @deepseek-ai/dsh-customer-acquisition-geo
 
 bundle patch 同时插入两行——主插件（若缺失）与本模块，重启 profile 后生效。
 
+<a id="compliance-boundary-red-line-1"></a>
 ## 合规边界（红线 1）
 
 一个 `tools/pre-execute` 校验器加爬虫本体共同执行抓取红线，与参数 schema 允许什么无关：仅处理本次调用显式给出的 http(s) 网址；串行抓取（并发 1）；单页超时 ≤ 10 秒；响应体 ≤ 2 MiB；单次最多 20 页（代码常量 + settings 上限双重封顶）；每次抓取前检查 `robots.txt`，`Disallow` 路径跳过并记入报告；不做跨域名发现；不采集手机号/邮箱。每条规则至少一个非法路径单测。
 
+<a id="tools"></a>
 ## 工具
 
 | 名称 | 功能 |

@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/growth/customer-acquisition-geo/README.md
-README.md: f04cbd0d13ab8e59f74131cd56b8e394e50c54a4
-README.zh.md: 21c8cfebb9f2164c7dc768df9851443e8bae0051
+/:
+  en: 6c34153963a93c77
+  zh: 13c8362f617a8f2d
+/deepseek-ai-dsh-customer-acquisition-geo:
+  en: f23afbb8447138f1
+  zh: 7de53b46c329d3af
+/deepseek-ai-dsh-customer-acquisition-geo/summary:
+  en: f857e3dcbfb1d0ee
+  zh: c24b1776b966479c
+/deepseek-ai-dsh-customer-acquisition-geo/table-of-contents:
+  en: 7df2e6b545f7d3e5
+  zh: c905d00b1f1891c5
+/deepseek-ai-dsh-customer-acquisition-geo/installation:
+  en: 7444bad2d4ac3f1f
+  zh: d942f9bd629fed8d
+/deepseek-ai-dsh-customer-acquisition-geo/compliance-boundary-red-line-1:
+  en: c235b593a2c04ce7
+  zh: 372428cfd62302f5
+/deepseek-ai-dsh-customer-acquisition-geo/tools:
+  en: 0bd22e77f2657060
+  zh: 170c3066e63a84bc
+/deepseek-ai-dsh-customer-acquisition-geo/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state:
+  en: 71852816b0aa7f79
+  zh: 68ec7be725810d53
+/deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state/what-the-model-sees:
+  en: 5a7062c06bd24359
+  zh: 573fd10bcf970ba9
+/deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state/token-effect:
+  en: 6b454fc61a42d7ac
+  zh: a1fc7938b12cefa6
+/deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state/kv-cache-effect:
+  en: c89cff4064839128
+  zh: d27792c1cb6a5bb6
+/deepseek-ai-dsh-customer-acquisition-geo/known-limitations-and-deferred-work:
+  en: 3d642d095d072e3e
+  zh: d0f69fb53e3d4977
+/deepseek-ai-dsh-customer-acquisition-geo/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

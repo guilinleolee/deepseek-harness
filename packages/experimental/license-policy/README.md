@@ -76,7 +76,7 @@ None.
 
 - **Pure service only** — this package owns no I/O. Discovery of license markers (frontmatter sniff, LICENSE file walk, upstream metadata) belongs in `skill-index` and `agent-roster`; the policy only classifies what callers hand it.
 - **Tier detection is textual** — `normalize()` matches against a small set of keywords; exotic licenses (`LGPL-3.0`, `MPL-2.0`, `Unlicense`) currently collapse to `unknown`. A future revision can extend the table.
-- **No governance provenance** — the policy does not remember who set `rejectUnknown`. Callers that flip the switch should log the reason alongside the decision.
+- **No governance origin** — the policy does not remember who set `rejectUnknown`. Callers that flip the switch should log the reason alongside the decision.
 - **AGPL notice is in English only** — Chinese / multilingual translations live in `dragon-assets/LICENSE-ATTRIBUTION.md` §三; this package carries the English default and accepts overrides.
 - **Boundary is advisory** — the policy returns a decision; it does not enforce one. Downstream code (loaders, publishers, the dragon bridge) is responsible for refusing `artifact-only` / `reject` decisions at the actual deployment boundary.
 

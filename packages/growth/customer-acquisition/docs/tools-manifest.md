@@ -1,7 +1,6 @@
 # 获客运营 · Consumer 工具定义清单 v1（待确认稿）
 
-状态：**已确认冻结**（2026-10-04）。新增/改名/改参走报告确认流程。
-参数与输出一律使用 `ParameterSchemaSpec` / `ValueSchemaSpec` 字面量 DSL（`packages/core/tools/src/schema.ts`），**不是 zod**（与投喂基线的差异见 [data-contract.md](./data-contract.md) 第 0 节）。全部经 `defineTool({...})` + `ctx.tools.register()` 注册，注册即 effect。
+状态：**已确认冻结**（2026-10-04）。新增/改名/改参走报告确认流程。参数与输出一律使用 `ParameterSchemaSpec` / `ValueSchemaSpec` 字面量 DSL（`packages/core/tools/src/schema.ts`），**不是 zod**（与投喂基线的差异见 [data-contract.md](./data-contract.md) 第 0 节）。全部经 `defineTool({...})` + `ctx.tools.register()` 注册，注册即 effect。
 
 > **实施注记（P0 实测）**：DSL 的数值/字符串节点只支持 `enum`/`const`/`description`/`title`/`default`/`examples` 注解，**没有 `min`/`max`/`minLen`/`maxLen` 范围注解**。本文代码块中的范围写法是文档化记号：实施时范围写进参数 `description`，由 execute 内校验、storage zod schema 与 pre-execute 合规门三层强制（P0 已按此落地）。同理，output schema 内 `required: true` 只允许出现在对象属性位置，数组 `items` 位置不接受。
 

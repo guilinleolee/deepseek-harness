@@ -52,3 +52,7 @@ native/system/test/bin/
 .build-artifacts*.log
 .build-check.log
 .typecheck*.log
+
+# 本机 DSH 配置草案（含 IdP clientSecret 明文，绝不入库）。
+# 真实配置在卡巴格平台侧：platform/supervisor/data/sso.json（secret 走 AES-256-GCM 加密落盘）。
+/cordis.patch.yml

@@ -1,6 +1,6 @@
 /**
  * The persona wizard's form model: entry round-trips, clone remapping,
- * provenance flips, and the save-payload shaping.
+ * origin flips, and the save-payload shaping.
  */
 import { describe, expect, it } from 'vitest'
 import type { PersonaEntry, PersonaField, PersonaFieldKey } from '@deepseek-ai/dsh-content-outputs/types'
@@ -99,7 +99,7 @@ describe('inputFromForm', () => {
     form.bannedWordsText = '最好，第一\n，绝无仅有'
     const payload = inputFromForm(form)
     expect(payload.name).toBe('老李')
-    // An AI field the user left empty keeps its provenance but carries no value.
+    // An AI field the user left empty keeps its origin but carries no value.
     expect(payload.fields.audience).toEqual({ value: null, source: 'ai', aiMeta: { promptVersion: 'persona-fill@1', at: 'x' } })
     expect(payload.fields.niche).toEqual({ value: 'AI 工具', source: 'ai', aiMeta: { promptVersion: 'persona-fill@1', at: 'x' } })
     expect(payload.site.url).toBe('https://example.com')

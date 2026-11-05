@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-27-dsh-content-studio-review.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-27-dsh-content-studio-review.md
-2026-09-27-dsh-content-studio-review.md: 5e28ff9a83177920f34278a045436fcabf7f1f46
-2026-09-27-dsh-content-studio-review.zh.md: 2fc7487541df142fecbd4b97b9a1f6a233ec6fec
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank:
+  en: cbf54a0ca84052de
+  zh: dcae434806413943
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank/problem:
+  en: 71e73a513ca63dc5
+  zh: 6d29298b6b970e44
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank/decision:
+  en: 9409995b0c0f5529
+  zh: 3b52e421d0aa944d
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank/deviations-from-the-plan-text:
+  en: 8a1c70d84285ec29
+  zh: ebc3fe4f5fe3f6a4
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank/alternatives-considered:
+  en: f8817c47916b0b19
+  zh: fb3344d5df12f73c
+/agent-note-the-review-view-imports-platform-metric-exports-judges-them-against-account-baselines-and-reflows-the-conclusions-into-the-topic-bank/consequences:
+  en: cfaf38ad16191497
+  zh: 5976aca9123b9d41

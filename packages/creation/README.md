@@ -16,6 +16,7 @@ The creation family owns the durable surface the agent writes finished content i
 - [Dev Note](#dev-note)
 
 -----
+<a id="packages"></a>
 
 | Package | Role | ctx key |
 |---|---|---|

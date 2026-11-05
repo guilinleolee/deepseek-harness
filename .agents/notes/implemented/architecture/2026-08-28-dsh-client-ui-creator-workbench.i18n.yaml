@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-28-dsh-client-ui-creator-workbench.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-28-dsh-client-ui-creator-workbench.md
-2026-08-28-dsh-client-ui-creator-workbench.md: 2d77d79b64093540a565cd5998c31f1ebefdbe4b
-2026-08-28-dsh-client-ui-creator-workbench.zh.md: a8ea0d5ee0503e9a8ce86759f2868daeda4180ae
+/agent-note-deepseek-ai-dsh-client-ui-creator-workbench-ships-as-a-dependency-free-three-column-tab-using-the-existing-dsh-slot-system:
+  en: 94866f3c237ae891
+  zh: 84ada1c1e2fc2acf
+/agent-note-deepseek-ai-dsh-client-ui-creator-workbench-ships-as-a-dependency-free-three-column-tab-using-the-existing-dsh-slot-system/problem:
+  en: 16f7592fd23f5494
+  zh: 027a23ffe209cfaa
+/agent-note-deepseek-ai-dsh-client-ui-creator-workbench-ships-as-a-dependency-free-three-column-tab-using-the-existing-dsh-slot-system/decision:
+  en: e47ec5d5ea9b3ddb
+  zh: 794da485991d7a77
+/agent-note-deepseek-ai-dsh-client-ui-creator-workbench-ships-as-a-dependency-free-three-column-tab-using-the-existing-dsh-slot-system/alternatives-considered:
+  en: 5b0b607412be2ead
+  zh: 90d9ec47f298f08c
+/agent-note-deepseek-ai-dsh-client-ui-creator-workbench-ships-as-a-dependency-free-three-column-tab-using-the-existing-dsh-slot-system/consequences:
+  en: ac9297b378ac46b7
+  zh: 0743c950f8ccf270

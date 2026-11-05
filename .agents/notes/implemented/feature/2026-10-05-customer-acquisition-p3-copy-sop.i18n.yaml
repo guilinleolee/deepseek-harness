@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-05-customer-acquisition-p3-copy-sop.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-05-customer-acquisition-p3-copy-sop.md
-2026-10-05-customer-acquisition-p3-copy-sop.md: 445eab4278b06ab68185af375a1cf5baace05926
-2026-10-05-customer-acquisition-p3-copy-sop.zh.md: 265a9c028208f9a12feb3b805875247d7c563c67
+/agent-note-customer-acquisition-p3-nurture-copy-follow-up-sop:
+  en: d5f9d585f232ede0
+  zh: 8b8d19a82b272b1f
+/agent-note-customer-acquisition-p3-nurture-copy-follow-up-sop/problem:
+  en: 412da21bfd35e375
+  zh: 82db9ffbe1d42fd4
+/agent-note-customer-acquisition-p3-nurture-copy-follow-up-sop/decision:
+  en: a3018f19fa3d8bf2
+  zh: 29d8c4e2622dedff
+/agent-note-customer-acquisition-p3-nurture-copy-follow-up-sop/alternatives-considered:
+  en: 58d1b008cc11e9ae
+  zh: 24ce39d27e6c3c25
+/agent-note-customer-acquisition-p3-nurture-copy-follow-up-sop/consequences:
+  en: 9a6393c8dff35caa
+  zh: 8b089c358fcdcb99

@@ -15,7 +15,7 @@ import { join } from 'node:path'
 
 import { auditAppend, auditQuery, initAudit } from '../audit.mjs'
 import { createGatewayServer, getOrCreateSecret, hashPassword } from '../gateway.mjs'
-import { _putPendingStateForTest, SSO_PENDING_LIMIT, resolveSsoIdentity, saveSsoConfig } from '../sso.mjs'
+import { _putPendingStateForTest, loadSsoConfig, SSO_PENDING_LIMIT, resolveSsoIdentity, saveSsoConfig } from '../sso.mjs'
 import { deriveKey } from '../totp.mjs'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -68,6 +68,8 @@ const waitForAudit = async (pred, timeoutMs = 4000) => {
 
 /* mock OAuth 服务器（企业微信 + 钉钉两种协议形态）*/
 const MOCK_USER_ID = 'mock-user-1'
+/** mock 当前返回的 userid：切换它即可模拟「另一个企业员工首次扫码」。 */
+let mockUserId = MOCK_USER_ID
 const MOCK_DT_UNION_ID = 'mock-dt-union-1'
 let authorizeHits = 0
 let tokenHits = 0
@@ -95,7 +97,7 @@ const mock = createServer((req, res) => {
   if (url.pathname === '/auth/getuserinfo') {
     userinfoHits += 1
     res.writeHead(200, { 'content-type': 'application/json' })
-    res.end(JSON.stringify({ errcode: 0, userid: MOCK_USER_ID, name: 'Mock 用户' }))
+    res.end(JSON.stringify({ errcode: 0, userid: mockUserId, name: 'Mock 用户' }))
     return
   }
   if (url.pathname === '/oauth2/auth') {
@@ -250,6 +252,66 @@ try {
   check('并发 bind×2 + 管理台变更无丢更新（P2-3 同一把账号锁）',
     Array.isArray(afterConcurrent.ssoIds) && afterConcurrent.ssoIds.length === 1 && afterConcurrent.ssoIds[0] === `wecom:${MOCK_USER_ID}`
     && afterConcurrent.department === '并发组')
+
+  /* 4d. 企业身份自动开通（免邀请码注册）：首次扫码即建号 */
+  console.log('# 企业身份自动开通')
+  // 默认关闭：未开启自动开通时，未绑定身份仍走「输入账号密码绑定」旧流程。
+  // 用全新身份（mock-user-1 早前已绑定到 member@t，会直接登录而非绑定页）。
+  saveSsoConfig(DATA, { wecom: { enabled: true, autoProvision: false } }, key)
+  mockUserId = 'mock-user-noprovision-1'
+  const startP = await get('/api/auth/sso/wecom/start')
+  const cbP = (await fetch(startP.headers.get('location'), { redirect: 'manual' })).headers.get('location')
+  const bindPageText = await (await getAbs(cbP)).text()
+  check('自动开通关闭时仍走绑定页', bindPageText.includes('绑定企业微信账号'))
+
+  // 开启自动开通：默认角色/部门/实例由管理员在配置里定好，员工无法自行提权。
+  saveSsoConfig(DATA, { wecom: {
+    enabled: true, autoProvision: true, autoRole: 'employee',
+    autoDepartment: '研发中心', autoInstance: 'e02',
+  } }, key)
+  const cfgAfter = loadSsoConfig(DATA).wecom
+  check('autoProvision 配置落盘', cfgAfter.autoProvision === true && cfgAfter.autoRole === 'employee' && cfgAfter.autoInstance === 'e02')
+
+  // 换一个新身份 → 首次扫码 = 首次建号
+  mockUserId = 'mock-user-auto-1'
+  const startAuto = await get('/api/auth/sso/wecom/start')
+  const cbAuto = (await fetch(startAuto.headers.get('location'), { redirect: 'manual' })).headers.get('location')
+  const autoRes = await getAbs(cbAuto)
+  check('首次扫码 → 303 直接进入工作区（不再要邀请码/密码）', autoRes.status === 303 && autoRes.headers.getSetCookie()[0] !== undefined)
+  const accountsAfter = JSON.parse(readFileSync(join(DATA, 'accounts.json'), 'utf8')).accounts
+  const provisioned = accountsAfter.find((a) => Array.isArray(a.ssoIds) && a.ssoIds.includes('wecom:mock-user-auto-1'))
+  check('自动开通建号成功（账号存在且已绑定身份）', provisioned !== undefined)
+  check('账号名为 provider+摘要（不含企业目录原始标识）', provisioned !== undefined
+    && /^wecom-[0-9a-f]{12}$/.test(provisioned.account) && !provisioned.account.includes('mock-user-auto-1'))
+  check('自动开通沿用管理员配置的角色/部门/实例', provisioned !== undefined
+    && provisioned.role === 'employee' && provisioned.department === '研发中心' && provisioned.instanceId === 'e02')
+  check('自动开通的账号密码不可知（随机占位）', provisioned !== undefined
+    && typeof provisioned.passwordHash?.hash === 'string' && provisioned.passwordHash.hash.length > 0)
+  const provisionEvent = await waitForAudit((e) => e.action === 'auth.sso_provision' && e.result === 'ok')
+  check('auth.sso_provision ok 留痕（角色/实例，不含身份原文）', provisionEvent !== undefined
+    && provisionEvent.detail?.provider === 'wecom' && provisionEvent.detail?.instanceId === 'e02'
+    && !JSON.stringify(provisionEvent.detail ?? {}).includes('mock-user-auto-1'))
+  const autoCookie = autoRes.headers.getSetCookie()[0]?.split(';')[0]
+  check('自动开通账号可直接访问 /me', (await get('/me', autoCookie)).status === 200)
+
+  // 二次扫码：同一身份不再重复建号
+  const accountsCount = accountsAfter.length
+  const startAuto2 = await get('/api/auth/sso/wecom/start')
+  const cbAuto2 = (await fetch(startAuto2.headers.get('location'), { redirect: 'manual' })).headers.get('location')
+  const autoRes2 = await getAbs(cbAuto2)
+  const accountsFinal = JSON.parse(readFileSync(join(DATA, 'accounts.json'), 'utf8')).accounts
+  check('二次扫码不重复建号（幂等）', autoRes2.status === 303 && accountsFinal.length === accountsCount)
+
+  // autoRole 白名单：管理员角色不可被自动开通
+  let adminRoleRejected = false
+  try { saveSsoConfig(DATA, { wecom: { autoRole: 'admin' } }, key) } catch { adminRoleRejected = true }
+  check('autoRole 白名单拒绝 admin（管理员只能人工授予）', adminRoleRejected)
+  // 未知 provider 拒绝
+  let unknownRejected = false
+  try { saveSsoConfig(DATA, { nope: { enabled: true } }, key) } catch { unknownRejected = true }
+  check('未知 provider 拒绝', unknownRejected)
+  // 还原默认身份，避免影响后续断言
+  mockUserId = MOCK_USER_ID
 
   /* 4c. state 洪泛上限（P2-1：打满 5000 → start 429；放后面，占满影响 start） */
   for (let i = 0; i < SSO_PENDING_LIMIT; i++) _putPendingStateForTest('wecom')

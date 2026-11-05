@@ -1,10 +1,10 @@
-# Customer-acquisition plugin foundation (P0)
+# Agent Note: Customer-acquisition plugin foundation (P0)
 
 Status: implemented
 
 English | [中文](2026-10-04-customer-acquisition-plugin-foundation.zh.md)
 
-## Context
+## Problem
 
 The 获客运营 (customer-acquisition) feature — GEO diagnosis, lead ledger, AI lead scoring — ships as a compliance-first business plugin for OPC deployments. The feed-in brief froze a data contract and a 47-tool manifest before implementation and demands six red lines (bounded fetching, no automated outreach, no send channel, editable templates, local data, audit trail) as executable checks, not prose. P0 lays the foundation both later phases build on.
 
@@ -15,12 +15,12 @@ The 获客运营 (customer-acquisition) feature — GEO diagnosis, lead ledger, 
 - **Red lines live in one pre-execute listener** with pure per-tool rule functions, so every illegal path has a direct unit test; parameter schemas stay descriptive (the DSL has no range constraints) and the gate owns enforcement.
 - **Settings went to the domain `global` slot** instead of a table, and open enums (`source`, content `type`) store plain strings with known-value vocabularies so growth never bumps the domain version.
 
-## Rejected
+## Alternatives considered
 
 - **zod for tool parameters** — the harness `ParameterSchemaSpec` DSL owns that boundary; zod stays on the domain-record side. Manifest written accordingly.
 - **One action-dispatch tool per entity** — 47 single-action tools match the repo's `team_task_*`/`schedule_*` style and keep model-facing schemas unambiguous.
 - **Deleting referenced templates** — deletion is refused when score runs or generated content reference a template; callers disable it instead, keeping history reproducible (per-item weight snapshots).
 
-## Consequences, risks, trade-offs
+## Consequences
 
 The KV domain has no indexes or in-place migration: a version bump rebuilds the medium (pre-release stance), and list faces filter in memory — fine at single-machine scale, revisited only if a deployment outgrows it. Compliance-denial audits resolve the operator best-effort and never un-deny a call. Fetch orchestration (P2) still must verify the web-fetch consumption form before reuse; the URL and cap rules are already in force.

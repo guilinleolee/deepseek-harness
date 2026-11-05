@@ -43,6 +43,99 @@ const COOKIE_NAME = 'lyz_session'
 const TOKEN_TTL_SECONDS = 30 * 60
 const ROLE_RANK = { employee: 1, auditor: 2, admin: 3 }
 
+/**
+ * 反代到实例时**只**剥掉平台自己的会话 Cookie，保留其余。
+ *
+ * 实例侧是 DSH 自带的 browser-auth：它按 Host 算 cookie 名（dsh-auth-<sha256(authority)>）
+ * 并要求浏览器带上来。此前网关 `delete headers.cookie` 把实例的 cookie 一起剥了，
+ * 实例于是永远认不出已登录浏览器——「进入我的工作区」永远停在
+ * “dsh web authentication required”。实例零改动设计的前提是网关只管自己的会话。
+ */
+function forwardCookieHeader(cookieHeader) {
+  if (typeof cookieHeader !== 'string' || cookieHeader.trim() === '') return undefined
+  const kept = cookieHeader
+    .split(';')
+    .map((segment) => segment.trim())
+    .filter((segment) => segment !== '' && segment.split('=')[0].trim() !== COOKIE_NAME)
+  return kept.length > 0 ? kept.join('; ') : undefined
+}
+
+/**
+ * DSH 实例 browser-auth 的拒绝页正文（dsh web 的 writeUnauthorized）。
+ * 仅作识别参考：实例回 401 时正文常是 gzip 压缩体，**不能**靠正文匹配来判定。
+ */
+const DSH_AUTH_REQUIRED = 'dsh web authentication required'
+
+/* ── 实例 browser-auth 会话（网关代持）────────────────────────────────────
+ *
+ * 实例的 DSH 会话 cookie 名是 dsh-auth-<sha256(authority)>，属性含
+ * `SameSite=Strict`。而员工是经 Casdoor 跨站回跳进来的——Chrome 在**整条
+ * 跨站导航链**里都不下发 Strict cookie（site-for-cookies 记的是链的发起方），
+ * 于是实例永远认不出浏览器，工作区永远停在 “dsh web authentication required”。
+ *
+ * 修法（不动 DSH 内核）：**网关代持**。网关用实例的 launch token 在服务端换一枚
+ * browser-auth cookie，存到 data/dsh-sessions.json，转发时替浏览器注入。
+ * 浏览器全程看不到 token、也不必持有实例 cookie；实例重启/cookie 过期时，
+ * 实例回 401，网关再换一次即可（自愈）。
+ */
+
+const DSH_SESSION_FILE = 'dsh-sessions.json'
+
+/** 读网关代持的实例会话（按实例 id）。 */
+function loadDshSession(dataDir, instanceId) {
+  try {
+    const store = JSON.parse(readFileSync(join(dataDir, DSH_SESSION_FILE), 'utf8'))
+    const entry = store[instanceId]
+    return typeof entry?.cookie === 'string' ? entry.cookie : null
+  } catch {
+    return null
+  }
+}
+
+/** 存网关代持的实例会话。 */
+function saveDshSession(dataDir, instanceId, cookie) {
+  try {
+    const file = join(dataDir, DSH_SESSION_FILE)
+    let store = {}
+    try { store = JSON.parse(readFileSync(file, 'utf8')) } catch { /* 新建 */ }
+    store[instanceId] = { cookie, at: Date.now() }
+    writeJsonAtomic(file, store)
+  } catch (error) {
+    console.error('[dsh-session] 写入失败:', error?.message ?? error)
+  }
+}
+
+/** 从 Cookie 头里挑出实例的 browser-auth cookie（没有则 null）。 */
+function pickDshCookie(cookieHeader) {
+  if (typeof cookieHeader !== 'string' || cookieHeader === '') return null
+  const hit = cookieHeader.split(';').map((s) => s.trim()).find((s) => s.startsWith('dsh-auth-'))
+  return hit && hit.includes('=') ? hit : null
+}
+
+/**
+ * 服务端换票：向实例用 launch token 换一枚 browser-auth cookie。
+ * @returns Promise<string|null> cookie（name=value），失败返回 null
+ */
+function exchangeDshSession({ port, authority, launchToken }) {
+  return new Promise((resolve) => {
+    const req = httpRequest(
+      { host: '127.0.0.1', port, method: 'GET', path: `/?token=${encodeURIComponent(launchToken)}`, headers: { host: authority } },
+      (res) => {
+        const chunks = []
+        res.on('data', (chunk) => chunks.push(chunk))
+        res.on('end', () => {
+          const setCookie = res.headers['set-cookie']
+          const value = Array.isArray(setCookie) ? setCookie : (setCookie ? [setCookie] : [])
+          const hit = value.map((c) => c.split(';')[0]).find((c) => c.startsWith('dsh-auth-'))
+          resolve(hit ?? null)
+        })
+      },
+    )
+    req.on('error', () => resolve(null))
+    req.end()
+  })
+}
+
 /* ── 账号存储（data/accounts.json）──────────────────────────────────────── */
 
 export function loadAccounts(dataDir) {
@@ -305,6 +398,18 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       saveAccounts(dataDir, store)
     }).catch((error) => console.error('[gateway] lastLogin 记录失败:', error?.stack ?? error))
   }
+  // 会话 Cookie 的 Domain 属性（可配，默认空=按 Host 签发）。
+  //
+  // 背景：平台按 Host 分流——portal 主机（localhost）走登录/个人中心，
+  // 实例子域（e01.localhost / e02.localhost）走工作区。Cookie 默认按 Host
+  // 签发，于是「在 portal 登录 → 打开实例工作区」会被要求重新登录，
+  // SSO 的「一次登录通行」就断了（生产硬化方案 §2 的「通配符域名 Cookie」项）。
+  // 配置 cookieDomain 后上提一层，portal 与各实例子域共享同一枚会话 Cookie。
+  // 安全边界：实例侧拿不到这枚 Cookie——网关反代前会剥掉 cookie
+  // （见下方代理分支 delete headers.cookie），所以 Domain 上提不会把会话
+  // 泄露给被托管的实例进程。
+  const cookieDomain = typeof manifest.cookieDomain === 'string' ? manifest.cookieDomain.trim() : ''
+  const cookieDomainAttr = cookieDomain === '' ? '' : `; Domain=${cookieDomain}`
   // SSO 登录与密码登录共用同一令牌语义（sub/epoch/TTL/Cookie 参数，阶段 11C）；
   // 传入 ip 时同时刷新该账号的 lastLogin。
   // 2FA 硬强制（阶段 11b）：require2faRoles 命中且未启用 2FA 的会话带 enr=1
@@ -326,8 +431,14 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
     })
+    // SameSite=Lax（不是 Strict）：SSO 回跳是**跨站发起的顶级导航**
+    // （Casdoor → 本域 callback → 303 /me），Strict Cookie 在这种导航链中
+    // 不会随请求下发——首绑流程因 Cookie 由同源 fetch 的 bind 响应下发而侥幸
+    // 通过，但「已绑定 → 直接登录」快路径必然 401（服务端已签发、浏览器不带 Cookie）。
+    // Lax 在顶级 GET 导航中携带 Cookie、跨站 POST/XHR 仍不带，
+    // CSRF 防线不变（变更端点全是 POST，且另有 Origin 同源校验作第二道）。
     res.setHeader('set-cookie',
-      `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_TTL_SECONDS}`)
+      `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${TOKEN_TTL_SECONDS}${cookieDomainAttr}`)
     if (ip !== null) touchLastLogin(record, ip)
   }
   const pluginRunner = createJobRunner({ dataDir, manifest, repoRoot: resolve(dirname(dataDir), manifest.repoRoot) })
@@ -467,7 +578,7 @@ export function createGatewayServer({ manifest, getState, dataDir }) {
       // 认证一次，status/console/portal 三段共用（JWT HMAC 校验开销可忽略）。
       const auth = authFromRequest(secret, accountsStore, req)
       if (url.pathname === '/api/auth/logout') {
-        res.setHeader('set-cookie', `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`)
+        res.setHeader('set-cookie', `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${cookieDomainAttr}`)
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
         res.end('logged out')
         return
@@ -521,6 +632,15 @@ ${auth.error === undefined
 
     // 3) 实例子域：必须已登录，且账号绑定该实例。
     const auth = authFromRequest(secret, accountsStore, req)
+    // 实例子域也放行 SSO 路由（此前只在门户主机上可用，导致员工在子域点
+    // 「使用Casdoor账号登录」是死路，只能改用平台账号密码再登一次）。
+    // 回调地址用**平台自己算出的规范子域**而不是请求的 Host 头——Host 可被
+    // 伪造；Casdoor 侧 redirect_uri 精确匹配注册表是第二道闸。
+    if (url.pathname.startsWith('/api/auth/sso/')) {
+      const portalHost = (manifest.gatewayHost ?? 'localhost').split(':')[0]
+      const authority = `${subdomainId}.${portalHost}:${manifest.portalPort}`
+      if (handleSso({ req, res, url, dataDir, issueSession, twofaKey, guard: loginGuard, manifest, redirectHost: authority })) return
+    }
     if (auth.error === 'disabled') {
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
       res.end('账号已禁用，请联系管理员。')
@@ -552,21 +672,74 @@ ${auth.error === undefined
       res.end(`实例 ${subdomainId} 未运行（${state.instances[subdomainId]?.state ?? 'unknown'}）`)
       return
     }
+    // 发往实例的 Cookie：平台的 lyz_session 剥掉；实例的 browser-auth cookie
+    // 优先用浏览器带来的（更新），没有就用网关代持的那枚。
+    const browserCookie = forwardCookieHeader(req.headers.cookie)
+    const storedCookie = loadDshSession(dataDir, subdomainId)
+    const upstreamCookie = pickDshCookie(browserCookie) ?? storedCookie
     const headers = { ...req.headers }
-    delete headers.cookie
+    if (upstreamCookie === null) delete headers.cookie
+    else headers.cookie = upstreamCookie
     delete headers.connection
-    const proxy = httpRequest(
-      { host: '127.0.0.1', port: target.port, method: req.method, path: req.url, headers },
-      (upstream) => {
-        res.writeHead(upstream.statusCode, upstream.headers)
-        upstream.pipe(res)
-      },
-    )
-    proxy.on('error', () => {
-      res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
-      res.end(`实例 ${subdomainId} 连接失败`)
+    const launchToken = state.instances[subdomainId]?.launchToken ?? null
+
+    /** 把一次请求转发给实例；upstreamCookie 为注入实例的 cookie。 */
+    const forward = (upstreamCookieValue, onFirstResponse) => {
+      const h = { ...headers }
+      if (upstreamCookieValue === null) delete h.cookie
+      else h.cookie = upstreamCookieValue
+      const proxy = httpRequest(
+        { host: '127.0.0.1', port: target.port, method: req.method, path: req.url, headers: h },
+        (upstream) => {
+          if (onFirstResponse !== undefined && upstream.statusCode === 401) {
+            onFirstResponse(upstream)
+            return
+          }
+          res.writeHead(upstream.statusCode, upstream.headers)
+          upstream.pipe(res)
+        },
+      )
+      proxy.on('error', () => {
+        res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(`实例 ${subdomainId} 连接失败`)
+      })
+      req.pipe(proxy)
+    }
+
+    forward(upstreamCookie, (upstream) => {
+      // 实例回 401 = 它的 browser-auth 门没认出我们。
+      // 网关在**服务端**用 launch token 换一枚 cookie 存起来，然后重放本次请求——
+      // 浏览器全程不接触 token，也不需要持有实例那枚 SameSite=Strict 的 cookie
+      // （跨站 SSO 回跳链里 Chrome 根本不会下发 Strict cookie）。
+      const chunks = []
+      upstream.on('data', (chunk) => chunks.push(chunk))
+      upstream.on('end', async () => {
+        const body = Buffer.concat(chunks)
+        if (launchToken === null) {
+          res.writeHead(upstream.statusCode, upstream.headers)
+          res.end(body)
+          return
+        }
+        const exchanged = await exchangeDshSession({
+          port: target.port,
+          authority: req.headers.host ?? `${subdomainId}.${manifest.gatewayHost}:${manifest.portalPort}`,
+          launchToken,
+        })
+        if (exchanged === null) {
+          res.writeHead(upstream.statusCode, upstream.headers)
+          res.end(body)
+          return
+        }
+        saveDshSession(dataDir, subdomainId, exchanged)
+        // 重放：请求体已被消费过一次，只能重放无体请求（GET/HEAD 为主）。
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(upstream.statusCode, upstream.headers)
+          res.end(body)
+          return
+        }
+        forward(exchanged, undefined)
+      })
     })
-    req.pipe(proxy)
   })
 
   // WebSocket 升级：同样走认证与绑定，然后原样转发握手并双向接管字节流。
@@ -594,6 +767,10 @@ ${auth.error === undefined
         if (name.toLowerCase() === 'cookie') continue
         lines.push(`${name}: ${req.rawHeaders[i + 1]}`)
       }
+      // 实例的 browser-auth Cookie 要透传到 WS 握手（只剥平台会话 Cookie）。
+      // 浏览器那枚是 SameSite=Strict（跨站链里 Chrome 不下发），所以用网关代持的。
+      const dshCookie = pickDshCookie(req.headers.cookie) ?? loadDshSession(dataDir, subdomainId)
+      if (dshCookie !== null) lines.push(`cookie: ${dshCookie}`)
       upstream.write(`${lines.join('\r\n')}\r\n\r\n`)
       if (head.length > 0) upstream.write(head)
       upstream.pipe(socket)

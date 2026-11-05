@@ -475,6 +475,12 @@
   padding: 40px 32px 64px;
 }
 
+/* The topic bank's two-pane table + detail layout needs the full main column;
+   the 960px reading width only fits the prose-style views. */
+.frameWide {
+  max-width: none;
+}
+
 .header {
   display: flex;
   align-items: flex-start;

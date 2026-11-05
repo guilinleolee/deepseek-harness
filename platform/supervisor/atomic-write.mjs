@@ -1,7 +1,7 @@
 /**
  * 卡巴格企业平台 · 原子写 helper（Windows 稳健版）。
  *
- * 背景：平台所有状态文件（accounts.json / vkeys.json / usage.json / invites.json /
+ * 背景：平台所有状态文件（accounts.json / vkeys.json / usage.json / sso.json /
  * rate-limits.json / audit 段文件 / role-matrix.json / tool-policy 等）此前都写成
  * 「先写 <path>.tmp，再 renameSync 覆盖原文件」。在 Windows 上 rename 覆盖一个
  * **正被其它进程打开** 的目标文件会抛 EPERM（杀软实时扫描、索引器、编辑器、

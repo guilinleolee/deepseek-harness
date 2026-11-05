@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-04-quant-research-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-quant-research-plugin.md
-2026-10-04-quant-research-plugin.md: 99cef512c7742dd6d3e9efab7c9f8d49b5d1569b
-2026-10-04-quant-research-plugin.zh.md: 91ec761b0d36adbb0877c8c0fca96dce6f193d41
+/agent-note-the-quant-research-plugin-ships-research-only-quant-tooling-as-a-two-plane-plugin-with-a-pre-execute-red-line:
+  en: c19d7e30f26b1a27
+  zh: bc8039df4c022e14
+/agent-note-the-quant-research-plugin-ships-research-only-quant-tooling-as-a-two-plane-plugin-with-a-pre-execute-red-line/problem:
+  en: e689e98a23f1d154
+  zh: 9ab39364d54a6a1e
+/agent-note-the-quant-research-plugin-ships-research-only-quant-tooling-as-a-two-plane-plugin-with-a-pre-execute-red-line/decision:
+  en: 424fb25955ac4b05
+  zh: 74cec292b4e9c010
+/agent-note-the-quant-research-plugin-ships-research-only-quant-tooling-as-a-two-plane-plugin-with-a-pre-execute-red-line/alternatives-considered:
+  en: 08a687a4c6c6ccd0
+  zh: c45a6ed91d6c3d98
+/agent-note-the-quant-research-plugin-ships-research-only-quant-tooling-as-a-two-plane-plugin-with-a-pre-execute-red-line/consequences:
+  en: 18c789bce0b34f8a
+  zh: 87072e93c0b38b67

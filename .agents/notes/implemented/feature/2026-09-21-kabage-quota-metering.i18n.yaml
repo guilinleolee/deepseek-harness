@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-kabage-quota-metering.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-kabage-quota-metering.md
+/agent-note-token-relay:
+  en: 114a7708d2818915
+  zh: 389af50371e9feb5
+/agent-note-token-relay/problem:
+  en: 92f8d886a2926adc
+  zh: 0cd709a9f2644cef
+/agent-note-token-relay/decision:
+  en: b503c89fb01f16ab
+  zh: 0bf95578c24af511
+/agent-note-token-relay/alternatives-considered:
+  en: d08d2cb8c8852ef3
+  zh: ad26742ba84e5b8b
+/agent-note-token-relay/consequences:
+  en: 4d56966a519f717c
+  zh: e92005c72eb1f85e

@@ -43,7 +43,9 @@ function mention(): SentimentMention {
 
 function mockAi(handler: (system: string, framed: string) => Promise<string>): void {
   vi.doMock('../src/gather/ai.ts', () => ({
-    streamLlmText: (_ctx: unknown, _policy: unknown, system: string, framed: string) => Promise.resolve().then(() => handler(system, framed)),
+    streamLlmText: (_ctx: unknown, _policy: unknown, system: string, framed: string) =>
+      Promise.resolve().then(() => handler(system, framed)),
+    // oxlint-disable-next-line typescript/no-extraneous-class -- the mock must expose the module token as a class reference
     AiCallPolicy: class {},
   }))
 }
@@ -72,7 +74,7 @@ describe('adjudicateSentimentAlert', () => {
 
   it('falls back to a deterministic join when the synthesis fails, and degrades stances individually', async () => {
     let calls = 0
-    mockAi(async system => {
+    mockAi(async (system) => {
       calls += 1
       if (system.includes('综合')) throw new Error('synthesis down')
       if (system.includes('乐观审读')) throw new Error('optimist down')

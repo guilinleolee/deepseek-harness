@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/experimental/agent-roster/README.md
-README.md: 1995f3567a11f2f6af9e5998ef64c900ad85bbb1
-README.zh.md: fb1d3419a4136c208952111f8ad86a6d8a8925ca
+/:
+  en: 1973746254b83465
+  zh: ef44314e3eced3c6
+/dsh-experimental-agent-roster:
+  en: 9beb44566f1d6bd5
+  zh: 8ea08959fdef2e23
+/dsh-experimental-agent-roster/summary:
+  en: ebe440db80fede78
+  zh: 2fcd43a202978275
+/dsh-experimental-agent-roster/table-of-contents:
+  en: 192ef5b885b5b90b
+  zh: 8c03560d58dbfaf9
+/dsh-experimental-agent-roster/what-it-reads:
+  en: 0117fac684508394
+  zh: d0be9fbf8d1f3997
+/dsh-experimental-agent-roster/config:
+  en: 4a75b2d2016e7448
+  zh: beaf2142a3a64af7
+/dsh-experimental-agent-roster/service-api:
+  en: dfb121ebbdf5effd
+  zh: ae0a371fa369e513
+/dsh-experimental-agent-roster/model-experience:
+  en: b508393b82411dea
+  zh: 22ef35e4683dec19
+/dsh-experimental-agent-roster/model-experience/kv-cache-effect:
+  en: 4f0eadf94828e66e
+  zh: 4f8a6ec170ebbfb6
+/dsh-experimental-agent-roster/known-limitations-and-deferred-work:
+  en: 3e3c9a2f4d72fe35
+  zh: c49b1872a8a1fe80
+/dsh-experimental-agent-roster/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

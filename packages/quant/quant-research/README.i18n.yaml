@@ -1,6 +1,55 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/quant/quant-research/README.md
-README.md: 97ad42e900d11295095e74e0d6827c9237631faa
-README.zh.md: d2892b6e75972b6260497d9ff4a57fd2fa5dd587
+/:
+  en: 61cac1793ce357f5
+  zh: 22b9da13ad8467ad
+/deepseek-ai-dsh-quant-research:
+  en: f9c0468699e0685a
+  zh: 3592ee6c390bf677
+/deepseek-ai-dsh-quant-research/summary:
+  en: 7d294de81235300c
+  zh: 282d59ea23df91b6
+/deepseek-ai-dsh-quant-research/table-of-contents:
+  en: 4f1b46a829beb63d
+  zh: c9823db8cf364c47
+/deepseek-ai-dsh-quant-research/installation:
+  en: 7f25955ed3b4184d
+  zh: 92d6b41150dc9784
+/deepseek-ai-dsh-quant-research/configuration:
+  en: 1508ac7574feabe0
+  zh: 22c4f60625a8a865
+/deepseek-ai-dsh-quant-research/architecture:
+  en: 0586df322493613c
+  zh: 5aa4446eb4f7f9ea
+/deepseek-ai-dsh-quant-research/compliance-gate-red-lines:
+  en: 51fc651633436ed2
+  zh: 11dd8329ace0f36c
+/deepseek-ai-dsh-quant-research/tools:
+  en: 287accc1794f156b
+  zh: 166f4435a9019d3a
+/deepseek-ai-dsh-quant-research/session-events:
+  en: 21a39d3ed6fbb2d6
+  zh: cc2dc8bd13eba5e9
+/deepseek-ai-dsh-quant-research/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-quant-research/model-experience/research-tools:
+  en: 1419d1350101267a
+  zh: b6d60f1f309aaec4
+/deepseek-ai-dsh-quant-research/model-experience/research-tools/what-the-model-sees:
+  en: e0fad43167054127
+  zh: c98c61eed59dea16
+/deepseek-ai-dsh-quant-research/model-experience/research-tools/token-effect:
+  en: 6dcc90200a5bda1a
+  zh: 0c94441b96e1980d
+/deepseek-ai-dsh-quant-research/model-experience/research-tools/kv-cache-effect:
+  en: c89cff4064839128
+  zh: ac3dc749d8118ee4
+/deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work:
+  en: c757e735945263f1
+  zh: a904d958372d4a79
+/deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

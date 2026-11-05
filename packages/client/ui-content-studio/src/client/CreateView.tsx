@@ -117,7 +117,7 @@ interface EditorState {
   readonly publishedFile: string | null
 }
 
-/** Style provenance of the current persona: inline text, or none. */
+/** Style origin of the current persona: inline text, or none. */
 function profileRefOf(persona: string): { mode: 'inline'; digest: string } | null {
   const digest = persona.trim().slice(0, 500)
   return digest.length > 0 ? { mode: 'inline', digest } : null

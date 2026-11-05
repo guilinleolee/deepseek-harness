@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-10-sentiment-phase2-data-floor.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-10-sentiment-phase2-data-floor.md
-2026-10-10-sentiment-phase2-data-floor.md: 8a15233d28fa13df3df604ac445664cb13b6ff2a
-2026-10-10-sentiment-phase2-data-floor.zh.md: c9370679c4dd5c2ca7024d62ad555644c7f38021
+/agent-note-sentiment-phase-2-the-rss-data-floor-the-two-stage-classify-pipeline-and-alert-aggregation:
+  en: 4c58d89aced84a21
+  zh: 974efc11ebeed473
+/agent-note-sentiment-phase-2-the-rss-data-floor-the-two-stage-classify-pipeline-and-alert-aggregation/problem:
+  en: db58868253d3fd71
+  zh: ed164b5aa00ed4b9
+/agent-note-sentiment-phase-2-the-rss-data-floor-the-two-stage-classify-pipeline-and-alert-aggregation/decision:
+  en: a6cc0f2e75a30a87
+  zh: 65dc3416c6e5e5ca
+/agent-note-sentiment-phase-2-the-rss-data-floor-the-two-stage-classify-pipeline-and-alert-aggregation/alternatives-considered:
+  en: bd0dd97c2dec77d7
+  zh: f5f508dcb242a284
+/agent-note-sentiment-phase-2-the-rss-data-floor-the-two-stage-classify-pipeline-and-alert-aggregation/consequences:
+  en: 31c04ea905c15a56
+  zh: 0a70b89315d3ffda

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-28-dsh-creator-workbench.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-28-dsh-creator-workbench.md
-2026-08-28-dsh-creator-workbench.md: 194d2c5b4f0d826f18719c5b709613f9695b6071
-2026-08-28-dsh-creator-workbench.zh.md: 343fe0cbc034ccb61fd65f3a1389e309c3de08df
+/agent-note-deepseek-ai-dsh-creator-workbench-ships-as-a-sop-driven-no-api-publish-self-media-workstation:
+  en: 86f4136598db80c5
+  zh: e24d62ac226d403f
+/agent-note-deepseek-ai-dsh-creator-workbench-ships-as-a-sop-driven-no-api-publish-self-media-workstation/problem:
+  en: c835052ea02906c0
+  zh: 0ecede3fa5a338d6
+/agent-note-deepseek-ai-dsh-creator-workbench-ships-as-a-sop-driven-no-api-publish-self-media-workstation/decision:
+  en: e0dcc42faa766f3a
+  zh: 59a5fae4ed87145f
+/agent-note-deepseek-ai-dsh-creator-workbench-ships-as-a-sop-driven-no-api-publish-self-media-workstation/alternatives-considered:
+  en: 6fa500ba0cb7e959
+  zh: 2e54e9e099ec2701
+/agent-note-deepseek-ai-dsh-creator-workbench-ships-as-a-sop-driven-no-api-publish-self-media-workstation/consequences:
+  en: abde9917ba4e818e
+  zh: 9f93db7a805d99ae

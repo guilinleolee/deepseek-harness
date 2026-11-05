@@ -1,6 +1,6 @@
 /**
  * The topic-bank view: the whole `_topics.json` bank in two faces — the P0
- * table (title, source with its provenance entry, score, tags, status,
+ * table (title, source with its origin entry, score, tags, status,
  * plan date, update time) and the P1 five-column kanban with native HTML5
  * drag-and-drop status moves — over the reusable SplitDetail layout, with
  * the detail side panel, create/edit forms, batch actions, schedule

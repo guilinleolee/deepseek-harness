@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-04-customer-acquisition-p1-leads-scoring.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-customer-acquisition-p1-leads-scoring.md
-2026-10-04-customer-acquisition-p1-leads-scoring.md: 50e04c860e5b12faf12b1c01fc904a26d319e642
-2026-10-04-customer-acquisition-p1-leads-scoring.zh.md: 9da22b61399f0676175e9954bfddac1dc1a1472b
+/agent-note-customer-acquisition-p1-lead-ledger-ai-lead-scoring:
+  en: c07338a1e30c3694
+  zh: bbf3735e828da799
+/agent-note-customer-acquisition-p1-lead-ledger-ai-lead-scoring/problem:
+  en: a4fd581065ae0df9
+  zh: eb5f41d3519eeed0
+/agent-note-customer-acquisition-p1-lead-ledger-ai-lead-scoring/decision:
+  en: 727327d818dfd031
+  zh: cb2768163febe6de
+/agent-note-customer-acquisition-p1-lead-ledger-ai-lead-scoring/alternatives-considered:
+  en: 324d4242a449fc51
+  zh: f50b59b84eae27d4
+/agent-note-customer-acquisition-p1-lead-ledger-ai-lead-scoring/consequences:
+  en: 37c31d60b767a6f6
+  zh: 66ae38e76a816dae

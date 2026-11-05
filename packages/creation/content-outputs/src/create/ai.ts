@@ -23,7 +23,7 @@ import { assertTemplateBody } from './store.ts'
 /** Timeout reason code carried by aborted create AI calls. */
 export const CREATE_AI_TIMEOUT_CODE = 'CREATE_AI_TIMEOUT'
 
-/** Prompt vocabulary version pinned into every result for provenance. */
+/** Prompt vocabulary version pinned into every result for origin. */
 export const CREATE_PROMPT_VERSION = 1
 
 /** Chinese labels of the style switch, as the prompts phrase them. */
@@ -69,7 +69,7 @@ const TYPE_BRIEFS: Record<CreateContentType, string> = {
 
 /**
  * Build the system prompt for one generation: the type brief, the style
- * provenance, and the shared output discipline.
+ * origin, and the shared output discipline.
  * @param request - the generation request.
  * @returns the complete system prompt.
  */
@@ -268,7 +268,7 @@ export function evaluateSystemPrompt(request: CreateEvaluateRequest): string {
  * rejects here.
  * @param text - exact model text output.
  * @param model - the model identity recorded into the result.
- * @returns the validated evaluation with its provenance.
+ * @returns the validated evaluation with its origin.
  */
 export function parseCreateEvaluation(text: string, model: string): CreateEvaluation {
   const fenced = text.trim().replace(/^```(?:json)?\s*/u, '').replace(/\s*```$/u, '')
@@ -334,7 +334,7 @@ export class CreateAiProcessor {
    * through the model. Rate limits retry with backoff; every other failure
    * surfaces immediately so the UI can offer its retry button.
    * @param request - the generation request; `count: 3` is short-types only.
-   * @returns the draft text, the split variants when batched, and provenance.
+   * @returns the draft text, the split variants when batched, and origin.
    */
   async generate(request: CreateGenerateRequest): Promise<CreateAiResult> {
     const count = request.count ?? 1
@@ -370,7 +370,7 @@ export class CreateAiProcessor {
   /**
    * Rewrite one selection through the model, under the same retry policy.
    * @param request - the rewrite request.
-   * @returns the rewritten text with its provenance.
+   * @returns the rewritten text with its origin.
    */
   async rewrite(request: CreateRewriteRequest): Promise<CreateAiResult> {
     const text = validateRewriteRequest(request, this.policy.maxInputChars)
@@ -384,7 +384,7 @@ export class CreateAiProcessor {
    * overall advisory grade. Advisory only — the result never blocks
    * anything, and a failure surfaces to the caller as a normal error.
    * @param request - the evaluation request.
-   * @returns the structured evaluation with its provenance.
+   * @returns the structured evaluation with its origin.
    */
   async evaluate(request: CreateEvaluateRequest): Promise<CreateEvaluation> {
     const text = validateEvaluateRequest(request, this.policy.maxInputChars)

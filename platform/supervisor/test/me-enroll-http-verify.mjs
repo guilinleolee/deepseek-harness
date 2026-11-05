@@ -1,5 +1,5 @@
 /**
- * 个人中心 + 邀请注册（阶段 10）HTTP 集成验证：临时 data/ + 随机端口起真实
+ * 个人中心 + 企业身份开通（阶段 10）HTTP 集成验证：临时 data/ + 随机端口起真实
  * 网关（限流验收用独立第二网关隔离计数桶）。覆盖：
  * 1. /me 访问矩阵：employee 200 且只含本人数据（忽略查询参数）；admin/auditor
  *    同样可用（页顶「返回管理台」）；未认证 401 登录页；/login 直达与按角色跳转；
@@ -7,21 +7,18 @@
  *    member.self_password_change 留痕；成功后旧 JWT 401、新密码可登录；
  * 3. 用量三形态：点数（320/1000）、旧制（120/500 + 旧制标注）、不限额度；
  * 4. 下线所有设备：auth.revoke_all 留痕 + 旧 JWT 401；
- * 5. 邀请全流程：生成（审计不含明文 code）→ 注册页预设渲染 → 注册成功
- *    （角色/部门/实例正确 + tool-policy 下发 + member.register 留痕）→
- *    同 code 二次注册被拒（code_used）→ 撤销被拒 → 过期被拒 → 无效 code；
- * 6. 权限边界：employee 调 invite/create 403；
- * 7. 速率限制：独立网关上同 IP 连续无效注册达阈值即 429（有效邀请也 429）；
- *    注册失败双层分桶——无效码计入 IP 桶（防撞码穷举），有效码计入邀请码
- *    桶（NAT 共享出口不互锁，换码注册不受他人手误影响）；登录限流独立
- *    分桶，连错达阈值后正确密码也 429 且文案可读。
+ * 5. 企业身份开通（邀请码注册已下线）：/register 免登录 200 且只列扫码入口、
+ *    不含邀请码/密码表单；旧注册端点 410 Gone + deny 留痕；管理台邀请码
+ *    端点 404、成员页不再有发码入口；
+ * 6. 权限边界：employee 调 sso/config 403；/me 不含他人用量行；
+ * 7. 登录速率限制：独立网关上连错达阈值后正确密码也 429 且文案可读。
  * 8. 最后登录（console v2 遗留项）：登录成功记 lastLogin（时间+IP，密码/
  *    TOTP/SSO 共用 issueSession 同一记录口），member/list 与成员页
  *    「最后登录」列展示；登录失败文案中文，登录页透传服务端原因（429
  *    锁定/禁用不再被「账号或密码错误」掩盖）；登录/TOTP 跨域 Origin 403。
  *
  * 全程不占用 8460/9400/3181-3183；结束关闭全部服务并清理临时目录。
- * 运行：node test/me-invite-http-verify.mjs
+ * 运行：node test/me-enroll-http-verify.mjs
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -40,7 +37,7 @@ const check = (name, cond) => {
   if (cond === true) { passed += 1; console.log(`  ok  ${name}`) } else { failed += 1; console.error(`FAIL  ${name}`) }
 }
 
-const DATA = mkdtempSync(join(tmpdir(), 'lyz-me-invite-'))
+const DATA = mkdtempSync(join(tmpdir(), 'lyz-me-enroll-'))
 const now = new Date().toISOString()
 const month = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 const account = (id, acc, role, pw, extra = {}) => ({
@@ -173,93 +170,33 @@ try {
   check('auth.revoke_all 留痕（actor=本人）', await waitForAudit((e) => e.action === 'auth.revoke_all' && e.actor?.account === 'member-b@t') !== undefined)
   check('旧 JWT 401', (await get('/me', auditor.cookie)).status === 401)
 
-  /* ── 5. 邀请全流程 ───────────────────────────────────────────────────── */
-  console.log('# 邀请注册全流程')
-  const inv = await post('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02', expiresInHours: 1 }, admin.cookie)
-  const invBody = await inv.json()
-  check('invite/create 200 + 一次性链接', inv.status === 200 && String(invBody.registerUrl ?? '').startsWith('/register?code=inv-'))
-  check('invite.create 留痕且不含明文 code', await waitForAudit((e) => e.action === 'invite.create' && e.result === 'ok' && !JSON.stringify(e.detail ?? {}).includes('inv-')) !== undefined)
-  const code = invBody.registerUrl.split('code=')[1]
-  const regPage = await get(invBody.registerUrl)
+  /* ── 5. 企业身份开通（免邀请码注册）────────────────────────────── */
+  console.log('# 企业身份开通页')
+  const regPage = await get('/register')
   const regPageText = await regPage.text()
-  check('注册页免登录 200 且渲染预设', regPage.status === 200 && regPageText.includes('设计部') && regPageText.includes('成员') && regPageText.includes('邀请有效'))
-  const regOk = await post('/api/register', { code, account: 'newbie@t', displayName: '新员工', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('注册成功 200', regOk.status === 200)
-  const regEvent = await waitForAudit((e) => e.action === 'member.register' && e.result === 'ok' && e.target === 'newbie@t')
-  check('member.register ok 留痕（actor=本人）', regEvent !== undefined && regEvent.actor?.account === 'newbie@t')
-  check('注册审计 detail 无密码字段', regEvent !== undefined && !JSON.stringify(regEvent.detail ?? {}).toLowerCase().includes('password'))
-  const newbie = await login('newbie@t', 'GoodPass123')
-  check('新账号可登录且实例绑定正确', newbie.status === 200 && newbie.body.instance === 'e02')
-  const newbieMe = await (await get('/me', newbie.cookie)).text()
-  check('新账号角色/部门来自邀请预设', newbieMe.includes('设计部') && newbieMe.includes('成员'))
-  check('注册后该实例 tool-policy 已下发（阶段 9 复用）', existsSync(join(DATA, 'homes', 'e02', 'tool-policy.json')))
-  const regAgain = await post('/api/register', { code, account: 'other@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('同 code 二次注册被拒（used）', regAgain.status === 400 && String((await regAgain.json()).error ?? '').includes('已被使用'))
-  check('code_used fail 留痕', await waitForAudit((e) => e.action === 'member.register' && e.result === 'fail' && e.detail?.reason === 'code_used') !== undefined)
-
-  const inv2 = await post('/console/api/invite/create', { department: '设计部', role: 'auditor', instanceId: 'e02' }, admin.cookie)
-  const inv2Body = await inv2.json()
-  const code2 = inv2Body.registerUrl.split('code=')[1]
-  const rvk = await post('/console/api/invite/revoke', { id: inv2Body.id }, admin.cookie)
-  check('invite/revoke 200 + 留痕', rvk.status === 200 && await waitForAudit((e) => e.action === 'invite.revoke' && e.result === 'ok') !== undefined)
-  const regRevoked = await post('/api/register', { code: code2, account: 'other2@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('撤销后注册被拒', regRevoked.status === 400 && String((await regRevoked.json()).error ?? '').includes('撤销'))
-  const dupRevoke = await post('/console/api/invite/revoke', { id: inv2Body.id }, admin.cookie)
-  check('重复撤销 404', dupRevoke.status === 404)
-
-  const expiredCode = 'inv-expired-code-test'
-  const invitesStore = JSON.parse(readFileSync(join(DATA, 'invites.json'), 'utf8'))
-  invitesStore.invites.push({
-    id: 'inv-expired', codeHash: createHash('sha256').update(expiredCode, 'utf8').digest('hex'),
-    department: '设计部', role: 'employee', instanceId: 'e02',
-    expiresAt: new Date(Date.now() - 3_600_000).toISOString(), used: false, createdAt: now,
-  })
-  writeFileSync(join(DATA, 'invites.json'), `${JSON.stringify(invitesStore, null, 2)}\n`)
-  const regExpired = await post('/api/register', { code: expiredCode, account: 'other3@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('过期 code 注册被拒', regExpired.status === 400 && String((await regExpired.json()).error ?? '').includes('已过期'))
-  const regInvalid = await post('/api/register', { code: 'inv-not-a-real-code', account: 'other4@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('无效 code 注册被拒', regInvalid.status === 400 && String((await regInvalid.json()).error ?? '').includes('邀请链接无效'))
-  // P2-2 纵深：手改存储造出的 admin 邀请一律无效（哈希正确也不放行）
-  const adminInviteCode = 'inv-admin-role-code01'
-  invitesStore.invites.push({
-    id: 'inv-admin-role', codeHash: createHash('sha256').update(adminInviteCode, 'utf8').digest('hex'),
-    department: '设计部', role: 'admin', instanceId: 'e02',
-    expiresAt: new Date(Date.now() + 3_600_000).toISOString(), used: false, createdAt: now,
-  })
-  writeFileSync(join(DATA, 'invites.json'), `${JSON.stringify(invitesStore, null, 2)}\n`)
-  const regAdminRole = await post('/api/register', { code: adminInviteCode, account: 'noadmin@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('手改存储的 admin 邀请被拒（纵深）', regAdminRole.status === 400 && String((await regAdminRole.json()).error ?? '').includes('邀请链接无效'))
-  // P2-1 白名单：畸形 code 不经哈希比较直接按无效渲染，payload 不回流页面
-  const xssRegPage = await get('/register?code=%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E')
-  const xssRegText = await xssRegPage.text()
-  check('畸形 code 白名单拒绝且不回流页面', xssRegPage.status === 200 && xssRegText.includes('邀请链接无效') && !xssRegText.includes('<script>alert'))
-  // P1-1 未预期抛错转 500（把 vkeys.json 换成目录 → issueVkey 落盘 rename 必抛，
-  // readStore 的兜底不会吞这种错误），客户端不挂死
-  const inv5 = await post('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin.cookie)
-  const code5 = (await inv5.json()).registerUrl.split('code=')[1]
-  const vkeysPath = join(DATA, 'vkeys.json')
-  const vkeysBackup = readFileSync(vkeysPath, 'utf8')
-  rmSync(vkeysPath)
-  mkdirSync(vkeysPath)
-  const boom = await post('/api/register', { code: code5, account: 'boom@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  const boomBody = await boom.json().catch(() => ({}))
-  check('注册内部抛错转 500 且有响应体（不挂死）', boom.status === 500 && typeof boomBody.error === 'string')
-  check('internal fail 留痕', await waitForAudit((e) => e.action === 'member.register' && e.result === 'fail' && e.detail?.reason === 'internal') !== undefined)
-  rmSync(vkeysPath, { recursive: true, force: true })
-  writeFileSync(vkeysPath, vkeysBackup)
-  const afterFix = await post('/api/register', { code: code5, account: 'boom2@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('抛错的注册未消耗邀请（修复后同 code 可注册）', afterFix.status === 200)
-  const inv4 = await post('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin.cookie)
-  const code4 = (await inv4.json()).registerUrl.split('code=')[1]
-  const weakReg = await post('/api/register', { code: code4, account: 'other5@t', password: 'weak', confirmPassword: 'weak' })
-  check('弱密码注册被拒（策略文案）', weakReg.status === 400 && String((await weakReg.json()).error ?? '').includes('密码'))
-  const regOk2 = await post('/api/register', { code: code4, account: 'other5@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-  check('失败的注册不消耗邀请（同 code 可再注册）', regOk2.status === 200)
+  check('开通页免登录 200', regPage.status === 200)
+  check('开通页说明扫码开通（无邀请码）', regPageText.includes('开通账号') && regPageText.includes('扫码'))
+  check('开通页不含邀请码输入与密码表单', !regPageText.includes('name="code"') && !/type="password"/i.test(regPageText))
+  check('开通页不含 /api/register 表单提交', !/action="\/api\/register"/i.test(regPageText))
+  const regGone = await post('/api/register', { code: 'inv-legacy', account: 'newbie@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
+  check('旧注册端点已下线 410 Gone', regGone.status === 410 && String((await regGone.json()).error ?? '').includes('已停用'))
+  check('旧注册端点调用留痕 deny', await waitForAudit((e) => e.action === 'member.register' && e.result === 'deny' && e.detail?.reason === 'invite_registration_removed') !== undefined)
+  const inviteGone = await post('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin.cookie)
+  check('管理台邀请码端点已移除（404）', inviteGone.status === 404)
+  const membersHtml = await (await get('/console/members', admin.cookie)).text()
+  check('成员页不再有邀请码发码入口', !membersHtml.includes('/console/api/invite/create') && membersHtml.includes('员工自助开通'))
+  const auditHtml = await (await get('/console/audit', admin.cookie)).text()
+  check('安全与审计页含企业身份配置卡（免邀请码开关）', auditHtml.includes('企业身份登录')
+    && auditHtml.includes('/console/api/sso/config') && auditHtml.includes('免邀请码注册'))
+  check('企业身份配置卡含自动开通的默认角色与实例', auditHtml.includes('autoProvision') && auditHtml.includes('autoInstance'))
 
   /* ── 6. 权限边界 ─────────────────────────────────────────────────────── */
   console.log('# 权限边界')
-  check('employee 调 invite/create 403', (await post('/console/api/invite/create', { role: 'employee', instanceId: 'e02' }, newbie.cookie)).status === 403)
-  check('employee /me 不含他人用量行', !(await (await get('/me', newbie.cookie)).text()).includes('points@t'))
+  // 员工账号在第 3 节改过密码（tokenEpoch+1 → 旧会话失效），此处重新登录取新会话。
+  const empFresh = await login('member-a@t', 'NewPass123')
+  check('employee 重新登录 200', empFresh.status === 200)
+  check('employee 调 sso/config 403', (await post('/console/api/sso/config', { provider: 'wecom', enabled: true }, empFresh.cookie)).status === 403)
+  check('employee /me 不含他人用量行', !(await (await get('/me', empFresh.cookie)).text()).includes('points@t'))
 
   /* ── 6b. 最后登录记录与登录失败文案（console v2 遗留项）───────────────── */
   console.log('# 最后登录与登录失败文案')
@@ -291,9 +228,9 @@ try {
   const csrfTotp = await fetch(`${base}/api/auth/totp`, { method: 'POST', headers: { ...JSON_HEAD, origin: 'https://evil.example' }, body: JSON.stringify({ account: 'noquota@t', code: '000000' }) })
   check('跨域 Origin TOTP 403', csrfTotp.status === 403)
 
-  /* ── 7. 速率限制（独立网关隔离计数桶）────────────────────────────────── */
-  console.log('# 注册速率限制')
-  const DATA2 = mkdtempSync(join(tmpdir(), 'lyz-me-invite-rate-'))
+  /* ── 7. 登录速率限制（独立网关隔离计数桶）────────────────────────── */
+  console.log('# 登录速率限制')
+  const DATA2 = mkdtempSync(join(tmpdir(), 'lyz-me-enroll-rate-'))
   writeFileSync(join(DATA2, 'accounts.json'), `${JSON.stringify({ accounts: [adminRec] }, null, 2)}\n`)
   writeFileSync(join(DATA2, 'security.json'), `${JSON.stringify({ loginWindowMinutes: 15, loginMaxFails: 3, lockoutMinutes: 15, passwordMinLength: 8, passwordMinClasses: 3 })}\n`)
   initAudit(DATA2)
@@ -302,35 +239,6 @@ try {
   try {
     const base2 = `http://127.0.0.1:${gateway2.address().port}`
     const post2 = (path, body, cookie) => fetch(`${base2}${path}`, { method: 'POST', headers: cookie ? { ...JSON_HEAD, cookie } : JSON_HEAD, body: JSON.stringify(body ?? {}) })
-    const admin2 = await (async () => {
-      const res = await post2('/api/auth/login', { account: 'admin@t', password: 'AdminPass1' })
-      return res.headers.getSetCookie()[0]?.split(';')[0]
-    })()
-    const inv3 = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
-    const code3 = (await inv3.json()).registerUrl.split('code=')[1]
-    // 每邀请独立桶（NAT 共享出口不互锁）：同一 IP 上 A 邀请码的手误只锁 A。
-    const invTypo = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
-    const codeTypo = (await invTypo.json()).registerUrl.split('code=')[1]
-    const invOffice = await post2('/console/api/invite/create', { department: '设计部', role: 'employee', instanceId: 'e02' }, admin2)
-    const codeOffice = (await invOffice.json()).registerUrl.split('code=')[1]
-    for (let i = 0; i < 3; i++) {
-      const typo = await post2('/api/register', { code: codeTypo, account: `typo${i}@t`, password: 'weak', confirmPassword: 'weak' })
-      check(`同码弱密码 #${i + 1} 400`, typo.status === 400)
-    }
-    const typoLocked = await post2('/api/register', { code: codeTypo, account: 'typo-ok@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-    check('第 4 次同码注册 429（邀请码桶锁定）', typoLocked.status === 429)
-    const natOffice = await post2('/api/register', { code: codeOffice, account: 'office@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-    check('同 IP 换邀请码不受影响（NAT 不互锁）', natOffice.status === 200)
-    for (let i = 0; i < 3; i++) {
-      const bad = await post2('/api/register', { code: 'inv-wrong', account: `x${i}@t`, password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-      check(`无效注册 #${i + 1} 400`, bad.status === 400)
-    }
-    const locked = await post2('/api/register', { code: 'inv-wrong', account: 'x9@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-    check('第 4 次无效注册 429 限流', locked.status === 429)
-    check('rate_limited deny 留痕', await waitForAudit((e) => e.action === 'member.register' && e.result === 'deny' && e.detail?.reason === 'rate_limited') !== undefined)
-    const validButLocked = await post2('/api/register', { code: code3, account: 'lucky@t', password: 'GoodPass123', confirmPassword: 'GoodPass123' })
-    check('限流期间有效邀请也被拒（429 先于 code 校验）', validButLocked.status === 429)
-    // 登录限流与注册限流分桶：同一账号连错 3 次密码后，正确密码也 429 且文案可读。
     for (let i = 0; i < 3; i++) {
       const bad = await post2('/api/auth/login', { account: 'admin@t', password: 'WrongPass1' })
       check(`登录错密 #${i + 1} 401`, bad.status === 401)
@@ -345,6 +253,7 @@ try {
     gateway2.closeAllConnections?.()
     rmSync(DATA2, { recursive: true, force: true })
   }
+
 } finally {
   gateway.close()
   gateway.closeAllConnections?.()

@@ -43,7 +43,7 @@ export const ROLE_LABELS = { admin: '管理员', auditor: '审计员', employee:
  * 第三方登录提供方标签。本模块不 import sso.mjs（避免循环依赖与耦合），
  * 只维护一份展示用的标签表；未知 provider 会被过滤掉，不生成按钮。
  */
-export const SSO_PROVIDER_LABELS = { wecom: '企业微信', dingtalk: '钉钉' }
+export const SSO_PROVIDER_LABELS = { wecom: '企业微信', dingtalk: '钉钉', casdoor: 'Casdoor' }
 
 /* ── 转义与脱敏工具 ────────────────────────────────────────────────────── */
 

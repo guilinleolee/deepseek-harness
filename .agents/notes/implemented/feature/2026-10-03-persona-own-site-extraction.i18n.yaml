@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-03-persona-own-site-extraction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-03-persona-own-site-extraction.md
-2026-10-03-persona-own-site-extraction.md: 3677ec2557458585211660e801c3717e49a1308f
-2026-10-03-persona-own-site-extraction.zh.md: f2ce83e0bf5eb3594b56a12f5de57609bcfcda1e
+/agent-note-the-persona-wizard-s-step-1-gains-the-own-site-evidence-block-the-wizard-fetches-the-user-s-blog-or-company-website-and-extracts-persona-fields-from-it:
+  en: 48d4ed44798c2c5d
+  zh: 6471172ecb2fe338
+/agent-note-the-persona-wizard-s-step-1-gains-the-own-site-evidence-block-the-wizard-fetches-the-user-s-blog-or-company-website-and-extracts-persona-fields-from-it/problem:
+  en: a414e9a0430c00c7
+  zh: 1e26982176c9b74e
+/agent-note-the-persona-wizard-s-step-1-gains-the-own-site-evidence-block-the-wizard-fetches-the-user-s-blog-or-company-website-and-extracts-persona-fields-from-it/decision:
+  en: 2027c31df4c8f9a0
+  zh: bdb6e52785980ce5
+/agent-note-the-persona-wizard-s-step-1-gains-the-own-site-evidence-block-the-wizard-fetches-the-user-s-blog-or-company-website-and-extracts-persona-fields-from-it/alternatives-considered:
+  en: 3c3f3dbd550e2c09
+  zh: 43bd4946233b8f33
+/agent-note-the-persona-wizard-s-step-1-gains-the-own-site-evidence-block-the-wizard-fetches-the-user-s-blog-or-company-website-and-extracts-persona-fields-from-it/consequences:
+  en: 36d519361ac1f234
+  zh: d9ee650e5f29ce10

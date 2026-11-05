@@ -1,6 +1,6 @@
 /**
  * The packed persona prompt (`persona-prompt@1`): deterministic rendering,
- * provenance marks, hard-constraint sections, and empty-line drops.
+ * origin marks, hard-constraint sections, and empty-line drops.
  */
 import { describe, expect, it } from 'vitest'
 import type { PersonaEntry, PersonaField, PersonaFieldKey } from '@deepseek-ai/dsh-content-outputs/types'
@@ -33,7 +33,7 @@ const base = {
 } as const
 
 describe('renderPersonaPrompt', () => {
-  it('renders the packed prompt with provenance marks and hard constraints', () => {
+  it('renders the packed prompt with origin marks and hard constraints', () => {
     const prompt = renderPersonaPrompt(base)
     expect(prompt).toContain('【账号人设 · 老李（v3）】')
     expect(prompt).toContain('身份/背景：前大厂工程师')

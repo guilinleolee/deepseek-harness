@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-06-customer-acquisition-p4-dashboard.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-06-customer-acquisition-p4-dashboard.md
-2026-10-06-customer-acquisition-p4-dashboard.md: 2fec3f94be8aa076b7d07072ff0a592ced41285c
-2026-10-06-customer-acquisition-p4-dashboard.zh.md: b278b64cc77d681b084b2a52f7b89c284032087c
+/agent-note-customer-acquisition-p4-the-data-dashboard-and-the-eight-page-workbench:
+  en: d7206d9e293a0816
+  zh: 14f780b55ca46ea6
+/agent-note-customer-acquisition-p4-the-data-dashboard-and-the-eight-page-workbench/problem:
+  en: 65cdac279b71d70f
+  zh: 7bd75599ca6873a0
+/agent-note-customer-acquisition-p4-the-data-dashboard-and-the-eight-page-workbench/decision:
+  en: 1835527246659ae1
+  zh: 37ca23cda056b78a
+/agent-note-customer-acquisition-p4-the-data-dashboard-and-the-eight-page-workbench/alternatives-considered:
+  en: 684b2ba54d929c71
+  zh: 2d6a64f92b322a6b
+/agent-note-customer-acquisition-p4-the-data-dashboard-and-the-eight-page-workbench/consequences:
+  en: 3689a81cb1760f4d
+  zh: 04914fab10556e72

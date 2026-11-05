@@ -12,16 +12,17 @@ kind: "package-bundle"
 
 ## 目录
 
-- [安装](#安装)
-- [配置](#配置)
-- [架构](#架构)
-- [合规门禁（红线）](#合规门禁红线)
-- [工具](#工具)
-- [会话事件](#会话事件)
+- [安装](#installation)
+- [配置](#configuration)
+- [架构](#architecture)
+- [合规门禁（红线）](#compliance-gate-red-lines)
+- [工具](#tools)
+- [会话事件](#session-events)
 - [开发备注](#dev-note)
 
 -----
 
+<a id="installation"></a>
 ## 安装
 
 ```sh
@@ -30,6 +31,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 
 补丁会同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-quant-research` 面板——一条命令安装完整功能。内核要求宿主机有 Python 3 解释器（见 `kernelCommand`）；phase-1 数据源走 synthetic，完全离线可用。
 
+<a id="configuration"></a>
 ## 配置
 
 所有字段均可选，写在 bundle 行的 `config:` 下；非法值在插件加载时直接失败。
@@ -43,10 +45,12 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 
 API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由内核经 credentials 能力解析，内核继承的是脱敏后的父环境。
 
+<a id="architecture"></a>
 ## 架构
 
 模块名对应研究流水线：`src/pdat`（数据接入与熔断器）、`src/paat`（指标）、`src/pcpt`（回测驱动），另有 `src/kernel-client`（子进程协议）。TypeScript 侧校验全部参数、持有熔断状态机，并在本侧确定性实现 phase-1 指标，保证会话重放看到完全相同的数值；Python 内核（`kernel-py/`）负责 synthetic/akshare 行情，并把回测实现为"以传入 K 线为输入的纯函数"。线上协议是换行分隔 JSON，每个请求使用全新关联 id；一次请求拉起一个进程，所有退出路径——包括协作式 `exec.signal` 截止——都收敛到 subprocess 缝的 terminate 阶梯。没有自研强杀逻辑，也没有常驻子进程。
 
+<a id="compliance-gate-red-lines"></a>
 ## 合规门禁（红线）
 
 一个 `tools/pre-execute` 监听器对每个 `quant_*` 调用执行红线检查，其余调用经 `next()` 放行：
@@ -57,6 +61,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 每条红线至少有一条非法路径单测，无钥快照在真实组合中驱动了一次真实拒绝。
 
+<a id="tools"></a>
 ## 工具
 
 | 名称 | 作用 |
@@ -67,6 +72,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
+<a id="session-events"></a>
 ## 会话事件
 
 `quant/kernel-fault` 在内核客户端完成分类的瞬间，把一次内核平面故障（拉起失败、崩溃、超时、协议违例）记录为 log-only 诊断事件；它不进入模型请求，友好失败信息由工具结果承载。仓内事件词表经生成的持久化目录登记；`ignorable` 信封标记保留给出仓插件。

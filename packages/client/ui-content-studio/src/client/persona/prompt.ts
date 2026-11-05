@@ -28,7 +28,7 @@ export interface PersonaPromptSource {
 }
 
 /**
- * Render one persona field value with its provenance: empty values become
+ * Render one persona field value with its origin: empty values become
  * `null` (the line drops), AI-sourced values carry the inference annotation.
  * @param field - the stored or drafted field.
  * @returns the prompt text for the value, or null when the field is empty.

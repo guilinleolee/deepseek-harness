@@ -22,7 +22,7 @@ import { addModel, issueVkey, listUpstreams, listVkeys, monthKey, removeModel, r
 import { writeVkeyToHome } from './credentials.mjs'
 import { pluginCatalog } from './plugins-gov.mjs'
 import { auditAppend, auditQuery, clientIp } from './audit.mjs'
-import { loadSsoConfig, saveSsoConfig, SSO_PROVIDERS } from './sso.mjs'
+import { loadSsoConfig, saveSsoConfig, SSO_PROVIDERS, PROVIDER_FIELDS } from './sso.mjs'
 import { checkPasswordPolicy, createLoginRateGuard, generatePassword, loadSecurityConfig, saveSecurityConfig } from './security.mjs'
 import { fmtPoints, initQuotas, loadRatios, resolveRatios, setGroupRatio, setModelRatio } from './quotas.mjs'
 import { approveForRole, denyForRole, loadToolPolicy, saveToolPolicy, syncAllHomes, syncInstanceHome, TOOL_GROUPS } from './toolpolicy.mjs'
@@ -1217,16 +1217,19 @@ function auditPage({ dataDir, query, role, manifest }) {
   const ssoPanels = Object.entries(SSO_PROVIDERS).map(([id, meta]) => {
     const c = ssoConfig[id] ?? {}
     const label = meta.label
-    const idField = id === 'wecom' ? 'corpId' : 'appKey'
-    const idLabel = id === 'wecom' ? '企业 ID（corpId）' : '应用 Key（appKey）'
-    const secretLabel = id === 'wecom' ? '应用密钥（secret）' : '应用密钥（appSecret）'
+    // 字段名按 provider 取自共享差异表（sso.mjs PROVIDER_FIELDS）——不再写死
+    // 「非企业微信一律 appKey」：第三个 provider 会被静默渲染成错误字段。
+    const fields = PROVIDER_FIELDS[id]
+    const idField = fields.idField
+    const idLabel = fields.idLabel
+    const secretLabel = fields.secretLabel
     const disabled = isAdmin ? '' : 'disabled'
     return `<h2 class="sect">企业身份登录 · ${esc(label)}</h2>
 <form class="panel" onsubmit="saveSso(event,'${esc(id)}')" style="padding:1rem">
 <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:end">
 <div><label style="margin:0 0 .4rem"><input type="checkbox" name="enabled" ${c.enabled ? 'checked' : ''} ${disabled}> 启用${esc(label)}登录</label></div>
 <div><div class="flabel">${esc(idLabel)}</div><input name="${idField}" value="${esc(c[idField] ?? '')}" ${disabled}></div>
-${id === 'wecom' ? `<div><div class="flabel">AgentId（可选）</div><input name="agentId" value="${esc(c.agentId ?? '')}" ${disabled}></div>` : ''}
+${fields.extraIdField === undefined ? '' : `<div><div class="flabel">${esc(fields.extraIdLabel)}</div><input name="${esc(fields.extraIdField)}" value="${esc(c[fields.extraIdField] ?? '')}" ${disabled}></div>`}
 <div><div class="flabel">回调地址（redirectUri）</div><input name="redirectUri" value="${esc(c.redirectUri ?? '')}" ${disabled} placeholder="https://…/api/auth/sso/${esc(id)}/callback"></div>
 <div><div class="flabel">${esc(secretLabel)}（留空 = 不改；已保存${c.secretEnc !== '' ? '：是' : '：否'}）</div><input name="secret" type="password" placeholder="••••••" ${disabled}></div>
 </div>
@@ -1343,6 +1346,7 @@ async function saveSso(ev,provider){ev.preventDefault();
    autoRole:f.get("autoRole"),autoDepartment:f.get("autoDepartment"),autoInstance:f.get("autoInstance"),
    redirectUri:f.get("redirectUri")};
   if(provider==="wecom"){payload.corpId=f.get("corpId");payload.agentId=f.get("agentId");var sv=f.get("secret");if(sv)payload.secret=sv;}
+  else if(provider==="casdoor"){payload.clientId=f.get("clientId");var sv3=f.get("secret");if(sv3)payload.secret=sv3;}
   else{payload.appKey=f.get("appKey");var sv2=f.get("secret");if(sv2)payload.appSecret=sv2;}
   var r=await fetch("/console/api/sso/config",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
   var t=await r.text();document.getElementById("out").textContent="HTTP "+r.status+" "+t;
@@ -1650,12 +1654,22 @@ async function handleApi({ req, res, path, body: rawBody, dataDir, manifest, act
         // 响应与审计只回标量元数据，绝不回显密钥。
         const provider = typeof body.provider === 'string' ? body.provider : ''
         if (!(provider in SSO_PROVIDERS)) { fail(400, `未知 SSO provider: ${provider}`); return }
-        const patch = { enabled: body.enabled === true }
-        for (const key of ['corpId', 'appKey', 'agentId', 'redirectUri', 'autoRole', 'autoDepartment', 'autoInstance']) {
+        // enabled 用「缺省不改」语义：以前写死 `enabled: body.enabled === true`，
+        // 于是任何**部分更新**（例如只改 organization）都会把 provider 悄悄关掉，
+        // 表现为登录页按钮消失。改成 body.enabled 缺席时保持原值。
+        const patch = {}
+        if (body.enabled !== undefined) patch.enabled = body.enabled === true
+        // 身份标识字段按 provider 取（corpId / appKey / clientId…），其余通用项放行。
+        const providerFields = PROVIDER_FIELDS[provider]
+        const idFields = providerFields.extraIdField === undefined
+          ? [providerFields.idField]
+          : [providerFields.idField, providerFields.extraIdField]
+        for (const key of [...idFields, 'redirectUri', 'autoRole', 'autoDepartment', 'autoInstance', 'organization']) {
           if (body[key] !== undefined) patch[key] = body[key]
         }
         patch.autoProvision = body.autoProvision === true
-        const secretField = provider === 'wecom' ? 'secret' : 'appSecret'
+        // 明文字段名按 provider（企业微信/Casdoor 叫 secret，钉钉叫 appSecret）。
+        const secretField = providerFields.secretField
         if (typeof body[secretField] === 'string' && body[secretField] !== '') patch[secretField] = body[secretField]
         let next
         try {

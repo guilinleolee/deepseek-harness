@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-kabage-relay-virtual-key.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-kabage-relay-virtual-key.md
+/agent-note-relay-openai-key:
+  en: ef56b1e7b1f7a3d8
+  zh: a4fd94ea92a362fa
+/agent-note-relay-openai-key/problem:
+  en: 3dc32505b92ddb28
+  zh: 8edebc7a1fc3b3c8
+/agent-note-relay-openai-key/decision:
+  en: 01ce91939acd38f5
+  zh: 7ed6df0ad1500666
+/agent-note-relay-openai-key/alternatives-considered:
+  en: dc5b9ecdac1914d8
+  zh: af1201c62519bb12
+/agent-note-relay-openai-key/consequences:
+  en: e5b7e829400b8864
+  zh: 90efba8d55eb788d

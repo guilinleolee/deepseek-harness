@@ -598,7 +598,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * with backoff; nothing is persisted here. Charges the daily generation
    * budget per variant; `count: 3` additionally requires the paid tier.
    * @param request - the creation context, content type, and variant count.
-   * @returns the draft text, the split variants when batched, and provenance.
+   * @returns the draft text, the split variants when batched, and origin.
    */
   @Remote('generateCreateContent')
   async generateCreateContent(request: CreateGenerateRequest): Promise<CreateAiResult> {
@@ -614,7 +614,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * Explicit per call, queued one at a time, rate limits retried with
    * backoff; nothing is persisted here. Charges the daily rewrite budget.
    * @param request - the operation and the selection text.
-   * @returns the rewritten text with its provenance.
+   * @returns the rewritten text with its origin.
    */
   @Remote('rewriteCreateSelection')
   async rewriteCreateSelection(request: CreateRewriteRequest): Promise<CreateAiResult> {
@@ -661,7 +661,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * rate limits retried with backoff; nothing is persisted here. A
    * paid-tier feature — the advisory result never blocks anything.
    * @param request - the content type, title, and draft text.
-   * @returns the structured evaluation with its provenance.
+   * @returns the structured evaluation with its origin.
    */
   @Remote('evaluateCreateContent')
   async evaluateCreateContent(request: CreateEvaluateRequest): Promise<CreateEvaluation> {
@@ -733,7 +733,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * the result and writes adopted values back through the persona faces.
    * @param request - the operation and its input.
    * @returns the candidate fields or report, with the prompt version for
-   *   provenance stamping.
+   *   origin stamping.
    */
   @Remote('processPersonaAi')
   async processPersonaAi(request: PersonaAiRequest): Promise<PersonaAiResult> {
@@ -1085,7 +1085,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * backoff; nothing is persisted here — the caller writes the result back
    * as a derived draft. Charges the daily generation budget.
    * @param request - the adaptation request.
-   * @returns the structured result with its provenance.
+   * @returns the structured result with its origin.
    */
   @Remote('adaptPublishContent')
   async adaptPublishContent(request: PublishAdaptRequest): Promise<PublishAdaptResult> {
@@ -1331,7 +1331,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * persisted here.
    * @param request - the diagnosis request; the caller assembles the draft
    *   excerpt and its truncation.
-   * @returns the markdown diagnosis with its provenance.
+   * @returns the markdown diagnosis with its origin.
    */
   @Remote('analyzeReviewWork')
   async analyzeReviewWork(request: ReviewAnalyzeWorkRequest): Promise<ReviewAiResult> {
@@ -1345,7 +1345,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * backoff; nothing is persisted here — the caller stores the markdown and
    * renders its own data-only fallback on failure.
    * @param request - the report request.
-   * @returns the markdown report with its provenance.
+   * @returns the markdown report with its origin.
    */
   @Remote('generateReviewReport')
   async generateReviewReport(request: ReviewGenerateReportRequest): Promise<ReviewAiResult> {
@@ -1409,7 +1409,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * loses to the persona on conflict. Explicit per call, queued one at a
    * time, rate limits retried with backoff; charges one daily generation.
    * @param request - the thread, tone, persona facts, and template skeleton.
-   * @returns the drafts with their provenance.
+   * @returns the drafts with their origin.
    */
   @Remote('generateInteractionReply')
   async generateInteractionReply(request: InteractionReplyRequest): Promise<InteractionReplyResult> {
@@ -1423,7 +1423,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * one daily generation per fifty messages. A garbled batch degrades to
    * unknowns rather than failing the caller's loop.
    * @param request - at most fifty messages.
-   * @returns the sanitized entries with their provenance.
+   * @returns the sanitized entries with their origin.
    */
   @Remote('classifyInteractions')
   async classifyInteractions(request: InteractionClassifyRequest): Promise<InteractionClassifyResult> {
@@ -1437,7 +1437,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * generation per batch. A garbled batch reads as empty — the caller's
    * merge records it and keeps going.
    * @param request - at most two hundred messages.
-   * @returns the sanitized batch with its provenance.
+   * @returns the sanitized batch with its origin.
    */
   @Remote('extractInteractionInsights')
   async extractInteractionInsights(request: InteractionInsightRequest): Promise<InteractionInsightResult> {

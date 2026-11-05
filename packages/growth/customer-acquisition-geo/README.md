@@ -46,7 +46,7 @@ One `tools/pre-execute` gate plus the crawler enforce the fetch red lines regard
 
 #### What the model sees
 
-Four tools joined to prompt assembly while the plugin loads; the scan render is the full Markdown report, history renders one line per scan, compare renders its summary. Scan timeouts surface as friendly Chinese tool errors.
+Four tools — `customer_acquisition_geo_scan`, `customer_acquisition_geo_history`, `customer_acquisition_geo_report_get`, and `customer_acquisition_geo_compare` — join to prompt assembly while the plugin loads; the scan render is the full Markdown report, history renders one line per scan, compare renders its summary. Scan timeouts surface as friendly Chinese tool errors.
 
 #### Token effect
 

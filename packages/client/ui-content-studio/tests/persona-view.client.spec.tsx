@@ -159,7 +159,7 @@ describe('the card list', () => {
     expect(screen.queryByText('in use')).toBeNull()
   })
 
-  it('toggles the structured preview panel with provenance badges', async () => {
+  it('toggles the structured preview panel with origin badges', async () => {
     renderView()
     await waitFor(() => { expect(screen.getByText('老李')).toBeTruthy() })
     fireEvent.click(screen.getByText('Preview'))
