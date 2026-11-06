@@ -39,8 +39,8 @@ function stagedLintFiles(): string[] {
   }
   return (result.stdout ?? '')
     .split('\0')
-    .filter((f) => f !== '' && LINTED_EXTENSIONS.has(f.slice(f.lastIndexOf('.'))))
-    .filter((f) => !f.startsWith('vendor/') || !/^vendor\/[^/]+\/src\//.test(f))
+    .filter(f => f !== '' && LINTED_EXTENSIONS.has(f.slice(f.lastIndexOf('.'))))
+    .filter(f => !f.startsWith('vendor/') || !/^vendor\/[^/]+\/src\//.test(f))
 }
 
 /**
@@ -77,11 +77,13 @@ function main(): void {
   for (let i = 0; i < files.length; i += CHUNK_SIZE) {
     if (!runChunk(files.slice(i, i + CHUNK_SIZE), passArgs)) clean = false
   }
+  // A fixing run exits 0 even when it rewrote files, so re-stage whenever
+  // --fix is in play; the commit must carry the applied fixes.
+  if (passArgs.includes('--fix')) restage(files)
   if (clean) {
     console.log(`run-oxlint-staged: ${files.length} staged file(s) lint clean.`)
     return
   }
-  if (passArgs.includes('--fix')) restage(files)
   process.exitCode = 1
 }
 
