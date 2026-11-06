@@ -8,6 +8,7 @@
  */
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** Operator identity: the local default user, or a platform-injected account id. */
 export type UserId = Branded<'UserId'>
@@ -78,5 +79,5 @@ export function AuditLogId(id: string): AuditLogId { return id as AuditLogId }
  * @returns a fresh random UUID carrying the brand.
  */
 export function newId<B extends string>(): Branded<B> {
-  return crypto.randomUUID() as Branded<B>
+  return randomUUID() as Branded<B>
 }

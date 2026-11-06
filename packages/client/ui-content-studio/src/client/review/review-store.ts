@@ -21,6 +21,7 @@ import {
   aggregateSummary, dataOnlyReport, DIAGNOSE_DRAFT_CHARS, isLongtail, poolSnapshots,
   rankWorks, selectDigests, verdictOf, type WorkVerdict,
 } from './model.ts'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** Browser-local storage key of the session filter set. */
 const FILTERS_KEY = 'dsh-content-studio.review.filters'
@@ -369,7 +370,7 @@ export function createReviewController(gateway: ReviewGateway, topics: ReviewTop
       }
       const manifest = requireManifest()
       const session = loadFilters(new Date())
-      const taskId = crypto.randomUUID()
+      const taskId = randomUUID()
       const task: ReviewTask = {
         taskId,
         name,

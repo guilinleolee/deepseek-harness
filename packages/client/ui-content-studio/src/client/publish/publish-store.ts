@@ -20,6 +20,7 @@ import {
   dueScheduledTasks, manuscriptCards, platformProfileOf, withAttempt, withPlatform,
   withStatus,
 } from './model.ts'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** The injected server face: the publish half of the content-outputs Remote. */
 export interface PublishGateway {
@@ -276,7 +277,7 @@ export function createPublishController(deps: PublishControllerDeps): PublishCon
         return
       }
       const now = new Date().toISOString()
-      const taskId = crypto.randomUUID()
+      const taskId = randomUUID()
       const task: PublishTask = {
         taskId,
         title: input.manuscript.title,
@@ -418,7 +419,7 @@ export function createPublishController(deps: PublishControllerDeps): PublishCon
       try {
         // The task owns its calendar projection: reuse the linked entry's id so
         // a reschedule upserts in place instead of orphaning the previous entry.
-        const scheduleItemId = (task.scheduleItemId ?? crypto.randomUUID()) as ScheduleItemId
+        const scheduleItemId = (task.scheduleItemId ?? randomUUID()) as ScheduleItemId
         const snapshot = await schedule.put({
           id: scheduleItemId,
           title: task.title,
@@ -478,7 +479,7 @@ export function createPublishController(deps: PublishControllerDeps): PublishCon
       const now = new Date().toISOString()
       const fresh: PublishTask = {
         ...task,
-        taskId: crypto.randomUUID(),
+        taskId: randomUUID(),
         mode: 'immediate',
         scheduledAt: null,
         scheduleItemId: null,

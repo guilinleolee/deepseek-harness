@@ -27,10 +27,11 @@ export function spearman(xs: readonly number[], ys: readonly number[]): number |
     const ranks = new Array<number>(values.length)
     let start = 0
     while (start < indexed.length) {
+      const startValue = indexed[start]?.value
       let end = start
-      while (end < indexed.length - 1 && (indexed[end + 1] as { value: number }).value === (indexed[start] as { value: number }).value) end++
+      while (end + 1 < indexed.length && indexed[end + 1]?.value === startValue) end += 1
       const avg = (start + end) / 2 + 1
-      for (let j = start; j <= end; j++) ranks[(indexed[j] as { index: number }).index] = avg
+      for (const { index } of indexed.slice(start, end + 1)) ranks[index] = avg
       start = end + 1
     }
     return ranks

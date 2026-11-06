@@ -63,10 +63,11 @@ export function downsampleEquity(
   const points: { date: string; value: number }[] = []
   for (let index = 0; index < EQUITY_SNAPSHOT_MAX_POINTS - 1; index += 1) {
     const pick = Math.min(last - 1, Math.round(index * stride))
-    points.push({ date: equity[pick]!.date, value: equity[pick]!.value })
+    const point = equity[pick]
+    if (point !== undefined) points.push({ date: point.date, value: point.value })
   }
-  const finalPoint = equity[last]!
-  points.push({ date: finalPoint.date, value: finalPoint.value })
+  const finalPoint = equity.at(-1)
+  if (finalPoint !== undefined) points.push({ date: finalPoint.date, value: finalPoint.value })
   return points
 }
 

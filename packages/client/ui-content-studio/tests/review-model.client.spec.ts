@@ -9,6 +9,7 @@ import {
   DEFAULT_BASELINES as GATEWAY_BASELINES, REVIEW_PLATFORMS as GATEWAY_PLATFORMS,
   REVIEW_WORK_FILTERS as GATEWAY_WORK_FILTERS,
 } from '@deepseek-ai/dsh-content-outputs/types'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 const BASELINES: ReviewBaselines = {
   engagementRate: 0.05, collectRate: 0.02, source: 'user', updatedAt: '2026-09-20T00:00:00.000Z',
@@ -34,7 +35,7 @@ function metrics(overrides: Partial<MetricSnapshot['metrics']> = {}): MetricSnap
 /** One valid snapshot, overridden per test. */
 function snapshot(overrides: Partial<MetricSnapshot> = {}): MetricSnapshot {
   return {
-    snapshotId: crypto.randomUUID(),
+    snapshotId: randomUUID(),
     platformId: 'xhs',
     platformWorkId: 'work-1',
     title: '第一篇',
@@ -74,14 +75,14 @@ describe('isLongtail', () => {
     expect(isLongtail([snapshot()], now)).toBe(false)
     expect(isLongtail([
       snapshot({ publishedAt: '2026-09-20T00:00:00.000Z' }),
-      snapshot({ snapshotId: crypto.randomUUID(), capturedAt: '2026-09-26T00:00:00.000Z' }),
+      snapshot({ snapshotId: randomUUID(), capturedAt: '2026-09-26T00:00:00.000Z' }),
     ], now)).toBe(false)
   })
 
   it('accepts a still-growing old work whose recent pace holds a fifth of lifetime', () => {
     const longtail = isLongtail([
       snapshot({ capturedAt: '2026-09-01T00:00:00.000Z', metrics: metrics({ likes: 100, collects: 0, comments: 0, shares: 0 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), capturedAt: '2026-09-27T00:00:00.000Z', metrics: metrics({ likes: 260, collects: 0, comments: 0, shares: 0 }) }),
+      snapshot({ snapshotId: randomUUID(), capturedAt: '2026-09-27T00:00:00.000Z', metrics: metrics({ likes: 260, collects: 0, comments: 0, shares: 0 }) }),
     ], now)
     // Lifetime pace: 160 interactions / 26 days ≈ 6.15/day; last 7 days:
     // 160 / 7 ≈ 22.9/day — far above a fifth of the pace.
@@ -91,7 +92,7 @@ describe('isLongtail', () => {
   it('rejects works whose growth has stopped', () => {
     expect(isLongtail([
       snapshot({ capturedAt: '2026-09-01T00:00:00.000Z', metrics: metrics({ likes: 100 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), capturedAt: '2026-09-27T00:00:00.000Z', metrics: metrics({ likes: 100 }) }),
+      snapshot({ snapshotId: randomUUID(), capturedAt: '2026-09-27T00:00:00.000Z', metrics: metrics({ likes: 100 }) }),
     ], now)).toBe(false)
   })
 })
@@ -101,8 +102,8 @@ describe('poolSnapshots', () => {
     const pooled = poolSnapshots({
       snapshots: [
         snapshot(),
-        snapshot({ snapshotId: crypto.randomUUID(), contentId: null }),
-        snapshot({ snapshotId: crypto.randomUUID(), capturedAt: '2026-08-01T00:00:00.000Z' }),
+        snapshot({ snapshotId: randomUUID(), contentId: null }),
+        snapshot({ snapshotId: randomUUID(), capturedAt: '2026-08-01T00:00:00.000Z' }),
       ],
     }, { platforms: [], contentTypes: [], workFilter: 'all' }, { from: '2026-09-15', to: '2026-09-27' }, BASELINES)
     expect(pooled).toHaveLength(1)
@@ -111,8 +112,8 @@ describe('poolSnapshots', () => {
   it('filters by platform, form, and the verdict slice', () => {
     const snapshots = [
       snapshot({ metrics: metrics({ likes: 200 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), platformId: 'douyin' as const }),
-      snapshot({ snapshotId: crypto.randomUUID(), contentType: 'video' as const }),
+      snapshot({ snapshotId: randomUUID(), platformId: 'douyin' as const }),
+      snapshot({ snapshotId: randomUUID(), contentType: 'video' as const }),
     ]
     const byPlatform = poolSnapshots({ snapshots }, { platforms: ['douyin'], contentTypes: [], workFilter: 'all' }, { from: '2026-09-01', to: '2026-09-27' }, BASELINES)
     expect(byPlatform).toHaveLength(1)
@@ -126,8 +127,8 @@ describe('aggregateSummary', () => {
     const now = new Date('2026-09-27T00:00:00.000Z')
     const summary = aggregateSummary([
       snapshot({ metrics: metrics({ impressions: 100, likes: 200 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), platformWorkId: 'w2', platformId: 'douyin', metrics: metrics({ impressions: 900 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), platformWorkId: 'w1' }),
+      snapshot({ snapshotId: randomUUID(), platformWorkId: 'w2', platformId: 'douyin', metrics: metrics({ impressions: 900 }) }),
+      snapshot({ snapshotId: randomUUID(), platformWorkId: 'w1' }),
     ], BASELINES, now)
     expect(summary.totalWorks).toBe(3)
     expect(summary.viralCount).toBe(1)
@@ -141,9 +142,9 @@ describe('rankWorks / selectDigests', () => {
   it('ranks by engagement rate and keeps the latest snapshot per work', () => {
     const ranked = rankWorks([
       snapshot({ metrics: metrics({ likes: 200 }) }),
-      snapshot({ snapshotId: crypto.randomUUID(), platformWorkId: 'w2', metrics: metrics({ likes: 10, collects: 0, comments: 0, shares: 0 }) }),
+      snapshot({ snapshotId: randomUUID(), platformWorkId: 'w2', metrics: metrics({ likes: 10, collects: 0, comments: 0, shares: 0 }) }),
       // Same work as the first: the newer snapshot replaces it in the rank.
-      snapshot({ snapshotId: crypto.randomUUID(), platformWorkId: 'work-1', capturedAt: '2026-09-21T00:00:00.000Z', metrics: metrics({ likes: 999 }) }),
+      snapshot({ snapshotId: randomUUID(), platformWorkId: 'work-1', capturedAt: '2026-09-21T00:00:00.000Z', metrics: metrics({ likes: 999 }) }),
     ])
     expect(ranked[0]?.platformWorkId).toBe('work-1')
     expect(ranked).toHaveLength(2)
@@ -152,7 +153,7 @@ describe('rankWorks / selectDigests', () => {
   it('selects top/bottom digests with 500-char excerpts', () => {
     const ranked = rankWorks([
       snapshot({ metrics: metrics() }),
-      snapshot({ snapshotId: crypto.randomUUID(), platformWorkId: 'w2', title: '第二篇', metrics: metrics({ likes: 1, collects: 0, comments: 0, shares: 0 }) }),
+      snapshot({ snapshotId: randomUUID(), platformWorkId: 'w2', title: '第二篇', metrics: metrics({ likes: 1, collects: 0, comments: 0, shares: 0 }) }),
     ])
     const { top, bottom, sampled } = selectDigests(ranked, { 'xhs:work-1': 'x'.repeat(600) })
     expect(top).toHaveLength(2)

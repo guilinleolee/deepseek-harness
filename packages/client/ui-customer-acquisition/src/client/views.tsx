@@ -236,7 +236,7 @@ export function GeoPage({ listGeoScans, getGeoReport, t }: {
   const open = useCallback((reportId: string) => {
     setOpenReport({ id: reportId, read: { state: 'loading' } })
     getGeoReport(reportId).then(
-      report => { setOpenReport({ id: reportId, read: { state: 'ok', value: report } }) },
+      (report) => { setOpenReport({ id: reportId, read: { state: 'ok', value: report } }) },
       (error: unknown) => {
         setOpenReport({ id: reportId, read: { state: 'failed', detail: error instanceof Error ? error.message : String(error) } })
       },
@@ -251,7 +251,7 @@ export function GeoPage({ listGeoScans, getGeoReport, t }: {
           <tr><th>{t('geo.url')}</th><th>{t('geo.scanStatus')}</th><th>{t('geo.startedAt')}</th><th>{t('geo.score')}</th><th>{t('geo.report')}</th></tr>
         </thead>
         <tbody>
-          {scans.value.items.map(scan => {
+          {scans.value.items.map((scan) => {
             const reportId = scan.report_id
             return (
               <tr key={scan.scan_id}>
@@ -448,7 +448,7 @@ export function SettingsPage(props: {
             <input
               className={css.input}
               value={pageCap ?? String(s.geo_max_pages)}
-              onChange={event => { setPageCap(event.target.value); setSaved(false) }}
+              onChange={(event) => { setPageCap(event.target.value); setSaved(false) }}
             />
             <button type="button" className={css.selectorButton} onClick={() => { save() }}>
               {t('panel.settings.save')}

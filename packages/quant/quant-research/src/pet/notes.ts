@@ -62,7 +62,7 @@ export function listNotes(
   filter?: { symbol?: string; tag?: string },
 ): ResearchNote[] {
   return [...table.entries()].map(([, note]) => note)
-    .filter(note => {
+    .filter((note) => {
       if (filter?.symbol !== undefined && note.symbol !== filter.symbol) return false
       if (filter?.tag !== undefined && !note.tags.includes(filter.tag)) return false
       return true

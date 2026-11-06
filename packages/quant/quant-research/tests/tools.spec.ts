@@ -266,7 +266,11 @@ describe('quant_run_backtest', () => {
       { symbol: '000001', fast: 5, slow: 20, bars: 60 },
       execWith(),
     )
-    const stored = [...(snapshots as unknown as Map<string, { symbol: string; params: Record<string, unknown>; metrics: { total_return: number }; equity: unknown[] }>).entries()].map(([, value]) => value)
+    const snapshotsMap = snapshots as unknown as Map<
+      string,
+      { symbol: string; params: Record<string, unknown>; metrics: { total_return: number }; equity: unknown[] }
+    >
+    const stored = [...snapshotsMap.entries()].map(([, value]) => value)
     expect(stored).toHaveLength(1)
     expect(stored[0]).toMatchObject({ kind: 'backtest', symbol: '000001', params: { fast: 5, slow: 20, bars: 60 } })
     expect(stored[0]!.equity.length).toBeGreaterThan(1)

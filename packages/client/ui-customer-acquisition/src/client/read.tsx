@@ -27,7 +27,7 @@ export function useRemoteRead<T>(read: () => Promise<T>): ReadState<T> {
   useEffect(() => {
     let cancelled = false
     void read().then(
-      value => { if (!cancelled) setState({ state: 'ok', value }) },
+      (value) => { if (!cancelled) setState({ state: 'ok', value }) },
       (error: unknown) => {
         if (!cancelled) setState({ state: 'failed', detail: error instanceof Error ? error.message : String(error) })
       },

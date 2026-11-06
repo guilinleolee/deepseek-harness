@@ -90,7 +90,9 @@ try {
     arguments: { symbol: '000001', bars: 250, top_n: 5 },
   })
   const wfStartText = textOf(walkForward as never)
-  const wfEnvelope = (walkForward as unknown as { value: { code: number; data: { job_id: string; combos: number; train_ratio: number } } }).value
+  const wfEnvelope = (walkForward as unknown as {
+    value: { code: number; data: { job_id: string; combos: number; train_ratio: number } }
+  }).value
   let wfJobText = ''
   const wfDeadline = Date.now() + 30_000
   while (Date.now() < wfDeadline) {
