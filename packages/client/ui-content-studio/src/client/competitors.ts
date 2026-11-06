@@ -549,7 +549,7 @@ export function aggregateAuditDigest(account: CompetitorAccount, works: readonly
     `档案：粉丝量级 ${account.followerTier || '未填'}；定位 ${account.positioning || '未填'}；变现方式 ${account.monetization || '未填'}`,
     `作品数：${works.length}（导入估算）`,
     `互动中位数：赞 ${med(works.map(work => latest(work)?.likes ?? 0))} / 藏 ${med(works.map(work => latest(work)?.shares ?? 0))} / 评 ${med(works.map(work => latest(work)?.comments ?? 0))}`,
-    `互动率代理：点赞中位数 ÷ 粉丝数（粉丝量级为文本，未折算）`,
+    '互动率代理：点赞中位数 ÷ 粉丝数（粉丝量级为文本，未折算）',
     `账号内热度分布：爆款 ${heatCounts.hot} / 正常 ${heatCounts.normal} / 冷门 ${heatCounts.cold}（P90/P50 相对分位）`,
     `用户标记爆款：${works.filter(work => work.hot).length} 条；已拆解：${works.filter(work => work.analysis.status === 'done').length} 条`,
     `最新作品距今：${daysSinceNewest === undefined || !Number.isFinite(daysSinceNewest) ? '未知' : `${daysSinceNewest} 天`}；发布节奏：约 ${works.length > 1 ? (works.length / Math.max(spanWeeks(works), 0.1)).toFixed(1) : String(works.length)} 条/周（导入估算）`,
