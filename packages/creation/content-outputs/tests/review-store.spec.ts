@@ -9,6 +9,7 @@ import {
   readReviewManifestFile, readReviewReportFile, readReviewTemplateFile, writeReviewManifestFile,
   writeReviewReportFile, writeReviewTemplateFile,
 } from '../src/review/store.ts'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 let root: string | undefined
 
@@ -34,7 +35,7 @@ function metrics(overrides: Partial<MetricSnapshot['metrics']> = {}): MetricSnap
 /** One valid stored snapshot, overridden per test. */
 function snapshot(overrides: Partial<MetricSnapshot> = {}): MetricSnapshot {
   return {
-    snapshotId: crypto.randomUUID(),
+    snapshotId: randomUUID(),
     platformId: 'xhs',
     platformWorkId: 'work-1',
     title: '第一篇',

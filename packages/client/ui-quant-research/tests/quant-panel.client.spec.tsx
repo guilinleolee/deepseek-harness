@@ -45,7 +45,10 @@ const snapshotValue: ResultSnapshotSummaryValue = {
   result_id: 'r-1',
   symbol: '000001',
   params: { fast: 5, slow: 20, bars: 60, initial_cash: 100_000, fee_rate: 0.0005 },
-  metrics: { total_return: 0.05, annual_return: 0.4, max_drawdown: 0.03, sharpe: 1.2, win_rate: 0.6, trade_count: 4, final_equity: 105_000 },
+  metrics: {
+    total_return: 0.05, annual_return: 0.4, max_drawdown: 0.03,
+    sharpe: 1.2, win_rate: 0.6, trade_count: 4, final_equity: 105_000,
+  },
   created_at: 1_700_000_000_000,
 }
 
@@ -59,7 +62,10 @@ const snapshotOther: ResultSnapshotSummaryValue = {
   result_id: 'r-2',
   symbol: '000001',
   params: { fast: 10, slow: 30, bars: 60, initial_cash: 100_000, fee_rate: 0.0005 },
-  metrics: { total_return: 0.12, annual_return: 0.9, max_drawdown: 0.05, sharpe: 1.5, win_rate: 0.7, trade_count: 6, final_equity: 112_000 },
+  metrics: {
+    total_return: 0.12, annual_return: 0.9, max_drawdown: 0.05,
+    sharpe: 1.5, win_rate: 0.7, trade_count: 6, final_equity: 112_000,
+  },
   created_at: 1_710_000_000_000,
 }
 
@@ -266,7 +272,7 @@ describe('QuantPanel', () => {
 
   it('cancels in-flight reads when the panel closes before they settle', async () => {
     let release: (() => void) | undefined
-    const slow: () => Promise<AccountListValue> = () => new Promise(resolve => {
+    const slow: () => Promise<AccountListValue> = () => new Promise((resolve) => {
       release = () => { resolve(accountsValue([account()])) }
     })
     const props = face(slow, () => Promise.resolve(notesValue))

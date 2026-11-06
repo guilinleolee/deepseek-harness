@@ -11,6 +11,7 @@ import type {
   CompetitorHeatLevel, CompetitorManifest, CompetitorMetricSnapshot, CompetitorPlatform, CompetitorWork,
   CompetitorWorkId,
 } from '@deepseek-ai/dsh-content-outputs/types'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** localStorage namespace owned by the competitors view. */
 export const COMPETITORS_STORAGE_KEY = 'dsh-content-studio.competitors.accounts'
@@ -60,16 +61,13 @@ const HEAT_WINDOW = 30
 const HEAT_MIN_SAMPLE = 4
 
 /**
- * Build a stable prefixed id. `crypto.randomUUID` when available, else a
- * best-effort fallback (the id only needs uniqueness within one browser).
+ * Build a stable prefixed id. `randomUUID` mints through the shared crypto
+ * helper, whose `getRandomValues` base is available in every browser context.
  * @param prefix - id prefix (`acc-`, `cw-`, `cr-`, `idea-`).
  * @returns the new id.
  */
 export function newId(prefix: string): string {
-  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
-  return `${prefix}-${random}`
+  return `${prefix}-${randomUUID()}`
 }
 
 /**

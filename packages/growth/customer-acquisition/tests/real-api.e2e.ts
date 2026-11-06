@@ -26,14 +26,14 @@ import { FULL_OPERATOR } from './helpers-p1.ts'
 const KEY = process.env.ZHIPU_CODING_API_KEY
 
 const PI_ROUTES: PiAiConfig['providers'] extends import('@deepseek-ai/cordis').Volatile<infer R> ? R : never = {
-    'zhipu-coding': {
-      apiKeyEnv: 'ZHIPU_CODING_API_KEY',
-      api: 'openai-completions',
-      baseURL: 'https://open.bigmodel.cn/api/coding/paas/v4',
-      models: [
-        { id: 'glm-4.6', name: 'GLM-4.6', contextWindow: 200_000, maxTokens: 131_072 },
-      ],
-    },
+  'zhipu-coding': {
+    apiKeyEnv: 'ZHIPU_CODING_API_KEY',
+    api: 'openai-completions',
+    baseURL: 'https://open.bigmodel.cn/api/coding/paas/v4',
+    models: [
+      { id: 'glm-4.6', name: 'GLM-4.6', contextWindow: 200_000, maxTokens: 131_072 },
+    ],
+  },
 }
 
 interface RealHarness {

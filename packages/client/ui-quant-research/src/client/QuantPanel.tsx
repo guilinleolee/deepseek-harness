@@ -55,7 +55,7 @@ export function QuantPanel({
     }
     read(listAccounts, (value: AccountListValue) => { setAccounts(value.accounts) })
     read(listNotes, (value: NoteListValue) => { setNotes(value.notes) })
-    read(listResultSnapshots, value => { setSnapshots(value.snapshots) })
+    read(listResultSnapshots, (value) => { setSnapshots(value.snapshots) })
     return () => { cancelled = true }
   }, [open, listAccounts, listNotes, listResultSnapshots])
 
@@ -256,7 +256,7 @@ function SnapshotCard({ snapshot, snapshots, getEquityCurve, t }: SnapshotCardPr
       {expanded && others.length > 0 && (
         <label className={css.accountMeta}>
           {t('panel.results.compareWith')}
-          <select value={otherId} onChange={event => { pickOther(event.target.value) }}>
+          <select value={otherId} onChange={(event) => { pickOther(event.target.value) }}>
             <option value="">{t('panel.results.compareNone')}</option>
             {others.map(other => (
               <option key={other.result_id} value={other.result_id}>

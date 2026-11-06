@@ -18,6 +18,7 @@ import type {
   ReviewStatus, ReviewTask,
 } from '../types.ts'
 import { DEFAULT_BASELINES, REVIEW_PLATFORMS, REVIEW_STATUSES } from './types.ts'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** Sidecar manifest file name inside the theme's `assets/` directory. */
 export const REVIEW_MANIFEST_FILENAME = '_review.json'
@@ -340,7 +341,7 @@ export async function commitReviewImportFile(root: string, request: ReviewImport
       && snapshot.platformWorkId === row.platformWorkId
       && utcDayKey(snapshot.capturedAt) === utcDayKey(capturedAt))
     const snapshot: MetricSnapshot = {
-      snapshotId: crypto.randomUUID(),
+      snapshotId: randomUUID(),
       platformId: request.platformId,
       platformWorkId: row.platformWorkId,
       title: row.title,

@@ -861,7 +861,13 @@ export function accountStateTool(deps: QuantToolDeps): ToolDefinition {
           equity += value
           return { symbol: position.symbol, shares, avg_cost: position.avg_cost, market_value: Math.round(value * 100) / 100 }
         })
-        return { account_id: account.id, name: account.name, cash: Math.round(cash * 100) / 100, positions, equity: Math.round(equity * 100) / 100 }
+        return {
+          account_id: account.id,
+          name: account.name,
+          cash: Math.round(cash * 100) / 100,
+          positions,
+          equity: Math.round(equity * 100) / 100,
+        }
       }) as never
     },
   })
@@ -1095,7 +1101,16 @@ export function listNotesTool(deps: QuantToolDeps): ToolDefinition {
           ...(args.symbol === undefined ? {} : { symbol: args.symbol }),
           ...(args.tag === undefined ? {} : { tag: args.tag }),
         })
-        return { count: notes.length, notes: notes.map(note => ({ note_id: note.id, title: note.title, symbol: note.symbol ?? null, tags: note.tags, created_at: note.created_at })) }
+        return {
+          count: notes.length,
+          notes: notes.map(note => ({
+            note_id: note.id,
+            title: note.title,
+            symbol: note.symbol ?? null,
+            tags: note.tags,
+            created_at: note.created_at,
+          })),
+        }
       }) as never
     },
   })
@@ -1173,8 +1188,18 @@ export function compareBacktestsTool(deps: QuantToolDeps): ToolDefinition {
     async execute(args, exec) {
       return envelopeFrom('backtest', exec, async () => {
         const bars = args.bars ?? DEFAULT_BACKTEST_BARS
-        const paramsA = { fast: args.fast_a ?? 10, slow: args.slow_a ?? 30, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
-        const paramsB = { fast: args.fast_b ?? 20, slow: args.slow_b ?? 60, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate }
+        const paramsA = {
+          fast: args.fast_a ?? 10,
+          slow: args.slow_a ?? 30,
+          initialCash: deps.config.defaultCash,
+          feeRate: deps.config.feeRate,
+        }
+        const paramsB = {
+          fast: args.fast_b ?? 20,
+          slow: args.slow_b ?? 60,
+          initialCash: deps.config.defaultCash,
+          feeRate: deps.config.feeRate,
+        }
         validateBacktestParams(bars, paramsA)
         validateBacktestParams(bars, paramsB)
         const series = await fetchKline(deps.kernel, deps.breaker, {
@@ -1479,7 +1504,7 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderWalkForward(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `Walk-forward：${args.symbol}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `Walk-forward：${args.symbol}` }),
     async execute(args, exec) {
       return envelopeFrom('backtest_grid', exec, async () => {
         const jobs = deps.jobs?.()
@@ -1544,7 +1569,13 @@ export function walkForwardTool(deps: QuantToolDeps): ToolDefinition {
                     async (result, barsUsed) => {
                       await saveSnapshot(deps.snapshots, {
                         symbol: args.symbol,
-                        params: { fast: result.best.fast, slow: result.best.slow, bars: barsUsed, initialCash: deps.config.defaultCash, feeRate: deps.config.feeRate },
+                        params: {
+                          fast: result.best.fast,
+                          slow: result.best.slow,
+                          bars: barsUsed,
+                          initialCash: deps.config.defaultCash,
+                          feeRate: deps.config.feeRate,
+                        },
                         report: result.testReport,
                       })
                     },
@@ -1628,7 +1659,11 @@ export function snapshotListTool(deps: QuantToolDeps): ToolDefinition {
           result_id: snapshot.id,
           symbol: snapshot.symbol,
           params: { ...snapshot.params },
-          metrics: { total_return: snapshot.metrics.total_return, max_drawdown: snapshot.metrics.max_drawdown, trade_count: snapshot.metrics.trade_count },
+          metrics: {
+            total_return: snapshot.metrics.total_return,
+            max_drawdown: snapshot.metrics.max_drawdown,
+            trade_count: snapshot.metrics.trade_count,
+          },
           created_at: snapshot.created_at,
         })) }
       }) as never
@@ -1642,7 +1677,15 @@ export function snapshotListTool(deps: QuantToolDeps): ToolDefinition {
  * @returns the rendered text blocks.
  */
 function renderSnapshotList(value: unknown): { type: 'text'; text: string }[] {
-  const data = successData(value) as { snapshots?: { result_id: string; symbol: string; params: { fast: number; slow: number }; metrics: { total_return: number }; created_at: number }[] } | undefined
+  const data = successData(value) as {
+    snapshots?: {
+      result_id: string
+      symbol: string
+      params: { fast: number; slow: number }
+      metrics: { total_return: number }
+      created_at: number
+    }[]
+  } | undefined
   if (data === undefined) {
     const failure = failureLine(value) ?? '快照列表读取失败'
     return [{ type: 'text', text: `${failure}
@@ -1654,7 +1697,7 @@ ${DISCLAIMER}` }]
 
 ${DISCLAIMER}` }]
   }
-  const lines = data.snapshots.map(snapshot => {
+  const lines = data.snapshots.map((snapshot) => {
     const pct = `${(snapshot.metrics.total_return * 100).toFixed(2)}%`
     return `- ${snapshot.result_id.slice(0, 8)} ${snapshot.symbol} SMA(${String(snapshot.params.fast)}/${String(snapshot.params.slow)}) 总收益 ${pct} · ${new Date(snapshot.created_at).toLocaleString()}`
   })
@@ -1753,7 +1796,7 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
     },
     output: { schema: ENVELOPE_SCHEMA, render: (_args, value) => renderCrossIC(value) },
     timeoutMs: deps.config.toolTimeoutMs,
-    presentCall: (args) => ({ card: 'generic' as const, title: `横截面 IC：${(args.symbols as string[] | undefined)?.join('/') ?? ''} ${String(args.factor ?? 'momentum')}` }),
+    presentCall: args => ({ card: 'generic' as const, title: `横截面 IC：${(args.symbols as string[] | undefined)?.join('/') ?? ''} ${String(args.factor ?? 'momentum')}` }),
     async execute(args, exec) {
       return envelopeFrom('get_kline', exec, async () => {
         const jobs = deps.jobs?.()
@@ -1863,7 +1906,11 @@ export function crossFactorICTool(deps: QuantToolDeps): ToolDefinition {
  */
 function renderCrossIC(value: unknown): { type: 'text'; text: string }[] {
   const data = successData(value) as {
-    job_id?: string; symbols?: string[]; factor?: string; horizon?: number; hint?: string
+    job_id?: string
+    symbols?: string[]
+    factor?: string
+    horizon?: number
+    hint?: string
   } | undefined
   if (data?.job_id === undefined) {
     const failure = failureLine(value) ?? '横截面 IC 启动失败'

@@ -18,8 +18,8 @@ export function formatBacktestReport(report: BacktestReport, title: string): str
   const pct = (v: number): string => `${(v * 100).toFixed(2)}%`
   const trades = report.trades.length > 0
     ? report.trades.map(t =>
-        `| ${t.date} | ${t.side === 'buy' ? '买入' : '卖出'} | ${t.price.toFixed(2)} | ${t.shares.toFixed(2)} |`,
-      ).join('\n')
+      `| ${t.date} | ${t.side === 'buy' ? '买入' : '卖出'} | ${t.price.toFixed(2)} | ${t.shares.toFixed(2)} |`,
+    ).join('\n')
     : '（无交易）'
   const tradeHeader = '| 日期 | 方向 | 价格 | 股数 |\n|---|---|---|---|'
   const equityStart = report.equity[0]?.value ?? 0
@@ -27,7 +27,7 @@ export function formatBacktestReport(report: BacktestReport, title: string): str
   return [
     `# ${title}`,
     '',
-    `> 仅供研究参考，不构成投资建议。`,
+    '> 仅供研究参考，不构成投资建议。',
     '',
     '## 参数',
     `- 标的：${report.symbol}`,

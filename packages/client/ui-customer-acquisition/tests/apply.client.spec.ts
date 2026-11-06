@@ -18,7 +18,7 @@ async function bench() {
     if (contribution.package !== '@deepseek-ai/dsh-customer-acquisition') {
       throw new Error(`unexpected contribution ${contribution.package}`)
     }
-    const ok = <T,>(value: T) => ({ ok: true as const, value })
+    const ok = <T>(value: T) => ({ ok: true as const, value })
     const dispose = ctx.provide('remote.customerAcquisition', {
       getOverview: vi.fn(async () => ok({ totals: null, breakdown: null })),
       listLeads: vi.fn(async () => ok({ items: [], total: 0 })),

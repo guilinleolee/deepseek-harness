@@ -70,7 +70,7 @@ export function alignPanel(
       shared.set(bar.date, { ...shared.get(bar.date), [symbol]: bar.close })
     }
   }
-  const dates = [...shared.keys()].filter(date => {
+  const dates = [...shared.keys()].filter((date) => {
     const row = shared.get(date) ?? {}
     return symbols.every(symbol => row[symbol] !== undefined)
   }).sort()

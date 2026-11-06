@@ -332,7 +332,10 @@ const RULES: Readonly<Record<string, readonly ((args: RawArgs) => ComplianceVerd
   quant_compare_backtests: [inspectBrokerMarkers, inspectBarCap],
   quant_research_report: [inspectBrokerMarkers, inspectBarCap],
   quant_optimize_params: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps],
-  quant_walk_forward: [inspectBrokerMarkers, inspectBarCap, inspectGridCaps, inspectTrainRatioCap, inspectRollingWindowsCap, inspectAnchorCap],
+  quant_walk_forward: [
+    inspectBrokerMarkers, inspectBarCap, inspectGridCaps,
+    inspectTrainRatioCap, inspectRollingWindowsCap, inspectAnchorCap,
+  ],
   quant_factor_cross_ic: [inspectBrokerMarkers, inspectBarCap, inspectCrossPanelCaps],
 })
 

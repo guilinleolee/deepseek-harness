@@ -423,8 +423,8 @@ export function formatRollingWalkForwardSummary(
   const sortedReturns = [...oosReturns].sort((a, b) => a - b)
   const mid = Math.floor(sortedReturns.length / 2)
   const medianOos = sortedReturns.length % 2 === 1
-    ? sortedReturns[mid]!
-    : (sortedReturns[mid - 1]! + sortedReturns[mid]!) / 2
+    ? sortedReturns[mid] ?? Number.NaN
+    : ((sortedReturns[mid - 1] ?? Number.NaN) + (sortedReturns[mid] ?? Number.NaN)) / 2
   const meanGap = results.reduce((sum, r) => sum + r.returnGap, 0) / results.length
   const positiveShare = oosReturns.filter(v => v > 0).length / results.length
   const stable = meanGap >= 0 && positiveShare >= 0.5

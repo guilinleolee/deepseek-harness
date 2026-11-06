@@ -20,6 +20,7 @@ import {
   loadInteractionFilters, mergeInsightBatch, saveInteractionFilters, threadLines,
   type InteractionFilters,
 } from './interaction-model.ts'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 /** Persona facts the reply generator layers its tone base over. */
 export interface InteractionPersonaFacts {
@@ -308,7 +309,7 @@ export function createInteractionController(
         })
         const now = new Date().toISOString()
         const drafts: InteractionReplyDraft[] = result.drafts.map(draft => ({
-          id: crypto.randomUUID(),
+          id: randomUUID(),
           style: draft.style,
           content: draft.content,
           personaId: persona?.id ?? null,
@@ -329,7 +330,7 @@ export function createInteractionController(
     async saveDraft(conversationId, messageId, style, content, personaId) {
       const manifest = requireManifest()
       const draft: InteractionReplyDraft = {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         style,
         content,
         personaId,
@@ -360,10 +361,10 @@ export function createInteractionController(
           status: candidate.status === 'unread' || candidate.status === 'pendingReply' ? 'replied' : candidate.status,
           updatedAt: now,
           messages: [...candidate.messages, {
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             // The outbound reply has no platform id yet — the local prefix
             // keeps the dedup key unique until a provider assigns one.
-            externalMessageId: `local-${crypto.randomUUID()}`,
+            externalMessageId: `local-${randomUUID()}`,
             direction: 'out' as const,
             type: replied?.type ?? 'comment',
             content,
