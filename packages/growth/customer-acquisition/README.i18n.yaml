@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/growth/customer-acquisition/README.md
-README.md: e176ffd2a13295fe0300f1d1c028a63305b45814
-README.zh.md: ae1881854d164e05c66516a2799b3741f9272b60
+/deepseek-ai-dsh-customer-acquisition:
+  en: 36325c536c6278de
+  zh: 7a8515ef4801c666
+/deepseek-ai-dsh-customer-acquisition/installation:
+  en: af2b8ddfcfc04db4
+  zh: b9975685366ef09a
+/deepseek-ai-dsh-customer-acquisition/configuration:
+  en: ca0fe181604fe7fd
+  zh: 03ab65163683eabc
+/deepseek-ai-dsh-customer-acquisition/domain:
+  en: c264aec5c67d0e17
+  zh: 9620c38964eee28e
+/deepseek-ai-dsh-customer-acquisition/permissioncontext-seam:
+  en: 5e463e0afa00ae7d
+  zh: c31faa65de158f22
+/deepseek-ai-dsh-customer-acquisition/compliance-gate-red-lines:
+  en: c9ff622d49a1ff95
+  zh: 4780695f1d67a647
+/deepseek-ai-dsh-customer-acquisition/lead-ledger-module-2:
+  en: 6d8573309ca72ceb
+  zh: dfa1341ce1cb4280
+/deepseek-ai-dsh-customer-acquisition/ai-lead-scoring-module-3:
+  en: 49ad8cf656311a13
+  zh: 3cb746a5378d27dd
+/deepseek-ai-dsh-customer-acquisition/tools:
+  en: a77c5a57d7e3ca3a
+  zh: 0db279c6987e9dfe
+/deepseek-ai-dsh-customer-acquisition/remote-face:
+  en: 647c75e8a0a8f2b0
+  zh: df4bc0e8d6f92e4a
+/deepseek-ai-dsh-customer-acquisition/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state:
+  en: 4b46cf2bdae41e3d
+  zh: 3b2bf53f9aa4e47c
+/deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/what-the-model-sees:
+  en: 4c139bb31a49794e
+  zh: e9b19de427eed91f
+/deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/token-effect:
+  en: 5f48227d3f3d642d
+  zh: 0e7833d1ec28eb59
+/deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/kv-cache-effect:
+  en: c89cff4064839128
+  zh: d27792c1cb6a5bb6
+/deepseek-ai-dsh-customer-acquisition/known-limitations-and-deferred-work:
+  en: 57ab5b6bdf354b81
+  zh: 81642bc313f3eb8f
