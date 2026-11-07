@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[English](2026-09-25-kabage-console-v2-security-audit-quota.md) | [中文](2026-09-25-kabage-console-v2-security-audit-quota.zh.md)
+English | [中文](2026-09-25-kabage-console-v2-security-audit-quota.zh.md)
 
 ## Problem
 

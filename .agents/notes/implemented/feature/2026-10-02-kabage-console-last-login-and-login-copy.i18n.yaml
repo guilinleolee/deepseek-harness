@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-02-kabage-console-last-login-and-login-copy.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-02-kabage-console-last-login-and-login-copy.md
+/agent-note:
+  en: 79adaeab8e94f468
+  zh: 84703380fd2a9da5
+/agent-note/problem:
+  en: 74810c4e78a38a96
+  zh: ecc48bc7c731b017
+/agent-note/decision:
+  en: cb334e1eef915d69
+  zh: 4f8d68f7339c3a53
+/agent-note/alternatives-considered:
+  en: b57264b660c4c98b
+  zh: 2084d0139865fa6e
+/agent-note/consequences:
+  en: 49c4176bd2b3ff29
+  zh: d2ee47b853d97a26

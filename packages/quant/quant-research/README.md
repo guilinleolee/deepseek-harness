@@ -1,8 +1,25 @@
+---
+description: "Kernel-backed quant research for DSH: market data, indicators, the SMA-cross backtester with its risk/stress/factor/PET suite, jobs-runtime optimization, and cross-sectional IC — behind a research-only compliance gate."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-quant-research
 
 English | [中文](README.zh.md)
 
-Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, the daily SMA-cross backtester with its risk/stress/factor/PET suite, and jobs-runtime parameter optimization — all behind a research-only compliance gate. The plugin registers twenty model-facing tools (`quant_get_kline`, `quant_compute_indicator`, `quant_run_backtest`, `quant_assess_risk`, `quant_stress_test`, the PET account tools, the factor/IC tools, the notes/report tools, `quant_compare_backtests`, `quant_research_report`, `quant_optimize_params`, `quant_walk_forward`, `quant_factor_cross_ic`, and the snapshot list/delete tools), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. It contains no real-broker path of any kind: the red line is enforced by a `tools/pre-execute` listener and stated in every tool output.
+## Summary
+
+Quant research for DSH: kernel-backed market data, deterministic TypeScript indicators, the daily SMA-cross backtester with its risk/stress/factor/PET suite, and jobs-runtime parameter optimization — all behind a research-only compliance gate. The plugin registers twenty model-facing tools (kline fetch, indicators, the backtester, risk/stress assessment, the PET account tools, factor/IC analysis, notes and reports, parameter optimization, walk-forward, cross-sectional IC, and the snapshot tools), opens the `quant_research` storage domain for the denial audit trail, and runs its Python compute kernel as one short-lived managed subprocess per request. No real-broker path: the red line is enforced by a `tools/pre-execute` listener.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Compliance gate (red lines)](#compliance-gate-red-lines)
+- [Tools](#tools)
+- [Session events](#session-events)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 ## Installation
 
@@ -94,3 +111,12 @@ The schemas join the tool block of the prompt prefix; loading or unloading the p
 - **`akshare` depends on the host environment** — the source fails with a friendly config error until `kernel-py/requirements.txt` is installed; Tushare is a later optional source (its open-source library has been stale since 2024-03).
 - **pytest coverage is informational** — the repository's per-file 100% gate covers the TypeScript `src` only; the kernel's pytest suite runs independently and reports separately.
 - **Excel export and echarts cards are deferred** — Markdown-first reporting avoids the xlsx dependency; the chart-library decision is an explicit phase-3 review against bundle size.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

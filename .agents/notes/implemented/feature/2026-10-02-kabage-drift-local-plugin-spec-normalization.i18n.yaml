@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-02-kabage-drift-local-plugin-spec-normalization.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-02-kabage-drift-local-plugin-spec-normalization.md
+/agent-note-drift-local-plugin-spec-normalization:
+  en: 2fe81feb0ac3782f
+  zh: 33fd9cdbdf4fc082
+/agent-note-drift-local-plugin-spec-normalization/problem:
+  en: 097ed49d5794326e
+  zh: c9b7fe93965dd299
+/agent-note-drift-local-plugin-spec-normalization/decision:
+  en: b6c35b53f996a330
+  zh: 3dbc3b28dbb071e7
+/agent-note-drift-local-plugin-spec-normalization/alternatives-considered:
+  en: a193461d031a8edb
+  zh: 68192207a0226a26
+/agent-note-drift-local-plugin-spec-normalization/consequences:
+  en: d46f110db6873950
+  zh: 529ddb3c62afa019

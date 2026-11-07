@@ -792,13 +792,13 @@ flowchart LR
 | `ctx.lsp` | `seam` | [`lsp`](../packages/lsp/lsp) | [`lsp-stdio`](../packages/lsp/lsp-stdio) | [`tool-lsp`](../packages/lsp/tool-lsp) | - | 提供方注册与选择，加上恰好四种操作的标准化查询执行；该 seam 不提供协议逃生口，后端必须转换为标准化请求和结果。 |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | 拥有内存定义注册表、Host 半的 vm 沙箱和 request-run 往返流程；浏览器页面通过其 Remote 命名空间在线访问同一服务。 |
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | 注册 Host inspect 提供方、镜像 Client 提供方 manifest，并通过动态 Cordis 传输路由 Client 查询。 |
-| `ctx.agentRoster` | `core` | `agent-roster` | - | `dragon-bridge` | - | 读取 dragon-assets 的角色 markdown，生成可检索的角色注册表；面向模型的投影由消费方自行负责。
-| `ctx.dragonIndex` | `core` | `skill-index` | - | `dragon-bridge` | - | 读取 dragon-assets 的索引快照，生成可检索的资产注册表；面向模型的投影由消费方自行负责。
-| `ctx.customerAcquisition` | `service` | `growth/customer-acquisition` | - | `ui-content-studio`, `ui-customer-acquisition` | - | 持有获客领域（线索、打分、内容、SOP），并提供浏览器面板读取的仪表盘、设置与审计 Remote。
-| `ctx.quantResearch` | `service` | [`quant-research`](../packages/quant/quant-research) | - | `ui-quant-research` | - | 持有量化研究领域（账户、笔记、回测快照），并提供浏览器面板读取的账户、笔记、快照与资金曲线 Remote。
-| `ctx.geoDiagnosis` | `service` | `growth/customer-acquisition-geo` | - | `ui-customer-acquisition` | - | 执行有界的网站扫描，并提供 GEO 诊断面板读取的历史、报告与对比 Remote。
-| `ctx.dragonBridge` | `core` | `dragon-bridge` | - | `host-runtime` | - | 把角色注册表、资产索引与许可策略服务合并为一份分类、可检索的资产清单。
-| `ctx.licensePolicy` | `core` | `license-policy` | - | `dragon-bridge` | - | 把每个资产归类为 allow、attribute、artifact-only 或 reject；消费方仅在需要时展示判定文案。 |
+| `ctx.agentRoster` | `core` | [`agent-roster`](../packages/experimental/agent-roster) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 读取 dragon-assets 的角色 markdown，生成可检索的角色注册表；面向模型的投影由消费方自行负责。 |
+| `ctx.dragonIndex` | `core` | [`skill-index`](../packages/experimental/skill-index) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 读取 dragon-assets 的索引快照，生成可检索的资产注册表；面向模型的投影由消费方自行负责。 |
+| `ctx.customerAcquisition` | `service` | `growth/customer-acquisition` | - | `ui-content-studio`, `ui-customer-acquisition` | - | 持有获客领域（线索、打分、内容、SOP），并提供浏览器面板读取的仪表盘、设置与审计 Remote。 |
+| `ctx.quantResearch` | `service` | [`quant-research`](../packages/quant/quant-research) | - | `ui-quant-research` | - | 持有量化研究领域（账户、笔记、回测快照），并提供浏览器面板读取的账户、笔记、快照与资金曲线 Remote。 |
+| `ctx.geoDiagnosis` | `service` | `growth/customer-acquisition-geo` | - | `ui-customer-acquisition` | - | 执行有界的网站扫描，并提供 GEO 诊断面板读取的历史、报告与对比 Remote。 |
+| `ctx.dragonBridge` | `core` | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | `host-runtime` | - | 把角色注册表、资产索引与许可策略服务合并为一份分类、可检索的资产清单。 |
+| `ctx.licensePolicy` | `core` | [`license-policy`](../packages/experimental/license-policy) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 把每个资产归类为 allow、attribute、artifact-only 或 reject；消费方仅在需要时展示判定文案。 |
 | `ctx.liveshareShares` | `service` | [`experimental-liveshare`](../packages/experimental/liveshare) | - | - | - | 以单个 Typert Remote 命名空间发布 owner 分享管理操作，供 owner 客户端面调用；每个方法都委托给同源路由原先使用的同一组操作。 |
 
 维护模式：混合模式。服务从 Cordis 声明中发现；接口、实现和消费方角色在 `scripts/gen-doc-graphs.ts` 中分类，并设有完整性守卫。

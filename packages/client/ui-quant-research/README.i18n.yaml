@@ -2,15 +2,24 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-quant-research/README.md
+/:
+  en: e00cd2a1b56e941d
+  zh: 124993eef636768f
 /deepseek-ai-dsh-client-ui-quant-research:
-  en: af43bdcdbfb3d347
-  zh: fd17e5e63c8f4cc3
+  en: 92e2e8e3d7a1a655
+  zh: 92e2e8e3d7a1a655
+/deepseek-ai-dsh-client-ui-quant-research/summary:
+  en: 9cd5ee918ac95495
+  zh: 1e4dcbc505a0eed2
+/deepseek-ai-dsh-client-ui-quant-research/table-of-contents:
+  en: 2741e0844c4b28cc
+  zh: d5ab230dd5738c02
 /deepseek-ai-dsh-client-ui-quant-research/installation:
   en: 95e625d61f8d2ab5
-  zh: 286f14b325c76475
+  zh: 6ebaebd3faebf277
 /deepseek-ai-dsh-client-ui-quant-research/surface:
   en: 5bd131a5b118613b
-  zh: 13230d17e51cad70
+  zh: dca3ef665d7e3aec
 /deepseek-ai-dsh-client-ui-quant-research/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -25,7 +34,10 @@
   zh: 145d8f0588197d78
 /deepseek-ai-dsh-client-ui-quant-research/model-experience/research-panel/kv-cache-effect:
   en: b09bb41d5c9e36af
-  zh: 8df1f421fc4e3b65
+  zh: 397b5edf9de98b2f
 /deepseek-ai-dsh-client-ui-quant-research/known-limitations-and-deferred-work:
   en: 108f8765c790433c
-  zh: a6c7c3910d786acb
+  zh: f48ff8f4ff30d6f1
+/deepseek-ai-dsh-client-ui-quant-research/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

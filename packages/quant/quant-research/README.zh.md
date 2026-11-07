@@ -1,9 +1,27 @@
+---
+description: "面向 DSH 的内核支撑量化研究：行情获取、指标计算、带风险/压力/因子/PET 套件的 SMA-cross 回测器、jobs-runtime 参数优化与横截面 IC——全部处于 research-only 合规门禁之后。"
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-quant-research
 
 English | [中文](README.md)
 
+## 概述
+
 面向 DSH 的量化研究插件：内核支撑的行情获取、确定性 TypeScript 指标、含风险/压力/因子/PET 套件的日线双均线回测，以及跑在 jobs 运行时上的参数寻优——全部受"仅供研究"合规门禁约束。插件注册二十个模型工具（`quant_get_kline`、`quant_compute_indicator`、`quant_run_backtest`、`quant_assess_risk`、`quant_stress_test`、PET 账户工具、因子/IC 工具、笔记/报告工具、`quant_compare_backtests`、`quant_research_report`、`quant_optimize_params`、`quant_walk_forward`、`quant_factor_cross_ic` 与快照列表/删除工具），打开 `quant_research` 存储域保存拒绝审计，Python 计算内核以"每次请求一个短生命周期受管子进程"的方式运行。插件不存在任何实盘通道：红线由 `tools/pre-execute` 监听器强制执行，并在每个工具输出中声明。
 
+## 目录
+
+- [安装](#installation)
+- [配置](#configuration)
+- [架构](#architecture)
+- [合规门禁（红线）](#compliance-gate-red-lines)
+- [工具](#tools)
+- [会话事件](#session-events)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+
+<a id="installation"></a>
 ## 安装
 
 ```sh
@@ -12,6 +30,7 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 
 补丁会同时插入两行——本插件与 `@deepseek-ai/dsh-client-ui-quant-research` 面板——一条命令安装完整功能。内核要求宿主机有 Python 3 解释器（见 `kernelCommand`）；phase-1 数据源走 synthetic，完全离线可用。
 
+<a id="configuration"></a>
 ## 配置
 
 所有字段均可选，写在 bundle 行的 `config:` 下；非法值在插件加载时直接失败。
@@ -25,12 +44,14 @@ dsh plugin --profile web add @deepseek-ai/dsh-quant-research
 
 API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由内核经 credentials 能力解析，内核继承的是脱敏后的父环境。
 
+<a id="architecture"></a>
 ## 架构
 
 参数寻优跑在 jobs 运行时上，而不是守护进程：`quant_optimize_params` 一次取回 K 线，把整个（快线, 慢线）网格通过一次 `backtest_grid` 内核请求跑完——每个组合都调用同一个被审计的模拟器，线上只传指标——整个过程在宿主 `ctx.jobs` 注册表（kind `quant-optimize`）启动的可取消后台任务里进行。工具立即返回任务 id；模型用 `job_output` 收取排名后的 Markdown 报告，用 `job_kill` 取消。组合里没有 jobs 运行时时，工具以友好的配置错误失败，而不是退化成阻塞调用。
 
 模块名对应研究流水线：`src/pdat`（数据接入与熔断器）、`src/paat`（指标与因子）、`src/pcpt`（回测驱动、报告与寻优），另有 `src/kernel-client`（子进程协议）。TypeScript 侧校验全部参数、持有熔断状态机，并在本侧确定性实现 phase-1 指标，保证会话重放看到完全相同的数值；Python 内核（`kernel-py/`）负责 synthetic/akshare 行情，并把回测实现为"以传入 K 线为输入的纯函数"。线上协议是换行分隔 JSON，每个请求使用全新关联 id；一次请求拉起一个进程，所有退出路径——包括协作式 `exec.signal` 截止——都收敛到 subprocess 缝的 terminate 阶梯。没有自研强杀逻辑，也没有常驻子进程。
 
+<a id="compliance-gate-red-lines"></a>
 ## 合规门禁（红线）
 
 一个 `tools/pre-execute` 监听器对每个 `quant_*` 调用执行红线检查，其余调用经 `next()` 放行：
@@ -41,6 +62,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 每条红线至少有一条非法路径单测，无钥快照在真实组合中驱动了一次真实拒绝。
 
+<a id="tools"></a>
 ## 工具
 
 | 名称 | 作用 |
@@ -64,10 +86,12 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 所有结果都是统一的 `{code, msg, data}` 信封——成功 `code: 0`，失败返回错误档位数字码与 `data: null`（`NETWORK`、`DATA`、`KERNEL`、`RISK`、`CONFIG`、`CANCELLED`、`INTERNAL`），且每个渲染输出都以"仅供研究参考"声明结尾。
 
+<a id="session-events"></a>
 ## 会话事件
 
 `quant/kernel-fault` 在内核客户端完成分类的瞬间，把一次内核平面故障（拉起失败、崩溃、超时、协议违例）记录为 log-only 诊断事件；它不进入模型请求，友好失败信息由工具结果承载。仓内事件词表经生成的持久化目录登记；`ignorable` 信封标记保留给出仓插件。
 
+<a id="model-experience"></a>
 ## 模型体验
 
 ### 研究工具
@@ -84,6 +108,7 @@ API 密钥（例如后续阶段的 Tushare token）不进配置：请求时由�
 
 schema 加入提示前缀的工具块；加载或卸载插件会从该点起使可复用前缀失效，与一切工具注册一致。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与延期工作
 
 - **无实盘通道（设计使然）** — 这是插件的永久红线，不是缺失功能；门禁拒绝意图标记，内核只有虚拟账户。
@@ -94,3 +119,12 @@ schema 加入提示前缀的工具块；加载或卸载插件会从该点起使�
 - **`akshare` 依赖宿主环境** — 未安装 `kernel-py/requirements.txt` 前该源以友好配置错误失败；Tushare 是后续可选源（其开源库自 2024-03 起停滞）。
 - **pytest 覆盖率为信息性指标** — 仓库的逐文件 100% 门禁只覆盖 TypeScript `src`；内核 pytest 套件独立运行、独立报告。
 - **Excel 导出与 echarts 卡片延期** — Markdown 优先的报表避免引入 xlsx 依赖；图表库去留是 Phase 3 的显式评审项（权衡包体）。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+无。
+
+</details>

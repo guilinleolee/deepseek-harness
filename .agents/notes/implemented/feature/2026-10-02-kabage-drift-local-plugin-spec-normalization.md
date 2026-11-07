@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-10-02-kabage-drift-local-plugin-spec-normalization.zh.md) | English
+English | [中文](2026-10-02-kabage-drift-local-plugin-spec-normalization.zh.md)
 
 ## Problem
 

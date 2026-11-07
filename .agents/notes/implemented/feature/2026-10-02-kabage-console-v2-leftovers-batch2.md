@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-10-02-kabage-console-v2-leftovers-batch2.zh.md) | English
+English | [中文](2026-10-02-kabage-console-v2-leftovers-batch2.zh.md)
 
 ## Problem
 

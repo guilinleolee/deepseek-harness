@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[English](2026-09-26-kabage-console-stages-9-12.md) | [中文](2026-09-26-kabage-console-stages-9-12.zh.md)
+English | [中文](2026-09-26-kabage-console-stages-9-12.zh.md)
 
 ## Problem
 

@@ -2,27 +2,36 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/quant/quant-research/README.md
+/:
+  en: 55c1027cbefb1140
+  zh: cd7a3fef12b74302
 /deepseek-ai-dsh-quant-research:
-  en: bf0814fb9ac774a5
-  zh: ba64b3050c8f16d9
+  en: f9c0468699e0685a
+  zh: f9c0468699e0685a
+/deepseek-ai-dsh-quant-research/summary:
+  en: ee0ef4ff17bba3de
+  zh: dded971586ac8c60
+/deepseek-ai-dsh-quant-research/table-of-contents:
+  en: af9d2b3ab4174d9d
+  zh: 6f70b49a51f7b72e
 /deepseek-ai-dsh-quant-research/installation:
   en: 7f25955ed3b4184d
-  zh: 032889f2b5029784
+  zh: 92d6b41150dc9784
 /deepseek-ai-dsh-quant-research/configuration:
   en: 1508ac7574feabe0
-  zh: 2ea07c972b6cbd7f
+  zh: 22c4f60625a8a865
 /deepseek-ai-dsh-quant-research/architecture:
   en: 6df8a03ae8db1752
-  zh: 7f1a85d678147ed4
+  zh: c4546c3761e99a12
 /deepseek-ai-dsh-quant-research/compliance-gate-red-lines:
   en: 04f7f1f50335ce94
-  zh: 2ca090d20d827a9e
+  zh: 4d652dd000071ace
 /deepseek-ai-dsh-quant-research/tools:
   en: b56444470576bdc1
-  zh: dadce6bc86754260
+  zh: 1fc8cbbc41d3b43a
 /deepseek-ai-dsh-quant-research/session-events:
   en: 21a39d3ed6fbb2d6
-  zh: cc2dc8bd13eba5e9
+  zh: 5fa7646650cd640f
 /deepseek-ai-dsh-quant-research/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -37,7 +46,10 @@
   zh: 8fc01c810d95c593
 /deepseek-ai-dsh-quant-research/model-experience/research-tools/kv-cache-effect:
   en: c89cff4064839128
-  zh: ac3dc749d8118ee4
+  zh: 523fe9ef55ce2c47
 /deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work:
   en: 87028aef9b3e8ec5
   zh: f816707da4b9d766
+/deepseek-ai-dsh-quant-research/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

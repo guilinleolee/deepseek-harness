@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-26-kabage-console-stages-9-12.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-26-kabage-console-stages-9-12.md
+/agent-note-9-12-rbac-totp-sso:
+  en: 5d99eaf47da9b51b
+  zh: 6d043a88f8ae60cf
+/agent-note-9-12-rbac-totp-sso/problem:
+  en: f2953fca515b839f
+  zh: 92da1457fc019f08
+/agent-note-9-12-rbac-totp-sso/decision:
+  en: 009b58af3ea5e026
+  zh: f7e7dcdffb6639b3
+/agent-note-9-12-rbac-totp-sso/alternatives-considered:
+  en: 98634b19a7aed32f
+  zh: e582b53cbe471565
+/agent-note-9-12-rbac-totp-sso/consequences:
+  en: fd55a995cee3e9d7
+  zh: d8532dac930943d5
