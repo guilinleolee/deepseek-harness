@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-25-kabage-console-v2-security-audit-quota.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-kabage-console-v2-security-audit-quota.md
+/agent-note-v2-auditor:
+  en: 390581b46a82006f
+  zh: c15f2f3ced9e90dc
+/agent-note-v2-auditor/problem:
+  en: 0a006d953fa9278b
+  zh: 4b2c8e826b347e28
+/agent-note-v2-auditor/decision:
+  en: a52b2efc4b43976e
+  zh: d8237df61dbd3717
+/agent-note-v2-auditor/alternatives-considered:
+  en: b1ad9a91265e5108
+  zh: 8a2eac48b33776f9
+/agent-note-v2-auditor/consequences:
+  en: 7d276d3391591eb0
+  zh: 663e6f634439007a

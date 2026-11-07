@@ -2,7 +2,7 @@
 
 Status: implemented
 
-[中文](2026-10-03-kabage-dingtalk-oauth-contract-fix.zh.md) | English
+English | [中文](2026-10-03-kabage-dingtalk-oauth-contract-fix.zh.md)
 
 ## Problem
 

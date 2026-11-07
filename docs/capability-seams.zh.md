@@ -315,6 +315,24 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg_agent_roster["agent-roster"]
+  svc_agentRoster["ctx.agentRoster<br/>Dragon agent role registry"]
+  pkg_dragon_bridge["dragon-bridge"]
+  pkg_skill_index["skill-index"]
+  svc_dragonIndex["ctx.dragonIndex<br/>Dragon asset index reader"]
+  pkg_growth_customer_acquisition["growth/customer-acquisition"]
+  svc_customerAcquisition["ctx.customerAcquisition<br/>Customer acquisition domain and panel Remotes"]
+  pkg_ui_content_studio["ui-content-studio"]
+  pkg_ui_customer_acquisition["ui-customer-acquisition"]
+  pkg_quant_research["quant-research"]
+  svc_quantResearch["ctx.quantResearch<br/>Quant research domain and panel Remotes"]
+  pkg_ui_quant_research["ui-quant-research"]
+  pkg_growth_customer_acquisition_geo["growth/customer-acquisition-geo"]
+  svc_geoDiagnosis["ctx.geoDiagnosis<br/>GEO website diagnosis"]
+  svc_dragonBridge["ctx.dragonBridge<br/>Dragon asset cross-kind bridge"]
+  pkg_host_runtime["host-runtime"]
+  pkg_license_policy["license-policy"]
+  svc_licensePolicy["ctx.licensePolicy<br/>License red-line decision table"]
   pkg_experimental_liveshare["experimental-liveshare"]
   svc_liveshareShares["ctx.liveshareShares<br/>Owner share management Remote"]
   pkg_action_cards --> svc_actionCards
@@ -322,6 +340,7 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
   pkg_agent_preset_registry --> svc_agentPresets
+  pkg_agent_roster --> svc_agentRoster
   pkg_agent_team --> svc_agentTeams
   pkg_api_gateway --> svc_typertGateway
   pkg_api_job_controller --> svc_jobController
@@ -362,6 +381,7 @@ flowchart LR
   pkg_deepseek_account --> svc_deepseekAccount
   pkg_deepseek_account_platform --> svc_deepseekAccount
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
+  pkg_dragon_bridge --> svc_dragonBridge
   pkg_experimental_api_speech_to_text --> svc_speechController
   pkg_experimental_browser_use_chrome_devtools_mcp --> svc_browserUse
   pkg_experimental_browser_use_playwright_mcp --> svc_browserUse
@@ -387,6 +407,8 @@ flowchart LR
   pkg_fs_sandbox --> svc_fs
   pkg_fs_ssh --> svc_fs
   pkg_goal --> svc_goals
+  pkg_growth_customer_acquisition --> svc_customerAcquisition
+  pkg_growth_customer_acquisition_geo --> svc_geoDiagnosis
   pkg_headless --> svc_headlessStartup
   pkg_hmr --> svc_hmr
   pkg_host_directory_picker --> svc_directoryPicker
@@ -397,6 +419,7 @@ flowchart LR
   pkg_inspector --> svc_inspector
   pkg_jobs --> svc_jobs
   pkg_jobs_local --> svc_jobs
+  pkg_license_policy --> svc_licensePolicy
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
   pkg_llm_pi_ai --> svc_llm
@@ -418,6 +441,7 @@ flowchart LR
   pkg_ptc_runtime --> svc_ptcRuntime
   pkg_ptc_runtime_node --> svc_ptcRuntime
   pkg_pwsh_local --> svc_shell
+  pkg_quant_research --> svc_quantResearch
   pkg_sandbox --> svc_sandbox
   pkg_sandbox_local --> svc_sandbox
   pkg_sandbox_policy --> svc_sandboxPolicy
@@ -445,6 +469,7 @@ flowchart LR
   pkg_skill --> svc_skills
   pkg_skill_badge --> svc_skills
   pkg_skill_filesystem --> svc_skills
+  pkg_skill_index --> svc_dragonIndex
   pkg_skill_office --> svc_skills
   pkg_spill --> svc_spillStore
   pkg_spill_local --> svc_spillStore
@@ -489,6 +514,7 @@ flowchart LR
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
   svc_agentLoop --> pkg_sdk_minimal
+  svc_agentRoster --> pkg_dragon_bridge
   svc_agentTeams --> pkg_tool_agent_team
   svc_agents --> pkg_acp
   svc_agents --> pkg_agent_loop
@@ -517,10 +543,14 @@ flowchart LR
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_cuaAccess --> pkg_cua
+  svc_customerAcquisition --> pkg_ui_content_studio
+  svc_customerAcquisition --> pkg_ui_customer_acquisition
   svc_deepseekAccount --> pkg_api_account_controller
   svc_deepseekAccount --> pkg_llm_deepseek
   svc_deepseekLlmApiExtensions --> pkg_llm_deepseek
   svc_directoryPicker --> pkg_api_workspace_controller
+  svc_dragonBridge --> pkg_host_runtime
+  svc_dragonIndex --> pkg_dragon_bridge
   svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_fileReferences --> pkg_api_session_controller
   svc_fileUploads --> pkg_api_session_controller
@@ -528,6 +558,7 @@ flowchart LR
   svc_forge --> pkg_experimental_forge_session
   svc_forgeSession --> pkg_experimental_client_ui_forge
   svc_fs --> pkg_tool_fs
+  svc_geoDiagnosis --> pkg_ui_customer_acquisition
   svc_headlessStartup --> pkg_headless
   svc_hmr --> pkg_app_boot
   svc_jobs --> pkg_api_job_controller
@@ -535,6 +566,7 @@ flowchart LR
   svc_jobs --> pkg_tool_jobs
   svc_jobs --> pkg_tool_pwsh
   svc_jobs --> pkg_tool_terminal
+  svc_licensePolicy --> pkg_dragon_bridge
   svc_llm --> pkg_agent_loop
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
@@ -551,6 +583,7 @@ flowchart LR
   svc_profileContext --> pkg_plugin_manager
   svc_ptcRuntime --> pkg_tool_executor_ptc
   svc_ptcRuntime --> pkg_workflow_ptc
+  svc_quantResearch --> pkg_ui_quant_research
   svc_remoteAccess --> pkg_api_gateway
   svc_remoteAccess --> pkg_api_session_controller
   svc_remoteAccess --> pkg_api_workspace_controller
@@ -759,6 +792,13 @@ flowchart LR
 | `ctx.lsp` | `seam` | [`lsp`](../packages/lsp/lsp) | [`lsp-stdio`](../packages/lsp/lsp-stdio) | [`tool-lsp`](../packages/lsp/tool-lsp) | - | 提供方注册与选择，加上恰好四种操作的标准化查询执行；该 seam 不提供协议逃生口，后端必须转换为标准化请求和结果。 |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | 拥有内存定义注册表、Host 半的 vm 沙箱和 request-run 往返流程；浏览器页面通过其 Remote 命名空间在线访问同一服务。 |
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | 注册 Host inspect 提供方、镜像 Client 提供方 manifest，并通过动态 Cordis 传输路由 Client 查询。 |
+| `ctx.agentRoster` | `core` | [`agent-roster`](../packages/experimental/agent-roster) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 读取 dragon-assets 的角色 markdown，生成可检索的角色注册表；面向模型的投影由消费方自行负责。 |
+| `ctx.dragonIndex` | `core` | [`skill-index`](../packages/experimental/skill-index) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 读取 dragon-assets 的索引快照，生成可检索的资产注册表；面向模型的投影由消费方自行负责。 |
+| `ctx.customerAcquisition` | `service` | `growth/customer-acquisition` | - | `ui-content-studio`, `ui-customer-acquisition` | - | 持有获客领域（线索、打分、内容、SOP），并提供浏览器面板读取的仪表盘、设置与审计 Remote。 |
+| `ctx.quantResearch` | `service` | [`quant-research`](../packages/quant/quant-research) | - | `ui-quant-research` | - | 持有量化研究领域（账户、笔记、回测快照），并提供浏览器面板读取的账户、笔记、快照与资金曲线 Remote。 |
+| `ctx.geoDiagnosis` | `service` | `growth/customer-acquisition-geo` | - | `ui-customer-acquisition` | - | 执行有界的网站扫描，并提供 GEO 诊断面板读取的历史、报告与对比 Remote。 |
+| `ctx.dragonBridge` | `core` | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | `host-runtime` | - | 把角色注册表、资产索引与许可策略服务合并为一份分类、可检索的资产清单。 |
+| `ctx.licensePolicy` | `core` | [`license-policy`](../packages/experimental/license-policy) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 把每个资产归类为 allow、attribute、artifact-only 或 reject；消费方仅在需要时展示判定文案。 |
 | `ctx.liveshareShares` | `service` | [`experimental-liveshare`](../packages/experimental/liveshare) | - | - | - | 以单个 Typert Remote 命名空间发布 owner 分享管理操作，供 owner 客户端面调用；每个方法都委托给同源路由原先使用的同一组操作。 |
 
 维护模式：混合模式。服务从 Cordis 声明中发现；接口、实现和消费方角色在 `scripts/gen-doc-graphs.ts` 中分类，并设有完整性守卫。

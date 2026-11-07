@@ -1,8 +1,21 @@
+---
+description: "The quant-research web panel plugin: a sidebar entry plus a frame-wide surface with read-only views of the PET virtual accounts, research notes, and persisted backtest snapshots."
+kind: "package-bundle"
+---
 # @deepseek-ai/dsh-client-ui-quant-research
 
 English | [中文](README.zh.md)
 
+## Summary
+
 The quant-research web panel plugin: a sidebar entry plus a frame-wide surface with read-only views of the PET virtual accounts, the research notes, and the persisted backtest result snapshots, fed by the core package's Remote face mounted through this plugin itself (`ctx.remote.$mount`). Charts render as inline SVG (`charts.tsx` — a position-weight bar row and a sparkline); there is no chart-library dependency. The node half is an empty apply so the plugin can appear in a host cordis.yml; everything user-visible lives in the browser half exported as `./client`.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Surface](#surface)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 ## Installation
 
@@ -43,3 +56,12 @@ Independent of live requests: the panel never touches a request prefix.
 - **Read-only by design** — every mutation (account creation, rebalance, note saving) goes through the model-facing tools with their own compliance and approval flows; the Remote face exposes reads only, so the panel cannot bypass the gate.
 - **Equity curves are snapshot-fed** — cards render the curve persisted at `quant_run_backtest` time (downsampled to 240 points, newest 50 runs); live jobs (optimization, walk-forward) do not snapshot, so their runs do not appear.
 - **Panel charts are static SVG** — the bar row, sparkline, and comparison have no tooltips or zoom; interactive charts stay an explicit review item against bundle size.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

@@ -10,7 +10,7 @@
 
 ## 决策
 
-- **spec 迁入 expected 通道、采用 golden 命名。** upstream 的 `refactor(test): reserve snapshots for session recordings`（1cfe0f9942）把示例快照测试改名为 `*.golden.e2e.ts`、把录制会话回放挪进 `snapshots/`；量化示例是 owner-local 组装期望输出（无录制会话），因此加入 `vitest.expected.config.ts` 的 `examples/*/tests/**/*.golden.e2e.ts` include。spec 从 `quant-research.snapshot.ts` 改名为 `quant-research.golden.e2e.ts`。
+- **spec 迁入 expected 通道、采用 golden 命名。** upstream 的 `refactor(test): reserve snapshots for session recordings`（随 `dsh-v0.2.1-rc.1` 发布）把示例快照测试改名为 `*.golden.e2e.ts`、把录制会话回放挪进 `snapshots/`；量化示例是 owner-local 组装期望输出（无录制会话），因此加入 `vitest.expected.config.ts` 的 `examples/*/tests/**/*.golden.e2e.ts` include。spec 从 `quant-research.snapshot.ts` 改名为 `quant-research.golden.e2e.ts`。
 - **组合骑上当前包。** 退役的 `dsh-agent-spine-demo` 行改为声明式 `dsh-agent-loop` 加一个启动 agent（persona 走 `system-prompt` 的 `personaPrefix`——demo 的 `persona`/`workspaceContext`/`dshHome` 旋钮已不存在）；合并后的 `dsh-settings` 行删除（它现在注入 `configEditor` + `profileContext`，本组合不提供这两个服务，且插件不读设置）；`llm`、`session`、`agent`、`session-projection`、`tools` 服务枢纽作为显式行加入。`examples/package.json` 作为唯一 workspace 伞回归，让 plain-Node 对 cordis.yml 包的解析可用——原伞文件记录的模式。
 - **mock 骑上当前 LLM 形状。** `CallId` 改为 `ToolCallId`；工具结果现在是 `role: 'tool'` 消息（旧 `content.find(block => block.type === 'tool-result')` 永不匹配，于是 mock 永远重放第一轮——超时把其他所有失败都藏住了）。
 - **driver 补齐 Phase4/5 阶段。** optimize 与 walk-forward 之后：一个双标的（`000001`/`600519`）横截面 IC 任务带 `ic_windows: 2`（经 `cross_section_ic` 内核 op）、一次面板上限拒绝、一次 `quant_list_snapshots` 读取断言上述轮次的持久化结果。spec 断言启动卡片、落定 markdown（含分窗稳定性节）、拒绝理由与快照列表。

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-03-kabage-dingtalk-oauth-contract-fix.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-03-kabage-dingtalk-oauth-contract-fix.md
+/agent-note-dingtalk-oauth-contract-fix-endpoint-field-names:
+  en: be69154148741f21
+  zh: 570591b29b38f9ae
+/agent-note-dingtalk-oauth-contract-fix-endpoint-field-names/problem:
+  en: a991dd1756d7bdbc
+  zh: 802548b546e282f9
+/agent-note-dingtalk-oauth-contract-fix-endpoint-field-names/decision:
+  en: 6f0ada28728ff889
+  zh: cd8b7ce0e7cd95df
+/agent-note-dingtalk-oauth-contract-fix-endpoint-field-names/alternatives-considered:
+  en: 35c9af4f8c4e6edc
+  zh: cc3f18c431ed3bb6
+/agent-note-dingtalk-oauth-contract-fix-endpoint-field-names/consequences:
+  en: 59f1e861ba775ed2
+  zh: a5cd8a74c94a739e

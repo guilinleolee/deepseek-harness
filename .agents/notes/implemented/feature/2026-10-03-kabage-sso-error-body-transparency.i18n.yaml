@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-03-kabage-sso-error-body-transparency.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-03-kabage-sso-error-body-transparency.md
+/agent-note-sso-failure-errors-now-carry-the-provider-response-body:
+  en: 2fc6bbb31cea1bca
+  zh: 0ed8cc6c7ca7611e
+/agent-note-sso-failure-errors-now-carry-the-provider-response-body/problem:
+  en: 6720349cf3e9905d
+  zh: 734573fed0259130
+/agent-note-sso-failure-errors-now-carry-the-provider-response-body/decision:
+  en: 6db26771d076090d
+  zh: cf5dad35a3461a63
+/agent-note-sso-failure-errors-now-carry-the-provider-response-body/alternatives-considered:
+  en: f2e52c922345e332
+  zh: e74cd0df48e98380
+/agent-note-sso-failure-errors-now-carry-the-provider-response-body/consequences:
+  en: dbeb549b7f63784a
+  zh: 504ee7da0d6099dd

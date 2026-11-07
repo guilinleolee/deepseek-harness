@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-02-kabage-console-v2-leftovers-batch2.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-02-kabage-console-v2-leftovers-batch2.md
+/agent-note-console-v2-origin-nat-cli:
+  en: 94ea6b605ab56cf1
+  zh: 44683aedbdeecfea
+/agent-note-console-v2-origin-nat-cli/problem:
+  en: bebab609b454f3f8
+  zh: ce9a939659cc454a
+/agent-note-console-v2-origin-nat-cli/decision:
+  en: c94e9807bd118d2b
+  zh: b6bd067957c44eb6
+/agent-note-console-v2-origin-nat-cli/alternatives-considered:
+  en: 88b13d71800a1f64
+  zh: ea282932959733b3
+/agent-note-console-v2-origin-nat-cli/consequences:
+  en: 7200fce4ff9bdb57
+  zh: 705ff545b2ad547f
