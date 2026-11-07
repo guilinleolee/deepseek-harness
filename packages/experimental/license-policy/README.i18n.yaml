@@ -1,3 +1,37 @@
-source: README.md
-translations:
-  zh: README.zh.md
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/license-policy/README.md
+/:
+  en: c7b3e74bfd28f099
+  zh: 7466eb510171db25
+/deepseek-ai-dsh-license-policy:
+  en: 1b6bb7b651a9b59d
+  zh: cf6fbaebe9be45a4
+/deepseek-ai-dsh-license-policy/summary:
+  en: be097880057f84bc
+  zh: c34b134627ef5a23
+/deepseek-ai-dsh-license-policy/table-of-contents:
+  en: 444a6d430e667d23
+  zh: 43b25c551a55737d
+/deepseek-ai-dsh-license-policy/tier-decision-matrix:
+  en: 6a3172184d0c07ee
+  zh: 4ce74ed6e843a75d
+/deepseek-ai-dsh-license-policy/service-api:
+  en: 17de7dda1a641d74
+  zh: 119785a342e3eab4
+/deepseek-ai-dsh-license-policy/config:
+  en: 6be7727a62cca185
+  zh: dd0f64e569983f7a
+/deepseek-ai-dsh-license-policy/model-experience:
+  en: cd7182e2986580e9
+  zh: 65e09e21d4dafb74
+/deepseek-ai-dsh-license-policy/model-experience/kv-cache-effect:
+  en: 4f0eadf94828e66e
+  zh: 4f8a6ec170ebbfb6
+/deepseek-ai-dsh-license-policy/known-limitations-and-deferred-work:
+  en: 76f512eb3a5bb1ad
+  zh: 3bbf3e0188e7eac8
+/deepseek-ai-dsh-license-policy/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

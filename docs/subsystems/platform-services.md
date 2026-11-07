@@ -26,7 +26,7 @@ Source: [`packages/growth/customer-acquisition-geo/src/service.ts`](../../packag
 
 ## Dragon assets bridge
 
-The dragon-assets stack turns the `dragon-assets/` mirror into a licensed, searchable catalog. [`@deepseek-ai/dsh-experimental-agent-roster`](../../packages/experimental/agent-roster) parses the agent-role markdowns, [`@deepseek-ai/dsh-experimental-skill-index`](../../packages/experimental/skill-index) indexes skills and command assets, [`@deepseek-ai/dsh-experimental-license-policy`](../../packages/experimental/license-policy) classifies each asset into an `allow` / `attribute` / `artifact-only` / `reject` tier, and [`@deepseek-ai/dsh-experimental-dragon-bridge`](../../packages/experimental/dragon-bridge) merges both sources into one cross-kind, license-annotated asset list.
+The dragon-assets stack turns the `dragon-assets/` mirror into a licensed, searchable catalog. [`@deepseek-ai/dsh-agent-roster`](../../packages/experimental/agent-roster) parses the agent-role markdowns, [`@deepseek-ai/dsh-skill-index`](../../packages/experimental/skill-index) indexes skills and command assets, [`@deepseek-ai/dsh-license-policy`](../../packages/experimental/license-policy) classifies each asset into an `allow` / `attribute` / `artifact-only` / `reject` tier, and [`@deepseek-ai/dsh-dragon-bridge`](../../packages/experimental/dragon-bridge) merges both sources into one cross-kind, license-annotated asset list.
 
 Source: [`packages/experimental/dragon-bridge/src/index.ts`](../../packages/experimental/dragon-bridge/src/index.ts)
 

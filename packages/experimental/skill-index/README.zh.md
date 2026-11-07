@@ -1,11 +1,27 @@
-# dsh-experimental-skill-index
+---
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文"
+kind: "package-reference"
+---
+# @deepseek-ai/dsh-skill-index
 
 [English](README.md) | 中文
 
-DSH 对天龙引擎 V2.5 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文件并以可查询快照的形式暴露。
+## 概述
+
+DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文件并以可查询快照的形式暴露。
+
+## 目录
+
+- [读取哪些文件](#what-it-reads)
+- [配置](#config)
+- [Service API](#service-api)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="what-it-reads"></a>
 ## 读取哪些文件
 
 `dragon-assets/` 镜像包含天龙引擎 `scripts/build-index.py` 生成的五个 jsonl 文件：
@@ -20,6 +36,7 @@ DSH 对天龙引擎 V2.5 镜像资产索引的只读访问层。本包注册一�
 
 本包并发读取所有五个文件，冻结快照后提供查询接口。索引由天龙上游刷新；本包**只读不写**。
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |
@@ -28,8 +45,8 @@ DSH 对天龙引擎 V2.5 镜像资产索引的只读访问层。本包注册一�
 
 ## Service API
 
-```ts
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
+```
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
 
 const fiber = await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot: '...' })
 
@@ -42,15 +59,9 @@ const skill = ctx.dragonIndex.get('async-task-pattern', 'skill')
 
 ## 模型体验
 
-### 模型能看到什么
+无，因为本包只负责读路径；任何搜索结果对模型的暴露都由调用方拥有。
 
-**无任何内容**——本 Service 是 DSH 内部组件，永远不会直接暴露给模型。调用方可以通过自己的工具选择性地把搜索结果暴露给模型；本包仅负责读路径。
-
-### Token 影响
-
-无。
-
-### KV Cache 影响
+#### KV Cache 影响
 
 无。
 
@@ -62,3 +73,14 @@ const skill = ctx.dragonIndex.get('async-task-pattern', 'skill')
 - **同步 JSON.parse 循环**——服务一次性解析整个索引。几千条资产内可接受；如索引超过 ~50k 条资产需考虑流式解析。
 - **无 CJK 路径校验**——服务原样返回路径。Windows 上的调用方在传入 `fs` 前必须自行校验。
 - **AGPL-3.0 与 MIT 资产共存**——调用方在执行任何 AGPL 标签资产前必须按 `license` 过滤（详见计划中的 `dsh-experimental-license-policy` 包）。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>

@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-experimental-skill-index",
+  "name": "@deepseek-ai/dsh-skill-index",
   "description": "Dragon Engine asset index reader for the DeepSeek Harness — exposes dragon-assets/index/*.jsonl as a Cordis Service",
   "version": "0.2.2-rc.1",
   "private": true,

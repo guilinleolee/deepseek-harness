@@ -4,7 +4,7 @@
  * Six license tiers, matching `dragon-engine memory/agpl-attribution-statements.md`
  * and the upstream DSH ecosystem license policy (`dsh-ecosystem-license-policy`).
  *
- * @module @deepseek-ai/dsh-experimental-license-policy
+ * @module @deepseek-ai/dsh-license-policy
  */
 
 /** License tier classification for a single asset. */

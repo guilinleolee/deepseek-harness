@@ -1,3 +1,37 @@
-source: README.md
-translations:
-  zh: README.zh.md
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/skill-index/README.md
+/:
+  en: 6bc773fcf9b187c8
+  zh: 9c3e8cd9b4cdf390
+/deepseek-ai-dsh-skill-index:
+  en: 9d10461bf2d3cb6e
+  zh: b2950148c9771576
+/deepseek-ai-dsh-skill-index/summary:
+  en: 497d8d89a6f3b5ee
+  zh: 308211edd62bcbd1
+/deepseek-ai-dsh-skill-index/table-of-contents:
+  en: 192ef5b885b5b90b
+  zh: 8c03560d58dbfaf9
+/deepseek-ai-dsh-skill-index/what-it-reads:
+  en: 360f62a4fc78ba11
+  zh: 03aa0a293cce40dc
+/deepseek-ai-dsh-skill-index/config:
+  en: 8ce9bd81dfb06ebb
+  zh: 44b7072a8b16c01f
+/deepseek-ai-dsh-skill-index/service-api:
+  en: 2df3fcf613dfa400
+  zh: 284cf5f506c6aa14
+/deepseek-ai-dsh-skill-index/model-experience:
+  en: a5f922b6fd126eba
+  zh: dfc5d5042eda6c2d
+/deepseek-ai-dsh-skill-index/model-experience/kv-cache-effect:
+  en: 4f0eadf94828e66e
+  zh: 4f8a6ec170ebbfb6
+/deepseek-ai-dsh-skill-index/known-limitations-and-deferred-work:
+  en: 8d185fde8e3fa2d0
+  zh: 48399d475f08df6b
+/deepseek-ai-dsh-skill-index/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

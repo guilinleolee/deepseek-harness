@@ -264,13 +264,14 @@ flowchart TD
   end
   subgraph group_experimental["packages/experimental"]
     pkg_action_cards["action-cards"]
+    pkg_agent_roster["agent-roster"]
     pkg_client_ui_action_cards["client-ui-action-cards"]
     pkg_client_ui_creation_recommendations["client-ui-creation-recommendations"]
     pkg_client_ui_plugin_recommendations["client-ui-plugin-recommendations"]
     pkg_creation_recommendations["creation-recommendations"]
     pkg_cua["cua"]
     pkg_cua_bundle["cua-bundle"]
-    pkg_experimental_agent_roster["experimental-agent-roster"]
+    pkg_dragon_bridge["dragon-bridge"]
     pkg_experimental_api_speech_to_text["experimental-api-speech-to-text"]
     pkg_experimental_auto_review["experimental-auto-review"]
     pkg_experimental_badge_skill_bundle["experimental-badge-skill-bundle"]
@@ -288,14 +289,12 @@ flowchart TD
     pkg_experimental_computer_use_cua_driver_native["experimental-computer-use-cua-driver-native"]
     pkg_experimental_cot_translation_bundle["experimental-cot-translation-bundle"]
     pkg_experimental_cua_macos["experimental-cua-macos"]
-    pkg_experimental_dragon_bridge["experimental-dragon-bridge"]
     pkg_experimental_forge["experimental-forge"]
     pkg_experimental_forge_bundle["experimental-forge-bundle"]
     pkg_experimental_forge_github["experimental-forge-github"]
     pkg_experimental_forge_session["experimental-forge-session"]
     pkg_experimental_inspector["experimental-inspector"]
     pkg_experimental_inspector_profile["experimental-inspector-profile"]
-    pkg_experimental_license_policy["experimental-license-policy"]
     pkg_experimental_liveshare["experimental-liveshare"]
     pkg_experimental_liveshare_protocol["experimental-liveshare-protocol"]
     pkg_experimental_plugin_market_bundle["experimental-plugin-market-bundle"]
@@ -304,7 +303,6 @@ flowchart TD
     pkg_experimental_session_inspector["experimental-session-inspector"]
     pkg_experimental_session_search["experimental-session-search"]
     pkg_experimental_session_titles_bundle["experimental-session-titles-bundle"]
-    pkg_experimental_skill_index["experimental-skill-index"]
     pkg_experimental_speech_to_text["experimental-speech-to-text"]
     pkg_experimental_speech_to_text_sensevoice["experimental-speech-to-text-sensevoice"]
     pkg_experimental_subagent_oar["experimental-subagent-oar"]
@@ -319,10 +317,12 @@ flowchart TD
     pkg_hook_protocol["hook-protocol"]
     pkg_hooks_claude_code["hooks-claude-code"]
     pkg_hooks_codex["hooks-codex"]
+    pkg_license_policy["license-policy"]
     pkg_personalized_recommendations["personalized-recommendations"]
     pkg_plugin_recommendations["plugin-recommendations"]
     pkg_session_title_all_prompts_llm["session-title-all-prompts-llm"]
     pkg_skill_badge["skill-badge"]
+    pkg_skill_index["skill-index"]
     pkg_tool_ralph["tool-ralph"]
     pkg_tool_session_query["tool-session-query"]
     pkg_tool_terminal["tool-terminal"]
@@ -534,9 +534,9 @@ flowchart TD
   pkg_credentials_local --> pkg_credentials
   pkg_credentials_local --> pkg_home_paths
   pkg_credentials_local --> pkg_launch_environment
-  pkg_experimental_dragon_bridge --> pkg_experimental_agent_roster
-  pkg_experimental_dragon_bridge --> pkg_experimental_license_policy
-  pkg_experimental_dragon_bridge --> pkg_experimental_skill_index
+  pkg_dragon_bridge --> pkg_agent_roster
+  pkg_dragon_bridge --> pkg_license_policy
+  pkg_dragon_bridge --> pkg_skill_index
   pkg_experimental_liveshare --> pkg_scope
   pkg_anonymous_user_id --> pkg_brand
   pkg_anonymous_user_id --> pkg_home_paths
@@ -1694,11 +1694,11 @@ flowchart TD
 | [`client-web`](../packages/client/web) | `client` | — |
 | [`credentials`](../packages/credentials/credentials) | `credentials` | — |
 | [`office-to-pdf`](../packages/document/office-to-pdf) | `document` | — |
+| [`agent-roster`](../packages/experimental/agent-roster) | `experimental` | — |
 | [`client-ui-action-cards`](../packages/experimental/client-ui-action-cards) | `experimental` | — |
 | [`client-ui-creation-recommendations`](../packages/experimental/client-ui-creation-recommendations) | `experimental` | — |
 | [`client-ui-plugin-recommendations`](../packages/experimental/client-ui-plugin-recommendations) | `experimental` | — |
 | [`cua-bundle`](../packages/experimental/cua-bundle) | `experimental` | — |
-| [`experimental-agent-roster`](../packages/experimental/agent-roster) | `experimental` | — |
 | [`experimental-badge-skill-bundle`](../packages/experimental/badge-skill-bundle) | `experimental` | — |
 | [`experimental-client-ui-claude-code-mods`](../packages/experimental/client-ui-claude-code-mods) | `experimental` | — |
 | [`experimental-client-ui-stats`](../packages/experimental/client-ui-stats) | `experimental` | — |
@@ -1708,18 +1708,18 @@ flowchart TD
 | [`experimental-forge-bundle`](../packages/experimental/forge-bundle) | `experimental` | — |
 | [`experimental-inspector`](../packages/experimental/inspector) | `experimental` | — |
 | [`experimental-inspector-profile`](../packages/experimental/inspector-profile) | `experimental` | — |
-| [`experimental-license-policy`](../packages/experimental/license-policy) | `experimental` | — |
 | [`experimental-liveshare-protocol`](../packages/experimental/liveshare-protocol) | `experimental` | — |
 | [`experimental-plugin-market-bundle`](../packages/experimental/plugin-market-bundle) | `experimental` | — |
 | [`experimental-ralph-bundle`](../packages/experimental/ralph-bundle) | `experimental` | — |
 | [`experimental-session-inspector`](../packages/experimental/session-inspector) | `experimental` | — |
 | [`experimental-session-search`](../packages/experimental/session-search) | `experimental` | — |
 | [`experimental-session-titles-bundle`](../packages/experimental/session-titles-bundle) | `experimental` | — |
-| [`experimental-skill-index`](../packages/experimental/skill-index) | `experimental` | — |
 | [`experimental-terminal-bundle`](../packages/experimental/terminal-bundle) | `experimental` | — |
 | [`experimental-voice-input-bundle`](../packages/experimental/voice-input-bundle) | `experimental` | — |
 | [`experimental-webworker-packer`](../packages/experimental/webworker-packer) | `experimental` | — |
+| [`license-policy`](../packages/experimental/license-policy) | `experimental` | — |
 | [`personalized-recommendations`](../packages/experimental/personalized-recommendations) | `experimental` | — |
+| [`skill-index`](../packages/experimental/skill-index) | `experimental` | — |
 | [`client-ui-cordis`](../packages/extensions/ui-cordis) | `extensions` | — |
 | [`cordis-client-runner`](../packages/extensions/cordis-client-runner) | `extensions` | — |
 | [`host-directory-picker`](../packages/host/directory-picker) | `host` | — |
@@ -1755,7 +1755,7 @@ flowchart TD
 | [`content-topics`](../packages/creation/content-topics) | `creation` | [`atomic-write`](../packages/util/atomic-write), [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths), [`typert-protocol`](../packages/typert/protocol) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`llm`](../packages/llm/llm) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
-| [`experimental-dragon-bridge`](../packages/experimental/dragon-bridge) | `experimental` | [`experimental-agent-roster`](../packages/experimental/agent-roster), [`experimental-license-policy`](../packages/experimental/license-policy), [`experimental-skill-index`](../packages/experimental/skill-index) |
+| [`dragon-bridge`](../packages/experimental/dragon-bridge) | `experimental` | [`agent-roster`](../packages/experimental/agent-roster), [`license-policy`](../packages/experimental/license-policy), [`skill-index`](../packages/experimental/skill-index) |
 | [`experimental-liveshare`](../packages/experimental/liveshare) | `experimental` | [`scope`](../packages/core/scope) |
 | [`anonymous-user-id`](../packages/identity/anonymous-user-id) | `identity` | [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths) |
 | [`lsp`](../packages/lsp/lsp) | `lsp` | [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm) |

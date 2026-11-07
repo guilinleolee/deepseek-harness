@@ -18,7 +18,7 @@
  * | noassertion  | black    | reject           | DSH governance baseline |
  * | unknown      | amber    | attribute        | unless `rejectUnknown` |
  *
- * @module @deepseek-ai/dsh-experimental-license-policy
+ * @module @deepseek-ai/dsh-license-policy
  */
 
 import { Service } from '@deepseek-ai/cordis'

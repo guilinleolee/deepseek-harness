@@ -5,14 +5,28 @@
  * represents one asset entry. The schema mirrors the dragon-index/1.0 format
  * declared by the upstream `dragon-engine` project's `INDEX_MASTER.json`.
  *
- * @module @deepseek-ai/dsh-experimental-skill-index
+ * @module @deepseek-ai/dsh-skill-index
  */
 
 /** Asset kind discriminator matching `INDEX_MASTER.json` counts. */
 export type AssetKind = 'skill' | 'agent' | 'hook' | 'command' | 'plugin'
 
-/** License tier classification derived from upstream LICENSE markers. */
-export type LicenseTier = 'mit' | 'apache-2.0' | 'bsd-3-clause' | 'agpl-3.0' | 'noassertion' | 'unknown'
+/**
+ * License tier classification derived from upstream LICENSE markers.
+ *
+ * The vocabulary mirrors `dsh-license-policy`, which owns the
+ * tier-to-decision table: a tier the policy cannot express would collapse
+ * into `unknown` there and lose its red-line.
+ */
+export type LicenseTier =
+  | 'mit'
+  | 'apache-2.0'
+  | 'bsd-3-clause'
+  | 'agpl-3.0'
+  | 'noncommercial'
+  | 'proprietary'
+  | 'noassertion'
+  | 'unknown'
 
 /** Discovery status flag for downstream consumers. */
 export type AssetStatus = 'active' | 'deprecated' | 'experimental' | 'archived' | 'unknown'

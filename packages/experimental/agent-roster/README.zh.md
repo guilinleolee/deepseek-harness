@@ -1,11 +1,27 @@
-# dsh-experimental-agent-roster
+---
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析"
+kind: "package-reference"
+---
+# @deepseek-ai/dsh-agent-roster
 
 [English](README.md) | 中文
 
-DSH 对天龙引擎 V2.5 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析最小 frontmatter + 一级标题 + 首段 + 能力清单，按天龙 00-99 数字编号暴露为强类型花名册。
+## 概述
+
+DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析最小 frontmatter + 一级标题 + 首段 + 能力清单，按天龙 00-99 数字编号暴露为强类型花名册。
+
+## 目录
+
+- [读取哪些文件](#what-it-reads)
+- [配置](#config)
+- [Service API](#service-api)
+- [开发备注](#dev-note)
+
+-----
 
 这是一个实验性包。仅当宿主 composition 显式请求时才会被装载；release 包**不得**在 `dependencies` 中引用它。
 
+<a id="what-it-reads"></a>
 ## 读取哪些文件
 
 `dragon-assets/agents/` 含 182 个 .md + 三个保留子目录（`shibazi/`、`zcf/`、`.gitnexus/`）。本包行为：
@@ -28,6 +44,7 @@ DSH 对天龙引擎 V2.5 镜像角色花名册的只读访问层。本包注册�
 - **license** — YAML frontmatter 中首条 `license:` 行
 - **path** — 工作区相对路径
 
+<a id="config"></a>
 ## 配置
 
 | 字段 | 默认值 | 含义 |
@@ -37,8 +54,8 @@ DSH 对天龙引擎 V2.5 镜像角色花名册的只读访问层。本包注册�
 
 ## Service API
 
-```ts
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
+```
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
 
 const fiber = await ctx.plugin(AgentRoster, { dragonAssetsRoot: '...' })
 
@@ -52,15 +69,9 @@ const analyst = ctx.agentRoster.get('00-analyst')
 
 ## 模型体验
 
-### 模型能看到什么
+无，因为本 Service 是 DSH 内部组件；任何搜索结果对模型的暴露都由调用方拥有。
 
-**无任何内容**——本 Service 是 DSH 内部组件，永远不会直接暴露给模型。调用方可以通过自己的工具选择性地把搜索结果暴露给模型。
-
-### Token 影响
-
-无。
-
-### KV Cache 影响
+#### KV Cache 影响
 
 无。
 
@@ -72,3 +83,14 @@ const analyst = ctx.agentRoster.get('00-analyst')
 - **License 只看 frontmatter**——未读 LICENSE 文件存在性；没有 `license:` 行的角色 `license === undefined`。
 - **冻结快照**——花名册被深冻结，调用方需先克隆再修改。
 - **Family 分桶是 opinionated**——00-99 范围源自 `dragon-engine CLAUDE.md §3`，不是声明表。若上游重新分桶，修改本包代码而不是调用点。
+
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>
