@@ -2,7 +2,7 @@
 description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像角色花名册的只读访问层。本包注册一个 Cordis Service，遍历 `dragon-assets/agents/` 下每个 `*.md`，解析"
 kind: "package-reference"
 ---
-# dsh-experimental-agent-roster
+# @deepseek-ai/dsh-agent-roster
 
 [English](README.md) | 中文
 
@@ -55,7 +55,7 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 ## Service API
 
 ```
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
 
 const fiber = await ctx.plugin(AgentRoster, { dragonAssetsRoot: '...' })
 

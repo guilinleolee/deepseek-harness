@@ -25,6 +25,12 @@ export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, strin
   'packages/experimental/plugin-recommendations': '@deepseek-ai/dsh-plugin-recommendations',
   'packages/experimental/client-ui-plugin-recommendations': '@deepseek-ai/dsh-client-ui-plugin-recommendations',
   'packages/experimental/personalized-recommendations': '@deepseek-ai/dsh-personalized-recommendations',
+  // Kabage platform packages: platform-internal capability registries over the
+  // dragon-assets mirror, delivered per instance and never published to npm.
+  'packages/experimental/agent-roster': '@deepseek-ai/dsh-agent-roster',
+  'packages/experimental/dragon-bridge': '@deepseek-ai/dsh-dragon-bridge',
+  'packages/experimental/license-policy': '@deepseek-ai/dsh-license-policy',
+  'packages/experimental/skill-index': '@deepseek-ai/dsh-skill-index',
 } satisfies Record<`packages/experimental/${string}`, `@deepseek-ai/dsh-${string}`>
 
 /** Legacy npm namespace, allowed only in `LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES`. */
@@ -108,7 +114,14 @@ export function experimentalPackageRecordNamespace(name: string): string | undef
 }
 
 /** Experimental packages excluded from public releases and npm baselines. */
-export const PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[] = []
+export const PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[] = [
+  // Kabage platform packages: platform-internal, delivered per instance by the
+  // supervisor, and never published to npm.
+  'packages/experimental/agent-roster',
+  'packages/experimental/dragon-bridge',
+  'packages/experimental/license-policy',
+  'packages/experimental/skill-index',
+]
 
 /**
  * Whether an experimental package publishes under the default-public policy.

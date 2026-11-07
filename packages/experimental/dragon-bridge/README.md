@@ -2,13 +2,13 @@
 description: "The single facade for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror inside DSH."
 kind: "package-reference"
 ---
-# dsh-experimental-dragon-bridge
+# @deepseek-ai/dsh-dragon-bridge
 
 English | [中文](README.zh.md)
 
 ## Summary
 
-The single facade for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror inside DSH. Combines `@deepseek-ai/dsh-experimental-skill-index`, `@deepseek-ai/dsh-experimental-agent-roster`, and `@deepseek-ai/dsh-experimental-license-policy` so a consumer can search across skills, agents, commands, hooks, and plugins in one call and trust the AGPL / NOASSERTION gate.
+The single facade for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror inside DSH. Combines `@deepseek-ai/dsh-skill-index`, `@deepseek-ai/dsh-agent-roster`, and `@deepseek-ai/dsh-license-policy` so a consumer can search across skills, agents, commands, hooks, and plugins in one call and trust the AGPL / NOASSERTION gate.
 
 ## Table of Contents
 
@@ -27,10 +27,10 @@ This is an experimental package. It only mounts when its owning composition asks
 The bridge is a pure facade. The three upstream packages must be registered first; `loadAll()` triggers each sibling's refresh and reuses the results. A typical composition:
 
 ```
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
-import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
-import DragonBridge from '@deepseek-ai/dsh-experimental-dragon-bridge'
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
+import LicensePolicy from '@deepseek-ai/dsh-license-policy'
+import DragonBridge from '@deepseek-ai/dsh-dragon-bridge'
 
 await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot })
 await ctx.plugin(AgentRoster, { dragonAssetsRoot })

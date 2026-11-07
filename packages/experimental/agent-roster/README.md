@@ -2,7 +2,7 @@
 description: "Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) agent roster mirrored under `dragon-assets/agents/`."
 kind: "package-reference"
 ---
-# dsh-experimental-agent-roster
+# @deepseek-ai/dsh-agent-roster
 
 English | [中文](README.zh.md)
 
@@ -53,7 +53,7 @@ The parser extracts, per file:
 ## Service API
 
 ```
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
 
 const fiber = await ctx.plugin(AgentRoster, { dragonAssetsRoot: '...' })
 

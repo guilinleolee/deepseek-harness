@@ -4,37 +4,37 @@
 #   pnpm run verify-translation-pairing --write packages/experimental/dragon-bridge/README.md
 /:
   en: 2b4d35e204e7653d
-  zh: d2d0556e25b6f361
-/dsh-experimental-dragon-bridge:
-  en: 840a2b77431d605c
-  zh: f8db359f518d835a
-/dsh-experimental-dragon-bridge/summary:
-  en: f54a432f4867ef83
-  zh: e1a4cc7c216d7382
-/dsh-experimental-dragon-bridge/table-of-contents:
+  zh: 261e5fb4a1fe9cae
+/deepseek-ai-dsh-dragon-bridge:
+  en: 4767ff22c25d4cc6
+  zh: 6de16c8e2d098e1e
+/deepseek-ai-dsh-dragon-bridge/summary:
+  en: 11d8f90652a510b0
+  zh: 2af161756f1ad535
+/deepseek-ai-dsh-dragon-bridge/table-of-contents:
   en: 8a2da4e1a19cbe7b
   zh: ec17b84957b0d796
-/dsh-experimental-dragon-bridge/dependencies:
+/deepseek-ai-dsh-dragon-bridge/dependencies:
   en: be9340f4ee5ae93c
   zh: 79ca39fd02c108b6
-/dsh-experimental-dragon-bridge/service-api:
+/deepseek-ai-dsh-dragon-bridge/service-api:
   en: db46885aa1ba385d
   zh: 63b02c5ec4059f8e
-/dsh-experimental-dragon-bridge/config:
+/deepseek-ai-dsh-dragon-bridge/config:
   en: 4694985a11681c2a
   zh: c503b9cdfb743951
-/dsh-experimental-dragon-bridge/cross-package-contract:
+/deepseek-ai-dsh-dragon-bridge/cross-package-contract:
   en: 1e198c9238ada166
   zh: 74ddaea20dd9aa9e
-/dsh-experimental-dragon-bridge/model-experience:
+/deepseek-ai-dsh-dragon-bridge/model-experience:
   en: cfd1d3840dd3f813
   zh: faa57f5ccee6859c
-/dsh-experimental-dragon-bridge/model-experience/kv-cache-effect:
+/deepseek-ai-dsh-dragon-bridge/model-experience/kv-cache-effect:
   en: 4f0eadf94828e66e
   zh: 4f8a6ec170ebbfb6
-/dsh-experimental-dragon-bridge/known-limitations-and-deferred-work:
+/deepseek-ai-dsh-dragon-bridge/known-limitations-and-deferred-work:
   en: e7ecbe6cf0435f52
   zh: f067c2fa2911b6bd
-/dsh-experimental-dragon-bridge/known-limitations-and-deferred-work/dev-note:
+/deepseek-ai-dsh-dragon-bridge/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: b23ea3e6cbd56734

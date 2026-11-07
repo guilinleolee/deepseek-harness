@@ -14,7 +14,7 @@
  *
  * The service is read-only and never writes back to the mirror.
  *
- * @module @deepseek-ai/dsh-experimental-agent-roster
+ * @module @deepseek-ai/dsh-agent-roster
  */
 
 import { existsSync, promises as fs } from 'node:fs'

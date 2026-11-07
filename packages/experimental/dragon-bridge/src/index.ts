@@ -11,15 +11,15 @@
  * resolves each entry through the policy. Results are cached until the
  * next `loadAll()`.
  *
- * @module @deepseek-ai/dsh-experimental-dragon-bridge
+ * @module @deepseek-ai/dsh-dragon-bridge
  */
 
 import { Service } from '@deepseek-ai/cordis'
 import type {
   AssetIndexEntry,
   AssetKind as IndexKind,
-} from '@deepseek-ai/dsh-experimental-skill-index'
-import type { AgentRole } from '@deepseek-ai/dsh-experimental-agent-roster'
+} from '@deepseek-ai/dsh-skill-index'
+import type { AgentRole } from '@deepseek-ai/dsh-agent-roster'
 import type { BridgeSearchQuery, Config, DragonAsset } from './types.ts'
 
 const SKILL_INDEX_KINDS: ReadonlyArray<IndexKind> = ['skill', 'agent', 'hook', 'command', 'plugin']
@@ -40,6 +40,8 @@ declare module '@deepseek-ai/cordis' {
  * `loadAll()`.
  */
 export class DragonBridge extends Service {
+  static inject = ['dragonIndex', 'agentRoster', 'licensePolicy']
+
   private readonly safeOnly: boolean
   private assets: readonly DragonAsset[] = []
 
@@ -141,7 +143,7 @@ export class DragonBridge extends Service {
 function wrapIndexEntry(
   entry: AssetIndexEntry,
   kind: DragonAsset['kind'],
-  licensePolicy: import('@deepseek-ai/dsh-experimental-license-policy').default,
+  licensePolicy: import('@deepseek-ai/dsh-license-policy').default,
 ): DragonAsset {
   const evaluation = licensePolicy.evaluate(entry.license ?? null)
   return Object.freeze({
@@ -155,7 +157,7 @@ function wrapIndexEntry(
 
 function wrapAgentRole(
   role: AgentRole,
-  licensePolicy: import('@deepseek-ai/dsh-experimental-license-policy').default,
+  licensePolicy: import('@deepseek-ai/dsh-license-policy').default,
 ): DragonAsset {
   const evaluation = licensePolicy.evaluate(role.license ?? null)
   return Object.freeze({

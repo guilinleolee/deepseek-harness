@@ -2,7 +2,7 @@
 description: "[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的纯 License 治理层。本包持有\"tier → decision\"判定表，供下游（skill 加载器、工具发布器、dragon-bridge）在边界"
 kind: "package-reference"
 ---
-# dsh-experimental-license-policy
+# @deepseek-ai/dsh-license-policy
 
 [English](README.md) | 中文
 
@@ -42,7 +42,7 @@ kind: "package-reference"
 ## Service API
 
 ```
-import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
+import LicensePolicy from '@deepseek-ai/dsh-license-policy'
 
 const fiber = await ctx.plugin(LicensePolicy, { rejectUnknown: true })
 

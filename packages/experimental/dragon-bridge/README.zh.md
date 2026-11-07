@@ -1,14 +1,14 @@
 ---
-description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-experimental-skill-index`、`@deepseek-ai/dsh"
+description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-skill-index`、`@deepseek-ai/dsh"
 kind: "package-reference"
 ---
-# dsh-experimental-dragon-bridge
+# @deepseek-ai/dsh-dragon-bridge
 
 [English](README.md) | 中文
 
 ## 概述
 
-DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-experimental-skill-index`、`@deepseek-ai/dsh-experimental-agent-roster`、`@deepseek-ai/dsh-experimental-license-policy` 三个包，调用方通过一次 `search()` 即可跨 skill / agent / command / hook / plugin 五类检索，并由 policy 守好 AGPL / NOASSERTION 边界。
+DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像的**统一门面**。合并 `@deepseek-ai/dsh-skill-index`、`@deepseek-ai/dsh-agent-roster`、`@deepseek-ai/dsh-license-policy` 三个包，调用方通过一次 `search()` 即可跨 skill / agent / command / hook / plugin 五类检索，并由 policy 守好 AGPL / NOASSERTION 边界。
 
 ## 目录
 
@@ -28,10 +28,10 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 本包是纯门面，三个上游包必须先注册；`loadAll()` 触发每个 sibling 的 refresh 并复用其结果。典型 composition：
 
 ```
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
-import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
-import DragonBridge from '@deepseek-ai/dsh-experimental-dragon-bridge'
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
+import LicensePolicy from '@deepseek-ai/dsh-license-policy'
+import DragonBridge from '@deepseek-ai/dsh-dragon-bridge'
 
 await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot })
 await ctx.plugin(AgentRoster, { dragonAssetsRoot })

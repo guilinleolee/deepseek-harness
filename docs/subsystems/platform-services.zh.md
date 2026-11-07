@@ -26,7 +26,7 @@ Source: [`packages/growth/customer-acquisition-geo/src/service.ts`](../../packag
 
 ## Dragon 资产桥接
 
-dragon-assets 栈把 `dragon-assets/` 镜像转换为带许可的可检索目录：[`@deepseek-ai/dsh-experimental-agent-roster`](../../packages/experimental/agent-roster) 解析角色 markdown，[`@deepseek-ai/dsh-experimental-skill-index`](../../packages/experimental/skill-index) 索引技能与命令资产，[`@deepseek-ai/dsh-experimental-license-policy`](../../packages/experimental/license-policy) 把每个资产归入 `allow` / `attribute` / `artifact-only` / `reject` 档位，[`@deepseek-ai/dsh-experimental-dragon-bridge`](../../packages/experimental/dragon-bridge) 把两个来源合并为一份跨类别、带许可标注的资产清单。
+dragon-assets 栈把 `dragon-assets/` 镜像转换为带许可的可检索目录：[`@deepseek-ai/dsh-agent-roster`](../../packages/experimental/agent-roster) 解析角色 markdown，[`@deepseek-ai/dsh-skill-index`](../../packages/experimental/skill-index) 索引技能与命令资产，[`@deepseek-ai/dsh-license-policy`](../../packages/experimental/license-policy) 把每个资产归入 `allow` / `attribute` / `artifact-only` / `reject` 档位，[`@deepseek-ai/dsh-dragon-bridge`](../../packages/experimental/dragon-bridge) 把两个来源合并为一份跨类别、带许可标注的资产清单。
 
 Source: [`packages/experimental/dragon-bridge/src/index.ts`](../../packages/experimental/dragon-bridge/src/index.ts)
 

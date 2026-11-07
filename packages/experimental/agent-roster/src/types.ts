@@ -16,7 +16,7 @@
  * | finance-2 | 60-89 | 64-algo-trader, 73-compliance-master, 80-cfo |
  * | hr | 90-99 | 90-hr-director, 93-recruiter, 99-employee-relations |
  *
- * @module @deepseek-ai/dsh-experimental-agent-roster
+ * @module @deepseek-ai/dsh-agent-roster
  */
 
 /** Family bucket, used to group roles for selection without parsing the id. */

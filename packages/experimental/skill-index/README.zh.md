@@ -2,7 +2,7 @@
 description: "DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天龙引擎 V2.5） 镜像资产索引的只读访问层。本包注册一个 Cordis Service，读取 `dragon-assets/index/` 下五个 `*.jsonl` 文"
 kind: "package-reference"
 ---
-# dsh-experimental-skill-index
+# @deepseek-ai/dsh-skill-index
 
 [English](README.md) | 中文
 
@@ -46,7 +46,7 @@ DSH 对[dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine)（天
 ## Service API
 
 ```
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
 
 const fiber = await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot: '...' })
 

@@ -171,6 +171,31 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-registry -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-roster -->
+<a id="deepseek-aidsh-agent-roster"></a>
+
+## `@deepseek-ai/dsh-agent-roster`
+
+- `source`: [`packages/experimental/agent-roster/src/index.ts:30`](../packages/experimental/agent-roster/src/index.ts)
+
+```ts config-catalog
+/** Loaded configuration for {@link AgentRoster}. */
+interface AgentRosterConfig extends Config {
+  /** Directory names under `dragon-assets/agents/` to ignore. */
+  excludeSubdirs?: readonly string[]
+}
+
+/** Base configuration shared by all dragon-assets service families. */
+export interface Config {
+  /**
+   * Filesystem root for the dragon-assets mirror; consumed by services that
+   * read files out of the mirror.
+   */
+  dragonAssetsRoot?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-roster -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-team -->
 <a id="deepseek-aidsh-agent-team"></a>
 
@@ -1014,30 +1039,24 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-deepseek-account-platform -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-agent-roster -->
-<a id="deepseek-aidsh-experimental-agent-roster"></a>
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-dragon-bridge -->
+<a id="deepseek-aidsh-dragon-bridge"></a>
 
-## `@deepseek-ai/dsh-experimental-agent-roster`
+## `@deepseek-ai/dsh-dragon-bridge`
 
-- `source`: [`packages/experimental/agent-roster/src/index.ts:30`](../packages/experimental/agent-roster/src/index.ts)
+- `inject`: `dragonIndex` · `agentRoster` · `licensePolicy`
+- `source`: [`packages/experimental/dragon-bridge/src/types.ts:44`](../packages/experimental/dragon-bridge/src/types.ts)
 
 ```ts config-catalog
-/** Loaded configuration for {@link AgentRoster}. */
-interface AgentRosterConfig extends Config {
-  /** Directory names under `dragon-assets/agents/` to ignore. */
-  excludeSubdirs?: readonly string[]
-}
-
-/** Base configuration shared by all dragon-assets service families. */
+/** Loaded configuration for {@link DragonBridge}. */
 export interface Config {
-  /**
-   * Filesystem root for the dragon-assets mirror; consumed by services that
-   * read files out of the mirror.
-   */
+  /** Filesystem root of the dragon-assets mirror; passed to skill-index and agent-roster. */
   dragonAssetsRoot?: string
+  /** When true, decisions are filtered to `allow` + `attribute` only by default. */
+  safeOnly?: boolean
 }
 ```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-agent-roster -->
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-dragon-bridge -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-api-speech-to-text -->
 <a id="deepseek-aidsh-experimental-api-speech-to-text"></a>
@@ -1279,24 +1298,6 @@ export type SourceSigning = 'ad-hoc' | {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-cua-macos -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-dragon-bridge -->
-<a id="deepseek-aidsh-experimental-dragon-bridge"></a>
-
-## `@deepseek-ai/dsh-experimental-dragon-bridge`
-
-- `source`: [`packages/experimental/dragon-bridge/src/types.ts:44`](../packages/experimental/dragon-bridge/src/types.ts)
-
-```ts config-catalog
-/** Loaded configuration for {@link DragonBridge}. */
-export interface Config {
-  /** Filesystem root of the dragon-assets mirror; passed to skill-index and agent-roster. */
-  dragonAssetsRoot?: string
-  /** When true, decisions are filtered to `allow` + `attribute` only by default. */
-  safeOnly?: boolean
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-dragon-bridge -->
-
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-forge -->
 <a id="deepseek-aidsh-experimental-forge"></a>
 
@@ -1428,30 +1429,6 @@ export interface InspectorOptions {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-inspector -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-license-policy -->
-<a id="deepseek-aidsh-experimental-license-policy"></a>
-
-## `@deepseek-ai/dsh-experimental-license-policy`
-
-- `source`: [`packages/experimental/license-policy/src/types.ts:64`](../packages/experimental/license-policy/src/types.ts)
-
-```ts config-catalog
-/** Configuration for {@link LicensePolicy}. */
-export interface Config {
-  /**
-   * Treat `unknown` as `reject` instead of `allow`. Default `false`: unknown
-   * assets pass through with attribution but no network deployment.
-   */
-  rejectUnknown?: boolean
-  /**
-   * Override the default AGPL attribution text. The placeholder string is
-   * supplied by `dragon-assets/LICENSE-ATTRIBUTION.md` §三.
-   */
-  agplAttribution?: string
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-license-policy -->
-
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-ptc-runtime-python -->
 <a id="deepseek-aidsh-experimental-ptc-runtime-python"></a>
 
@@ -1520,25 +1497,6 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-ptc-runtime-python -->
-
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-skill-index -->
-<a id="deepseek-aidsh-experimental-skill-index"></a>
-
-## `@deepseek-ai/dsh-experimental-skill-index`
-
-- `source`: [`packages/experimental/skill-index/src/types.ts:71`](../packages/experimental/skill-index/src/types.ts)
-
-```ts config-catalog
-/** Loaded configuration for {@link DragonAssetIndex}. */
-export interface Config {
-  /**
-   * Absolute filesystem path to the `dragon-assets/` mirror root.
-   * Default: `<workspace>/dragon-assets`.
-   */
-  dragonAssetsRoot?: string
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-skill-index -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-speech-to-text -->
 <a id="deepseek-aidsh-experimental-speech-to-text"></a>
@@ -2114,6 +2072,30 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-jobs-local -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-license-policy -->
+<a id="deepseek-aidsh-license-policy"></a>
+
+## `@deepseek-ai/dsh-license-policy`
+
+- `source`: [`packages/experimental/license-policy/src/types.ts:64`](../packages/experimental/license-policy/src/types.ts)
+
+```ts config-catalog
+/** Configuration for {@link LicensePolicy}. */
+export interface Config {
+  /**
+   * Treat `unknown` as `reject` instead of `allow`. Default `false`: unknown
+   * assets pass through with attribution but no network deployment.
+   */
+  rejectUnknown?: boolean
+  /**
+   * Override the default AGPL attribution text. The placeholder string is
+   * supplied by `dragon-assets/LICENSE-ATTRIBUTION.md` §三.
+   */
+  agplAttribution?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-license-policy -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-llm-deepseek-account -->
 <a id="deepseek-aidsh-llm-deepseek-account"></a>
@@ -3657,6 +3639,25 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-filesystem -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-index -->
+<a id="deepseek-aidsh-skill-index"></a>
+
+## `@deepseek-ai/dsh-skill-index`
+
+- `source`: [`packages/experimental/skill-index/src/types.ts:71`](../packages/experimental/skill-index/src/types.ts)
+
+```ts config-catalog
+/** Loaded configuration for {@link DragonAssetIndex}. */
+export interface Config {
+  /**
+   * Absolute filesystem path to the `dragon-assets/` mirror root.
+   * Default: `<workspace>/dragon-assets`.
+   */
+  dragonAssetsRoot?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-index -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
 <a id="deepseek-aidsh-skill-office"></a>

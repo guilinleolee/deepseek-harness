@@ -1,16 +1,16 @@
 /**
  * Dragon Bridge public types.
  *
- * @module @deepseek-ai/dsh-experimental-dragon-bridge
+ * @module @deepseek-ai/dsh-dragon-bridge
  */
 
-import type { AssetIndexEntry } from '@deepseek-ai/dsh-experimental-skill-index'
-import type { AgentRole } from '@deepseek-ai/dsh-experimental-agent-roster'
+import type { AssetIndexEntry } from '@deepseek-ai/dsh-skill-index'
+import type { AgentRole } from '@deepseek-ai/dsh-agent-roster'
 import type {
   LicenseDecision,
   LicenseEvaluation,
   LicenseTier,
-} from '@deepseek-ai/dsh-experimental-license-policy'
+} from '@deepseek-ai/dsh-license-policy'
 
 /** Cross-kind entry that wraps either a skill, agent, command, hook, or plugin. */
 export interface DragonAsset {

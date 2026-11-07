@@ -2,7 +2,7 @@
 description: "Read-only access to the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) asset index mirrored under `dragon-assets/index/`."
 kind: "package-reference"
 ---
-# dsh-experimental-skill-index
+# @deepseek-ai/dsh-skill-index
 
 English | [中文](README.zh.md)
 
@@ -44,7 +44,7 @@ The package reads all five files concurrently, freezes the snapshot, and serves 
 ## Service API
 
 ```
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
 
 const fiber = await ctx.plugin(DragonAssetIndex, { dragonAssetsRoot: '...' })
 

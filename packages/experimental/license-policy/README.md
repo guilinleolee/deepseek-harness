@@ -2,7 +2,7 @@
 description: "Pure license governance for the [dragon-engine V2.5](https://github.com/guilinleolee/dragon-engine) mirror."
 kind: "package-reference"
 ---
-# dsh-experimental-license-policy
+# @deepseek-ai/dsh-license-policy
 
 English | [中文](README.zh.md)
 
@@ -41,7 +41,7 @@ The matrix is the source of truth for `dragon-assets/LICENSE-ATTRIBUTION.md` §�
 ## Service API
 
 ```
-import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
+import LicensePolicy from '@deepseek-ai/dsh-license-policy'
 
 const fiber = await ctx.plugin(LicensePolicy, { rejectUnknown: true })
 

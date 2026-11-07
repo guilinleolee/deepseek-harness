@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import DragonAssetIndex from '@deepseek-ai/dsh-experimental-skill-index'
-import AgentRoster from '@deepseek-ai/dsh-experimental-agent-roster'
-import LicensePolicy from '@deepseek-ai/dsh-experimental-license-policy'
+import DragonAssetIndex from '@deepseek-ai/dsh-skill-index'
+import AgentRoster from '@deepseek-ai/dsh-agent-roster'
+import LicensePolicy from '@deepseek-ai/dsh-license-policy'
 import DragonBridge from '../src/index'
 
 interface Harness {

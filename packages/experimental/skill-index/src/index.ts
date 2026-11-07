@@ -12,7 +12,7 @@
  * 2. `search(query)` — substring + facet filter over the snapshot.
  * 3. `get(id, kind?)` — exact-id lookup, optional kind disambiguation.
  *
- * @module @deepseek-ai/dsh-experimental-skill-index
+ * @module @deepseek-ai/dsh-skill-index
  */
 
 import { existsSync, promises as fs } from 'node:fs'
