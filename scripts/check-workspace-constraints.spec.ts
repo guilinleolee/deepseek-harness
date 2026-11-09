@@ -132,7 +132,12 @@ describe('experimental workspace constraints', () => {
   })
 
   it.each(Object.entries(EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS))('retains %s only at its declared directory', (dir, name) => {
-    expect(checkExperimentalManifest({ dir, manifest: { name, publishConfig: { access: 'public' } } })).toEqual([])
+    // A directory on the private list must publish as private metadata and may
+    // carry no publishConfig; every other excluded name publishes publicly.
+    const manifest = PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES.includes(dir)
+      ? { name, private: true }
+      : { name, publishConfig: { access: 'public' } }
+    expect(checkExperimentalManifest({ dir, manifest })).toEqual([])
     expect(checkExperimentalManifest({ ...experimental, manifest: { ...experimental.manifest, name } }))
       .toEqual([expect.stringContaining('declared for this directory')])
   })
@@ -199,8 +204,13 @@ describe('experimental workspace constraints', () => {
     ])
   })
 
-  it('keeps the current experimental publication set unrestricted', () => {
-    expect(PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES).toEqual([])
+  it('keeps the private experimental publication set to declared platform packages', () => {
+    expect([...PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES].sort()).toEqual([
+      'packages/experimental/agent-roster',
+      'packages/experimental/dragon-bridge',
+      'packages/experimental/license-policy',
+      'packages/experimental/skill-index',
+    ])
   })
 
   it('limits the public default to experimental package directories', () => {
