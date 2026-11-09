@@ -77,6 +77,10 @@
         iconTimeoutMs: 10000
         launchWatchMs: 1000
 
+    - id: ui-file-actions
+      name: '@deepseek-ai/dsh-client-ui-file-actions'
+    - id: ui-context-menu
+      name: '@deepseek-ai/dsh-client-ui-context-menu'
     - id: ui-open-in-app
       name: '@deepseek-ai/dsh-client-ui-open-in-app'
 
@@ -149,11 +153,6 @@
     # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
-
-    # The API gateway: the transport-agnostic dispatch face every client shape
-    # shares. The base layer's agent-default-model service owns the default model.
-    - id: api-gateway
-      name: '@deepseek-ai/dsh-host-apiproxy'
 
     # One shared MCP server fleet: Settings-configured servers plus servers
     # that installed plugins register, with status and recovery over Remote.
@@ -394,6 +393,9 @@
 
     - id: ui-skill
       name: '@deepseek-ai/dsh-client-ui-skill'
+
+    - id: ui-agent-team
+      name: '@deepseek-ai/dsh-client-ui-agent-team'
 
     - id: ui-subagent
       name: '@deepseek-ai/dsh-client-ui-subagent'
