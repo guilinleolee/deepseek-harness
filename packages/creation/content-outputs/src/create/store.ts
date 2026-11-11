@@ -41,7 +41,7 @@ function isContentType(value: unknown): value is CreateContentType {
   return typeof value === 'string' && (CREATE_CONTENT_TYPES as readonly string[]).includes(value)
 }
 
-/** Whether the value carries the style provenance of one version. */
+/** Whether the value carries the style origin of one version. */
 function isProfileRef(value: unknown): value is CreateProfileRef {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>

@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "lib/types"
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "references": [
+    { "path": "../../credentials/credentials" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../../jobs/jobs" },
+    { "path": "../../skill/skill" },
+    { "path": "../../core/tools" }
+  ]
+}

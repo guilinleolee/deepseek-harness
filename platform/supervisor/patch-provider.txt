@@ -1,0 +1,44 @@
+function newProviderPage() {
+  const PRESETS = [
+    { name: 'DeepSeek', baseURL: 'https://api.deepseek.com', website: 'https://platform.deepseek.com', note: 'DeepSeek 官方', models: 'deepseek-chat,deepseek-reasoner' },
+    { name: 'Zhipu GLM', baseURL: 'https://open.bigmodel.cn/api/paas/v4', website: 'https://open.bigmodel.cn', note: '智谱 GLM 官方', models: 'glm-4.7,glm-5.2,glm-5.3,glm-5.3-flash' },
+    { name: 'Kimi', baseURL: 'https://api.moonshot.cn/v1', website: 'https://platform.moonshot.cn', note: '月之暗面', models: 'kimi-k2-0905-preview' },
+    { name: 'MiniMax', baseURL: 'https://api.minimaxi.com/v1', website: 'https://platform.minimaxi.com', note: 'MiniMax 官方', models: 'MiniMax-M2' },
+    { name: 'SiliconFlow', baseURL: 'https://api.siliconflow.cn/v1', website: 'https://siliconflow.cn', note: '硅基流动', models: '' },
+    { name: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', website: 'https://openrouter.ai', note: '', models: '' },
+    { name: 'ModelScope', baseURL: 'https://api-inference.modelscope.cn/v1', website: 'https://modelscope.cn', note: '魔搭社区', models: '' },
+  ]
+  const chips = `<button type="button" class="chip gray preset on" data-i="-1">自定义配置</button>` +
+    PRESETS.map((p, i) => `<button type="button" class="chip gray preset" data-i="${i}">${esc(p.name)}</button>`).join('')
+  return `
+<div class="presetbox">
+<div class="k" style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">预设供应商 <span class="mut">（点选自动填充请求地址；自定义配置需手动填写所有必填字段）</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:.4rem">${chips}</div>
+<p style="color:#ffd166;font-size:.82rem;margin:.6rem 0 0">💡 自定义配置需手动填写所有必填字段</p>
+</div>
+<h2 class="sect">供应商信息</h2>
+<form id="pform" class="panel" style="display:block;max-width:860px" onsubmit="addProvider(event)">
+<div style="margin-bottom:.7rem">供应商名称 <input name="name" size="34" placeholder="例如：公司专用账号" required> ｜ 备注 <input name="note" size="30" placeholder="例如：公司专用账号"></div>
+<div style="margin-bottom:.7rem">官网链接 <input name="website" size="44" placeholder="https://example.com（可选）"></div>
+<div style="margin-bottom:.7rem">API Key <input name="apiKey" size="44" placeholder="只需要填这里，下方配置会自动填充" required></div>
+<div style="margin-bottom:.7rem">请求地址 <input name="baseURL" size="44" placeholder="https://your-api-endpoint.com" required>
+<span class="mut" style="font-size:.82rem">（兼容 OpenAI Chat Completions 的服务端点地址，不要以斜杠结尾）</span></div>
+<div style="margin-bottom:.7rem">模型列表（逗号分隔） <input name="models" size="44" placeholder="如 glm-4.7,glm-5.2（供成员矩阵授权）"></div>
+<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem">
+<button type="button" class="btn" onclick="location.href='/console/models'">取消</button>
+<button class="primary">＋ 添加</button>
+</div>
+</form>
+<p class="mut" style="font-size:.82rem">添加后该供应商立即进入 Relay 上游表；成员可在“模型与权限”矩阵中被授权其模型。真实 Key 仅存于服务端，页面只显示指纹。</p>
+<script>
+const PRESETS=${'${'}JSON.stringify(PRESETS)${'}'};
+document.querySelectorAll('.preset').forEach(function(b){
+ b.addEventListener('click',function(){
+  document.querySelectorAll('.preset').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  var i=parseInt(b.dataset.i);var f=document.getElementById('pform');
+  if(i<0){f.baseURL.value='';f.website.value='';f.note.value='';f.models.value='';return}
+  var p=PRESETS[i];f.baseURL.value=p.baseURL;f.website.value=p.website;f.note.value=p.note||'';f.models.value=p.models||'';
+  f.name.focus()})
+})
+</script>`
+}

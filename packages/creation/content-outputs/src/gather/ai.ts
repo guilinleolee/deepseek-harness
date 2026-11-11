@@ -11,11 +11,6 @@
 
 import { BlockAssembler, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import { deepFreeze } from '@deepseek-ai/dsh-util-values'
-declare module '@deepseek-ai/dsh-llm' {
-  interface MessageSourceMap {
-    'content-outputs': { kind: 'content-outputs' }
-  }
-}
 import type { FinishReason, GenerateOptions } from '@deepseek-ai/dsh-llm'
 import { deadline } from '@deepseek-ai/dsh-timeout'
 import type { Context } from '@deepseek-ai/cordis'
@@ -298,7 +293,7 @@ export async function streamLlmText(
 ): Promise<string> {
   const messages = [createUserMessage({
     content: [{ type: 'text', text: framed }],
-    source: { kind: 'content-outputs' },
+    source: { kind: 'user' },
   })]
   using callDeadline = deadline(undefined, policy.timeoutMs, timeoutCode)
   const options: GenerateOptions = deepFreeze({

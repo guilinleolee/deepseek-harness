@@ -22,8 +22,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   FishLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
-  IconPanelLeftOutlineRegular, IconPinFillRegular, focusWithoutRing, isBehindModal, isDarwinDesktop, Menu, ShortcutKeys, Toast,
-  Tooltip, useModalLayer, writeClipboard,
+  IconPanelLeftOutlineRegular, IconPinFillRegular, focusWithoutRing, isBehindModal, isDarwinDesktop, Menu, ShortcutKeys,
+  Tooltip, useModalLayer,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -33,6 +33,9 @@ import type {
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import { createScrollHandoff } from './scroll-handoff.ts'
 import css from './SidebarRoot.module.css'
+
+/** Path to the build-default brand mark, served by apps/web from /public. */
+const DEFAULT_BRAND_MARK_SRC = '/dragon-icon.png'
 
 /** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
 const COLLAPSE_SETTLE_MS = 150
@@ -266,17 +269,6 @@ export function SidebarRoot({
   }, [pointerInside])
 
   const buildVersion = localBuildVersion()
-  // The local-build fallbacks copy the badge text; the brand button below
-  // skips New Session for clicks inside them. The click still bubbles, so
-  // document-level outside-click listeners see it.
-  // Each successful copy bumps the key so a repeated copy replays the toast.
-  const [copiedToast, setCopiedToast] = useState<number | null>(null)
-  const copyVersion = (version: string) => (): void => {
-    void writeClipboard(version).then((ok) => {
-      if (ok) setCopiedToast(seq => (seq ?? 0) + 1)
-    })
-  }
-
   const darwinDesktop = isDarwinDesktop()
   // Rail resting state is the whale mark; hovering swaps in the panel icon
   // (the expand affordance, figma sidebar-hover flow). Expanded it is a plain
@@ -338,19 +330,17 @@ export function SidebarRoot({
           const identity = (
             <span className={css.brandIdentity} aria-hidden="true">
               <span className={css.brandMark}>
-                {renderSlot('sidebar.brand.mark', { size: 24 }, {
-                  fallback: buildVersion === undefined
-                    ? <FishLogo size={24} />
-                    : <span className={css.copyVersion} data-copy-version onClick={copyVersion(buildVersion)}><FishLogo size={24} /></span>,
+                {renderSlot('sidebar.brand.mark', { size: 32 }, {
+                  fallback: <img src={DEFAULT_BRAND_MARK_SRC} width={32} height={32} alt="" />,
                 })}
               </span>
               <span className={css.brandName}>
                 {renderSlot('sidebar.brand.name', {}, {
                   fallback: buildVersion === undefined
-                    ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
+                    ? <span className={css.fallbackBrandName}>卡巴格AI</span>
                     : (
-                      <span className={clsx(css.localBuildBrand, css.copyVersion)} data-copy-version onClick={copyVersion(buildVersion)}>
-                        <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
+                      <span className={css.localBuildBrand}>
+                        <span className={css.localBuildTitle}>卡巴格AI</span>
                         <span className={css.buildVersion}>{buildVersion}</span>
                       </span>
                     ),
@@ -366,10 +356,7 @@ export function SidebarRoot({
                 className={clsx(css.brand, css.wide)}
                 aria-label={t('session.new.label')}
                 aria-keyshortcuts={newShortcut?.aria}
-                onClick={(event) => {
-                  if ((event.target as Element).closest('[data-copy-version]') !== null) return
-                  openNewSession()
-                }}
+                onClick={() => { openNewSession() }}
               >
                 {identity}
               </button>
@@ -454,9 +441,6 @@ export function SidebarRoot({
         <span className={css.scrollFade} aria-hidden="true" />
       </div>
 
-      {copiedToast !== null && (
-        <Toast key={copiedToast} tone="success" text={t('version.copied')} onDone={() => { setCopiedToast(null) }} />
-      )}
 
       {/* Footer actions stack above Settings in both sidebar widths. */}
       <div className={css.footArea}>

@@ -1,10 +1,10 @@
-# Customer-acquisition P3: nurture copy + follow-up SOP
+# Agent Note: Customer-acquisition P3: nurture copy + follow-up SOP
 
 Status: implemented
 
 English | [中文](2026-10-05-customer-acquisition-p3-copy-sop.zh.md)
 
-## Context
+## Problem
 
 P3 of the 获客运营 plugin ships modules 4 and 5 — nurture-copy generation with A/B variants and follow-up SOP task orchestration — after P1 merged and P2 landed as the sibling geo package. The copy flows ride the same PromptCompletion port and row-config AI route P1 established; the SOP flows are deterministic (no model calls).
 
@@ -15,12 +15,12 @@ P3 of the 获客运营 plugin ships modules 4 and 5 — nurture-copy generation 
 - **SOP template deletion has no reference guard** — the frozen sop_tasks schema carries no template id, so deletion cannot orphan history; generated tasks are independent rows. Content templates keep the reference guard because generated copies do record their template id.
 - **Seeds extend the same id space** — each industry gains one follow-up SOP (rules for every intent level) and two copy templates (wecom first-touch plus an industry-specific second), seeded with the same skip-if-present strategy.
 
-## Rejected
+## Alternatives considered
 
 - **Writing todos programmatically** — no service exists; faking `todo_written=true` would lie in the audit trail. The render forwards a usable list instead.
 - **Reference-guarding SOP template deletion** — no foreign key exists to guard on; guarding a guard would be theater.
 - **Per-type system prompts** — one copywriting system prompt plus per-type guides in the user prompt keeps the prompt assembly in one place.
 
-## Consequences, risks, trade-offs
+## Consequences
 
 The tools registry now carries 44 tools (4 P0 + 27 P1/P3-name... see P1 note for the manifest count reconciliation). Copy generation shares the scoring service's model route, so an unreachable route fails copy per call. Task scheduling trusts the cadence text's `D+N` markers; cadences without markers schedule everything at day 0.

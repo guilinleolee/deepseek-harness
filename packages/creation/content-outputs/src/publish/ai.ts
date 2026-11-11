@@ -18,7 +18,7 @@ import type { AiCallPolicy } from '../gather/ai.ts'
 /** Timeout reason code carried by aborted publish AI calls. */
 export const PUBLISH_AI_TIMEOUT_CODE = 'PUBLISH_AI_TIMEOUT'
 
-/** Prompt vocabulary version pinned into every result for provenance. */
+/** Prompt vocabulary version pinned into every result for origin. */
 export const PUBLISH_PROMPT_VERSION = 1
 
 /**
@@ -79,7 +79,7 @@ export function validateAdaptRequest(request: PublishAdaptRequest, maxInputChars
  * a JSON boundary: missing content, or non-string tags, rejects here.
  * @param text - exact model text output.
  * @param model - the model identity recorded into the result.
- * @returns the validated adaptation with its provenance.
+ * @returns the validated adaptation with its origin.
  */
 export function parsePublishAdaptOutput(text: string, model: string): PublishAdaptResult {
   const fenced = text.trim().replace(/^```(?:json)?\s*/u, '').replace(/\s*```$/u, '')

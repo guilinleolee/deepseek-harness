@@ -74,7 +74,7 @@ function scoringStub(overrides: Record<string, unknown> = {}): LeadScoringServic
 }
 
 describe('P1 tool registration', () => {
-  it('registers exactly the 27 P1 tools in order and disposes them together', () => {
+  it('registers exactly the 18 P1 tools in order and disposes them together', () => {
     const registered: string[] = []
     const disposers: (() => void)[] = []
     const ctx = {
@@ -96,7 +96,7 @@ describe('P1 tool registration', () => {
     expect(registered).toEqual([...P1_TOOL_NAMES])
     expect(new Set(registered).size).toBe(registered.length)
     expect(registered.every(name => name.startsWith('customer_acquisition_'))).toBe(true)
-    expect(registered).toHaveLength(27)
+    expect(registered).toHaveLength(18)
     disposer()
   })
 })

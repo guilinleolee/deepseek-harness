@@ -2,15 +2,24 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/growth/customer-acquisition-geo/README.md
+/:
+  en: 6c34153963a93c77
+  zh: 13c8362f617a8f2d
 /deepseek-ai-dsh-customer-acquisition-geo:
-  en: c15313ba07b09652
-  zh: f449e267a1ca7851
+  en: f23afbb8447138f1
+  zh: 7de53b46c329d3af
+/deepseek-ai-dsh-customer-acquisition-geo/summary:
+  en: f857e3dcbfb1d0ee
+  zh: c24b1776b966479c
+/deepseek-ai-dsh-customer-acquisition-geo/table-of-contents:
+  en: 7df2e6b545f7d3e5
+  zh: c905d00b1f1891c5
 /deepseek-ai-dsh-customer-acquisition-geo/installation:
   en: 7444bad2d4ac3f1f
-  zh: bb920d23a61de671
+  zh: d942f9bd629fed8d
 /deepseek-ai-dsh-customer-acquisition-geo/compliance-boundary-red-line-1:
   en: c235b593a2c04ce7
-  zh: 1f1b151f6a0c92fe
+  zh: 372428cfd62302f5
 /deepseek-ai-dsh-customer-acquisition-geo/tools:
   en: 0bd22e77f2657060
   zh: 170c3066e63a84bc
@@ -21,7 +30,7 @@
   en: 71852816b0aa7f79
   zh: 68ec7be725810d53
 /deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state/what-the-model-sees:
-  en: 003af507b7d08b82
+  en: 5a7062c06bd24359
   zh: 573fd10bcf970ba9
 /deepseek-ai-dsh-customer-acquisition-geo/model-experience/local-geo-state/token-effect:
   en: 6b454fc61a42d7ac
@@ -30,5 +39,8 @@
   en: c89cff4064839128
   zh: d27792c1cb6a5bb6
 /deepseek-ai-dsh-customer-acquisition-geo/known-limitations-and-deferred-work:
-  en: d9a1459ca884068a
-  zh: 01c5754f21e222c2
+  en: 3d642d095d072e3e
+  zh: d0f69fb53e3d4977
+/deepseek-ai-dsh-customer-acquisition-geo/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

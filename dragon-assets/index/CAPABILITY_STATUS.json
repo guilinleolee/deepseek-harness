@@ -1,0 +1,113 @@
+{
+  "schema": "dragon-capability-status/1.0",
+  "updated": "2026-10-26",
+  "purpose": "Records whether each engine path is a real integration, a stub, or a placeholder. The publish gate and the deliverable-capability table both read this file, so a path that is not wired to a real API can never be advertised as deliverable.",
+  "status_vocabulary": {
+    "live": "Wired to a real backend and verified by an actual run. Safe to sell.",
+    "wired": "Wired to a real backend but not yet verified by a run. Requires one verification pass before sale.",
+    "stub": "Runs end to end and produces correctly structured output, but performs no external call. Useful for planning and testing; not a deliverable.",
+    "placeholder": "Returns a fixed string instead of doing the work. Not a deliverable under any circumstances."
+  },
+  "paths": {
+    "multi-platform-publisher": {
+      "status": "wired",
+      "component": "dragon-assets/skills/multi-platform-publisher/scripts/publisher.py",
+      "reason": "publish_to_platform() delegates to publish_bridge.py, which drives the real baoyu-post-to-* CDP publishers for weibo, x and wechat. Platforms without a publisher fail with exit code 3 and a stated reason. Simulated publishing requires DSH_PUBLISHER_ALLOW_MOCK=1 and is marked simulated in the result.",
+      "real_alternative": "dragon-assets/skills/baoyu-post-to-{wechat,x,weibo} drive a real Chrome over CDP.",
+      "platforms_with_real_publisher": ["weibo", "x", "wechat"],
+      "platforms_without": ["douyin", "xiaohongshu", "shipinhao", "bilibili", "kuaishou", "tiktok", "youtube"],
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-baoyu": {
+      "status": "stub",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/baoyu.sh",
+      "reason": "submit/poll echo task metadata; download exits 4 without writing a file.",
+      "real_alternative": "dragon-assets/skills/render-deck renders the planned deck to PNG locally.",
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-muapi": {
+      "status": "wired",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/muapi.sh",
+      "reason": "Posts to https://api.muapi.ai/v1/images/generations with the bearer token and reports the real HTTP status. The key on this machine is rejected (401). download exits 4.",
+      "requires": ["MUAPI_API_KEY"],
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-minimax-image": {
+      "status": "live",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/minimax-image.sh",
+      "reason": "Calls the official MiniMax image_generation endpoint with the Code Plan key and downloads the artifact. Aspect ratios 1:1, 16:9, 4:3, 3:4, 9:16 and 21:9 all work; 3:4 matches Xiaohongshu and 9:16 matches Douyin.",
+      "evidence": "3:4 generation downloaded at 89455 bytes on 2026-10-26; 1:1 generation returned a 1024x1024 JPEG at 351093 bytes.",
+      "requires": ["MINIMAX_API_KEY"],
+      "verified_on": "2026-10-26"
+    },
+    "minimax-code-plan-llm": {
+      "status": "live",
+      "component": "examples/minimax-code-plan/cordis.patch.yml",
+      "reason": "The llm-deepseek adapter talks to MiniMax's Anthropic-compatible endpoint (https://api.minimaxi.com/anthropic) with the Code Plan key. No DeepSeek account is needed.",
+      "evidence": "pnpm dsh --profile minimax-code-plan returned a correct answer and a Chinese marketing copy on 2026-10-26.",
+      "requires": ["MINIMAX_API_KEY"],
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-gpt-image-2": {
+      "status": "stub",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/gpt-image-2.sh",
+      "reason": "submit exits 4 without OPENAI_API_KEY; download exits 4 without writing a file.",
+      "requires": ["OPENAI_API_KEY"],
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-voxcpm": {
+      "status": "stub",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/voxcpm.sh",
+      "reason": "download exits 4 without writing a file; no TTS backend is contacted.",
+      "verified_on": "2026-10-26"
+    },
+    "async-adapter-minimax": {
+      "status": "stub",
+      "component": "dragon-assets/skills/async-task-pattern/adapters/minimax.sh",
+      "reason": "Text-only relay adapter: PROXY_BASE defaults to a local Anthropic-compatible proxy that serves a text model, not a media backend. download exits 4 without writing a file. Real image generation lives in async-adapter-minimax-image.",
+      "verified_on": "2026-10-26"
+    },
+    "render-deck": {
+      "status": "live",
+      "component": "dragon-assets/skills/render-deck/render-deck.py",
+      "reason": "Renders HTML to PNG through the system headless Chrome.",
+      "evidence": "4 ratios rendered on 2026-10-26; 1080x1440 output 466238 bytes.",
+      "verified_on": "2026-10-26"
+    },
+    "a-stock-data-bridge": {
+      "status": "live",
+      "component": "dragon-assets/skills/a-stock-data-bridge/em_base.py",
+      "reason": "Fetches live A-share data from public sources with no API key.",
+      "evidence": "600519.SH: 25 endpoints, 5 mandatory checks passed. 000001.SZ: 18 endpoints, passed.",
+      "verified_on": "2026-10-26"
+    },
+    "global-stock-data-bridge": {
+      "status": "live",
+      "component": "dragon-assets/skills/global-stock-data-bridge/em_global.py",
+      "reason": "Fetches live US/HK market data with no API key.",
+      "evidence": "AAPL: 11 endpoints, 5 mandatory checks passed.",
+      "verified_on": "2026-10-26"
+    },
+    "baoyu-post-to-platforms": {
+      "status": "wired",
+      "component": "dragon-assets/skills/baoyu-post-to-{wechat,x,weibo}/scripts",
+      "reason": "Drive a real Chrome over CDP and post to the live platform. Requires a logged-in browser profile; no dry-run mode, so verification needs a real account.",
+      "requires": ["chrome", "bun-or-npx", "logged-in-browser-profile"],
+      "verified_on": "2026-10-26"
+    },
+    "deepseek-web-search": {
+      "status": "wired",
+      "component": "packages/web/web-deepseek-api",
+      "reason": "Calls the DeepSeek Search and Fetch APIs. The endpoint path is verified; this machine's account returns 402 Insufficient Balance.",
+      "requires": ["DEEPSEEK_API_KEY"],
+      "verified_on": "2026-10-26"
+    },
+    "agent-reach": {
+      "status": "live",
+      "component": "dragon-assets/skills/agent-reach",
+      "reason": "Fetches from 15 platforms through per-platform backends.",
+      "evidence": "doctor on 2026-10-26: 6 ok, 7 warn (need login), 2 error.",
+      "verified_on": "2026-10-26"
+    }
+  }
+}

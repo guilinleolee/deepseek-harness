@@ -123,7 +123,7 @@ describe('the wizard and the draft buffer', () => {
     expect(controller.getState().wizard?.step).toBe(2)
   })
 
-  it('flips a field back to user provenance on edit and toggles platforms and links', async () => {
+  it('flips a field back to user origin on edit and toggles platforms and links', async () => {
     const controller = createPersonaController({ gateway: gateway() })
     await controller.ensureLoaded()
     controller.openNew()

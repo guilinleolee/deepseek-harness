@@ -13,8 +13,10 @@
  * 以账号记录的 lastStep 落实——代价是同一 30 秒片内的第二次登录需等下一片。
  */
 import { createHash, createHmac, createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
@@ -151,9 +153,7 @@ function loadTwofaRaw(dataDir) {
 function saveTwofaRaw(dataDir, store) {
   mkdirSync(dataDir, { recursive: true })
   const path = join(dataDir, TWOFA_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, store)
 }
 
 /**

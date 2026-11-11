@@ -1,0 +1,8 @@
+# NeuroArxiv - arXiv Prior Art检查 CLI快捷脚本
+# 使用方式: neuroxiv "你的问题" [选项]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# 使用Node运行CLI
+node cli.js "$@"

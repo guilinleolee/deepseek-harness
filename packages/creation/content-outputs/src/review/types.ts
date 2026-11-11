@@ -283,7 +283,7 @@ export interface ReviewGenerateReportRequest {
   readonly bottomWorks: readonly ReviewWorkDigest[]
 }
 
-/** Result of both AI faces: the markdown plus its provenance. */
+/** Result of both AI faces: the markdown plus its origin. */
 export interface ReviewAiResult {
   readonly markdown: string
   readonly model: string

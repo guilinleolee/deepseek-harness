@@ -28,7 +28,17 @@ async function bench() {
     ok: true as const,
     value: { file: '/outputs/_topics.json', items: [], problems: [] },
   }))
-  const topics = { list: topicsList, put: vi.fn(), delete: vi.fn() }
+  const topics = {
+    list: topicsList,
+    put: vi.fn(),
+    delete: vi.fn(),
+    listCategories: vi.fn(async () => ({
+      ok: true as const,
+      value: { file: '/outputs/_topic-categories.json', items: [], problems: [] },
+    })),
+    putCategory: vi.fn(),
+    deleteCategory: vi.fn(),
+  }
   // The real mount provides each namespace as its own Cordis service
   // (`remote.<namespace>`); the workbench fiber declares those names in its
   // inject and only starts once every one of them is available.
@@ -116,20 +126,11 @@ describe('ui-content-studio apply', () => {
       studio: { isOpen(): boolean }
       listOutputs: () => Promise<{ root: string }>
       topics: { list: () => Promise<{ file: string }> }
-      gather: {
-        getState(): { sources: unknown[] }
-        start(): void
-        dispose(): void
-      }
+      topicCategories: { list: () => Promise<{ file: string }> }
     }
     expect(surfaceFace.studio.isOpen()).toBe(false)
     entryFace.studio.open()
     expect(surfaceFace.studio.isOpen()).toBe(true)
-    // The gather controller rides the same inject: one scheduler per surface,
-    // sources empty on first launch, and the lifecycle verbs present.
-    expect(typeof surfaceFace.gather.start).toBe('function')
-    expect(typeof surfaceFace.gather.dispose).toBe('function')
-    expect(surfaceFace.gather.getState().sources).toEqual([])
     // The library read wraps the contentOutputs Remote and unwraps the
     // envelope: the snapshot passes through, failures throw.
     await expect(surfaceFace.listOutputs()).resolves.toEqual({
@@ -139,6 +140,8 @@ describe('ui-content-studio apply', () => {
     // The topic bank rides the same unwrapping pattern over contentTopics.
     await expect(surfaceFace.topics.list()).resolves.toEqual({ file: '/outputs/_topics.json', items: [], problems: [] })
     expect(topicsList).toHaveBeenCalledTimes(1)
+    // The category face wraps the same Remote's category methods.
+    await expect(surfaceFace.topicCategories.list()).resolves.toEqual({ file: '/outputs/_topic-categories.json', items: [], problems: [] })
   })
 
   it('drops both registrations when the declaration collapses', async () => {

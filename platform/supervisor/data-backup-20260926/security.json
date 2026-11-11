@@ -1,0 +1,7 @@
+{
+  "loginWindowMinutes": 15,
+  "loginMaxFails": 10,
+  "lockoutMinutes": 15,
+  "passwordMinLength": 8,
+  "passwordMinClasses": 3
+}

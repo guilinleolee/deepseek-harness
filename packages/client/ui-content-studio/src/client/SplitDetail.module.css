@@ -18,3 +18,12 @@
 .detailPane {
   min-width: 0;
 }
+
+/* Below this width two side-by-side panes cannot both stay readable: the
+   detail collapses under the list and takes the full row width, so the
+   right pane always uses the width the screen actually offers. */
+@media (max-width: 880px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

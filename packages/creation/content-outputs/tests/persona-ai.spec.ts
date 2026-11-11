@@ -93,7 +93,7 @@ describe('buildFactsText', () => {
     updatedAt: '2026-09-25T00:00:00.000Z',
   }
 
-  it('renders facts with platform labels and the AI provenance mark', () => {
+  it('renders facts with platform labels and the AI origin mark', () => {
     const facts = buildFactsText(entry)
     expect(facts).toContain('画像名：老李')
     expect(facts).toContain('小红书、抖音')

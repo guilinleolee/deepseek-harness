@@ -99,8 +99,8 @@ export interface CompetitorWork {
 /** One generated report as stored in the `_competitors.json` manifest. */
 export interface CompetitorReport {
   readonly id: CompetitorReportId
-  /** `account` is the single-account panorama; `compare` is the two-account face-off. */
-  readonly kind: 'account' | 'compare'
+  /** `account` is the single-account panorama; `compare` is the two-account face-off; `audit` is the eight-dimension account health audit. */
+  readonly kind: 'account' | 'compare' | 'audit'
   readonly accountIds: readonly string[]
   readonly accountNames: readonly string[]
   /** Report file name under the theme's `assets/`. */
@@ -158,9 +158,9 @@ export interface CompetitorAccountDigest {
   readonly digest: string
 }
 
-/** Request face of the report AI call: one account panorama or two-account face-off. */
+/** Request face of the report AI call: one account panorama, two-account face-off, or one account health audit. */
 export interface CompetitorReportRequest {
-  readonly kind: 'account' | 'compare'
+  readonly kind: 'account' | 'compare' | 'audit'
   /** One digest for `account`, exactly two for `compare`. */
   readonly accounts: readonly CompetitorAccountDigest[]
 }

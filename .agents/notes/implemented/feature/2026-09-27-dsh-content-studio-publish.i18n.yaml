@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-27-dsh-content-studio-publish.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-27-dsh-content-studio-publish.md
-2026-09-27-dsh-content-studio-publish.md: 0a4d2b4d6a453a8042cc62588aec7cc85fb5c9c9
-2026-09-27-dsh-content-studio-publish.zh.md: 249f8417472f73d072ca0ee1232bf3d02e7644a3
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload:
+  en: 503d4a2b1efe7593
+  zh: 171f72dff8088cbe
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload/problem:
+  en: 9d2b4ed4e1861c28
+  zh: 7fe2404ebafafbb1
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload/decision:
+  en: 4f544c33b0ef45b0
+  zh: 6b7ebe2c2edfed0c
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload/deviations-from-the-plan-text:
+  en: 063263b359eb8485
+  zh: 65439d83861616c4
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload/alternatives-considered:
+  en: 2bdb370d66f127b4
+  zh: 52178f16b8e81e63
+/agent-note-the-publish-view-freezes-the-phase-2-mcp-package-instead-of-faking-an-upload/consequences:
+  en: e25a4cdc442ac827
+  zh: 62cb9baf7c0ac899

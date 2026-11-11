@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-customer-acquisition/README.md
-README.md: 612d6e76c4c7a0db48450f3d43d890f09bdedfa5
-README.zh.md: cfeadb75def1f53a2c0690049f9087e60f732a7b
+/:
+  en: 989a63b7488c3529
+  zh: a3869628688e67e5
+/deepseek-ai-dsh-client-ui-customer-acquisition:
+  en: 62d5bcbd59eda83b
+  zh: e4495fc82e488c81
+/deepseek-ai-dsh-client-ui-customer-acquisition/summary:
+  en: f4d066df8052265a
+  zh: 7e3d8880d3d04d31
+/deepseek-ai-dsh-client-ui-customer-acquisition/table-of-contents:
+  en: 0e6a7246af41c817
+  zh: d22ff242c08d3825
+/deepseek-ai-dsh-client-ui-customer-acquisition/installation:
+  en: 53645e7b72825e17
+  zh: d64f116d5ba363dd
+/deepseek-ai-dsh-client-ui-customer-acquisition/how-it-wires:
+  en: 7069208377d5b6f7
+  zh: 75493459f8e98b97
+/deepseek-ai-dsh-client-ui-customer-acquisition/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-client-ui-customer-acquisition/model-experience/local-acquisition-panel:
+  en: e501bcd4dbe96164
+  zh: dc93a3426edc7a76
+/deepseek-ai-dsh-client-ui-customer-acquisition/model-experience/local-acquisition-panel/what-the-model-sees:
+  en: 13e79b05f15bbe0a
+  zh: 2d1d26773788d657
+/deepseek-ai-dsh-client-ui-customer-acquisition/model-experience/local-acquisition-panel/token-effect:
+  en: fef4321f0c13c785
+  zh: 838f9963fcf815d6
+/deepseek-ai-dsh-client-ui-customer-acquisition/model-experience/local-acquisition-panel/kv-cache-effect:
+  en: 938c12824bbf74e1
+  zh: cdf19342af3d9b0c
+/deepseek-ai-dsh-client-ui-customer-acquisition/known-limitations-and-deferred-work:
+  en: 715c4a702e6dbd20
+  zh: cd9d175ddf5727d4
+/deepseek-ai-dsh-client-ui-customer-acquisition/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # adapter/baoyu.sh · async-task-pattern V1.0
-# 后端：C:/Users/li/.claude/projects/c--Users-li--claude/dragon-engine/skills/baoyu-* 21 skill
+# 后端：baoyu-* 系列（仓库内 dragon-assets/skills/baoyu-*）
 # 异步方式：部分异步（image-gen / cover-image 异步，markdown-to-html 同步）
 # KEY 需求：视 skill 而定
-# 累计验证：3/3 PASS
+# 状态：**未接真后端**。submit/poll 只回显任务元数据，download 不产出文件。
+#       未接真后端时退出码 4（未实现），与 async-task-pattern 协议一致。
+#
+# 真实出图路径见 dragon-assets/skills/render-deck —— 用系统 headless Chrome
+# 把 HTML 渲染成 PNG，不依赖本 adapter。
 
 set -euo pipefail
 
-BAOYU_BASE="C:/Users/li/.claude/projects/c--Users-li--claude/dragon-engine/skills"
+BAOYU_BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROVIDER="baoyu"
+
+not_implemented() {
+  echo "❌ $PROVIDER adapter 未接真后端：$1" >&2
+  echo "   真实出图请用 dragon-assets/skills/render-deck（系统 headless Chrome）。" >&2
+  exit 4
+}
 
 case "${1:-}" in
   submit)
@@ -22,6 +32,9 @@ case "${1:-}" in
       xhs-images)       TARGET_SKILL="baoyu-xhs-images" ;;
       *)                TARGET_SKILL="baoyu-image-gen" ;;
     esac
+    if [[ ! -d "$BAOYU_BASE/$TARGET_SKILL" ]]; then
+      not_implemented "目标 skill 不存在：$BAOYU_BASE/$TARGET_SKILL"
+    fi
     echo "{\"task_id\":\"${PROVIDER}-$(date +%s)-$RANDOM\",\"status\":\"queued\",\"provider\":\"$PROVIDER\",\"action\":\"$ACTION\",\"target_skill\":\"$TARGET_SKILL\"}"
     exit 0
     ;;
@@ -51,10 +64,7 @@ case "${1:-}" in
         --output) OUTPUT="$2"; shift 2 ;;
         *) shift ;;
       esac; done
-    mkdir -p "$(dirname "$OUTPUT")"
-    echo "# baoyu placeholder for $TASK_ID" > "$OUTPUT"
-    echo "{\"path\":\"$OUTPUT\",\"size\":$(wc -c < "$OUTPUT"),\"task_id\":\"$TASK_ID\",\"provider\":\"$PROVIDER\"}"
-    exit 0
+    not_implemented "download 不产出文件（不写占位内容）"
     ;;
   *)
     echo "用法: bash $0 {submit|poll|upload|download} [options]" >&2

@@ -28,7 +28,7 @@ import type { AiCallPolicy } from '../gather/ai.ts'
 /** Timeout reason code carried by aborted interaction AI calls. */
 export const INTERACTION_AI_TIMEOUT_CODE = 'INTERACTION_AI_TIMEOUT'
 
-/** Prompt vocabulary versions pinned into every result for provenance. */
+/** Prompt vocabulary versions pinned into every result for origin. */
 export const INTERACTION_REPLY_PROMPT_VERSION = 'interaction-reply@1'
 /** Sentiment-classifier prompt vocabulary version pinned into classification results. */
 export const INTERACTION_SENTIMENT_PROMPT_VERSION = 'interaction-sentiment@1'
@@ -315,7 +315,7 @@ export class InteractionAiProcessor {
    * backoff; an unparseable output surfaces immediately so the UI can offer
    * its retry button.
    * @param request - the reply request.
-   * @returns the drafts with their provenance.
+   * @returns the drafts with their origin.
    */
   async replyDrafts(request: InteractionReplyRequest): Promise<InteractionReplyResult> {
     const framed = frameReplyRequest(request, this.policy.maxInputChars)
@@ -332,7 +332,7 @@ export class InteractionAiProcessor {
    * entry list (the caller leaves those messages unknown) instead of
    * failing — classification never blocks the local workflow.
    * @param request - the batch request.
-   * @returns the sanitized entries with their provenance.
+   * @returns the sanitized entries with their origin.
    */
   async classify(request: InteractionClassifyRequest): Promise<InteractionClassifyResult> {
     const framed = frameClassifyRequest(request, this.policy.maxInputChars)
@@ -349,7 +349,7 @@ export class InteractionAiProcessor {
    * Extract one insight batch. A garbled batch reads as an empty batch; the
    * caller records it and keeps going.
    * @param request - the batch request.
-   * @returns the sanitized batch with its provenance.
+   * @returns the sanitized batch with its origin.
    */
   async insights(request: InteractionInsightRequest): Promise<InteractionInsightResult> {
     const framed = frameInsightRequest(request, this.policy.maxInputChars)

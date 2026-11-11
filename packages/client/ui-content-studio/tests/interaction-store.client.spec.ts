@@ -179,7 +179,7 @@ describe('reply drafts and send', () => {
 })
 
 describe('batch classification and insights', () => {
-  it('writes AI taggings with provenance per batch', async () => {
+  it('writes AI taggings with origin per batch', async () => {
     const { controller } = await booted()
     await controller.classifySelected(['conv-1'])
     const message = controller.getState().manifest?.conversations[0]?.messages[0]

@@ -199,16 +199,12 @@ describe('final P3 render and forward fills', () => {
   })
 })
 
-function contentStubWith(listTemplates: () => unknown): NurtureContentService {
+function contentStubWith(listTemplates: () => unknown[] | Promise<undefined>): NurtureContentService {
   const base = contentOf()
-  const proto = Object.getPrototypeOf(base) as object | null
-  const stub: NurtureContentService = Object.assign(Object.create(proto) as NurtureContentService, base, { listTemplates })
-  return stub
+  return { ...base, listTemplates } as never
 }
 
-function sopStubWith(listTemplates: () => unknown): SopService {
+function sopStubWith(listTemplates: () => unknown[] | Promise<undefined>): SopService {
   const base = sopOf()
-  const proto = Object.getPrototypeOf(base) as object | null
-  const stub: SopService = Object.assign(Object.create(proto) as SopService, base, { listTemplates })
-  return stub
+  return { ...base, listTemplates } as never
 }

@@ -112,9 +112,11 @@ export class AgentRoster extends Service {
     return this.current.find(role => role.id === id)
   }
 
-  /** Return every role belonging to one family bucket.
-   * @param family - the family bucket to select.
-   * @returns every cached role in that family, in roster order. */
+  /**
+   * Return every role belonging to one family bucket.
+   * @param family - the family bucket to filter by.
+   * @returns the roles in that family, in roster order.
+   */
   byFamily(family: AgentFamily): readonly AgentRole[] {
     return this.current.filter(role => role.family === family)
   }

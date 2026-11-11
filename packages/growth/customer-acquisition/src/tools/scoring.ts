@@ -22,8 +22,8 @@ export interface ScoringToolDeps {
   readonly permission: PermissionContextService
 }
 
-/** The ICP dimension item schema shared by icp_create/icp_update parameters. */
-const ICP_DIMENSION_PARAMETER_ITEM = {
+/** The ICP dimension item schema shared by icp_create/icp_update parameters and the manage face. */
+export const ICP_DIMENSION_PARAMETER_ITEM = {
   type: 'object',
   additionalProperties: false,
   properties: {

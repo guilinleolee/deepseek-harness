@@ -119,7 +119,7 @@ describe('create evaluation', () => {
     expect(() => validateEvaluateRequest({ ...request, text: 'x'.repeat(1001) }, 1000)).toThrow('cap')
   })
 
-  it('parses a full four-dimension answer with provenance', () => {
+  it('parses a full four-dimension answer with origin', () => {
     const dim = { grade: '良', reason: '依据' }
     const answer = JSON.stringify({ attraction: dim, readability: dim, differentiation: dim, audienceFit: dim, grade: '良' })
     const evaluation = parseCreateEvaluation(answer, 'deepseek-chat')

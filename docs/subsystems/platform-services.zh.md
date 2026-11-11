@@ -67,9 +67,11 @@ search(query: RoleSearchQuery = {}): readonly AgentRole[]
  */
 get(id: AgentId): AgentRole | undefined
 
-/** Return every role belonging to one family bucket.
- * @param family - the family bucket to select.
- * @returns every cached role in that family, in roster order. */
+/**
+ * Return every role belonging to one family bucket.
+ * @param family - the family bucket to filter by.
+ * @returns the roles in that family, in roster order.
+ */
 byFamily(family: AgentFamily): readonly AgentRole[]
 ```
 
@@ -82,20 +84,24 @@ Source: [`packages/experimental/agent-roster/src/index.ts`](../../packages/exper
 Storage-backed customer-acquisition service. The domain opens once at service init and closes with the owning fiber; every read is synchronous from memory, every write durable-first.
 
 ```ts cordis-catalog
-/** Authoritative audit handle, valid after init; a miss is a broken lifecycle.
- * @returns the durable audit-log table handle. */
+/**
+ * Authoritative audit handle, valid after init; a miss is a broken lifecycle.
+ * @returns the audit log table.
+ */
 requireAuditTable(): AuditTable
 
 /**
  * Authoritative domain, valid after init; a miss is a broken lifecycle.
  * Open to the P1 module services (lead ledger, scoring), which borrow the
  * domain's tables — the P0 service stays its single owner and closer.
- * @returns the open frozen v1 domain.
+ * @returns the durable customer-acquisition domain.
  */
 requireDomain(): Domain<typeof customerAcquisitionDomainSpec>
 
-/** Current settings, projected to the exact-optional wire shape.
- * @returns the current global settings. */
+/**
+ * Current settings, projected to the exact-optional wire shape.
+ * @returns the stored settings as the wire value.
+ */
 getSettings(): SettingsValue
 
 /**
@@ -123,77 +129,103 @@ listAudit(request: AuditListRequest): AuditListValue
  */
 exportAudit(filter: Omit<AuditListRequest, 'limit' | 'offset'>): AuditListValue['items']
 
-/** Read face for the browser panel.
- * @returns the current settings wrapped for the wire. */
+/**
+ * Read face for the browser panel.
+ * @returns the settings snapshot wire value.
+ */
 @Remote('getSettings') getSettingsRemote(): Promise<SettingsSnapshotValue>
 
-/** Write face for the browser panel; resolves the web operator per call.
- * @param patch - fields to change; omitted fields keep their value.
- * @returns the settings after the write. */
+/**
+ * Write face for the browser panel; resolves the web operator per call.
+ * @param patch - partial settings update.
+ * @returns the settings snapshot after the write.
+ */
 @Remote('updateSettings') async updateSettingsRemote(patch: SettingsPatchInput): Promise<SettingsSnapshotValue>
 
-/** Audit read face for the browser panel.
- * @param request - filters plus paging bounds.
- * @returns the matching page, newest first, with the unfiltered total. */
+/**
+ * Audit read face for the browser panel.
+ * @param request - list window and filters.
+ * @returns the audit log page.
+ */
 @Remote('listAuditLogs') async listAuditLogs(request: AuditListRequest): Promise<AuditListValue>
 
 /**
  * Dashboard read face: the seven overview metrics through the same
  * aggregation the model tool serves. Resolves the web operator per call so
  * `lead_scope=own` panels never see another operator's leads.
- * @param request - overview scope and lead-scope selection.
- * @returns the dashboard overview for the resolved operator.
+ * @param request - the metric window and grouping.
+ * @returns the seven overview metrics.
  */
 @Remote('getOverview') async getOverviewRemote(request: OverviewRequest): Promise<OverviewValue>
 
-/** Lead list read face; the ledger's list scope applies unchanged.
- * @param request - filters plus paging bounds; omitted filters select every visible lead.
- * @returns the matching page with the unfiltered total. */
+/**
+ * Lead list read face; the ledger's list scope applies unchanged.
+ * @param request - optional lead-id filter and paging.
+ * @returns the visible lead reference page.
+ */
 @Remote('listLeads') async listLeadsRemote(request?: LeadListRequest): Promise<LeadListValue>
 
-/** Score-run history read face across the operator's visible leads, newest first.
- * @param request - optional lead filter and page size.
- * @returns the matching runs with the unfiltered total. */
+/**
+ * Score-run history read face across the operator's visible leads, newest first.
+ * @param request - optional lead-id filter and row cap (default 20).
+ * @returns the score-run page.
+ */
 @Remote('listScoreRuns') async listScoreRunsRemote(request?: { lead_id?: string; limit?: number }): Promise<{ items: ScoreRun[]; total: number }>
 
-/** ICP profile read face for the scoring page.
- * @param enabled_only - when true, only enabled profiles.
- * @returns every matching ICP profile. */
+/**
+ * ICP profile read face for the scoring page.
+ * @param enabled_only - drop disabled profiles when true.
+ * @returns the visible ICP profiles.
+ */
 @Remote('listIcpProfiles') async listIcpProfilesRemote(enabled_only?: boolean): Promise<IcpProfileValue[]>
 
-/** Score-template read face for the scoring page.
- * @param enabled_only - when true, only enabled templates.
- * @returns every matching score template. */
+/**
+ * Score-template read face for the scoring page.
+ * @param enabled_only - drop disabled templates when true.
+ * @returns the visible score templates.
+ */
 @Remote('listScoreTemplates') async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ScoreTemplateValue[]>
 
-/** GEO scan-history read face: every scan joined with its report's score.
- * @param limit - maximum rows to return; omit to return all.
- * @returns the scan rows, newest first, with the unfiltered total. */
+/**
+ * GEO scan-history read face: every scan joined with its report's score.
+ * @param limit - optional row cap on the returned items.
+ * @returns the scan history page.
+ */
 @Remote('listGeoScans') async listGeoScansRemote(limit?: number): Promise<GeoScanListValue>
 
-/** One full GEO report for the diagnosis page.
- * @param reportId - the report to read.
- * @returns the stored report; rejects for an unknown id. */
+/**
+ * One full GEO report for the diagnosis page.
+ * @param reportId - the report to load.
+ * @returns the stored GEO report.
+ */
 @Remote('getGeoReport') getGeoReportRemote(reportId: string): Promise<GeoReport>
 
-/** Generated-copy read face across the operator's visible leads, newest first.
- * @param request - optional lead filter and page size.
- * @returns the matching copies with the unfiltered total. */
+/**
+ * Generated-copy read face across the operator's visible leads, newest first.
+ * @param request - optional lead-id filter and row cap (default 20).
+ * @returns the generated-content page.
+ */
 @Remote('listGeneratedContents') async listGeneratedContentsRemote( request?: { lead_id?: string; limit?: number }, ): Promise<{ items: GeneratedContent[]; total: number }>
 
-/** Copy-template read face for the templates page.
- * @param filters - optional template type and enabled filter.
- * @returns every matching copy template. */
+/**
+ * Copy-template read face for the templates page.
+ * @param filters - optional type and enabled-only filters.
+ * @returns the matching copy templates.
+ */
 @Remote('listContentTemplates') async listContentTemplatesRemote(filters?: { type?: string; enabled_only?: boolean }): Promise<ContentTemplate[]>
 
-/** SOP task read face; the service's lead-visibility scope applies unchanged.
- * @param request - lead and status filters plus paging bounds.
- * @returns the matching task page with the unfiltered total. */
+/**
+ * SOP task read face; the service's lead-visibility scope applies unchanged.
+ * @param request - optional lead-id, status, and paging filters.
+ * @returns the SOP task page.
+ */
 @Remote('listSopTasks') async listSopTasksRemote( request?: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number }, ): Promise<{ items: SopTask[]; total: number }>
 
-/** SOP-template read face for the templates page.
- * @param enabled_only - when true, only enabled templates.
- * @returns every matching SOP template. */
+/**
+ * SOP-template read face for the templates page.
+ * @param enabled_only - drop disabled templates when true.
+ * @returns the visible SOP templates.
+ */
 @Remote('listSopTemplates') async listSopTemplatesRemote(enabled_only?: boolean): Promise<SopTemplate[]>
 
 /**
@@ -227,7 +259,7 @@ The bridge does not own disk state; it depends on its sibling packages for I/O a
  * Skill and command / hook / plugin assets come from `ctx.dragonIndex`;
  * agent assets come from `ctx.agentRoster`. Each entry is classified by
  * `ctx.licensePolicy`.
- * @returns the rebuilt frozen asset list.
+ * @returns the rebuilt asset list, in load order.
  */
 async loadAll(): Promise<readonly DragonAsset[]>
 
@@ -242,20 +274,28 @@ async loadAll(): Promise<readonly DragonAsset[]>
  */
 search(query: BridgeSearchQuery = {}): readonly DragonAsset[]
 
-/** Return every asset the policy resolves to `allow`.
- * @returns the cached assets whose policy decision is `allow`. */
+/**
+ * Return every asset the policy resolves to `allow`.
+ * @returns the matching assets, in load order.
+ */
 allowed(): readonly DragonAsset[]
 
-/** Return every asset the policy resolves to `attribute`.
- * @returns the cached assets whose policy decision is `attribute`. */
+/**
+ * Return every asset the policy resolves to `attribute`.
+ * @returns the matching assets, in load order.
+ */
 attributed(): readonly DragonAsset[]
 
-/** Return every asset the policy resolves to `artifact-only`.
- * @returns the cached assets whose policy decision is `artifact-only`. */
+/**
+ * Return every asset the policy resolves to `artifact-only`.
+ * @returns the matching assets, in load order.
+ */
 artifactOnly(): readonly DragonAsset[]
 
-/** Return every asset the policy resolves to `reject`.
- * @returns the cached assets whose policy decision is `reject`. */
+/**
+ * Return every asset the policy resolves to `reject`.
+ * @returns the matching assets, in load order.
+ */
 rejected(): readonly DragonAsset[]
 ```
 

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-08-28-creator-workbench-export-transforms.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-28-creator-workbench-export-transforms.md
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback:
+  en: 59c86dfaa19ff869
+  zh: b4a20b9f8634a3bf
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/problem:
+  en: fed32761667a3af3
+  zh: 4a8ccba404dadaf2
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/decision:
+  en: e9142d978fffe732
+  zh: dd5503a6fa66dd2d
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/alternatives-considered:
+  en: 9dc42c3ed367c4fa
+  zh: 964c65f36e5199cd
+/agent-note-creator-workbench-s-export-content-ps1-ships-deterministic-per-platform-transforms-with-a-shibazi-illustrator-fallback/consequences:
+  en: 6e1667dae163e9ae
+  zh: fafb170581130025

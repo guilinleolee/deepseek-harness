@@ -13,7 +13,10 @@ const organizationUrl = new RegExp(`\\bgithub\\.com/${organization}(?![a-z0-9-])
 const kitRepositoryUrl = new RegExp(`\\bgithub\\.com/${organization}/libreoffice-kit(?:\\.git)?(?=/|[^a-zA-Z0-9_.-]|$)`, 'g')
 // Decimal-only tokens collide with sizes, counts, and version components; see docs/AGENTS.md#repository-references.
 const commitCandidate = /(?<![a-z0-9])(?=[\da-f]{0,39}[a-f])[\da-f]{7,40}(?![a-z0-9])/gi
-const excludedPrefixes = ['vendor/', '.agents/notes/archived/']
+// The agent-memory corpus is personal session evidence; its commit hashes
+// are the record, not maintained documentation. Lockfiles are generated;
+// wheel URLs can carry hex substrings that collide with commit ids.
+const excludedPrefixes = ['vendor/', '.agents/notes/archived/', '.zcode/', 'python/sdk/uv.lock']
 const gitOutputLimit = 64 * 1024 * 1024
 // One 41-byte line per object; 1.2 million objects produce about 49 MiB.
 const objectListingLimit = 1024 * 1024 * 1024

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-08-quant-walk-forward.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-quant-walk-forward.md
-2026-10-08-quant-walk-forward.md: 4a4f145543bd3d8fafb335303b17212139964f95
-2026-10-08-quant-walk-forward.zh.md: d242f6799d47a40cec1fbde2ea61204f7f2d9fb9
+/agent-note-walk-forward-validation-splits-one-sample-to-keep-the-optimization-honest:
+  en: af9d975adc6af75d
+  zh: e3ffe7e49f39fd84
+/agent-note-walk-forward-validation-splits-one-sample-to-keep-the-optimization-honest/problem:
+  en: 71af6ab345a6e8ca
+  zh: 5f66be30b688668c
+/agent-note-walk-forward-validation-splits-one-sample-to-keep-the-optimization-honest/decision:
+  en: 2f9af9e63a0fd96c
+  zh: 12aaeaa277f1a916
+/agent-note-walk-forward-validation-splits-one-sample-to-keep-the-optimization-honest/alternatives-considered:
+  en: 3ba602a69676ab45
+  zh: a41e5fc6e50475b2
+/agent-note-walk-forward-validation-splits-one-sample-to-keep-the-optimization-honest/consequences:
+  en: 3e9de0ce49e29c64
+  zh: 932107017b4a6f63

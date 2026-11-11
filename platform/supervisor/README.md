@@ -1,4 +1,4 @@
-# @kabage/supervisor —— 卡巴格企业平台阶段 1–6 全量交付（实例编排/认证网关/Relay 密钥代理与计量配额/漂移对齐/插件治理）
+# @luoyunzong/supervisor —— 卡巴格企业平台阶段 1–6 全量交付（实例编排/认证网关/Relay 密钥代理与计量配额/漂移对齐/插件治理）
 
 按 [任务书](../../卡巴格企业平台任务书.md) 交付的服务端组件：把每个员工实例拉起为一个独立 DSH web 进程（独立 `DSH_HOME` + 独立端口 + 名义 uid），提供健康检查、崩溃自动重启、实例页数据；**认证网关**（阶段 2）：登录签发 JWT Cookie，按 `Host` 把已认证请求反代到该账号绑定的实例；**Relay 密钥代理与计量配额**（阶段 3–4）：真实上游 Key 的唯一容身处，实例只持可吊销的虚拟钥匙，月度 Token 额度硬停；**漂移对齐**（阶段 5）：授权集 vs 实例自报生效集比对，差异按时限标红；**插件治理**（阶段 6）：真启动预检 → 暂存 → 重启生效 → 禁用/回滚。**独立于 harness**：不修改 `packages/` 任何代码，零第三方依赖，也不在 pnpm workspace 内。
 
@@ -13,6 +13,8 @@ node supervisor.mjs revoke --account <email>   # epoch+1，该账号全部登录
 node supervisor.mjs set-upstream <name> --baseURL <url> --models m1,m2 [--key <真实Key>]
 node supervisor.mjs list-upstreams             # 真实 Key 只显示指纹
 node supervisor.mjs issue-vkey --account <email> [--models m1,m2 | --all]
+                                # 签发后自动把明文写入实例 home 的 .credentials.yaml
+                                # （refs.LYZ_VIRTUAL_KEY）；CLI 同时打印明文仅此一次
 node supervisor.mjs list-vkeys                 # 只有哈希，token 不可见
 node supervisor.mjs revoke-vkey --account <email>
 node supervisor.mjs set-quota --account <email> --tokens <N> | --unlimited
@@ -32,7 +34,7 @@ node supervisor.mjs logs --id e02
 
 - 员工入口：`http://localhost:8460/`（各实例入口为 `http://<实例id>.localhost:8460/`；浏览器原生把 `*.localhost` 解析到 127.0.0.1，无需改 hosts。生产 = 真实域名 + 通配符 DNS + TLS）。
 - 首次进入实例子域会看到登录页；账号绑定哪个实例，登录后就只能进哪个实例。
-- 实例数据根：`data/homes/<id>/`（即该实例的 `DSH_HOME`）；账号：`data/accounts.json`（scrypt 哈希）；上游表：`data/upstreams.json`（真实 Key 唯一容身处）；虚拟钥匙：`data/vkeys.json`（只存 SHA-256）；日志：`data/logs/<id>.log` 与 `data/logs/relay.log`。
+- 实例数据根：`data/homes/<id>/`（即该实例的 `DSH_HOME`）；账号：`data/accounts.json`（scrypt 哈希）；上游表：`data/upstreams.json`（真实 Key 唯一容身处）；虚拟钥匙：`data/vkeys.json`（只存 SHA-256）；实例凭据：`data/homes/<id>/.credentials.yaml`（签发时刻自动写入 `refs.LYZ_VIRTUAL_KEY`，`records:` 段原样保留）；日志：`data/logs/<id>.log` 与 `data/logs/relay.log`。
 
 ## 阶段 2 认证语义
 
@@ -126,15 +128,20 @@ node supervisor.mjs logs --id e02
 - **插件语义**：策略文件不存在 = 全放行（fail-open，admin 实例可能从未下发、隔离 precheck 的临时 home 也没有）；文件存在但 JSON/结构非法 = fail-loud 抛错（加载时抛错实例起不来，运行中热更新出的坏文件让当笔调用失败）。被拒调用以 `Error: 工具策略拒绝：…` 返回给模型。零 npm 依赖（仅 peer `@deepseek-ai/cordis`，经 profile 兜底目录解析）。
 - **测试**：`node platform/plugins/kabage-tool-guard/test/guard-test.mjs`（分类映射/策略校验/热生效/串行追加/fail-loud）；`node test/toolpolicy-http-verify.mjs`（随机端口真实网关：GET/POST API、三实例下发、非法策略 400、auditor 403、角色变更联动、桥文件转写与清空）。
 
-## 个人中心与邀请注册（栏目规划 v2 阶段 10）
+## 个人中心与企业身份开通（栏目规划 v2 阶段 10）
 
 - **员工门户** `/me`（:8460 portal 主机，新 [portal.mjs](portal.mjs)）：资料卡（账号/显示名/部门/角色/绑定实例+工作区链接）、改密（当前密码 + 新密码策略校验 → 重哈希 + tokenEpoch+1 全端下线，审计 `member.self_password_change` ok/fail）、本人当月用量（点数口径进度条；旧制 tokens 账号按旧口径并标注「旧制」；无额度显示不限，复用 quotas.mjs 计点展示）、设备管理 MVP（最近登录 5 条 = 审计 `auth.login_success` 本人过滤 + 「下线所有设备」`auth.revoke_all`）。
 - **角色选择（写明）**：`/me` 对 admin/auditor **同样可用而不重定向**——两类角色同样有本人用量与设备管理需求，页顶提供「返回管理台」；管理台侧栏新增「个人中心」入口。employee 在 portal 主机登录成功后自动跳 `/me`（登录页按 portal 主机名 + 角色分流），在实例子域登录则照旧原地进入工作区。新增 `GET /login` 直达登录页（已认证按角色 303 跳 `/me` 或入口页）。
-- **邀请注册**：管理台成员页新区块（部门/角色 employee|auditor/实例/有效期 1–720h 缺省 72）→ `POST /console/api/invite/create` 生成一次性链接 `/register?code=<明文>`——明文只在生成响应里出现一次，`data/invites.json` 只存 SHA-256，校验全表 `timingSafeEqual` 常数时间比较（防时序侧信道）；未用邀请列表 + 撤销（`POST /console/api/invite/revoke`，立即失效，重复撤销 404）。公开注册页 `/register?code=`（免登录，渲染预设部门/角色/有效期倒计时）+ `POST /api/register`：按 IP 复用登录速率限制参数（security.json，独立计数桶）→ code 校验 → `addAccount` 同一函数建号（白名单+密码策略+scrypt）→ 签发虚拟钥匙（models=*）→ 标记邀请已用 → 同步该实例 tool-policy（阶段 9 复用）→ 审计 `member.register`（fail detail 只含原因码；失败的注册不消耗邀请）。
-- **审计 action**：`member.self_password_change` / `auth.revoke_all` / `invite.create` / `invite.revoke` / `member.register`——ok/deny/fail 全留痕，绝不含密码与明文 code。
-- **测试**：`node test/me-invite-http-verify.mjs`（57 项；随机端口 + 临时目录，限流验收用独立第二网关隔离计数桶）。
+- **企业身份开通（免邀请码注册，2026-10 本轮）**：邀请码注册已整体下线（`invites.mjs` 模块删除、`/console/api/invite/*` 端点移除、`POST /api/register` 返回 410 Gone 并留痕 `member.register` deny/`invite_registration_removed`）。自助开通的唯一凭据改为**企业身份**：员工用企业微信或钉钉扫码，首次登录自动建号（Just-In-Time Provisioning，见下节 `sso.mjs`）。公开页 `/register` 改为「开通账号」页——只列已启用的企业身份入口，**不收集任何凭据**（无邀请码/账号/密码输入，无脚本块）。
+- **审计 action**：`member.self_password_change` / `auth.revoke_all` / `member.register`（仅下线端点的 deny 留痕）——ok/deny/fail 全留痕，绝不含密码与任何凭据原文。
+- **测试**：`node test/me-enroll-http-verify.mjs`（56 项；随机端口 + 临时目录，登录限流验收用独立第二网关隔离计数桶）。
 
 ## 两步验证 / 邮件通知 / SSO 骨架（栏目规划 v2 阶段 11）
+
+- **企业身份自动开通（2026-10 本轮，取消邀请码注册的承载体）**：`sso.mjs` 的 SSO 配置新增 `autoProvision`（开关）/ `autoRole`（白名单 employee|auditor，**不含 admin**）/ `autoDepartment` / `autoInstance`。开启后：员工用企业微信或钉钉扫码 → 回调发现该企业身份尚未绑定任何账号 → 直接建号（账号名 = `provider-` + 身份 SHA-256 前 12 位，**不含企业目录原始标识**，既唯一又不可反查）→ 签发虚拟钥匙并写入实例 home（`refs.LYZ_VIRTUAL_KEY`）→ 直接进入工作区。密码是随机不可知值（仅占位，实际只能走 SSO 登录）；员工无法自行提权（角色/部门/实例全部由管理员预置）。同一身份二次扫码幂等，不重复建号。审计 `auth.sso_provision`（只落角色/部门/实例，不落身份原文）。
+- **管理台入口**：安全与审计页新增「企业身份登录」配置卡（每 provider 一张）：启用开关、企业身份参数（企业微信 corpId/agentId、钉钉 appKey）、回调地址、密钥（留空 = 不改，已保存只显示「是/否」）、以及自动开通四项。落盘端点 `POST /console/api/sso/config`（权限点 `security.change`，审计 `security.sso_config_change`）；密钥经 AES-256-GCM 加密，响应与审计只回标量元数据。
+- **注意（实例归属）**：自动开通的新账号需要一个归属实例（网关按 `account.instanceId` 路由）。当前 `instances.json` 的三个实例都已绑定既有账号，若把自动开通指向它们，新员工会与该实例**共享工作区 home**——生产启用前请先在清单里准备专用实例。默认 `autoProvision` 为**关闭**。
+
 
 ### 11A TOTP 两步验证（[totp.mjs](totp.mjs)）
 
@@ -151,18 +158,46 @@ node supervisor.mjs logs --id e02
 - **触发点**：配额跨 80% 告警（relay 实结处，点数口径优先旧制并入，`usage.alerted` 标记**每账号每月一次**，收件人=本人+adminNotify 抄送，审计 `notify.quota_warn`）；建号/禁用/重置密码通知本人——**重置邮件绝不含新密码原文**。
 - **待真机验证**：真实外网 SMTP（凭证）；file 模式与本地 mock SMTP 命令流已完整验证。
 
-### 11C SSO 骨架（[sso.mjs](sso.mjs)，企业微信 + 钉钉）
+### 11C SSO 骨架（[sso.mjs](sso.mjs)，企业微信 + 钉钉 + Casdoor）
 
 - **配置**：`data/sso.json` 每 provider 独立 `enabled`（缺省全关）；secret/appSecret AES-GCM 加密；`authorizeBase`/`apiBase` 可配、缺省真实域名——**指向本地 mock 即可全流程验证**，真实供应商待凭证。
-- **流程**（授权码模式）：登录页显示已启用 provider 按钮 → `GET /api/auth/sso/:provider/start`（一次性 state，内存 Map 5 分钟）→ 303 authorize → callback 校验 state → code 换 token → 用户标识（企业微信 userid / 钉钉 unionId，仅元数据）→ 按 `accounts.json` 的 `ssoIds` 数组查绑定：命中签发 JWT（与密码登录同一令牌语义，审计 `auth.sso_login`）；未命中渲染绑定页（bindToken 一次性 5 分钟）→ `POST /api/auth/sso/bind` 账号+密码验证后写绑定（审计 `auth.sso_bind`，密码错误计入登录限流同桶）。
+- **流程**（授权码模式）：登录页显示已启用 provider 按钮 → `GET /api/auth/sso/:provider/start`（一次性 state，内存 Map 5 分钟）→ 303 authorize → callback 校验 state → code 换 token → 用户标识（企业微信 userid / 钉钉 unionId / Casdoor sub，仅元数据）→ 按 `accounts.json` 的 `ssoIds` 数组查绑定：命中签发 JWT（与密码登录同一令牌语义，审计 `auth.sso_login`）；未命中渲染绑定页（bindToken 一次性 5 分钟）→ `POST /api/auth/sso/bind` 账号+密码验证后写绑定（审计 `auth.sso_bind`，密码错误计入登录限流同桶）。
 - **待配置验证**：真实企业微信/钉钉（corpId/appKey/secret 凭证）；mock 全流程已验证。
+
+### 11D Casdoor provider（OIDC 身份源对接，2026-11-03）
+
+Casdoor 作为**身份源**接入（答「人是谁」），平台仍作**授权源**（答「人能干什么」：实例绑定 / 角色 / 部门 / 额度 / 审计）——两者边界见 `D:\casdoor\analysis\04-用户管理落地方案.md`。
+
+- **契约**（2026-11-03 对本机 Casdoor 实测，非文档推断）：
+  | 环节 | 端点 | 鉴权 |
+  |---|---|---|
+  | authorize | `GET {authorizeBase}/login/oauth/authorize` | — |
+  | token | `POST {apiBase}/api/login/oauth/access_token` | `client_secret_basic`（Basic base64(clientId:secret)），body 为 `grant_type=authorization_code&code=…&redirect_uri=…` 表单 |
+  | userinfo | `GET {apiBase}/api/userinfo` | `Authorization: Bearer <access_token>` |
+  | discovery | `GET {issuer}/.well-known/openid-configuration` | — |
+  - ⚠️ **userinfo 是 `/api/userinfo`，不是 `/api/login/oauth/userinfo`**（后者实测 404）。
+  - ⚠️ token 端点失败返回 **flat OAuth 错误信封** `{"error":…,"error_description":…}`（不是 `{status,msg,data}`）。
+  - 身份主键取 `sub`（OIDC subject），缺失时回落 Casdoor 内部 `id`；外部标识格式 `casdoor:<sub>`，与既有 `dingtalk:<unionId>` 同一套 `ssoIds` 语义。
+- **配置项**：`data/sso.json` 的 `casdoor` 段 —— `enabled` / `clientId`（身份标识，明文落盘）/ `secret`（明文提交，落盘转 `secretEnc` AES-GCM）/ `redirectUri` / `authorizeBase` / `apiBase` / `autoProvision` / `autoRole` / `autoDepartment` / `autoInstance`。
+- **字段差异表**：provider 之间的字段名差异集中在 `sso.mjs` 的 `PROVIDER_FIELDS`（`idField` / `secretField` / 文案）。管理台 UI 与落盘逻辑**共用这一张表**——此前两处各自写死 `provider === 'wecom' ? … : …` 的二元分支，第三个 provider 落地时会被静默写成错误字段名（新增 provider 一律被当成钉钉处理，存出 `appKey`/`appSecret` 而真实标识是 `clientId`）。新增 provider 现在只需在这张表登记一处。
+- **自动开通**：与 wecom/dingtalk 同一条路径（`provisionFromSso`）——`autoRole` 白名单仍**不含 admin**（管理员只能人工授予）；账号名 = `casdoor-` + 身份 SHA-256 前 12 位，**不含身份原文**。
+- **边界**：平台不存 Casdoor 密码、不过问配额；Casdoor 不管实例绑定与额度。Casdoor 侧冻结/禁用**不会**自动禁用平台账号（生命周期同步是独立议题，尚未实现）。
+- **测试**：`node test/sso-casdoor-verify.mjs`（42 项；本地 mock OIDC 服务器 + 随机端口 + 临时目录，覆盖配置落盘/加密、authorize 契约、token Basic 头与表单体、userinfo Bearer、未绑定出绑定页、bind 错密码拒/对密码绑并登录、二次 SSO 直达、state 伪造 400、JIT 自动开通与幂等、autoRole 白名单、token 500 与 userinfo 缺 sub 的 502 降级、`resolveSsoIdentity` 直调）。
 
 ## 服务令牌与 DSH 管理工具（栏目规划 v2 阶段 12）
 
 - **服务令牌**：`data/service-tokens.json` 存 `{id, tokenHash(SHA-256), role: admin|readonly, createdAt}`；`node supervisor.mjs add-service-token <名称> [--readonly]` 生成 `kbsvc-<base64url 256bit>` 明文**只显示一次**（审计 `security.service_token_create/revoke`，detail 只含名称/角色）。比较走 timingSafeEqual；mtime 缓存读取，撤销下一请求生效。**服务令牌 = 管理凭据，仅注入可信实例**（能读到即能以对应角色调用管理台 API）。
 - **console API 认证扩展**：`Authorization: Bearer kbsvc-…` 命中即等价角色——admin token 全部 API 可用；readonly 仅只读白名单（`member/list`、`member/usage`、`audit`、`toolpolicy`），白名单外 GET 403、任何 POST 403 deny 留痕。**仅 `/console/api/*` 生效**（页面路由一律 401 JSON）。审计 actor.account 记 `svc:<名称>` 与人区分。配套新增只读端点：`GET /console/api/member/list`（成员+当月用量摘要，工具 user_list 数据源）与 `GET /console/api/member/usage?account=`（点数/额度/余量，user_quota_query 数据源）。
-- **管理类 DSH 工具**（[kabage-admin-tools](../plugins/kabage-admin-tools/README.md)，实例侧插件）：7 个工具（只读 `user_list`/`user_quota_query`/`audit_query`；变更 `user_create`/`user_update`/`user_reset_password`/`user_set_disabled`）经 HTTP 调平台 console API。注册走 raw `ctx.tools.register`（`export const inject = ['tools']` 声明服务依赖；显式 `presentCall` generic 卡片；raw 工具自带输入校验与强制 output 声明）。token 经 instances[].env 注入（`KABAGE_SERVICE_TOKEN`，仓库零真实值）；未配置时调用返回中文配置错误（`token_missing`）而非崩溃。**决策：不探测令牌角色**——7 个工具始终注册，readonly 调变更由平台 403 转译为中文错误（`forbidden`），注册逻辑与令牌角色解耦。一次性密码（create/reset）会留在管理员实例会话记录中——结果附提示引导尽快改密（详见插件 README 警示节）。
-- **测试**：`node test/service-token-verify.mjs`（平台侧 22 项：生成/认证/白名单/撤销/审计 actor）；`node platform/plugins/kabage-admin-tools/test/admin-tools-test.mjs`（插件侧 42 项：mock 平台断言路径/方法/鉴权头/映射/转译/截断/token 缺失）。
+- **管理类 DSH 工具**（[kabage-admin-tools](../plugins/kabage-admin-tools/README.md)，实例侧插件）：9 个工具（只读 `user_list`/`user_quota_query`/`audit_query`；变更 `user_create`/`user_update`/`user_reset_password`/`user_set_disabled`/`user_set_quota`/`user_reset_2fa`）经 HTTP 调平台 console API。注册走 raw `ctx.tools.register`（`export const inject = ['tools']` 声明服务依赖；显式 `presentCall` generic 卡片；raw 工具自带输入校验与强制 output 声明）。token 经 instances[].env 注入（`KABAGE_SERVICE_TOKEN`，**仓库跟踪文件里零真实值**——真实 token 落 gitignore 的 `data/instances.local.json` 覆盖层，见下方「清单覆盖层」节）；未配置时调用返回中文配置错误（`token_missing`）而非崩溃。**决策：不探测令牌角色**——9 个工具始终注册，readonly 调变更由平台 403 转译为中文错误（`forbidden`），注册逻辑与令牌角色解耦。一次性密码与 `user_create` 返回的 vkey（明文只出现一次，标记 sensitive）会留在管理员实例会话记录中——结果附提示引导尽快改密（详见插件 README 警示节）。
+- **测试**：`node test/service-token-verify.mjs`（平台侧 26 项：生成/认证/白名单/撤销/审计 actor）；`node platform/plugins/kabage-admin-tools/test/admin-tools-test.mjs`（插件侧 89 项：mock 平台断言路径/方法/鉴权头/映射/转译/截断/token 缺失/超时/降级/角色校验/敏感字段脱敏）。
+
+## 登录注册页统一渲染（auth-ui.mjs）与清单覆盖层（2026-10 本轮）
+
+- **auth-ui.mjs**：登录页（含 TOTP 步骤）、注册页全部由 `renderLoginPage`/`renderTotpPage`/`renderRegisterPage` 统一渲染，网关（`/login`）与 portal（`/register`）只传数据不拼 HTML。**脚本块 100% 静态**——旧实现里 `var HOST='${portalHostname}'`、`var EXPIRES=${JSON.stringify(…)}` 两处脚本插值 XSS sink 已消除，动态值只经转义后写入 `data-*` 属性由脚本读取；敏感回显（注册失败回填的密码等）经 `collectSensitiveValues`+`redactSecrets` 打码为 `********`。表单 id/name（`login-form`/`account`/`password`）与错误透传（`payload && payload.error` → `showError`）是稳定契约，测试按契约断言不按文案断言。
+- **console API 增量**（全部向后兼容）：`member/create` 显式校验角色（空缺省 employee，非法值 400 中文报错）并落 `department`（此前被丢弃）；`member/enable` 把重签发的 vkey 明文随响应返回一次（此前直接丢弃）；`member/list` 新增服务端过滤 `q`/`department`/`role`/`disabled`/`instance` 与 `limit`（≤1000）/`offset` 分页，带参数时响应附 `{total, offset, limit}`。
+- **清单覆盖层**：`loadManifest`（manifest.mjs）合并 git 跟踪的 `instances.json` 与 gitignore 的 `data/instances.local.json`（同名实例浅覆盖），支持 `${VAR}` 环境变量插值（缺失变量告警到 stderr，不崩溃）。真实服务令牌从此只写覆盖层，跟踪文件零密文。
+- **原子写统一**（atomic-write.mjs）：全平台 13 个模块 / 19 处「tmp+rename」状态写入收敛到 `writeJsonAtomic`/`writeFileAtomic`——tmp 名带 pid（daemon 与 CLI 并发写不再互踩 tmp）、rename 遇 EPERM/EBUSY/EACCES/ENOTEMPTY/EEXIST 指数退避重试（Windows 下目标被独占句柄持有的老问题）、ENOENT 立即抛出不重试、失败清理 tmp 且错误带 errno code。audit.mjs 的 NDJSON 追加与轮转**刻意不改**（原子重写会把追加变成 O(n²) 全量重写）。**已知边界**：跨进程并发写同一文件仍是后写覆盖先写（原子写只保证读者不见半截文件）；同进程两个写点并发写同一文件由「tmp 写入置于重试循环内」自愈。
+- **测试**：`node test/atomic-write-verify.mjs`（9 项：字节一致性/无残留 tmp/pid 化 tmp/真 Windows 独占句柄下重试成功/retries=0 对照/ENOENT 立即抛/重试耗尽中文错误）；`node test/auth-ui-verify.mjs`（88 项：登录页/TOTP 页/开通页三页面渲染/转义/脱敏/TOTP 流程/脚本块零插值）；`test/me-enroll-http-verify.mjs` 56 项、`test/sso-verify.mjs` 47 项（含自动开通 12 项）全绿。
 
 ## 已验证（本机 Windows，2026-09-20/21）
 
@@ -182,7 +217,7 @@ node supervisor.mjs logs --id e02
 
 阶段 10（2026-09-25）：HTTP 集成 63 项全过（`test/me-invite-http-verify.mjs`）——/me 访问矩阵（employee 200 只含本人数据且查询参数被忽略、admin/auditor 同样可用、未认证 401、/login 按角色 303、入口页 account 插值转义）；改密四路径（错当前密码/弱密码/不一致 400 全留痕，成功后旧 JWT 401、新密码可登录、旧密码失效）；用量三形态渲染（320/1000 点数、120/500 旧制标注、不限额度）；revoke-all 留痕 + 旧 JWT 401；邀请全流程（生成留痕不含明文 code → 注册页预设渲染 → 注册成功角色/部门/实例正确 + tool-policy 下发 → 二次注册 used 拒 → 撤销/过期/无效/手改 admin 角色 invite 拒 → 失败不消耗邀请 → 畸形 code 白名单拒绝不回流 → 内部抛错转 500 且不挂死不消耗邀请）；employee 调 invite API 403；限流专项（独立网关：3 次无效后第 4 次 429、有效邀请也 429、deny 留痕）。既有冒烟零回归（smoke 43 含 actor exact 匹配隔离断言）。
 
-阶段 11（2026-09-25）：**A-TOTP**（`test/twofa-http-verify.mjs` 51 项）：RFC 6238 附录 B 六时间片向量逐一通过 + base32/AES-GCM 往返与坏密文拒绝；HTTP 全流程（setup→错码 confirm 拒→对码 enabled→登录 totp_required 不发 cookie→错 code 401 留痕→对 code 登录 detail totp:true→disable 恢复单因子→admin reset 救援→软强制 enrollment 标记与 /me 横幅→TOTP 错 3 次后对码也 429 同桶限流）。**B-邮件**（`test/notify-verify.mjs` 40 项）：MIME 纯函数头/编码/折行断言；file 模式 outbox .eml 逐项解码断言；relay 80% 告警恰好本人+抄送两封、alerted 每月一次、notify.quota_warn 留痕；建号/禁用/重置三类通知且重置邮件不含新密码原文；本地 mock SMTP 命令流（EHLO 多行/AUTH LOGIN base64/MAIL/RCPT/DATA/QUIT 顺序）与消息体断言。**C-SSO**（`test/sso-verify.mjs` 20 项）：mock OAuth 全流程（登录页按钮→start 303→authorize→callback 未绑定出绑定页→bind 错密码拒/对密码绑定落 ssoIds→二次 SSO 直达 303+cookie→伪造/缺 state 400→未启用 404→secret 加密落盘）。九套测试 432 项全绿。**待真机验证**：真实 SMTP 凭证、真实企业微信/钉钉凭证。
+阶段 11（2026-09-25）：**A-TOTP**（`test/twofa-http-verify.mjs` 51 项）：RFC 6238 附录 B 六时间片向量逐一通过 + base32/AES-GCM 往返与坏密文拒绝；HTTP 全流程（setup→错码 confirm 拒→对码 enabled→登录 totp_required 不发 cookie→错 code 401 留痕→对 code 登录 detail totp:true→disable 恢复单因子→admin reset 救援→软强制 enrollment 标记与 /me 横幅→TOTP 错 3 次后对码也 429 同桶限流）。**B-邮件**（`test/notify-verify.mjs` 40 项）：MIME 纯函数头/编码/折行断言；file 模式 outbox .eml 逐项解码断言；relay 80% 告警恰好本人+抄送两封、alerted 每月一次、notify.quota_warn 留痕；建号/禁用/重置三类通知且重置邮件不含新密码原文；本地 mock SMTP 命令流（EHLO 多行/AUTH LOGIN base64/MAIL/RCPT/DATA/QUIT 顺序）与消息体断言。**C-SSO**（`test/sso-verify.mjs` 20 项）：mock OAuth 全流程（登录页按钮→start 303→authorize→callback 未绑定出绑定页→bind 错密码拒/对密码绑定落 ssoIds→二次 SSO 直达 303+cookie→伪造/缺 state 400→未启用 404→secret 加密落盘）。**D-Casdoor**（`test/sso-casdoor-verify.mjs` 42 项，2026-11-03）：mock OIDC 全流程（配置落盘 + secret 加密→登录页 Casdoor 按钮→start 303 authorize 契约→token 端点 Basic 头与表单体→userinfo 端点 Bearer→未绑定出绑定页→bind 错密码拒/对密码绑并登录→二次 SSO 直达→伪造/缺 state 400→JIT 自动开通与幂等→autoRole 白名单→token 500 与 userinfo 缺 sub 的 502 降级→字段白名单按 provider 收口）。**平台全量 14 套测试 679 项全绿**（2026-11-03）。**待真机验证**：真实 SMTP 凭证、真实企业微信/钉钉凭证、真实 Casdoor 凭证与回调白名单。
 
 **未验证**：真实模型对话（三个上游 key 均无余额，zhipu 429 余额不足）；浏览器点击流（curl + `--resolve` 已覆盖等价语义）；跨月滚动重置（按月键构造成立，未跨月实测）；预检的「完整模型 turn」档（需有余额上游，当前为隔离真启动 + 健康探测档）。
 

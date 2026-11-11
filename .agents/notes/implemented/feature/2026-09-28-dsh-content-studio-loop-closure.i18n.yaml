@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-dsh-content-studio-loop-closure.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-dsh-content-studio-loop-closure.md
-2026-09-28-dsh-content-studio-loop-closure.md: a690e739d72ec16b1d64781a7211a6a365ba1e46
-2026-09-28-dsh-content-studio-loop-closure.zh.md: 4aade99cb4a40666f998ad8fefbffd41067e5892
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry:
+  en: 0ba665e9a377d3de
+  zh: 4b93b8f43e7be1a0
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry/problem:
+  en: 313daa48e7f37396
+  zh: 1697067f9f6ef969
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry/decision:
+  en: 4a3b0ef3c9af67bd
+  zh: 26cec8539a164eed
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry/deviations-from-the-plan-text:
+  en: 0061e96aae45de20
+  zh: c167ef4feb9bb3e0
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry/alternatives-considered:
+  en: 143c3b2c52d3fb99
+  zh: 4e01274aa7c2b64f
+/agent-note-three-structural-breakpoints-closed-the-benchmark-view-collects-into-the-topic-bank-the-publish-handoff-carries-the-creation-topic-and-the-benchmark-account-view-gains-its-nav-entry/consequences:
+  en: b8988fa191044291
+  zh: b58bfdcd7adbe33b

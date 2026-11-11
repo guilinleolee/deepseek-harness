@@ -1,8 +1,6 @@
 # 获客运营 · 数据契约 v1（已冻结）
 
-状态：**已冻结**（2026-10-04 用户确认）。本文档自此为只读物；此后任何字段/枚举/接口变更必须走「bump domain version + 报告确认」流程（见第 8 节）。
-覆盖投喂：第 4 节红线常量、第 6 节数据契约、第 9 节 PermissionContext 缝、第 10 节知识注入。
-工具定义见同目录 [tools-manifest.md](./tools-manifest.md)。
+状态：**已冻结**（2026-10-04 用户确认）。本文档自此为只读物；此后任何字段/枚举/接口变更必须走「bump domain version + 报告确认」流程（见第 8 节）。覆盖投喂：第 4 节红线常量、第 6 节数据契约、第 9 节 PermissionContext 缝、第 10 节知识注入。工具定义见同目录 [tools-manifest.md](./tools-manifest.md)。
 
 ---
 
@@ -428,6 +426,7 @@ export const auditLogSchema = z.object({
 export const customerAcquisitionSettingsSchema = z.object({
   default_icp_profile_id: z.string().min(1).optional(),
   default_score_template_id: z.string().min(1).optional(),
+  sender_name: z.string().min(1).optional(),                           // 文案署名，落位 {{sender_name}}
   geo_max_pages: z.number().int().min(1).max(20).default(10),          // 红线封顶 20
   geo_page_timeout_ms: z.number().int().min(1_000).max(10_000).default(10_000),  // 红线封顶 10s，只许更短
   sop_todo_write_enabled: z.boolean().default(true),

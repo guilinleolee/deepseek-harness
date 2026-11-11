@@ -1,0 +1,31 @@
+{
+  "format": "conventional",
+  "types": [
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "test",
+    "chore",
+    "perf",
+    "ci",
+    "build"
+  ],
+  "scopes": [
+    "auth",
+    "api",
+    "ui",
+    "utils",
+    "config",
+    "database",
+    "security",
+    "performance"
+  ],
+  "maxLength": 100,
+  "requireScope": false,
+  "requireDescription": true,
+  "maxLineLength": 72,
+  "allowBreakingChanges": true,
+  "strictMode": false
+}

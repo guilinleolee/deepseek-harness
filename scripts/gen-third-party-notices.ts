@@ -671,6 +671,27 @@ function collectPatched(): { spec: string; patch: string }[] {
   return Object.entries(workspace.patchedDependencies ?? {}).map(([spec, patch]) => ({ spec, patch }))
 }
 
+/** Build-time tools whose notices ship even though they are not runtime deps. */
+const BUILD_TIME_TOOLS = [
+  {
+    name: '@yao-pkg/pkg',
+    license: 'MIT',
+    repo: 'https://github.com/yao-pkg/pkg',
+    role: 'invoked by `scripts/build-exe-for-python-sdk.ts` to assemble the single-file SDK runtime executable',
+    pinSource: 'scripts/build-exe-for-python-sdk.ts',
+  },
+]
+
+/** Verify each build-time tool pin still appears in its owning script. */
+function verifyBuildTimePins(): void {
+  for (const tool of BUILD_TIME_TOOLS) {
+    const text = readFileSync(resolve(root, tool.pinSource), 'utf8')
+    if (!text.includes(tool.name)) {
+      throw new Error(`gen-third-party-notices: ${tool.pinSource} no longer references ${tool.name}; update BUILD_TIME_TOOLS.`)
+    }
+  }
+}
+
 /** SPDX identifiers this project may ship without further review. `MIT-0`
  * is MIT without the attribution clause — strictly more permissive than MIT. */
 const PERMISSIVE_LICENSES = new Set(['MIT', 'MIT-0', 'MIT-CMU', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0', 'PSF-2.0'])
@@ -866,6 +887,7 @@ ${bundledPython.map(dep => `| [\`${dep.name}\`](${dep.repo}) | ${dep.version} | 
  * is stale. Guarded behind an entry-point check so importing this module for
  * tests neither regenerates the committed file nor calls process.exit. */
 async function main(): Promise<void> {
+  verifyBuildTimePins()
   const content = await render()
   if (process.argv.includes('--check')) {
     let committed: string | null = null

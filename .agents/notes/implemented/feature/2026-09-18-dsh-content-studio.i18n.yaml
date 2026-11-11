@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-18-dsh-content-studio.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-dsh-content-studio.md
-2026-09-18-dsh-content-studio.md: 319d0faf38cdd8b6695c16f52d3c39d5fd0b8d21
-2026-09-18-dsh-content-studio.zh.md: c96bd7feabaf22ecbf6c36565aed1d7ab8e921e2
+/agent-note-content-studio-enters-the-web-shell-through-the-two-existing-additive-slots-not-a-new-navigation-slot:
+  en: 12a2a70ca40f231e
+  zh: 88bdb53364af15df
+/agent-note-content-studio-enters-the-web-shell-through-the-two-existing-additive-slots-not-a-new-navigation-slot/problem:
+  en: 9bf72deef850a229
+  zh: 04bafb8c3bfa95bb
+/agent-note-content-studio-enters-the-web-shell-through-the-two-existing-additive-slots-not-a-new-navigation-slot/decision:
+  en: 197022ec73449b20
+  zh: d796c9e659d025eb
+/agent-note-content-studio-enters-the-web-shell-through-the-two-existing-additive-slots-not-a-new-navigation-slot/alternatives-considered:
+  en: d3659b3592947eb2
+  zh: 00b87834a1afefc8
+/agent-note-content-studio-enters-the-web-shell-through-the-two-existing-additive-slots-not-a-new-navigation-slot/consequences:
+  en: 2f70f87174fd18c1
+  zh: 82c329f90f965047

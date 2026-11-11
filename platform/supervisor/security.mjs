@@ -9,8 +9,10 @@
  * 大小切档、保留 auditKeepArchives 份归档（参数同样在本文件，audit.mjs
  * 每次追加现读）。全部参数可经 data/security.json 修改，改动即时生效。
  */
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { writeJsonAtomic } from './atomic-write.mjs'
 
 /** 缺省安全参数（与 data/security.json 的自动生成内容一致）。 */
 export const DEFAULT_SECURITY = {
@@ -55,9 +57,7 @@ const normalizeRoles = (value) => {
 
 function writeConfig(dataDir, config) {
   const path = join(dataDir, 'security.json')
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, config)
 }
 
 /** 读取安全参数；文件缺失时生成缺省配置，手改出的非法值回退缺省并重写。 */
@@ -191,9 +191,7 @@ export function createLoginRateGuard(getLimits, persistence = null) {
     }
     try {
       const path = join(persistence.dataDir, persistence.file)
-      const tmp = `${path}.tmp`
-      writeFileSync(tmp, `${JSON.stringify({ buckets }, null, 2)}\n`)
-      renameSync(tmp, path)
+      writeJsonAtomic(path, { buckets })
     } catch (error) {
       console.error('[security] 限流计数持久化失败（内存判定不受影响）:', error?.message ?? error)
     }

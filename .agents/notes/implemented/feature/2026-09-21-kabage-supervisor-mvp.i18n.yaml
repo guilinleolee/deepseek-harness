@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-kabage-supervisor-mvp.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-kabage-supervisor-mvp.md
+/agent-note-supervisor-mvp-ipc-harness:
+  en: 04e4117c052ce526
+  zh: 50fccc589f4af5b7
+/agent-note-supervisor-mvp-ipc-harness/problem:
+  en: 55a06cca6b6634a4
+  zh: 70041260313b2bc0
+/agent-note-supervisor-mvp-ipc-harness/decision:
+  en: d180855f0bbae4e9
+  zh: 56f8cbb874544e43
+/agent-note-supervisor-mvp-ipc-harness/alternatives-considered:
+  en: 27661c8eb389a0ce
+  zh: 6c82d17bdb3807a5
+/agent-note-supervisor-mvp-ipc-harness/consequences:
+  en: 15a9f0bb2c6f97f3
+  zh: 5e275ec7b8a7be4f

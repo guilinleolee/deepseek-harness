@@ -69,8 +69,10 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     this.auditTable = domain.table('audit_logs')
   }
 
-  /** Authoritative audit handle, valid after init; a miss is a broken lifecycle.
-   * @returns the durable audit-log table handle. */
+  /**
+   * Authoritative audit handle, valid after init; a miss is a broken lifecycle.
+   * @returns the audit log table.
+   */
   requireAuditTable(): AuditTable {
     if (this.auditTable === undefined) {
       throw new Error('customer-acquisition: durable domain is not initialized')
@@ -82,7 +84,7 @@ export class CustomerAcquisitionService extends TypertRemoteService {
    * Authoritative domain, valid after init; a miss is a broken lifecycle.
    * Open to the P1 module services (lead ledger, scoring), which borrow the
    * domain's tables — the P0 service stays its single owner and closer.
-   * @returns the open frozen v1 domain.
+   * @returns the durable customer-acquisition domain.
    */
   requireDomain(): Domain<typeof customerAcquisitionDomainSpec> {
     if (this.domain === undefined) {
@@ -91,8 +93,10 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return this.domain
   }
 
-  /** Current settings, projected to the exact-optional wire shape.
-   * @returns the current global settings. */
+  /**
+   * Current settings, projected to the exact-optional wire shape.
+   * @returns the stored settings as the wire value.
+   */
   getSettings(): SettingsValue {
     return toSettingsValue(this.requireDomain().global.get())
   }
@@ -153,16 +157,20 @@ export class CustomerAcquisitionService extends TypertRemoteService {
       .map(toAuditValue)
   }
 
-  /** Read face for the browser panel.
-   * @returns the current settings wrapped for the wire. */
+  /**
+   * Read face for the browser panel.
+   * @returns the settings snapshot wire value.
+   */
   @Remote('getSettings')
   getSettingsRemote(): Promise<SettingsSnapshotValue> {
     return Promise.resolve({ settings: this.getSettings() })
   }
 
-  /** Write face for the browser panel; resolves the web operator per call.
-   * @param patch - fields to change; omitted fields keep their value.
-   * @returns the settings after the write. */
+  /**
+   * Write face for the browser panel; resolves the web operator per call.
+   * @param patch - partial settings update.
+   * @returns the settings snapshot after the write.
+   */
   @Remote('updateSettings')
   async updateSettingsRemote(patch: SettingsPatchInput): Promise<SettingsSnapshotValue> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -170,9 +178,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return { settings }
   }
 
-  /** Audit read face for the browser panel.
-   * @param request - filters plus paging bounds.
-   * @returns the matching page, newest first, with the unfiltered total. */
+  /**
+   * Audit read face for the browser panel.
+   * @param request - list window and filters.
+   * @returns the audit log page.
+   */
   @Remote('listAuditLogs')
   async listAuditLogs(request: AuditListRequest): Promise<AuditListValue> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -183,8 +193,8 @@ export class CustomerAcquisitionService extends TypertRemoteService {
    * Dashboard read face: the seven overview metrics through the same
    * aggregation the model tool serves. Resolves the web operator per call so
    * `lead_scope=own` panels never see another operator's leads.
-   * @param request - overview scope and lead-scope selection.
-   * @returns the dashboard overview for the resolved operator.
+   * @param request - the metric window and grouping.
+   * @returns the seven overview metrics.
    */
   @Remote('getOverview')
   async getOverviewRemote(request: OverviewRequest): Promise<OverviewValue> {
@@ -192,9 +202,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return new ReportService(this.requireDomain()).overview(request, operator)
   }
 
-  /** Lead list read face; the ledger's list scope applies unchanged.
-   * @param request - filters plus paging bounds; omitted filters select every visible lead.
-   * @returns the matching page with the unfiltered total. */
+  /**
+   * Lead list read face; the ledger's list scope applies unchanged.
+   * @param request - optional lead-id filter and paging.
+   * @returns the visible lead reference page.
+   */
   @Remote('listLeads')
   async listLeadsRemote(request?: LeadListRequest): Promise<LeadListValue> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -202,9 +214,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return { items: items.map(toLeadRef), total }
   }
 
-  /** Score-run history read face across the operator's visible leads, newest first.
-   * @param request - optional lead filter and page size.
-   * @returns the matching runs with the unfiltered total. */
+  /**
+   * Score-run history read face across the operator's visible leads, newest first.
+   * @param request - optional lead-id filter and row cap (default 20).
+   * @returns the score-run page.
+   */
   @Remote('listScoreRuns')
   async listScoreRunsRemote(request?: { lead_id?: string; limit?: number }): Promise<{ items: ScoreRun[]; total: number }> {
     const operator = await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -219,27 +233,33 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return { items: runs.slice(0, limit), total: runs.length }
   }
 
-  /** ICP profile read face for the scoring page.
-   * @param enabled_only - when true, only enabled profiles.
-   * @returns every matching ICP profile. */
+  /**
+   * ICP profile read face for the scoring page.
+   * @param enabled_only - drop disabled profiles when true.
+   * @returns the visible ICP profiles.
+   */
   @Remote('listIcpProfiles')
   async listIcpProfilesRemote(enabled_only?: boolean): Promise<IcpProfileValue[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().scoring.listIcpProfiles(enabled_only)
   }
 
-  /** Score-template read face for the scoring page.
-   * @param enabled_only - when true, only enabled templates.
-   * @returns every matching score template. */
+  /**
+   * Score-template read face for the scoring page.
+   * @param enabled_only - drop disabled templates when true.
+   * @returns the visible score templates.
+   */
   @Remote('listScoreTemplates')
   async listScoreTemplatesRemote(enabled_only?: boolean): Promise<ScoreTemplateValue[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().scoring.listScoreTemplates(enabled_only)
   }
 
-  /** GEO scan-history read face: every scan joined with its report's score.
-   * @param limit - maximum rows to return; omit to return all.
-   * @returns the scan rows, newest first, with the unfiltered total. */
+  /**
+   * GEO scan-history read face: every scan joined with its report's score.
+   * @param limit - optional row cap on the returned items.
+   * @returns the scan history page.
+   */
   @Remote('listGeoScans')
   async listGeoScansRemote(limit?: number): Promise<GeoScanListValue> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -266,9 +286,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return { items: bounded, total: rows.length }
   }
 
-  /** One full GEO report for the diagnosis page.
-   * @param reportId - the report to read.
-   * @returns the stored report; rejects for an unknown id. */
+  /**
+   * One full GEO report for the diagnosis page.
+   * @param reportId - the report to load.
+   * @returns the stored GEO report.
+   */
   @Remote('getGeoReport')
   getGeoReportRemote(reportId: string): Promise<GeoReport> {
     const report = this.requireDomain().table('geo_reports').get(reportId as never)
@@ -276,9 +298,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return Promise.resolve(report)
   }
 
-  /** Generated-copy read face across the operator's visible leads, newest first.
-   * @param request - optional lead filter and page size.
-   * @returns the matching copies with the unfiltered total. */
+  /**
+   * Generated-copy read face across the operator's visible leads, newest first.
+   * @param request - optional lead-id filter and row cap (default 20).
+   * @returns the generated-content page.
+   */
   @Remote('listGeneratedContents')
   async listGeneratedContentsRemote(
     request?: { lead_id?: string; limit?: number },
@@ -295,18 +319,22 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return { items: contents.slice(0, limit), total: contents.length }
   }
 
-  /** Copy-template read face for the templates page.
-   * @param filters - optional template type and enabled filter.
-   * @returns every matching copy template. */
+  /**
+   * Copy-template read face for the templates page.
+   * @param filters - optional type and enabled-only filters.
+   * @returns the matching copy templates.
+   */
   @Remote('listContentTemplates')
   async listContentTemplatesRemote(filters?: { type?: string; enabled_only?: boolean }): Promise<ContentTemplate[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
     return this.panelStack().content.listTemplates(filters ?? {})
   }
 
-  /** SOP task read face; the service's lead-visibility scope applies unchanged.
-   * @param request - lead and status filters plus paging bounds.
-   * @returns the matching task page with the unfiltered total. */
+  /**
+   * SOP task read face; the service's lead-visibility scope applies unchanged.
+   * @param request - optional lead-id, status, and paging filters.
+   * @returns the SOP task page.
+   */
   @Remote('listSopTasks')
   async listSopTasksRemote(
     request?: { lead_id?: string; status?: 'pending' | 'done' | 'deferred' | 'dropped'; limit?: number; offset?: number },
@@ -315,9 +343,11 @@ export class CustomerAcquisitionService extends TypertRemoteService {
     return this.panelStack().sop.listTasks(request ?? {}, operator)
   }
 
-  /** SOP-template read face for the templates page.
-   * @param enabled_only - when true, only enabled templates.
-   * @returns every matching SOP template. */
+  /**
+   * SOP-template read face for the templates page.
+   * @param enabled_only - drop disabled templates when true.
+   * @returns the visible SOP templates.
+   */
   @Remote('listSopTemplates')
   async listSopTemplatesRemote(enabled_only?: boolean): Promise<SopTemplate[]> {
     await this.ctx.permissionContext.resolve({ via: 'web' })
@@ -404,6 +434,7 @@ function toSettingsValue(settings: CustomerAcquisitionSettings): SettingsValue {
     sop_todo_write_enabled: settings.sop_todo_write_enabled,
     ...(settings.default_icp_profile_id === undefined ? {} : { default_icp_profile_id: settings.default_icp_profile_id }),
     ...(settings.default_score_template_id === undefined ? {} : { default_score_template_id: settings.default_score_template_id }),
+    ...(settings.sender_name === undefined ? {} : { sender_name: settings.sender_name }),
   }
 }
 

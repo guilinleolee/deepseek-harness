@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-06-customer-acquisition-flash-parser-hardening.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-06-customer-acquisition-flash-parser-hardening.md
-2026-10-06-customer-acquisition-flash-parser-hardening.md: 19de4d6e58ea58541fe795f03c443f8466153e88
-2026-10-06-customer-acquisition-flash-parser-hardening.zh.md: 728b932d3fcb5a913726e719a6b075b83e93ac78
+/agent-note-customer-acquisition-flash-model-parser-hardening:
+  en: a0aec8b41b490e6a
+  zh: 49482c0478a9f56a
+/agent-note-customer-acquisition-flash-model-parser-hardening/problem:
+  en: 566580cb590d449d
+  zh: 019dcb7e993d51a8
+/agent-note-customer-acquisition-flash-model-parser-hardening/decision:
+  en: eda8038ce230a01e
+  zh: 08199c9fd6cf29b7
+/agent-note-customer-acquisition-flash-model-parser-hardening/alternatives-considered:
+  en: 25895e2849689e2d
+  zh: 31305c2114414a22
+/agent-note-customer-acquisition-flash-model-parser-hardening/consequences:
+  en: 49e71d1c3e8a8d7f
+  zh: 1c51b9bc00526b23

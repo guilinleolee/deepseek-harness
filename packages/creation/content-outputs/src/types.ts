@@ -12,6 +12,7 @@ export type {
   SentimentAlert, SentimentAlertId, SentimentMention, SentimentMentionId, SentimentPolarity,
   SentimentReport, SentimentScanResult, SentimentSettings, SentimentSnapshot, SentimentSource,
   SentimentStats, SentimentTask, SentimentTaskId, SentimentTaskInput, SentimentManifest,
+  SentimentAlertDelivery, SentimentAlertChannelDelivery, SentimentPushRoundResult, SentimentPushChannelOutcome,
 } from './sentiment/types.ts'
 export { SENTIMENT_SOURCES, SENTIMENT_SOURCE_LABELS, SENTIMENT_TASK_GROUPS, SENTIMENT_GROUP_LABELS } from './sentiment/types.ts'
 
@@ -23,6 +24,7 @@ export type {
   CreateEvaluateRequest,
   CreateEvaluation,
   CreateEvaluationDimension,
+  CreateExtractResult,
   CreateGenerateRequest,
   CreateGrade,
   CreateManifest,
@@ -117,6 +119,7 @@ export interface ContentOutputsSnapshot {
   readonly problems: readonly OutputProjectProblem[]
 }
 
+export type { TopicCollectRequest, TopicCollectResult } from './topic-collect.ts'
 export type {
   GatherAiOperation,
   GatherAiRequest,

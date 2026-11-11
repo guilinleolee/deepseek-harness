@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-kabage-drift-plugin-governance.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-kabage-drift-plugin-governance.md
+/agent-note-home:
+  en: 3abb7dcb4f132c4c
+  zh: 16d67347a890580c
+/agent-note-home/problem:
+  en: dc105c1c5fc82fe3
+  zh: 0999e97b450dcf73
+/agent-note-home/decision:
+  en: 1f138ab11c6fc3b2
+  zh: c4212bc5d90ac3f7
+/agent-note-home/alternatives-considered:
+  en: a7a514d911cbbe29
+  zh: 2b928081fd9b91c4
+/agent-note-home/consequences:
+  en: 406a3f0c37bd878a
+  zh: 163e47d75acd6d4d

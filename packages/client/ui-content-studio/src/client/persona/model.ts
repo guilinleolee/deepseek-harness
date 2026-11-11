@@ -2,7 +2,7 @@
  * The persona wizard's editable form model: the browser-side shape between
  * the wire `PersonaEntry` and the four-step form. Every wire round-trip goes
  * through {@link formFromEntry} / {@link inputFromForm}, and every field
- * edit flips its provenance back to `user` — the AI never stays the source
+ * edit flips its origin back to `user` — the AI never stays the source
  * of a value the user has touched.
  */
 
@@ -143,7 +143,7 @@ export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, st
   empathy: '温柔共情',
 }
 
-/** One editable structured field: the text plus the provenance it keeps. */
+/** One editable structured field: the text plus the origin it keeps. */
 export interface PersonaFormField {
   value: string
   source: PersonaFieldSource
@@ -269,7 +269,7 @@ export function parseWordList(text: string): string[] {
 
 /**
  * Build the upsert payload from the form. Empty field texts become `null`
- * values; a touched field keeps `user` provenance and loses any AI metadata.
+ * values; a touched field keeps `user` origin and loses any AI metadata.
  * Links without a URL drop — the step-2 list renders a row per platform and
  * unfilled rows are not links.
  * @param form - the wizard form.
@@ -312,7 +312,7 @@ export function inputFromForm(form: PersonaForm): PersonaInput {
 
 /**
  * Adopt one AI candidate into the form: the value lands with `ai` source
- * and the prompt's provenance stamped at the adoption instant.
+ * and the prompt's origin stamped at the adoption instant.
  * @param form - the wizard form (mutated copy returned).
  * @param key - the field to fill.
  * @param value - the adopted text.

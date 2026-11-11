@@ -180,7 +180,7 @@ export interface TemplateAiDraft {
 /** Result face of the template AI call; nothing here touches disk. */
 export interface TemplateAiResult {
   readonly operation: TemplateAiOperation
-  /** Prompt version for provenance display. */
+  /** Prompt version for origin display. */
   readonly promptVersion: string
   readonly draft: TemplateAiDraft
   /** Field-level rejections the caller surfaces without failing the draft. */

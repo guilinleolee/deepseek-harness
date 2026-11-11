@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-27-dsh-content-studio-template-library.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-27-dsh-content-studio-template-library.md
-2026-09-27-dsh-content-studio-template-library.md: 20747358767fc87daa0e321d80402fc6e4b41ad6
-2026-09-27-dsh-content-studio-template-library.zh.md: 1df1f539f08b193b4e430ac9e26dbaff0768646a
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth:
+  en: 6ffad436b566a26e
+  zh: 0ebf1eccc3c82b8f
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth/problem:
+  en: 12d9e7ad158968f0
+  zh: 57fe2d5b1086403e
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth/decision:
+  en: ad754aa3fa21d43d
+  zh: 24592f5d46bbc7ec
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth/deviations-from-the-plan-text:
+  en: f3b6117855b09a12
+  zh: a19d530a203c3d73
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth/alternatives-considered:
+  en: 804d00a3280b0fcf
+  zh: 450b3d38308833e0
+/agent-note-the-global-template-library-keeps-skeleton-assets-outside-the-outputs-library-and-the-body-not-the-variable-table-is-the-source-of-truth/consequences:
+  en: 4e3b8d9f228f0998
+  zh: e3ef43cb2cf070ec

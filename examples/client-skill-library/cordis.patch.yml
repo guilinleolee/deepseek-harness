@@ -1,0 +1,74 @@
+# Client skill library profile.
+#
+# A DSH profile for client inner-network deployments: the agent mounts ONLY the
+# packed, license-cleared skill library produced by pack-skill-library.py —
+# never the developer's own machine skills. This is the per-instance mount the
+# Kabage platform points at a read-only, administrator-maintained library
+# directory (Kabage task-book §6 precondition a).
+#
+# Prerequisites:
+#   1. Pack the library once per release:
+#        python dragon-assets/runtime/scripts/pack-skill-library.py --out <LIBRARY_DIR>
+#   2. Point CLIENT_SKILL_LIBRARY_DIR at <LIBRARY_DIR>/skills when launching
+#      the instance (env var or the platform's instances.json env channel).
+#
+# Nothing in this profile trusts the library's contents: includeDefaultRoots is
+# switched off, so project and user skill roots are NOT scanned. If the
+# environment variable is unset, the mount is empty and the agent simply has no
+# library skills — it does not silently fall back to unvetted local skills.
+
+# User-settings document ($DSH_HOME/settings.yaml, hot-reloaded).
+- id: settings
+  name: '@deepseek-ai/dsh-settings-file'
+
+# Credential store: the live process environment over $DSH_HOME/.credentials.yaml.
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-local'
+
+# The Messages adapter on the MiniMax Code Plan endpoint (see
+# examples/minimax-code-plan for the full model catalog variant).
+- id: llm-deepseek
+  config:
+    baseURL: !!js "process.env.MINIMAX_BASE_URL ?? 'https://api.minimaxi.com/anthropic'"
+    apiKeyEnv: MINIMAX_API_KEY
+    maxTokens: 32768
+    defaultContextWindow: 196608
+    models:
+      - id: MiniMax-M2.7
+        name: MiniMax M2.7
+        description: MiniMax M2.7，通过 Anthropic 兼容端点服务
+        contextWindow: 196608
+        maxTokens: 32768
+        imagePixelBudget: low
+        imageMaxBytes: 5242880
+        systemPromptUpdate: in-history
+        toolUpdate: in-history
+        inputModalities: [text, image]
+
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: MiniMax-M2.7
+
+# The skill filesystem mounts exactly one root: the packed client library.
+# includeDefaultRoots: false removes the developer machine's project/user/bundled
+# roots, so nothing outside the library can reach the model. An empty library
+# mounts zero skills rather than falling back to local ones.
+- id: skill-filesystem
+  config:
+    includeDefaultRoots: false
+    customSkillDirs:
+      - !!js "process.env.CLIENT_SKILL_LIBRARY_DIR ?? ''"
+
+# The DeepSeek search route needs its own credential; the Code Plan does not
+# cover search. HTTP fetch stays available for reading pages.
+- id: web-search-deepseek
+  disabled: true
+
+- id: web-deepseek-api
+  disabled: true
+
+- id: web
+  config:
+    searchProvider: http
+    fetchProvider: http

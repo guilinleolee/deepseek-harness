@@ -19,7 +19,7 @@ import type {
   CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult, CompetitorManifest,
   CompetitorManifestRead, CompetitorReportRequest, CompetitorReportResult,
   ContentOutputsSnapshot, CreateAiResult, CreateAssetList, CreateEvaluateRequest,
-  CreateEvaluation, CreateGenerateRequest, CreateManifest, CreatePublishRequest,
+  CreateEvaluation, CreateExtractResult, CreateGenerateRequest, CreateManifest, CreatePublishRequest,
   CreatePublishResult, CreateRegisterRequest, CreateRewriteRequest, CreateStateRead,
   CreateTemplateInput, CreateTemplateList,
   GatherAiRequest, GatherAiResult, GatherAssetMove, GatherAssetWrite, GatherFeedRequest,
@@ -32,9 +32,9 @@ import type {
   PersonaAiResult, PersonaEntry, PersonaInput, PersonasSnapshot, PersonaId, PersonaReport,
   PublishAdaptRequest, PublishAdaptResult, PublishIndexRead, PublishManifest, PublishManifestRead,
   SentimentSnapshot, SentimentStats, SentimentTask, SentimentTaskId, SentimentTaskInput,
-  SentimentSettings, SentimentScanResult,
+  SentimentSettings, SentimentScanResult, SentimentPushRoundResult,
   SocialCaptureResult, SocialPlatform, SocialStatuses, SocialVerifyResult,
-  SentimentAlertId,
+  SentimentAlert, SentimentAlertId,
   PublishPackage, PublishProfilesRead, PublishProfilesDoc,
   ReviewAiResult, ReviewAnalyzeWorkRequest, ReviewGenerateReportRequest, ReviewImportCommitRequest,
   ReviewImportCommitResult, ReviewImportPreview, ReviewImportPreviewRequest, ReviewIndexRead,
@@ -60,6 +60,7 @@ import {
   registerCreatePublishFile, writeCreateStateFile, writeOutputMetadataFile,
 } from './create/store.ts'
 import { CreateAiProcessor } from './create/ai.ts'
+import { extractArticleCopy } from './create/extract.ts'
 import { CreateQuotaGate, type CreateQuotaConfig } from './create/quota.ts'
 import {
   PERSONAS_FILENAME, deletePersonaFile, putPersonaFile, putPersonaReportFile, readPersonasFile,
@@ -67,14 +68,17 @@ import {
 import { PersonaAiProcessor } from './persona/ai.ts'
 import { SocialCaptureProcessor } from './social/capture.ts'
 import {
-  deleteSentimentTaskFile, handleSentimentAlertFile, putSentimentSettingsFile,
-  putSentimentReportFile, putSentimentTaskFile, readSentimentFile, SENTIMENT_FILENAME, setSentimentTaskEnabledFile,
+  deleteSentimentTaskFile, handleSentimentAlertFile, putSentimentAlertAdjudicationFile, putSentimentAlertDeliveriesFile,
+  putSentimentSettingsFile, putSentimentReportFile, putSentimentTaskFile, readSentimentFile, SENTIMENT_FILENAME,
+  setSentimentTaskEnabledFile,
 } from './sentiment/store.ts'
 import { appendSentimentScanFile } from './sentiment/store.ts'
 import { computeSentimentStats } from './sentiment/stats.ts'
 import { runSentimentScan } from './sentiment/scan.ts'
+import { collectTopicEntries, type TopicCollectRequest, type TopicCollectResult } from './topic-collect.ts'
 import { generateSentimentReport as generateSentimentReportEngine, type SentimentReport } from './sentiment/report.ts'
-import { pushAlertRound } from './sentiment/push.ts'
+import { adjudicateSentimentAlert } from './sentiment/adjudicate.ts'
+import { advanceAlertDelivery, isAlertRetryDue, pushAlertRound, pushTestRound } from './sentiment/push.ts'
 import {
   buildPublishPackageFile, readPublishDerivedFile, readPublishIndexFile,
   readPublishManifestFile, readPublishProfilesFile, readPublishSourceFile, writePublishDerivedFile,
@@ -113,6 +117,7 @@ export {
   collectCreateReferencedFiles,
 } from './create/store.ts'
 export { CREATE_AI_TIMEOUT_CODE, CREATE_PROMPT_VERSION } from './create/ai.ts'
+export { CREATE_EXTRACT_TIMEOUT_MS, CREATE_MAX_EXTRACT_CHARS, CreateExtractHttpError } from './create/extract.ts'
 export {
   CREATE_QUOTA_FILENAME, CreateQuotaError, normalizeQuotaState, localDayKey, resolveQuotaConfig,
 } from './create/quota.ts'
@@ -188,6 +193,12 @@ export interface Config extends GatherAiConfig, CreateQuotaConfig {
   socialStatesDir?: string
   /** Daily per-platform capture cap for the social-capture faces (1–10). Defaults to 3. */
   maxDailyCaptures?: number
+  /**
+   * Sentiment classification pipeline: `llm-review` runs the local lexicon
+   * first and refines the ambiguous with one batched LLM call (default);
+   * `rules` runs the lexicon only and never spends tokens.
+   */
+  sentimentAnalyzer?: 'rules' | 'llm-review'
 }
 
 export const Config: Schema<Config> = z.object({
@@ -204,6 +215,7 @@ export const Config: Schema<Config> = z.object({
   allowedFeedHosts: z.array(z.string()),
   socialStatesDir: z.string(),
   maxDailyCaptures: z.number(),
+  sentimentAnalyzer: z.union(['rules', 'llm-review']),
 })
 
 /**
@@ -269,6 +281,9 @@ export class ContentOutputsGateway extends TypertRemoteService {
   /** The AI route the sentiment scan's refinement stage rides. */
   private readonly aiPolicy: { provider: string; model: string; timeoutMs: number; maxOutputTokens: number }
 
+  /** The sentiment classification pipeline; absent config keeps the LLM review stage. */
+  private readonly sentimentAnalyzer: 'rules' | 'llm-review'
+
   /** Gather feed-host allowlist from config; absent value = the env fallback in feed.ts applies. */
   private readonly allowedFeedHosts: readonly string[] | undefined
 
@@ -278,6 +293,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
     this.sentimentFile = join(this.root, SENTIMENT_FILENAME)
     const resolvedAi = resolveAiConfig(config)
     this.aiPolicy = { provider: resolvedAi.provider, model: resolvedAi.model, timeoutMs: 120_000, maxOutputTokens: 4_000 }
+    this.sentimentAnalyzer = config.sentimentAnalyzer ?? 'llm-review'
     this.allowedFeedHosts = config.allowedFeedHosts
     this.ai = new GatherAiProcessor(ctx, config)
     this.competitorAi = new CompetitorAiProcessor(ctx, config)
@@ -321,6 +337,22 @@ export class ContentOutputsGateway extends TypertRemoteService {
   @Remote('fetchFeed')
   async fetchFeed(request: GatherFeedRequest, signal?: AbortSignal): Promise<GatherFeedResult> {
     return fetchFeedDocument(request, { allowedHosts: this.allowedFeedHosts }, signal)
+  }
+
+  /**
+   * Run one keyword topic-collection pass for one selection category: RSS
+   * feeds (same allowlist as `fetchFeed`) plus weibo/bili public keyword
+   * search, matched against the category's keywords and deduplicated
+   * against the bank's existing URLs and titles. Network reading only —
+   * the caller upserts the returned candidates through the topics Remote.
+   * @param request - the category's keywords, feeds, and dedupe keys.
+   * @returns the matched, deduplicated entries, capped.
+   */
+  @Remote('collectTopicEntries')
+  async collectTopicEntries(request: TopicCollectRequest): Promise<TopicCollectResult> {
+    return collectTopicEntries(request, {
+      fetchFeed: feedRequest => fetchFeedDocument(feedRequest, { allowedHosts: this.allowedFeedHosts }),
+    })
   }
 
   /**
@@ -512,6 +544,20 @@ export class ContentOutputsGateway extends TypertRemoteService {
   }
 
   /**
+   * Fetch the article page behind a pasted link and reduce it to title plus
+   * prose. Network reading only: nothing is persisted, and the fetch happens
+   * here — never in the browser, whose cross-origin pages would be blocked
+   * by CORS anyway.
+   * @param url - the pasted article link; http/https only.
+   * @param signal - caller cancellation.
+   * @returns the resolved URL, page title, extracted prose, truncation flag.
+   */
+  @Remote('extractCreateCopy')
+  async extractCreateCopy(url: string, signal?: AbortSignal): Promise<CreateExtractResult> {
+    return extractArticleCopy(url, {}, signal)
+  }
+
+  /**
    * Read the theme's `.dsh-output.json` for the merge-before-write the
    * metadata face does. A malformed file reads as null with the violation
    * named, so the editor warns instead of silently overwriting it.
@@ -552,7 +598,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * with backoff; nothing is persisted here. Charges the daily generation
    * budget per variant; `count: 3` additionally requires the paid tier.
    * @param request - the creation context, content type, and variant count.
-   * @returns the draft text, the split variants when batched, and provenance.
+   * @returns the draft text, the split variants when batched, and origin.
    */
   @Remote('generateCreateContent')
   async generateCreateContent(request: CreateGenerateRequest): Promise<CreateAiResult> {
@@ -568,7 +614,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * Explicit per call, queued one at a time, rate limits retried with
    * backoff; nothing is persisted here. Charges the daily rewrite budget.
    * @param request - the operation and the selection text.
-   * @returns the rewritten text with its provenance.
+   * @returns the rewritten text with its origin.
    */
   @Remote('rewriteCreateSelection')
   async rewriteCreateSelection(request: CreateRewriteRequest): Promise<CreateAiResult> {
@@ -615,7 +661,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * rate limits retried with backoff; nothing is persisted here. A
    * paid-tier feature — the advisory result never blocks anything.
    * @param request - the content type, title, and draft text.
-   * @returns the structured evaluation with its provenance.
+   * @returns the structured evaluation with its origin.
    */
   @Remote('evaluateCreateContent')
   async evaluateCreateContent(request: CreateEvaluateRequest): Promise<CreateEvaluation> {
@@ -687,7 +733,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * the result and writes adopted values back through the persona faces.
    * @param request - the operation and its input.
    * @returns the candidate fields or report, with the prompt version for
-   *   provenance stamping.
+   *   origin stamping.
    */
   @Remote('processPersonaAi')
   async processPersonaAi(request: PersonaAiRequest): Promise<PersonaAiResult> {
@@ -812,19 +858,57 @@ export class ContentOutputsGateway extends TypertRemoteService {
     this.sentimentScanning = true
     try {
       const state = await readSentimentFile(this.sentimentFile)
-      const batch = await runSentimentScan(this.ctx, state.tasks, state.settings, this.aiPolicy)
+      const batch = await runSentimentScan(this.ctx, state.tasks, state.settings, { ...this.aiPolicy, analyzer: this.sentimentAnalyzer })
       const appended = await appendSentimentScanFile(this.sentimentFile, batch.mentions, batch.alerts)
       this.sentimentLastScan = { at: batch.result.at, captured: appended.captured, alerts: appended.alerts }
       // Best-effort IM push: the alerts are persisted, so a webhook failure
-      // only logs and never fails the scan.
+      // only logs and never fails the scan; the per-channel outcome is
+      // persisted on each alert and retried by `retrySentimentPush`.
       const push = await pushAlertRound(state.settings, batch.alerts, state.tasks, batch.result.at)
-      for (const failure of [push.dingtalk, push.wecom, push.email]) {
-        if (failure !== null) console.error(`[content-outputs] sentiment push failed: ${failure}`)
+      const nowIso = new Date().toISOString()
+      await putSentimentAlertDeliveriesFile(this.sentimentFile, batch.alerts.map(alert => ({
+        id: alert.id,
+        delivery: advanceAlertDelivery(alert, push, nowIso),
+      })))
+      for (const [channel, outcome] of [['dingtalk', push.dingtalk], ['wecom', push.wecom], ['email', push.email]] as const) {
+        if (outcome.error !== null) console.error(`[content-outputs] sentiment push failed (${channel}): ${outcome.error}`)
       }
       return { captured: appended.captured, alerts: appended.alerts, at: batch.result.at }
     } finally {
       this.sentimentScanning = false
     }
+  }
+
+  /**
+   * Retry one round of pending alert pushes: every unhandled alert whose
+   * delivery record is past the cooldown and under the attempt cap fires
+   * again; delivered or terminally failed channels are skipped, and alerts
+   * stored before delivery tracking never push.
+   * @returns how many alerts joined the round and how many channels delivered.
+   */
+  @Remote('retrySentimentPush')
+  async retrySentimentPush(): Promise<{ retried: number; delivered: number }> {
+    const state = await readSentimentFile(this.sentimentFile)
+    const due = state.alerts.filter(alert => isAlertRetryDue(alert, new Date()))
+    if (due.length === 0) return { retried: 0, delivered: 0 }
+    const push = await pushAlertRound(state.settings, due, state.tasks, new Date().toISOString())
+    const nowIso = new Date().toISOString()
+    await putSentimentAlertDeliveriesFile(this.sentimentFile, due.map(alert => ({
+      id: alert.id,
+      delivery: advanceAlertDelivery(alert, push, nowIso),
+    })))
+    const delivered = [push.dingtalk, push.wecom, push.email].filter(outcome => outcome.attempted && outcome.error === null).length
+    return { retried: due.length, delivered }
+  }
+
+  /**
+   * Send one test message through every configured push channel
+   * (webhooks and SMTP), regardless of the notify switch.
+   * @returns per-channel outcomes for the settings UI.
+   */
+  @Remote('testSentimentPush')
+  async testSentimentPush(): Promise<SentimentPushRoundResult> {
+    return pushTestRound(await readSentimentFile(this.sentimentFile).then(state => state.settings))
   }
 
   /**
@@ -847,10 +931,11 @@ export class ContentOutputsGateway extends TypertRemoteService {
   }
 
   /**
-   * Generate one sentiment report from the stored snapshot: one model call
-   * over the framed data (five fixed sections), degrading to the
-   * deterministic data-only template when the call fails. The manifest
-   * keeps the newest report only.
+   * Generate one sentiment report from the stored snapshot: a deterministic
+   * template choice (daily vs crisis brief), one model call per section,
+   * bound into Markdown plus a structured IR; each section degrades on its
+   * own and a fully failed generation falls back to the deterministic
+   * data-only template. The manifest keeps the newest report only.
    * @returns the stored report.
    */
   @Remote('generateSentimentReport')
@@ -859,6 +944,27 @@ export class ContentOutputsGateway extends TypertRemoteService {
     const stats = computeSentimentStats(state.mentions, state.tasks, new Date())
     const report = await generateSentimentReportEngine(this.ctx, this.aiPolicy, state, stats, new Date())
     return putSentimentReportFile(this.sentimentFile, report)
+  }
+
+  /**
+   * Run the dual-perspective debate over one alert (optimistic vs cautious
+   * reader, then a synthesis) and attach the verdict to the stored alert.
+   * On-demand only — the scheduled scan never pays for it. A later run
+   * replaces the earlier verdict.
+   * @param id - the alert id.
+   * @returns the updated alert.
+   */
+  @Remote('adjudicateSentimentAlert')
+  async adjudicateSentimentAlert(id: SentimentAlertId): Promise<SentimentAlert> {
+    const state = await readSentimentFile(this.sentimentFile)
+    const alert = state.alerts.find(candidate => candidate.id === id)
+    if (alert === undefined) throw new Error(`unknown sentiment alert: ${id}`)
+    const verdict = await adjudicateSentimentAlert(
+      this.ctx, this.aiPolicy, alert,
+      state.tasks.find(task => task.id === alert.taskId),
+      state.mentions, new Date(),
+    )
+    return putSentimentAlertAdjudicationFile(this.sentimentFile, id, verdict)
   }
 
   /**
@@ -979,7 +1085,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * backoff; nothing is persisted here — the caller writes the result back
    * as a derived draft. Charges the daily generation budget.
    * @param request - the adaptation request.
-   * @returns the structured result with its provenance.
+   * @returns the structured result with its origin.
    */
   @Remote('adaptPublishContent')
   async adaptPublishContent(request: PublishAdaptRequest): Promise<PublishAdaptResult> {
@@ -1225,7 +1331,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * persisted here.
    * @param request - the diagnosis request; the caller assembles the draft
    *   excerpt and its truncation.
-   * @returns the markdown diagnosis with its provenance.
+   * @returns the markdown diagnosis with its origin.
    */
   @Remote('analyzeReviewWork')
   async analyzeReviewWork(request: ReviewAnalyzeWorkRequest): Promise<ReviewAiResult> {
@@ -1239,7 +1345,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * backoff; nothing is persisted here — the caller stores the markdown and
    * renders its own data-only fallback on failure.
    * @param request - the report request.
-   * @returns the markdown report with its provenance.
+   * @returns the markdown report with its origin.
    */
   @Remote('generateReviewReport')
   async generateReviewReport(request: ReviewGenerateReportRequest): Promise<ReviewAiResult> {
@@ -1303,7 +1409,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * loses to the persona on conflict. Explicit per call, queued one at a
    * time, rate limits retried with backoff; charges one daily generation.
    * @param request - the thread, tone, persona facts, and template skeleton.
-   * @returns the drafts with their provenance.
+   * @returns the drafts with their origin.
    */
   @Remote('generateInteractionReply')
   async generateInteractionReply(request: InteractionReplyRequest): Promise<InteractionReplyResult> {
@@ -1317,7 +1423,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * one daily generation per fifty messages. A garbled batch degrades to
    * unknowns rather than failing the caller's loop.
    * @param request - at most fifty messages.
-   * @returns the sanitized entries with their provenance.
+   * @returns the sanitized entries with their origin.
    */
   @Remote('classifyInteractions')
   async classifyInteractions(request: InteractionClassifyRequest): Promise<InteractionClassifyResult> {
@@ -1331,7 +1437,7 @@ export class ContentOutputsGateway extends TypertRemoteService {
    * generation per batch. A garbled batch reads as empty — the caller's
    * merge records it and keeps going.
    * @param request - at most two hundred messages.
-   * @returns the sanitized batch with its provenance.
+   * @returns the sanitized batch with its origin.
    */
   @Remote('extractInteractionInsights')
   async extractInteractionInsights(request: InteractionInsightRequest): Promise<InteractionInsightResult> {

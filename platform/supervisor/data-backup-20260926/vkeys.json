@@ -1,0 +1,86 @@
+{
+  "vkeys": [
+    {
+      "id": "vkid-a20aab1e",
+      "tokenHash": "3c8970ab43e072643b5eb920cd0948f46eba9a118cfe7ac0074a6d5953594784",
+      "account": "admin@dreamspace.work",
+      "instanceId": "e01",
+      "models": "*",
+      "revoked": false,
+      "createdAt": "2026-09-20T19:02:48.749Z"
+    },
+    {
+      "id": "vkid-7ca4927b",
+      "tokenHash": "7fa54d186079a6cd6aa3a955abddd8966fd96ab9d5b26046a73d9c53a80c3aee",
+      "account": "member-a@dreamspace.work",
+      "instanceId": "e02",
+      "models": [
+        "glm-5.3-flash",
+        "glm-5.2"
+      ],
+      "revoked": true,
+      "createdAt": "2026-09-20T19:02:49.199Z"
+    },
+    {
+      "id": "vkid-a3dc0659",
+      "tokenHash": "8ccac7c57adae2541968979adc6bb8fd9b2d2f3e65b5cc6d2a0132294a6a6f30",
+      "account": "member-b@dreamspace.work",
+      "instanceId": "e03",
+      "models": "*",
+      "revoked": true,
+      "createdAt": "2026-09-20T19:02:49.567Z"
+    },
+    {
+      "id": "vkid-f344e87d",
+      "tokenHash": "8e7fbf47c0040358d4855433f25da926d0373494bf5402cbac655df64f29b4b5",
+      "account": "member-b@dreamspace.work",
+      "instanceId": "e03",
+      "models": "*",
+      "revoked": true,
+      "createdAt": "2026-09-20T19:24:06.373Z"
+    },
+    {
+      "id": "vkid-90e98e8c",
+      "tokenHash": "1fa9a3aff61151dc34afb1b353446e7f4e729234f6cbb9c6f4e518ac20e0e2d2",
+      "account": "member-b@dreamspace.work",
+      "instanceId": "e03",
+      "models": "*",
+      "revoked": false,
+      "createdAt": "2026-09-20T23:06:43.363Z"
+    },
+    {
+      "id": "vkid-2f8da52b",
+      "tokenHash": "c621afe4afef2bf7d1dacc174711263ebef37bd60ead28b9375ee1d975172f23",
+      "account": "member-a@dreamspace.work",
+      "instanceId": "e02",
+      "models": [
+        "glm-5.3-flash",
+        "glm-5.2",
+        "test-json"
+      ],
+      "revoked": true,
+      "createdAt": "2026-09-20T23:08:18.971Z"
+    },
+    {
+      "id": "vkid-df287fd7",
+      "tokenHash": "cc3eedc24dba8a636d5ab75078685707ff73b010a77e7f9c884be4c1672ea51f",
+      "account": "member-a@dreamspace.work",
+      "instanceId": "e02",
+      "models": [
+        "glm-5.3-flash",
+        "glm-5.2"
+      ],
+      "revoked": true,
+      "createdAt": "2026-09-20T23:37:40.921Z"
+    },
+    {
+      "id": "vkid-219517a9",
+      "tokenHash": "91e692cd1d652995824dc23401c2a7d9633737539cf489e27aebce7bd0f2f4ec",
+      "account": "wang@dreamspace.work",
+      "instanceId": "e02",
+      "models": "*",
+      "revoked": false,
+      "createdAt": "2026-09-22T23:26:07.060Z"
+    }
+  ]
+}

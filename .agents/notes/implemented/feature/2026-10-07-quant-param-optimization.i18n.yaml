@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-07-quant-param-optimization.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-07-quant-param-optimization.md
-2026-10-07-quant-param-optimization.md: 21700e6b1bec5b802f66e6056ff613f976c22e2f
-2026-10-07-quant-param-optimization.zh.md: e392037542b99a698272c14028ed095a65bcbd26
+/agent-note-parameter-optimization-rides-the-jobs-runtime-as-one-audited-grid-per-kernel-process:
+  en: b99837da7fc04228
+  zh: f44643b394260875
+/agent-note-parameter-optimization-rides-the-jobs-runtime-as-one-audited-grid-per-kernel-process/problem:
+  en: 72450f5847111968
+  zh: 379378ecf2f53f6f
+/agent-note-parameter-optimization-rides-the-jobs-runtime-as-one-audited-grid-per-kernel-process/decision:
+  en: 2ba11c65f89312ff
+  zh: 88d54727a956fdb1
+/agent-note-parameter-optimization-rides-the-jobs-runtime-as-one-audited-grid-per-kernel-process/alternatives-considered:
+  en: 1c62b49e758a8460
+  zh: 5b082bb23cc8e43c
+/agent-note-parameter-optimization-rides-the-jobs-runtime-as-one-audited-grid-per-kernel-process/consequences:
+  en: 64835f3b058c2ebf
+  zh: 18fd6c9994d2f80e

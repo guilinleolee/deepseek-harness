@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write examples/client-skill-library/README.md
+/client-skill-library-the-client-skill-library-profile:
+  en: 123cad4c77d07df6
+  zh: 1c40856288739821
+/client-skill-library-the-client-skill-library-profile/deployment:
+  en: a147233b0bc665fa
+  zh: 90a225ba381b3d0e
+/client-skill-library-the-client-skill-library-profile/security-properties:
+  en: badeb11a376146e9
+  zh: ffc3c495c6310827
+/client-skill-library-the-client-skill-library-profile/administrator-maintenance-kabage-6-prerequisite-a:
+  en: 813a2c8010859244
+  zh: 9d5046321c5ef90b
+/client-skill-library-the-client-skill-library-profile/relationship-to-minimax-code-plan:
+  en: beaf3fd41e5fdd63
+  zh: 4408c683289a4f17

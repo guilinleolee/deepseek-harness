@@ -163,7 +163,7 @@ function PersonaCardView(props: {
   )
 }
 
-/** The structured side preview: every field with its provenance badge, plus style and constraints. */
+/** The structured side preview: every field with its origin badge, plus style and constraints. */
 function PersonaPreviewPanel(props: {
   entry: PersonaEntry
   controller: PersonaController

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-04-persona-social-links-list-and-analysis.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-04-persona-social-links-list-and-analysis.md
-2026-10-04-persona-social-links-list-and-analysis.md: 9115ab87e8c6799d17182ac2a96b8d4c15749c25
-2026-10-04-persona-social-links-list-and-analysis.zh.md: 6e671d7318a051c5883cabc2e27ce2e683854c54
+/agent-note-the-persona-wizard-s-social-links-become-a-fixed-per-platform-list-and-the-last-step-gains-one-click-social-profile-analysis:
+  en: 6c0fd50a83ee5481
+  zh: e26c047791005206
+/agent-note-the-persona-wizard-s-social-links-become-a-fixed-per-platform-list-and-the-last-step-gains-one-click-social-profile-analysis/problem:
+  en: d716c623c7aef465
+  zh: 7d0236d7aab7cb4d
+/agent-note-the-persona-wizard-s-social-links-become-a-fixed-per-platform-list-and-the-last-step-gains-one-click-social-profile-analysis/decision:
+  en: 109bf6f9bce93cff
+  zh: 6987ae2c5436ac76
+/agent-note-the-persona-wizard-s-social-links-become-a-fixed-per-platform-list-and-the-last-step-gains-one-click-social-profile-analysis/alternatives-considered:
+  en: 17b7051d3f25b59e
+  zh: f4e541b0b4d5c440
+/agent-note-the-persona-wizard-s-social-links-become-a-fixed-per-platform-list-and-the-last-step-gains-one-click-social-profile-analysis/consequences:
+  en: 06be8ca518b65e18
+  zh: 77d078708521006a

@@ -17,6 +17,16 @@ export type LicenseTier =
   | 'bsd-3-clause'
   /** AGPL-3.0 — red-line: only PNG / artifact delivery, no SaaS. */
   | 'agpl-3.0'
+  /**
+   * NonCommercial (the CC BY-NC family) — commercial use forbidden, so a paid
+   * delivery may not carry the asset itself.
+   */
+  | 'noncommercial'
+  /**
+   * Proprietary / all-rights-reserved — redistribution forbidden, so the asset
+   * may not leave the vendor's own environment.
+   */
+  | 'proprietary'
   /** NOASSERTION — blacklisted under DSH governance baseline. */
   | 'noassertion'
   /** Unrecognized or absent license marker. */

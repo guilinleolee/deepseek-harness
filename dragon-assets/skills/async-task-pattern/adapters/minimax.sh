@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 # adapter/minimax.sh · async-task-pattern V1.0
-# 后端：CC Switch → MiniMax-M3 代理
+# 后端：本地 Anthropic 兼容代理（CC Switch → MiniMax-M3）
 # 异步方式：长轮询
 # KEY 需求：无（PROXY_MANAGED）
-# 累计验证：6/6 e2e PASS
+# 状态：**未接真后端**。代理只提供文本模型，不提供 tts / image-gen；
+#       download 不产出文件。未接真后端时退出码 4（未实现）。
+#
+# 真实出图见 adapters/minimax-image.sh —— 走 MiniMax 官方 API。
 
 set -euo pipefail
 
 PROXY_BASE="${ANTHROPIC_BASE_URL:-http://127.0.0.1:15721}"
 PROVIDER="minimax"
+
+not_implemented() {
+  echo "❌ $PROVIDER adapter 未接真后端：$1" >&2
+  echo "   代理 $PROXY_BASE 只提供文本模型，不提供 tts / image-gen。" >&2
+  exit 4
+}
 
 case "${1:-}" in
   submit)
@@ -44,7 +53,7 @@ case "${1:-}" in
         *) shift ;;
       esac
     done
-    # minimax 实际是同步响应，poll 直接返回 completed（占位）
+    # minimax 实际是同步响应，poll 直接返回 completed
     echo "{\"task_id\":\"$TASK_ID\",\"status\":\"completed\",\"provider\":\"$PROVIDER\",\"result_url\":\"file://local/$TASK_ID\"}"
     exit 0
     ;;
@@ -63,11 +72,7 @@ case "${1:-}" in
         *) shift ;;
       esac
     done
-    mkdir -p "$(dirname "$OUTPUT")"
-    echo "# minimax placeholder for $TASK_ID" > "$OUTPUT"
-    SIZE=$(wc -c < "$OUTPUT")
-    echo "{\"path\":\"$OUTPUT\",\"size\":$SIZE,\"task_id\":\"$TASK_ID\",\"provider\":\"$PROVIDER\"}"
-    exit 0
+    not_implemented "download 不产出文件（不写占位内容）"
     ;;
   *)
     echo "用法: bash $0 {submit|poll|upload|download} [options]" >&2

@@ -1,0 +1,3 @@
+$ node --import tsx/esm apps/cli/src/bin.ts "--profile" "cz-test" "web" "--port" "3990"
+error: web takes none of parent --profile, --patch, --dump-config, or --dump-default-config
+[ELIFECYCLE] Command failed with exit code 1.

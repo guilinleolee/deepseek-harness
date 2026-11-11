@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "openai-whisper": {
+      "name": "Openai Whisper",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=openai-whisper",
+      "source": "skillhub",
+      "version": "1.0.0"
+    }
+  }
+}

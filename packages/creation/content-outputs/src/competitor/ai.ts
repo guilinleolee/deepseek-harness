@@ -46,6 +46,7 @@ const REPORT_SYSTEM_PROMPT = [
   '你是内容创作工作台的对标账号分析助手。输入是一个或两个对标账号的聚合统计摘要（选题分布、钩子类型频次、更新频率、爆款率等，不含作品原文），输出一份 Markdown 分析报告。',
   '单账号报告（kind: account）章节：账号内容策略（选题分布表、固定栏目、更新节奏）；标题与钩子模板；爆款规律（爆款 vs 普通差异）；受众画像（无评论数据时明确标注"无评论数据"）；变现路径；短板与机会。',
   '双账号对比报告（kind: compare）章节：选题分布对比；发布频率对比；爆款选题交集与差异；标题钩子风格对比；赛道空白机会点；差异化内容建议。',
+  '账号健康体检（kind: audit）章节：八维评分表（定位清晰度 15、内容垂直度 15、封面统一性 12、标题钩子率 13、更新节奏 10、互动率 15、爆款率 12、粉丝转化效率 8，每维 0 到满分并给一句依据，数据不足的维度明确标注"数据不足"且计 0 分）；总分与判断（85-100 放大期 / 70-84 精修卡点 / 55-69 先修定位 / 40-54 结构性问题 / <40 重启内容线）；两个最低维度的具体改动建议；可复用配方提取（爆款共性、标题公式、变现钩子）；互动数据一律用中位数并注明是导入作品估算值，禁止用平均数。',
   '只输出 Markdown 正文，不要输出其他任何文字。',
 ].join('\n')
 
@@ -183,7 +184,7 @@ export class CompetitorAiProcessor {
    * @returns the markdown report.
    */
   async generateReport(request: CompetitorReportRequest): Promise<CompetitorReportResult> {
-    const expected = request.kind === 'account' ? 1 : 2
+    const expected = request.kind === 'compare' ? 2 : 1
     if (request.accounts.length !== expected) {
       throw new Error(`competitor ${request.kind} report needs exactly ${expected} account digest(s)`)
     }
@@ -191,10 +192,13 @@ export class CompetitorAiProcessor {
       if (digest.name.trim().length === 0) throw new Error('competitor report digest has no account name')
       if (digest.digest.trim().length === 0) throw new Error('competitor report digest has no content')
     }
+    const kindLabel = request.kind === 'account'
+      ? 'account（单账号全景）'
+      : request.kind === 'compare' ? 'compare（双账号对比）' : 'audit（账号健康体检，八维打分）'
     const framed = request.accounts
       .map(digest => `【账号：${digest.name}】\n${digest.digest.trim().slice(0, MAX_DIGEST_CHARS)}`)
       .join('\n\n')
-      + `\n\n报告类型：${request.kind === 'account' ? 'account（单账号全景）' : 'compare（双账号对比）'}`
+      + `\n\n报告类型：${kindLabel}`
     const output = await this.enqueue(() => streamLlmText(this.ctx, this.policy, REPORT_SYSTEM_PROMPT, framed, COMPETITOR_AI_TIMEOUT_CODE))
     return parseCompetitorReportOutput(output)
   }

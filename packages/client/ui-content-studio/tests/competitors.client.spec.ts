@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CompetitorManifest, CompetitorWork } from '@deepseek-ai/dsh-content-outputs/types'
 import {
   aggregateAccountDigest, buildIdeaMarkdown, competitorWorkToTopicInput, exportAccounts, heatByWork, importAccounts,
-  interactionScore, isAccountStale, newId, upsertWork,
+  aggregateAuditDigest, buildSyncAssetMarkdown, importSyncPayload, interactionScore, isAccountStale, newId, sortWorks, upsertWork,
 } from '../src/client/competitors.ts'
 import type { CompetitorAccount } from '../src/client/competitors.ts'
 
@@ -233,5 +233,153 @@ describe('volume compare word collection', () => {
     expect(words).toHaveLength(2)
     expect(words).toContain('效率工具')
     expect(words).toContain('AI')
+  })
+})
+
+describe('sortWorks', () => {
+  const sortable = [
+    work({ id: 'cw-a', platformWorkId: 'n-a', publishedAt: '2026-09-01T00:00:00.000Z', metrics: [{ t: 't', likes: 10, comments: 0, shares: 5 }] }),
+    work({ id: 'cw-b', platformWorkId: 'n-b', publishedAt: '2026-09-10T00:00:00.000Z', metrics: [{ t: 't', likes: 2, comments: 0, shares: 40 }] }),
+    work({ id: 'cw-c', platformWorkId: 'n-c', publishedAt: '2026-09-05T00:00:00.000Z', metrics: [{ t: 't', likes: 4, comments: 0, shares: 0 }] }),
+  ]
+
+  it('sorts newest first by publication instant', () => {
+    expect(sortWorks(sortable, 'newest').map(item => item.id)).toEqual(['cw-b', 'cw-c', 'cw-a'])
+  })
+
+  it('sorts by interaction score', () => {
+    // scores: cw-b = 2 + 3×40 = 122, cw-a = 10 + 3×5 = 25, cw-c = 4
+    expect(sortWorks(sortable, 'score').map(item => item.id)).toEqual(['cw-b', 'cw-a', 'cw-c'])
+  })
+
+  it('sorts by the newest saves count so collect-heavy tutorials rank first', () => {
+    expect(sortWorks(sortable, 'collects').map(item => item.id)).toEqual(['cw-b', 'cw-a', 'cw-c'])
+  })
+})
+
+describe('importSyncPayload', () => {
+  const accounts: readonly CompetitorAccount[] = [
+    { id: 'acc-1', name: '竞品A', platform: 'xhs', homepageUrl: '', topics: [], priority: 'medium', note: '', positioning: '', followerTier: '', monetization: '', intervalDays: 3, enabled: true, createdAt: 't' },
+  ]
+  const payload = JSON.stringify({
+    version: 1,
+    platform: 'xhs',
+    account: { name: '竞品A', followers: '9万', bio: '30年企业实战派' },
+    works: [
+      { platformWorkId: 'native-sync-1', title: '同步爆款', likes: 1514, comments: 17, shares: 900, url: 'https://x.example/s1', publishedAt: '2026-10-01T00:00:00.000Z' },
+      { title: '无ID作品', likes: 3 },
+      { title: '   ' },
+    ],
+  })
+
+  it('upserts every valid entry through the manual-import dedup path', () => {
+    const result = importSyncPayload(payload, emptyManifest(), accounts)
+    expect(result.added).toBe(2)
+    expect(result.updated).toBe(0)
+    expect(result.manifest.works).toHaveLength(2)
+    const synced = result.manifest.works.find(item => item.platformWorkId === 'native-sync-1')
+    expect(synced?.metrics[0]).toMatchObject({ likes: 1514, comments: 17, shares: 900 })
+  })
+
+  it('refreshes the matched account follower tier and stamps syncedAt in the view', () => {
+    const result = importSyncPayload(payload, emptyManifest(), accounts)
+    expect(result.accountPatch).toEqual({ accountId: 'acc-1', followerTier: '9万', positioning: '30年企业实战派' })
+  })
+
+  it('keeps a stored positioning instead of overwriting it with the bio', () => {
+    const positioned = [{ ...accounts[0]!, positioning: '已有定位' }]
+    const result = importSyncPayload(payload, emptyManifest(), positioned)
+    expect(result.accountPatch).toEqual({ accountId: 'acc-1', followerTier: '9万' })
+  })
+
+  it('updates an existing work instead of duplicating it', () => {
+    const seeded = importSyncPayload(payload, emptyManifest(), accounts).manifest
+    const again = importSyncPayload(payload, seeded, accounts)
+    expect(again.added).toBe(0)
+    expect(again.updated).toBe(2)
+    expect(again.manifest.works).toHaveLength(2)
+  })
+
+  it('rejects wrong versions, unknown platforms, and unparseable JSON without throwing', () => {
+    const bad = [
+      'not json',
+      JSON.stringify({ version: 2, platform: 'xhs', account: { name: 'A' }, works: [] }),
+      JSON.stringify({ version: 1, platform: 'pinterest', account: { name: 'A' }, works: [] }),
+      JSON.stringify({ version: 1, platform: 'xhs', account: {}, works: [] }),
+    ]
+    for (const json of bad) {
+      const result = importSyncPayload(json, emptyManifest(), accounts)
+      expect(result).toMatchObject({ added: 0, updated: 0 })
+    }
+  })
+
+  it('imports under an unassigned account id when no registry account matches', () => {
+    const orphan = JSON.stringify({ version: 1, platform: 'xhs', account: { name: '陌生号' }, works: [{ title: '外部作品', likes: 1 }] })
+    const result = importSyncPayload(orphan, emptyManifest(), accounts)
+    expect(result.added).toBe(1)
+    expect(result.manifest.works[0]?.accountId).toBe('unassigned')
+    expect(result.accountPatch).toBeUndefined()
+  })
+})
+
+describe('aggregateAuditDigest', () => {
+  it('feeds registry facts and median-based distribution facts, capped', () => {
+    const account: CompetitorAccount = {
+      id: 'acc-1', name: '竞品A', platform: 'xhs', homepageUrl: '', topics: [], priority: 'medium',
+      note: '', positioning: '中小企业的AI落地', followerTier: '9万', monetization: '扣字引流私域',
+      intervalDays: 3, enabled: true, createdAt: 't',
+    }
+    const works = [
+      work({ id: 'cw-1', platformWorkId: 'n-1', metrics: [{ t: 't', likes: 10, comments: 2, shares: 40 }] }),
+      work({ id: 'cw-2', platformWorkId: 'n-2', metrics: [{ t: 't', likes: 4, comments: 1, shares: 5 }] }),
+    ]
+    const digest = aggregateAuditDigest(account, works)
+    expect(digest).toContain('9万')
+    expect(digest).toContain('中小企业的AI落地')
+    expect(digest).toContain('中位数')
+    expect(digest).toContain('7') // 收藏中位数 (40+5)/2
+    expect(digest.length).toBeLessThanOrEqual(1000)
+  })
+
+  it('states unknown recency instead of inventing a number', () => {
+    const account: CompetitorAccount = {
+      id: 'acc-1', name: 'A', platform: 'xhs', homepageUrl: '', topics: [], priority: 'medium',
+      note: '', positioning: '', followerTier: '', monetization: '', intervalDays: 3, enabled: true, createdAt: 't',
+    }
+    expect(aggregateAuditDigest(account, [])).toContain('未知')
+  })
+})
+
+describe('sync body assets', () => {
+  const payloadWithContent = JSON.stringify({
+    version: 1,
+    platform: 'xhs',
+    account: { name: '竞品A' },
+    works: [
+      { platformWorkId: 'n-1', title: '带正文', body: '正文内容', hotComments: ['包不出来', '  ', '多练几次'], likes: 5 },
+      { platformWorkId: 'n-2', title: '只有评论', hotComments: ['求教程'] },
+      { platformWorkId: 'n-3', title: '无内容', likes: 1 },
+      { title: '无ID带正文', body: '无法落文件' },
+    ],
+  })
+
+  it('lands a stable body asset per platform id and skips id-less entries', () => {
+    const result = importSyncPayload(payloadWithContent, emptyManifest(), [])
+    expect(result.assets).toHaveLength(2)
+    expect(result.assets.map(asset => asset.file)).toEqual(['sync-n-1.md', 'sync-n-2.md'])
+    expect(result.assets[0]!.content).toContain('正文内容')
+    expect(result.assets[0]!.content).toContain('- 包不出来')
+    expect(result.assets[0]!.content).not.toContain('  ')
+    expect(result.manifest.works.find(item => item.platformWorkId === 'n-1')?.textFile).toBe('sync-n-1.md')
+    expect(result.manifest.works.find(item => item.platformWorkId === 'n-3')?.textFile).toBeUndefined()
+    expect(result.manifest.works.find(item => item.title === '无ID带正文')?.textFile).toBeUndefined()
+  })
+
+  it('buildSyncAssetMarkdown renders title, body, and trimmed comments', () => {
+    const markdown = buildSyncAssetMarkdown({ title: '标题', body: '正文', hotComments: [' 评A ', '评B'] })
+    expect(markdown.startsWith('# 标题\n\n正文')).toBe(true)
+    expect(markdown).toContain('## 热门评论')
+    expect(markdown).toContain('- 评A')
+    expect(buildSyncAssetMarkdown({ title: '只有标题' })).toBe('# 只有标题\n\n')
   })
 })

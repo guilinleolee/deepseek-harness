@@ -91,11 +91,11 @@ export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, st
 /** How strictly the style constrains generation. */
 export type PersonaStyleStrength = 'light' | 'strict'
 
-/** One structured persona field with its provenance: who produced the value. */
+/** One structured persona field with its origin: who produced the value. */
 export interface PersonaField {
   readonly value: string | null
   readonly source: PersonaFieldSource
-  /** Model provenance when `source` is `ai`: which prompt produced the value, and when. */
+  /** Model origin when `source` is `ai`: which prompt produced the value, and when. */
   readonly aiMeta: { readonly promptVersion: string; readonly at: string } | null
 }
 
@@ -294,7 +294,7 @@ export type PersonaAiRequest =
     readonly facts: PersonaEntry
   }
 
-/** Result face of the persona AI call; the prompt version rides along for provenance stamping. */
+/** Result face of the persona AI call; the prompt version rides along for origin stamping. */
 export type PersonaAiResult =
   | { readonly operation: 'fill'; readonly promptVersion: string; readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>> }
   | { readonly operation: 'resume'; readonly promptVersion: string; readonly fields: Readonly<Partial<Record<PersonaFieldKey, string>>> }

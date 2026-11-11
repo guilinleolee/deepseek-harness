@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-dsh-content-studio-interaction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-dsh-content-studio-interaction.md
-2026-09-28-dsh-content-studio-interaction.md: 6e6e4234fe58058f3d0991772ff48a854f25b4a9
-2026-09-28-dsh-content-studio-interaction.zh.md: 9725b9803aa745a6c5c11ba08618e8e5cbc0f8e6
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source:
+  en: 79d863641f35fa7d
+  zh: c66cc26068f92744
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source/problem:
+  en: f6fd28ac373ce7d9
+  zh: f34a5c9078c246b4
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source/decision:
+  en: 6e1e956f06abaeab
+  zh: b2d48547c0e09737
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source/deviations-from-the-plan-text:
+  en: ea2eb95de84f9151
+  zh: dd26555a415a880f
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source/alternatives-considered:
+  en: bc9a6f611c2f8bf6
+  zh: cdda5a0e5b4d7457
+/agent-note-the-interaction-view-opens-a-unified-fan-inbox-over-the-library-root-interactions-json-manifest-with-hand-imported-csv-as-the-only-message-source/consequences:
+  en: e213cb554e09f90a
+  zh: 2ee129e4d3e9e58b

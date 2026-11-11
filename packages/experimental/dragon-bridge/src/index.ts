@@ -56,7 +56,7 @@ export class DragonBridge extends Service {
    * Skill and command / hook / plugin assets come from `ctx.dragonIndex`;
    * agent assets come from `ctx.agentRoster`. Each entry is classified by
    * `ctx.licensePolicy`.
-   * @returns the rebuilt frozen asset list.
+   * @returns the rebuilt asset list, in load order.
    */
   async loadAll(): Promise<readonly DragonAsset[]> {
     const skillIndex = this.ctx.dragonIndex
@@ -107,26 +107,34 @@ export class DragonBridge extends Service {
     return typeof query.limit === 'number' ? matched.slice(0, query.limit) : matched
   }
 
-  /** Return every asset the policy resolves to `allow`.
-   * @returns the cached assets whose policy decision is `allow`. */
+  /**
+   * Return every asset the policy resolves to `allow`.
+   * @returns the matching assets, in load order.
+   */
   allowed(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'allow')
   }
 
-  /** Return every asset the policy resolves to `attribute`.
-   * @returns the cached assets whose policy decision is `attribute`. */
+  /**
+   * Return every asset the policy resolves to `attribute`.
+   * @returns the matching assets, in load order.
+   */
   attributed(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'attribute')
   }
 
-  /** Return every asset the policy resolves to `artifact-only`.
-   * @returns the cached assets whose policy decision is `artifact-only`. */
+  /**
+   * Return every asset the policy resolves to `artifact-only`.
+   * @returns the matching assets, in load order.
+   */
   artifactOnly(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'artifact-only')
   }
 
-  /** Return every asset the policy resolves to `reject`.
-   * @returns the cached assets whose policy decision is `reject`. */
+  /**
+   * Return every asset the policy resolves to `reject`.
+   * @returns the matching assets, in load order.
+   */
   rejected(): readonly DragonAsset[] {
     return this.assets.filter(asset => asset.decision === 'reject')
   }

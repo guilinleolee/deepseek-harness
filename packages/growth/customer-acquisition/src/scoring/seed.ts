@@ -98,7 +98,7 @@ const INDUSTRY_SEEDS: readonly IndustrySeed[] = [
     [
       { id: 'budget_scale', name: '预算规模', description: '客户表达或暗示的投入预算与门店客单价、套餐档位的匹配程度', weight: 25 },
       { id: 'demand_urgency', name: '需求紧迫度', description: '客户当前经营痛点（客流下滑、新店开业、季节性推广）的紧迫程度', weight: 25 },
-      { id: 'business_fit', name: '业态匹配度', description: '客户业态（餐饮、美容、教培、零售等）与我方服务案例的成功率匹配', weight: 20 },
+      { id: 'business_fit', name: '业态匹配度', description: '客户业态（餐饮、美容、教培、零售等）与我方服务能力的适配度', weight: 20 },
       { id: 'decision_role', name: '决策地位', description: '联系人在门店经营决策中的角色（店主本人、店长、运营负责人）', weight: 15 },
       { id: 'reachability', name: '触达可行性', description: '联系方式完整度与客户对电话/微信/到店沟通的接受度', weight: 15 },
     ],
@@ -129,7 +129,7 @@ const INDUSTRY_SEEDS: readonly IndustrySeed[] = [
       { id: 'demand_urgency', name: '需求紧迫度', description: '客户数字化痛点（效率、合规、增长）的紧迫程度', weight: 20 },
       { id: 'decision_role', name: '决策地位', description: '联系人在选型中的角色（CEO、CTO、业务负责人、采购）', weight: 15 },
       { id: 'growth_potential', name: '增长潜力', description: '客户业务增速、扩团队/扩产品线带来的用量增长空间', weight: 15 },
-      { id: 'cooperation_willingness', name: '合作意愿', description: '客户主动咨询深度、响应速度与试点开放度', weight: 10 },
+      { id: 'cooperation_willingness', name: '合作意愿', description: '客户主动咨询深度、响应速度与配合程度', weight: 10 },
     ],
     SEED_IDS.softwareScore,
     '软件服务商打分模板',
@@ -147,14 +147,14 @@ const RETAIL_SOP = sopTemplateSchema.parse({
   rules: [
     {
       intent_level: 'high',
-      cadence: 'D+0 微信问候并发送案例，D+1 电话确认到店时间，D+3 到店陪访，D+7 复盘与方案报价',
-      points: ['确认店主本人决策身份', '锁定到店具体时间', '带同业态案例到店讲解'],
+      cadence: 'D+0 微信问候并说明我能做什么，D+1 电话确认对方最想先解决的环节，D+3 发一份同行通用的做法说明并问反馈，D+7 复盘与方案报价',
+      points: ['确认店主本人决策身份', '确认最想先解决的环节（线上咨询/到店接待/老客跟进）', '发一份做法说明并约一次沟通'],
       questions: ['店最近客流最大的时段是什么时候？', '之前做过哪些推广？效果如何？', '这次推广最想解决什么问题？'],
-      risks: ['店主临时改时间需当天再次确认', '同行竞争报价时强调本地案例'],
+      risks: ['店主临时改时间需当天再次确认', '不要承诺效果数字，也不要编造同行案例', '纯线上卖家没有门店，沟通方式按线上走'],
     },
     {
       intent_level: 'mid',
-      cadence: 'D+0 微信发送同业态案例，D+2 询问反馈并邀约，D+5 保持朋友圈互动',
+      cadence: 'D+0 微信说明我能做什么，D+2 询问反馈并邀约，D+5 保持朋友圈互动',
       points: ['先给价值再邀约', '记录门店当前客流数据'],
       questions: ['店里现在主推什么产品或套餐？', '目标客群是周边居民还是游客？'],
       risks: ['联系人是店长时推进节奏放慢，留微信长期培育'],
@@ -186,7 +186,7 @@ const B2B_TRADE_SOP = sopTemplateSchema.parse({
   rules: [
     {
       intent_level: 'high',
-      cadence: 'D+0 发送产品册与报价框架，D+1 电话确认需求细节，D+3 寄样或上门，D+7 商务条款洽谈',
+      cadence: 'D+0 发送产品册与报价框架，D+1 电话确认需求细节，D+3 寄样（如需实物）或约线上会议，D+7 商务条款洽谈',
       points: ['摸清采购流程与决策链', '确认规格参数与交期', '推动寄样/验厂'],
       questions: ['这次采购是谁最终拍板？', '现有供应商的主要不满是什么？', '交期与付款方式的要求？'],
       risks: ['技术把关人提出参数质疑时拉技术支持介入', '客户压价时用交期与服务换价格'],
@@ -225,14 +225,14 @@ const SOFTWARE_SOP = sopTemplateSchema.parse({
   rules: [
     {
       intent_level: 'high',
-      cadence: 'D+0 发送方案概要与预约演示，D+1 确认参会人，D+3 产品演示，D+5 试点方案，D+10 商务洽谈',
-      points: ['锁定演示参会人与成功标准', '准备客户数据形态的演示环境', '推动 14 天试点'],
+      cadence: 'D+0 发送方案概要与预约演示，D+1 确认参会人，D+3 产品演示，D+5 试点方案（周期按客户实际情况谈定），D+10 商务洽谈',
+      points: ['锁定演示参会人与成功标准', '准备客户数据形态的演示环境', '商定试点范围与周期（不预设固定天数）'],
       questions: ['现在的工单/数据流跑在哪个系统？', '试点成功的衡量标准是什么？', '预算走 CapEx 还是 OpEx？'],
       risks: ['CTO 提出安全合规问题时带上等保材料', '多方比稿时强调实施周期承诺'],
     },
     {
       intent_level: 'mid',
-      cadence: 'D+0 发送同行案例，D+3 邀请 webinar，D+7 跟进互动反馈',
+      cadence: 'D+0 发送做法说明，D+3 邀请 webinar，D+7 跟进互动反馈',
       points: ['争取技术负责人加微', '沉淀客户痛点清单'],
       questions: ['今年数字化的优先级排序？'],
       risks: ['仅停留在资料层面时主动提供诊断报告推进'],
@@ -283,7 +283,7 @@ const RETAIL_CONTENT = contentTemplatesOf('实体门店', [
     id: SEED_IDS.retailContentWecom,
     name: '实体门店企微初次触达',
     type: 'wecom_first_touch',
-    body: '{{contact_name}}您好，我是{{sender_name}}，专注帮{{industry}}门店做本地客流增长。最近我们刚帮一家和{{company_name}}同规模的门店 30 天内把周末客流提升了 40%，案例细节我可以发您看看。您店里的高峰时段是哪几天？方便的话我针对性发您对应打法。',
+    body: '{{contact_name}}您好，我是{{sender_name}}，专注帮{{industry}}门店做本地客流增长。{{industry}}门店常见的几个卡点——顾客在美团问了没人回、到店高峰漏消息、老客没人跟进——我们做的是把这些环节的咨询响应和线索承接接住。您店里目前最想先解决哪个环节？我可以针对性发您一份同行都在用的做法说明。',
     variables: [
       ...CONTACT_VARIABLES,
       { name: 'industry', description: '客户业态', example: '奶茶' },
@@ -293,7 +293,7 @@ const RETAIL_CONTENT = contentTemplatesOf('实体门店', [
     id: SEED_IDS.retailContentXhs,
     name: '实体门店小红书图文脚本',
     type: 'xiaohongshu_post',
-    body: '标题：{{industry}}店老板必看｜3 个让{{company_name}}式小店客流翻倍的笨办法\n正文：很多{{industry}}老板以为引流要花大钱，其实先把这三件事做对：\n1. 门口 3 米的"黄金视线"每天换一次陈列；\n2. 顾客拍照点固定打灯（成本不到 50 元）；\n3. 付款前加一句"加微信下次立减"。\n{{company_name}}的{{contact_name}}上个月照做，复购肉眼可见地涨了。你是哪个城市的{{industry}}老板？评论区聊聊你的客流难题～\n标签：#{{industry}} #实体店引流 #门店运营',
+    body: '标题：{{industry}}店老板必看｜3 个让{{company_name}}式小店少漏顾客的笨办法\n正文：很多{{industry}}老板以为引流要花大钱，其实先把这三件事做对：\n1. 门口 3 米的"黄金视线"每天换一次陈列；\n2. 顾客拍照点固定打灯；\n3. 付款前加一句"加微信下次立减"。\n这三件事不需要额外预算，先把现有顾客接住，比再拉一批新客更划算。\n你是哪个城市的{{industry}}老板？评论区聊聊你的客流难题～\n标签：#{{industry}} #实体店引流 #门店运营',
     variables: [
       ...CONTACT_VARIABLES,
       { name: 'industry', description: '客户业态', example: '美甲' },
@@ -316,7 +316,7 @@ const B2B_TRADE_CONTENT = contentTemplatesOf('B2B 工厂商贸', [
     id: SEED_IDS.b2bTradeContentDrip,
     name: 'B2B 三轮邮件培育序列',
     type: 'email_drip',
-    body: '## 第 1 轮\n主题：{{company_name}}选型参考｜{{industry}}行业采购对比表\n{{contact_name}}您好，附上{{industry}}行业常用选型对比表，含规格、交期与付款方式三栏，供您内部评估使用。有任何参数问题直接回复本邮件。\n\n## 第 2 轮\n主题：回复：对比表补充了交期案例\n{{contact_name}}您好，上周邮件发出后不少客户问到交期。补一个真实案例：同规模工厂从询价到首批到货 21 天。贵司理想的到货时间是什么时候？我可按此倒排生产计划。\n\n## 第 3 轮\n主题：是否需要寄样？\n{{contact_name}}您好，样板间已备好贵司关注规格的样品，顺丰到付寄出，收货后不满意无需任何费用。回复收件信息即可。',
+    body: '## 第 1 轮\n主题：{{company_name}}选型参考｜{{industry}}行业采购对比表\n{{contact_name}}您好，附上{{industry}}行业常用选型对比表，含规格、交期与付款方式三栏，供您内部评估使用。有任何参数问题直接回复本邮件。\n\n## 第 2 轮\n主题：回复：交期与产能怎么排\n{{contact_name}}您好，上周邮件发出后不少客户问到交期。同规模的采购通常需要提前确认产能档期与首批到货时间，具体周期要看规格和起订量。贵司理想的到货时间是什么时候？我可按此倒排生产计划。\n\n## 第 3 轮\n主题：是否需要寄样？\n{{contact_name}}您好，样板间已备好贵司关注规格的样品，顺丰到付寄出，收货后不满意无需任何费用。回复收件信息即可。',
     variables: [
       ...CONTACT_VARIABLES,
       { name: 'industry', description: '客户所处行业', example: '机械制造' },
@@ -329,7 +329,7 @@ const SOFTWARE_CONTENT = contentTemplatesOf('软件服务商', [
     id: SEED_IDS.softwareContentIntro,
     name: '软件服务商官网产品介绍',
     type: 'website_product_intro',
-    body: '{{company_name}}数字化增长方案\n\n为{{industry}}团队打造的一体化工作台：把散落在表格、群聊和邮件里的业务流收进一个系统。\n\n核心能力：\n- 全渠道接入：客服、销售、交付一个工作台闭环；\n- 数据看板：老板视角的实时经营指标；\n- 开放集成：与现有系统通过 API 无缝打通。\n\n{{contact_name}}关注的技术兼容性我们提供免费评估；500 坐席规模客户平均 6 周完成上线。立即预约演示，获取同行业实施案例包。',
+    body: '{{company_name}}数字化增长方案\n\n为{{industry}}团队打造的一体化工作台：把散落在表格、群聊和邮件里的业务流收进一个系统。\n\n核心能力：\n- 全渠道接入：客服、销售、交付一个工作台闭环；\n- 数据看板：老板视角的实时经营指标；\n- 开放集成：与现有系统通过 API 无缝打通。\n\n{{contact_name}}关注的技术兼容性我们提供免费评估，具体上线周期与贵司的数据量、集成范围和内部配合节奏相关，可以在需求沟通后给出排期。立即预约演示，获取同行业实施案例包。',
     variables: [
       { name: 'company_name', description: '客户公司名', example: '北京云维科技' },
       { name: 'contact_name', description: '联系人称呼', example: '张总监' },
@@ -340,7 +340,7 @@ const SOFTWARE_CONTENT = contentTemplatesOf('软件服务商', [
     id: SEED_IDS.softwareContentDrip,
     name: '软件服务商三轮邮件培育序列',
     type: 'email_drip',
-    body: '## 第 1 轮\n主题：{{company_name}}的效率诊断：三个最常见的流失点\n{{contact_name}}您好，服务同规模{{industry}}团队时我们几乎都看到同样的三个流失点：需求口头传达、进度靠问、数据滞后。这份自查清单帮您 10 分钟定位问题环节。\n\n## 第 2 轮\n主题：客户案例：30 人技术团队如何砍掉一半周会\n{{contact_name}}您好，上一封清单里若您勾选了"进度靠问"，这篇案例正对应：某{{industry}}客户用看板替代周报后，周会时间减半、交付准时率提升 22%。附实施路径图。\n\n## 第 3 轮\n主题：免费试点名额申请\n{{contact_name}}您好，本期面向{{industry}}团队开放 3 个 14 天免费试点名额（含数据迁移协助）。回复"试点"即可锁位，或直接回复您最想解决的场景。',
+    body: '## 第 1 轮\n主题：{{company_name}}的效率诊断：三个最常见的流失点\n{{contact_name}}您好，服务同规模{{industry}}团队时我们几乎都看到同样的三个流失点：需求口头传达、进度靠问、数据滞后。这份自查清单帮您 10 分钟定位问题环节。\n\n## 第 2 轮\n主题：实施路径：看板替代周报怎么落地\n{{contact_name}}您好，上一封清单里若您勾选了"进度靠问"，这篇正对应：把周报换成看板、交付节点固定到人，这套落地路径图我整理了一份，附实施步骤与需要提前准备的字段。\n\n## 第 3 轮\n主题：免费试点名额申请\n{{contact_name}}您好，本期面向{{industry}}团队开放免费试点名额（含数据迁移协助）。回复"试点"即可锁位，或直接回复您最想解决的场景。',
     variables: [
       { name: 'company_name', description: '客户公司名', example: '北京云维科技' },
       { name: 'contact_name', description: '联系人称呼', example: '张总监' },

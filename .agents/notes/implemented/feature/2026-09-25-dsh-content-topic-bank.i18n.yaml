@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-25-dsh-content-topic-bank.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-dsh-content-topic-bank.md
-2026-09-25-dsh-content-topic-bank.md: 71135f6c4ca459b4fb2a10876bb8cc0c5e41015f
-2026-09-25-dsh-content-topic-bank.zh.md: 24e21c583e8c5d34f8550de1995d0f06fe1c9250
+/agent-note-the-topic-bank-turns-the-retired-slice-into-a-store-driven-column-table-and-kanban-over-topics-json-with-the-gather-join-wired:
+  en: 96d68d71637acdc0
+  zh: 6c089c37762f7659
+/agent-note-the-topic-bank-turns-the-retired-slice-into-a-store-driven-column-table-and-kanban-over-topics-json-with-the-gather-join-wired/problem:
+  en: 925378b223147092
+  zh: 31901e01d7fa478b
+/agent-note-the-topic-bank-turns-the-retired-slice-into-a-store-driven-column-table-and-kanban-over-topics-json-with-the-gather-join-wired/decision:
+  en: 1593673800efc249
+  zh: 8b86d2498c8225e8
+/agent-note-the-topic-bank-turns-the-retired-slice-into-a-store-driven-column-table-and-kanban-over-topics-json-with-the-gather-join-wired/alternatives-considered:
+  en: d9527eb9268a8307
+  zh: f60252f6ab56c097
+/agent-note-the-topic-bank-turns-the-retired-slice-into-a-store-driven-column-table-and-kanban-over-topics-json-with-the-gather-join-wired/consequences:
+  en: d559c5a305ae78df
+  zh: 5f9e7deff24a84aa

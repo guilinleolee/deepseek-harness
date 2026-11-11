@@ -32,9 +32,10 @@
 import { createServer, request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { appendFileSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { writeJsonAtomic } from './atomic-write.mjs'
 import { auditAppend, clientIp, initAudit } from './audit.mjs'
 import { estimatePoints, fmtPoints, initQuotas, isUnsafeKey, resolveRatios, tokensToPoints } from './quotas.mjs'
 import { initNotify, NOTIFY_SUBJECT_PREFIX, notifyAccountAndAdmins } from './notify.mjs'
@@ -143,9 +144,7 @@ export function createRelayServer({ dataDir, authSecret }) {
   }
   const writeUsage = (store) => {
     const path = join(dataDir, USAGE_FILE)
-    const tmp = `${path}.tmp`
-    writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`)
-    renameSync(tmp, path)
+    writeJsonAtomic(path, store)
   }
   const round6 = (x) => Math.round(x * 1e6) / 1e6
   const entryFor = (store, account) => {
@@ -477,9 +476,7 @@ function readStore(dataDir, file, fallback) {
 
 function writeStore(dataDir, file, value) {
   const path = join(dataDir, file)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, value)
 }
 
 /** 上游增加模型：写入 models 列表与展示元数据（modelMeta）。已存在则报错。 */

@@ -1,0 +1,22 @@
+# Creator Workbench — minimal patch overlay.
+#
+# Loaded with:
+#     dsh web --patch "$(node -p 'require.resolve("@deepseek-ai/dsh-creator-workbench/cordis.yml")')"
+#
+# This overlay's only job today is to disable bash-sandbox / tool-bash on
+# Windows. dsh-base sets `disabled: !!js process.platform === 'win32'` on
+# those rows, but the `!!js` gate evaluates too late in the Loader init
+# path: by the time the gate fires, LocalBashExecutor has already
+# registered the `shell` service and clashes with pwsh-sandbox (which
+# mounts on win32). Force-disable here so pwsh-sandbox wins.
+#
+# The agent-spine, bash, fs-local, and Tianlong-Engine skill integration
+# all live in dsh-base; this overlay only fixes the Windows shell-clash.
+# Run `tests/e2e_export.py` for the CLI workflow that does not depend
+# on the dsh runtime.
+
+- id: bash-sandbox
+  disabled: true
+
+- id: tool-bash
+  disabled: true

@@ -249,7 +249,7 @@ export class LeadScoringService {
     const profile = this.requireProfile(profileId)
     for (const [, run] of this.scoreRuns.entries()) {
       if (run.icp_profile_id === profile.id) {
-        throw new Error(`ICP 画像「${profile.name}」已被打分历史引用，不能删除；请改用 icp_update 停用（enabled=false）`)
+        throw new Error(`ICP 画像「${profile.name}」已被打分历史引用，不能删除；请改用 icp_manage 的 update 停用（enabled=false）`)
       }
     }
     await this.icpProfiles.delete(profile.id)
@@ -363,7 +363,7 @@ export class LeadScoringService {
     const template = this.requireTemplate(templateId)
     for (const [, run] of this.scoreRuns.entries()) {
       if (run.template_id === template.id) {
-        throw new Error(`打分模板「${template.name}」已被打分历史引用，不能删除；请改用 score_template_update 停用（enabled=false）`)
+        throw new Error(`打分模板「${template.name}」已被打分历史引用，不能删除；请改用 score_template_manage 的 update 停用（enabled=false）`)
       }
     }
     await this.scoreTemplates.delete(template.id)
@@ -592,7 +592,7 @@ export class LeadScoringService {
       .sort((left, right) => left.created_at - right.created_at)
     const first = enabled[0]
     if (first === undefined) {
-      throw new Error(`没有启用中的${label}，请先创建或启用一套（icp_create / score_template_create）`)
+      throw new Error(`没有启用中的${label}，请先创建或启用一套（icp_manage / score_template_manage 的 create）`)
     }
     const industryMatch = lead.industry === undefined
       ? undefined

@@ -21,9 +21,6 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../api/gateway/tsconfig.client.json"
-    },
-    {
       "path": "../ui-slots"
     },
     {
@@ -34,9 +31,6 @@
     },
     {
       "path": "../ui-primitives"
-    },
-    {
-      "path": "../ui-renderer"
     }
   ]
 }

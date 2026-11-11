@@ -2,6 +2,18 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/growth/README.md
+/:
+  en: b28d3e593fd01047
+  zh: a41b3c1b7e97cffb
 /growth:
-  en: a1085cd1a46123a3
-  zh: 11ae6ee2a7fd2bb5
+  en: e270162bc94ba415
+  zh: 22daecc62ca9bc37
+/growth/summary:
+  en: 4226b67be9b30cfa
+  zh: 210a36f7ece7403b
+/growth/table-of-contents:
+  en: 29e36e7bec6f32f4
+  zh: db52639465739009
+/growth/table-of-contents/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

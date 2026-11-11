@@ -2,33 +2,42 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/growth/customer-acquisition/README.md
+/:
+  en: 04469185dfff7fd4
+  zh: a0584290dd7e00be
 /deepseek-ai-dsh-customer-acquisition:
-  en: 36325c536c6278de
-  zh: 7a8515ef4801c666
+  en: adf68ceabe371d53
+  zh: 99b35595996b4f60
+/deepseek-ai-dsh-customer-acquisition/summary:
+  en: f1d6f519fa0645f2
+  zh: 5d8ef7c99d51dc10
+/deepseek-ai-dsh-customer-acquisition/table-of-contents:
+  en: 07b6e9a8b39125f7
+  zh: 2d841faaf6a481bf
 /deepseek-ai-dsh-customer-acquisition/installation:
   en: af2b8ddfcfc04db4
-  zh: b9975685366ef09a
+  zh: 2c1139f2e14f8985
 /deepseek-ai-dsh-customer-acquisition/configuration:
   en: ca0fe181604fe7fd
-  zh: 03ab65163683eabc
+  zh: 960d51d05b5eaa28
 /deepseek-ai-dsh-customer-acquisition/domain:
   en: c264aec5c67d0e17
-  zh: 9620c38964eee28e
+  zh: 8ccf65df9d3c19e9
 /deepseek-ai-dsh-customer-acquisition/permissioncontext-seam:
   en: 5e463e0afa00ae7d
-  zh: c31faa65de158f22
+  zh: a4cfb127df2365ff
 /deepseek-ai-dsh-customer-acquisition/compliance-gate-red-lines:
   en: c9ff622d49a1ff95
-  zh: 4780695f1d67a647
+  zh: d63b55aa9b649b79
 /deepseek-ai-dsh-customer-acquisition/lead-ledger-module-2:
-  en: 6d8573309ca72ceb
-  zh: dfa1341ce1cb4280
+  en: 5b06688ad992c014
+  zh: 710c50e35103eea5
 /deepseek-ai-dsh-customer-acquisition/ai-lead-scoring-module-3:
   en: 49ad8cf656311a13
-  zh: 3cb746a5378d27dd
+  zh: c977cf6ec292e156
 /deepseek-ai-dsh-customer-acquisition/tools:
-  en: a77c5a57d7e3ca3a
-  zh: 0db279c6987e9dfe
+  en: ab3b123c4467e370
+  zh: 7818a9e5d9df69e9
 /deepseek-ai-dsh-customer-acquisition/remote-face:
   en: 647c75e8a0a8f2b0
   zh: df4bc0e8d6f92e4a
@@ -39,14 +48,17 @@
   en: 4b46cf2bdae41e3d
   zh: 3b2bf53f9aa4e47c
 /deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/what-the-model-sees:
-  en: 4c139bb31a49794e
-  zh: e9b19de427eed91f
+  en: 3b07fc83ef6a4674
+  zh: 278b242abf8889a7
 /deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/token-effect:
-  en: 5f48227d3f3d642d
-  zh: 0e7833d1ec28eb59
+  en: 42ba36089c9b75ae
+  zh: e472e3f844803670
 /deepseek-ai-dsh-customer-acquisition/model-experience/local-customer-acquisition-state/kv-cache-effect:
   en: c89cff4064839128
   zh: d27792c1cb6a5bb6
 /deepseek-ai-dsh-customer-acquisition/known-limitations-and-deferred-work:
-  en: 57ab5b6bdf354b81
-  zh: 81642bc313f3eb8f
+  en: 3e9dbf46b930fdd1
+  zh: f530df73cfb42a19
+/deepseek-ai-dsh-customer-acquisition/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b23ea3e6cbd56734

@@ -1,0 +1,64 @@
+{
+  "accounts": [
+    {
+      "id": "acc-d7f268d5edc7",
+      "account": "admin@dreamspace.work",
+      "displayName": "平台管理员",
+      "role": "admin",
+      "instanceId": "e01",
+      "tokenEpoch": 5,
+      "createdAt": "2026-09-20T17:42:11.494Z",
+      "passwordHash": {
+        "salt": "887e90cfb419e1d51594c66b6a7858da",
+        "hash": "f54e21e99eae6c3181ca52b417a308b88f81bc51fafbbc231163704b5f0ab31aaf83d3f1f13a13ffb19b0c8e2f379aec5dadd94dc7cd660849e65f5c189f9007",
+        "algo": "scrypt-N32768-r8-p1-dk64"
+      },
+      "department": "未分配"
+    },
+    {
+      "id": "acc-5da918d61b59",
+      "account": "member-a@dreamspace.work",
+      "displayName": "成员A",
+      "role": "employee",
+      "instanceId": "e02",
+      "tokenEpoch": 3,
+      "createdAt": "2026-09-20T17:42:12.088Z",
+      "passwordHash": {
+        "salt": "24b71462a51746b9f2a9c22b21e4172c",
+        "hash": "c44a932ffab7a8a2ebf4501ebe2585f98e074942d67aef70c4ed9d3fa8cf386febd88a43506ab961f8e1197a9fb466c194efdda57bf44563688e2feb2b0359ca",
+        "algo": "scrypt-N32768-r8-p1-dk64"
+      },
+      "disabled": false,
+      "department": "市场部"
+    },
+    {
+      "id": "acc-75ebd66f5f0a",
+      "account": "member-b@dreamspace.work",
+      "displayName": "企业员工B",
+      "role": "employee",
+      "instanceId": "e03",
+      "tokenEpoch": 2,
+      "createdAt": "2026-09-20T17:42:12.668Z",
+      "passwordHash": {
+        "salt": "5a2945dab46dee71676792d62d1006c8",
+        "hash": "ab52de1966108c42eaea0de36cbff7ba1838110a8e784640b5da2f287103a704dfe419c4fbe96022ad5ab65b9049e9f7205756d9333e425d2a1d6c47ddc49b5f",
+        "algo": "scrypt-N32768-r8-p1-dk64"
+      }
+    },
+    {
+      "id": "acc-728940a17afa",
+      "account": "wang@dreamspace.work",
+      "displayName": "小王",
+      "role": "employee",
+      "department": "设计部",
+      "instanceId": "e02",
+      "tokenEpoch": 0,
+      "createdAt": "2026-09-22T23:26:06.957Z",
+      "passwordHash": {
+        "salt": "d5fb749528bf3f2fa2cbb38087330e40",
+        "hash": "fc80e4946e337656811ca57ff9f881d03c6676d34438a2fe9fb95a091d99929f79a1398462a9fd8bbc0c3016f18bb48f83ca4bb035f7ac34c57fa440a6470d1b",
+        "algo": "scrypt-N32768-r8-p1-dk64"
+      }
+    }
+  ]
+}

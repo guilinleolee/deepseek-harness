@@ -1,5 +1,3 @@
-import type { IcpProfile, Lead } from '../src/domain/spec.ts'
-import { IcpProfileId } from '../src/domain/ids.ts'
 import { describe, expect, it } from 'vitest'
 import {
   canonicalKeyOf,
@@ -27,7 +25,7 @@ describe('repairJsonNewlines', () => {
   })
 
   it('repairs a parse-failing body with in-string line breaks', () => {
-    const parsed = JSON.parse(repairJsonNewlines('{"a":"第一行\n第二行"}')) as { a: string }
+    const parsed = JSON.parse(repairJsonNewlines('{"a":"第一行\n第二行"}'))
     expect(parsed.a).toBe('第一行\n第二行')
   })
 })
@@ -117,11 +115,11 @@ describe('parseExtractOutput repair and normalization integration', () => {
 })
 
 describe('parseScoreOutput repair integration', () => {
-  const profile: IcpProfile = {
-    id: IcpProfileId('p'), name: '画像', industry: '测试',
+  const profile = {
+    id: 'p', name: '画像', industry: '测试',
     dimensions: [{ id: 'a', name: '维度A', description: 'd', weight: 100 }],
     enabled: true, created_at: 1, updated_at: 1,
-  }
+  } as unknown as import('../src/domain/spec.ts').IcpProfile
 
   it('recovers from in-string newlines via repairJsonBody', () => {
     const raw = '{"items":[{"dimension_id":"a","score":85,\n"reason":"多行\n理由"}],"reason":"整体"}'
@@ -138,13 +136,13 @@ describe('parseScoreOutput repair integration', () => {
 })
 
 describe('SOP scope guard mirror', () => {
-  const lead = { owner_id: undefined, company_name: '公海' } as Lead
+  const lead = { owner_id: undefined, company_name: '公海' } as unknown as Parameters<typeof assertSopScope>[0]
   const ownOperator = {
     userId: 'u', displayName: 'n',
     capabilities: { lead_scope: 'own', can_manage_global_templates: false, can_delete_any_lead: false, can_export: false, can_manage_settings: false },
-  } as never
+  } as unknown as Parameters<typeof assertSopScope>[1]
   it('blocks pool and other-owned leads for copy and SOP generation alike', () => {
-    expect(() => { assertSopScope(lead, ownOperator) }).toThrow('先领取')
-    expect(() => { assertSopScope({ ...lead, owner_id: 'u2' } as Lead, ownOperator) }).toThrow('无权为他人线索')
+    expect(() => assertSopScope(lead, ownOperator)).toThrow('先领取')
+    expect(() => assertSopScope({ ...lead, owner_id: 'u2' } as unknown as Parameters<typeof assertSopScope>[0], ownOperator)).toThrow('无权为他人线索')
   })
 })

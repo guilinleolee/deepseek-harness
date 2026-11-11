@@ -16,9 +16,10 @@
  *
  * 隐私红线：转写只取桥文件里的工具名/分组/决策标量，不含参数与任何正文。
  */
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { writeJsonAtomic } from './atomic-write.mjs'
 import { isUnsafeKey } from './quotas.mjs'
 
 const POLICY_FILE = 'toolpolicy.json'
@@ -74,9 +75,7 @@ function normalizePolicy(parsed) {
 
 function writePolicyFile(dataDir, policy) {
   const path = join(dataDir, POLICY_FILE)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(policy, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, policy)
 }
 
 /**
@@ -176,9 +175,7 @@ export function syncInstanceHome(dataDir, spec) {
   mkdirSync(home, { recursive: true })
   const payload = { role, deny, approve }
   const path = homePolicyPath(home)
-  const tmp = `${path}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`)
-  renameSync(tmp, path)
+  writeJsonAtomic(path, payload)
   return { role, deny, approve }
 }
 

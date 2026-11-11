@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-25-dsh-content-studio-competitor-view.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-dsh-content-studio-competitor-view.md
-2026-09-25-dsh-content-studio-competitor-view.md: 9256fa6ecb15dd3a3ec1832421e4f36930602f19
-2026-09-25-dsh-content-studio-competitor-view.zh.md: 047cb6dc3dd12acbe3812f6091ba92ca7a36a2c9
+/agent-note-the-competitors-view-keeps-benchmark-account-state-on-disk-beside-the-works-not-in-the-browser:
+  en: fe3bfd45aad0b750
+  zh: b740fd63cfdde7bf
+/agent-note-the-competitors-view-keeps-benchmark-account-state-on-disk-beside-the-works-not-in-the-browser/problem:
+  en: 5eb76ed4371d9106
+  zh: 806e215f64a19676
+/agent-note-the-competitors-view-keeps-benchmark-account-state-on-disk-beside-the-works-not-in-the-browser/decision:
+  en: 94b933d614dea3d6
+  zh: 1bac8b08f7f094dc
+/agent-note-the-competitors-view-keeps-benchmark-account-state-on-disk-beside-the-works-not-in-the-browser/alternatives-considered:
+  en: 76272bb8d64a8d99
+  zh: cfed5e26a64f44be
+/agent-note-the-competitors-view-keeps-benchmark-account-state-on-disk-beside-the-works-not-in-the-browser/consequences:
+  en: 7bb335f231775ab8
+  zh: 7151cd1a1d3f2974

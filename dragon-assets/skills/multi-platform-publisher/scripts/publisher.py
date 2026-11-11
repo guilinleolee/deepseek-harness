@@ -247,9 +247,136 @@ def validate_publish_ethics(task: PublishTask, db_path: str = None) -> Dict:
     return {"passed": True, "content_sha256": sha}
 
 
-# ===== 发布（mock 实现） =====
+# ===== 发布 =====
+#
+# 默认走 publish_bridge.py，调用 baoyu-post-to-* 的真实 CDP 发布器。
+# 桥接不到真实发布器的平台一律失败，不伪造 post_id。
+#
+# 模拟发布只在显式设置 DSH_PUBLISHER_ALLOW_MOCK=1 时启用，供本地测试与
+# 协议演练使用。模拟结果带 "simulated": True 标记，与真实结果可区分。
+PUBLISH_BRIDGE = Path(__file__).resolve().parent / "publish_bridge.py"
+
+
+def _mock_allowed() -> bool:
+    """True when the operator explicitly opted into simulated publishing."""
+    return os.environ.get("DSH_PUBLISHER_ALLOW_MOCK", "").strip() in ("1", "true", "yes")
+
+
+def _record_publish_result(
+    task: PublishTask,
+    platform: str,
+    account_id: str,
+    status: str,
+    post_id: str,
+    duration: int,
+    db_path: str,
+) -> None:
+    """Persist one publish outcome and update the dedup table."""
+    sha = compute_sha256(task.content_path)
+    with get_conn(db_path) as conn:
+        conn.execute(
+            """INSERT INTO publish_results
+            (task_id, platform, account_id, status, platform_post_id, retry_count, duration_ms)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (task.task_id, platform, account_id, status, post_id, 0, duration),
+        )
+
+        row = conn.execute("SELECT platforms_published FROM content_dedup WHERE content_sha256 = ?", (sha,)).fetchone()
+        if row:
+            existing = row["platforms_published"] or ""
+            plats = set(existing.split(",")) if existing else set()
+            plats.add(platform)
+            conn.execute(
+                "UPDATE content_dedup SET platforms_published = ?, publish_count = publish_count + 1 WHERE content_sha256 = ?",
+                (",".join(sorted(plats)), sha),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO content_dedup (content_sha256, platforms_published) VALUES (?, ?)",
+                (sha, platform),
+            )
+
+
+def _publish_via_bridge(
+    task: PublishTask,
+    platform: str,
+    account_id: str,
+    db_path: str,
+    submit: bool,
+) -> Dict:
+    """Run the real browser publisher for one platform."""
+    import json
+    import subprocess
+
+    command = [
+        sys.executable,
+        str(PUBLISH_BRIDGE),
+        "--platform",
+        platform,
+        "--content",
+        task.content_path,
+    ]
+    if submit:
+        command.append("--submit")
+
+    started = time.time()
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "platform": platform,
+            "error": "发布器超时（600s）",
+            "retry_count": 0,
+        }
+    except OSError as error:
+        return {
+            "success": False,
+            "platform": platform,
+            "error": f"无法启动发布器: {error}",
+            "retry_count": 0,
+        }
+
+    duration = int((time.time() - started) * 1000)
+    if result.returncode != 0:
+        return {
+            "success": False,
+            "platform": platform,
+            "error": (result.stderr or result.stdout or "发布器失败").strip()[-400:],
+            "retry_count": 0,
+        }
+
+    post_id = ""
+    for line in (result.stdout or "").splitlines():
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            post_id = str(payload.get("post_id") or payload.get("status") or "")
+
+    return {
+        "success": True,
+        "platform": platform,
+        "post_id": post_id or f"{platform}_published",
+        "duration_ms": duration,
+        "simulated": False,
+    }
+
+
 def publish_to_platform(task: PublishTask, platform: str, account_id: str = None, db_path: str = None) -> Dict:
-    """发布到单个平台（mock）"""
+    """发布到单个平台。
+
+    默认调用真实发布器（publish_bridge.py → baoyu-post-to-* 的 CDP 脚本）。
+    平台没有真实发布器时返回失败，原因说明缺失的发布器；只有显式设置
+    DSH_PUBLISHER_ALLOW_MOCK=1 才走模拟发布。
+    """
     started = time.time()
     cfg = PLATFORMS[platform]
 
@@ -262,47 +389,26 @@ def publish_to_platform(task: PublishTask, platform: str, account_id: str = None
             "retry_count": 0,
         }
 
-    # 模拟发布
-    try:
-        # 模拟网络延迟
-        time.sleep(0.01)
-
-        # mock 平台 post_id
-        post_id = f"{platform}_{uuid.uuid4().hex[:12]}"
-
-        duration = int((time.time() - started) * 1000)
-
-        # 记录结果
-        sha = compute_sha256(task.content_path)
-        with get_conn(db_path) as conn:
-            conn.execute(
-                """INSERT INTO publish_results
-                (task_id, platform, account_id, status, platform_post_id, retry_count, duration_ms)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (task.task_id, platform, account_id, "success", post_id, 0, duration),
+    if not _mock_allowed():
+        outcome = _publish_via_bridge(task, platform, account_id, db_path, submit=True)
+        if outcome.get("success"):
+            _record_publish_result(
+                task, platform, account_id, "success", str(outcome.get("post_id", "")), int(outcome.get("duration_ms", 0)), db_path
             )
+        return outcome
 
-            # 更新去重表
-            row = conn.execute("SELECT platforms_published FROM content_dedup WHERE content_sha256 = ?", (sha,)).fetchone()
-            if row:
-                existing = row["platforms_published"] or ""
-                plats = set(existing.split(",")) if existing else set()
-                plats.add(platform)
-                conn.execute(
-                    "UPDATE content_dedup SET platforms_published = ?, publish_count = publish_count + 1 WHERE content_sha256 = ?",
-                    (",".join(sorted(plats)), sha),
-                )
-            else:
-                conn.execute(
-                    "INSERT INTO content_dedup (content_sha256, platforms_published) VALUES (?, ?)",
-                    (sha, platform),
-                )
-
+    # 模拟发布：仅在显式允许时启用，结果带 simulated 标记
+    try:
+        time.sleep(0.01)
+        post_id = f"{platform}_{uuid.uuid4().hex[:12]}"
+        duration = int((time.time() - started) * 1000)
+        _record_publish_result(task, platform, account_id, "success", post_id, duration, db_path)
         return {
             "success": True,
             "platform": platform,
             "post_id": post_id,
             "duration_ms": duration,
+            "simulated": True,
         }
 
     except Exception as e:

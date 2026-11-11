@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-25-dsh-content-gather.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-25-dsh-content-gather.md
+/agent-note-the-gather-write-face-collects-into-assets-gather-json-and-the-browser-owns-nothing-durable-but-sources-and-tasks:
+  en: a0d7f5c57bd74ae9
+  zh: 20628e9963204f30
+/agent-note-the-gather-write-face-collects-into-assets-gather-json-and-the-browser-owns-nothing-durable-but-sources-and-tasks/problem:
+  en: 22ad2d634711dc8c
+  zh: 38cea63347ab8ce0
+/agent-note-the-gather-write-face-collects-into-assets-gather-json-and-the-browser-owns-nothing-durable-but-sources-and-tasks/decision:
+  en: f9771aeb4daee7aa
+  zh: fba743a86feb96bc
+/agent-note-the-gather-write-face-collects-into-assets-gather-json-and-the-browser-owns-nothing-durable-but-sources-and-tasks/alternatives-considered:
+  en: f7dca5e39f89fea5
+  zh: 0efc22b5b7279ebb
+/agent-note-the-gather-write-face-collects-into-assets-gather-json-and-the-browser-owns-nothing-durable-but-sources-and-tasks/consequences:
+  en: d4f9eb8bca1bbc7d
+  zh: d393e180dc87cb71

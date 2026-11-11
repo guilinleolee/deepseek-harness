@@ -1,0 +1,128 @@
+{
+  "upstreams": [
+    {
+      "name": "zhipu",
+      "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+      "models": [
+        "glm-5.3",
+        "glm-5.2",
+        "glm-4.7",
+        "glm-5-turbo",
+        "glm-4.5-air"
+      ],
+      "apiKey": "f62aaad8f2c84f6d8b36e7060b25891c.YqeTChlHaXeCbHGw",
+      "revoked": false,
+      "createdAt": "2026-09-20T19:02:12.351Z",
+      "modelMeta": {
+        "glm-5.3": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "1×",
+          "mOut": "1×",
+          "mCacheR": "0.1×",
+          "mCacheW": "1.25×"
+        },
+        "glm-5.3-flash": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "0.1×",
+          "mOut": "0.4×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        },
+        "glm-5.2": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "1×",
+          "mOut": "1×",
+          "mCacheR": "0.1×",
+          "mCacheW": "1.25×"
+        },
+        "glm-4.7": {
+          "context": "204,800",
+          "maxOutput": "131,072",
+          "mIn": "2×",
+          "mOut": "2×",
+          "mCacheR": "0.2×",
+          "mCacheW": "2×"
+        },
+        "glm-5-turbo": {
+          "context": "200,000",
+          "maxOutput": "131,072",
+          "mIn": "0.5×",
+          "mOut": "0.5×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        },
+        "glm-4.5-air": {
+          "context": "131,072",
+          "maxOutput": "98,304",
+          "mIn": "0.5×",
+          "mOut": "0.5×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        }
+      }
+    },
+    {
+      "name": "zhipu-backup",
+      "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+      "models": [
+        "glm-5.3-flash"
+      ],
+      "apiKey": "f62aaad8f2c84f6d8b36e7060b25891c.YqeTChlHaXeCbHGw",
+      "revoked": false,
+      "createdAt": "2026-09-20T19:08:51.033Z",
+      "modelMeta": {
+        "glm-5.3": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "1×",
+          "mOut": "1×",
+          "mCacheR": "0.1×",
+          "mCacheW": "1.25×"
+        },
+        "glm-5.3-flash": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "0.1×",
+          "mOut": "0.4×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        },
+        "glm-5.2": {
+          "context": "1,000,000",
+          "maxOutput": "131,072",
+          "mIn": "1×",
+          "mOut": "1×",
+          "mCacheR": "0.1×",
+          "mCacheW": "1.25×"
+        },
+        "glm-4.7": {
+          "context": "204,800",
+          "maxOutput": "131,072",
+          "mIn": "2×",
+          "mOut": "2×",
+          "mCacheR": "0.2×",
+          "mCacheW": "2×"
+        },
+        "glm-5-turbo": {
+          "context": "200,000",
+          "maxOutput": "131,072",
+          "mIn": "0.5×",
+          "mOut": "0.5×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        },
+        "glm-4.5-air": {
+          "context": "131,072",
+          "maxOutput": "98,304",
+          "mIn": "0.5×",
+          "mOut": "0.5×",
+          "mCacheR": "0.05×",
+          "mCacheW": "0.5×"
+        }
+      }
+    }
+  ]
+}

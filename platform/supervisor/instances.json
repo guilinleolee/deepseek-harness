@@ -1,7 +1,8 @@
 {
   "portalPort": 8460,
   "gatewayHost": "localhost",
-  "gatewayBindHost": "127.0.0.1",
+  "gatewayBindHost": "0.0.0.0",
+  "cookieDomain": "",
   "relayPort": 9400,
   "repoRoot": "../..",
   "driftStaleHours": 24,
@@ -32,20 +33,12 @@
     },
     {
       "id": "e02",
-      "account": "member-a@dreamspace.work",
+      "account": "employee@dreamspace.work",
       "uid": 30001,
       "port": 3182,
       "env": {
-        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
-      }
-    },
-    {
-      "id": "e03",
-      "account": "member-b@dreamspace.work",
-      "uid": 30002,
-      "port": 3183,
-      "env": {
-        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills"
+        "CREATOR_WORKBENCH_SKILLS_PATH": "{dataDir}/assets/creator-skills",
+        "KABAGE_SERVICE_TOKEN": ""
       }
     }
   ],

@@ -15,6 +15,8 @@
  * | apache-2.0   | green    | attribute        | NOTICE + Modified by |
  * | bsd-3-clause | green    | attribute        | no-author-endorsement |
  * | agpl-3.0     | red      | artifact-only    | red-line: no SaaS |
+ * | noncommercial | black   | reject           | CC BY-NC family: no commercial use |
+ * | proprietary  | black    | reject           | all rights reserved: no redistribution |
  * | noassertion  | black    | reject           | DSH governance baseline |
  * | unknown      | amber    | attribute        | unless `rejectUnknown` |
  *
@@ -87,6 +89,12 @@ export class LicensePolicy extends Service {
     if (cleaned === '') return 'unknown'
     if (cleaned === 'noassertion' || cleaned === 'no-assertion') return 'noassertion'
     if (cleaned.includes('agpl')) return 'agpl-3.0'
+    // The NonCommercial check precedes the permissive tiers: "CC BY-NC-SA 4.0"
+    // names no permissive licence, but the order keeps the intent explicit.
+    if (cleaned.includes('by-nc') || cleaned.includes('noncommercial') || cleaned.includes('non-commercial')) {
+      return 'noncommercial'
+    }
+    if (cleaned.includes('proprietary') || cleaned.includes('all rights reserved')) return 'proprietary'
     if (cleaned.includes('apache')) return 'apache-2.0'
     if (cleaned.includes('bsd-3') || cleaned.includes('bsd 3') || cleaned.includes('bsd_3')) return 'bsd-3-clause'
     if (cleaned.includes('bsd')) return 'unknown'
@@ -130,7 +138,7 @@ export class LicensePolicy extends Service {
           tier,
           severity,
           decision,
-          reason: 'NOASSERTION rejected under DSH ecosystem governance baseline.',
+          reason: rejectReasonFor(tier),
         }
     }
   }
@@ -158,6 +166,8 @@ function severityOf(tier: LicenseTier): LicenseSeverity {
       return 'green'
     case 'agpl-3.0':
       return 'red'
+    case 'noncommercial':
+    case 'proprietary':
     case 'noassertion':
       return 'black'
     case 'unknown':
@@ -174,10 +184,28 @@ function decisionFor(tier: LicenseTier, rejectUnknown: boolean): LicenseDecision
       return 'attribute'
     case 'agpl-3.0':
       return 'artifact-only'
+    // A paid delivery may not carry these assets: NonCommercial forbids
+    // commercial use outright, and proprietary forbids redistribution.
+    case 'noncommercial':
+    case 'proprietary':
     case 'noassertion':
       return 'reject'
     case 'unknown':
       return rejectUnknown ? 'reject' : 'attribute'
+  }
+}
+
+function rejectReasonFor(tier: LicenseTier): string {
+  switch (tier) {
+    case 'noncommercial':
+      return 'NonCommercial licence: commercial use is forbidden, so the asset may not enter a paid delivery or a client library.'
+    case 'proprietary':
+      return 'Proprietary licence: redistribution to a third party is forbidden, so the asset may not leave the vendor environment.'
+    case 'noassertion':
+      return 'NOASSERTION rejected under DSH ecosystem governance baseline.'
+    /* v8 ignore next 2 -- LicenseTier is a closed union; only the three reject tiers reach this function. */
+    default:
+      return 'Rejected by license policy.'
   }
 }
 
