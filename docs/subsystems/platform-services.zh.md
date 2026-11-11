@@ -8,7 +8,7 @@ Source: [`packages/quant/quant-research/src/service.ts`](../../packages/quant/qu
 
 ## 量化研究
 
-[`@deepseek-ai/dsh-quant-research`](../../packages/quant/quant-research) 持有虚拟交易账户、研究笔记与持久化的回测快照。Remote 面读取账户摘要、笔记与快照列表以及单个快照的资金曲线；id 全部带品牌，未知 id 以友好错误拒绝。
+[`@deepseek-ai/dsh-quant-research`](../../packages/quant/quant-research) 持有虚拟交易账户、研究笔记与持久化的回测快照。Remote 面读取账户摘要、笔记与快照列表以及单个快照的净值曲线；id 全部带品牌，未知 id 以友好错误拒绝。
 
 Source: [`packages/quant/quant-research/src/service.ts`](../../packages/quant/quant-research/src/service.ts)
 
