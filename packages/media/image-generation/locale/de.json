@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Bildgenerierung",
+    "description": "Bilder über einen anbieterneutralen Dienst erzeugen, mit einem mitgelieferten OpenAI-kompatiblen Anbieter."
+  }
+}

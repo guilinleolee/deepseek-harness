@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Image generation",
+    "description": "Produce images through a provider-neutral service, with one bundled OpenAI-compatible provider."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Generación de imágenes",
+    "description": "Genere imágenes mediante un servicio neutral respecto al proveedor, con un proveedor compatible con OpenAI incluido."
+  }
+}

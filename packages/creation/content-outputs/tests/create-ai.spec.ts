@@ -34,6 +34,20 @@ describe('create generation prompts', () => {
     expect(generateSystemPrompt(generateRequest({ contentType: 'rewrite' }))).toContain('二创')
   })
 
+  it('briefs the storyboard with its shot structure and the cover with its fields', () => {
+    const storyboard = generateSystemPrompt(generateRequest({ contentType: 'storyboard' }))
+    expect(storyboard).toContain('分镜表')
+    expect(storyboard).toContain('6 个镜头')
+    expect(storyboard).toContain('画面：')
+    expect(storyboard).toContain('台词：')
+    expect(storyboard).toContain('时长：')
+    const cover = generateSystemPrompt(generateRequest({ contentType: 'cover' }))
+    expect(cover).toContain('封面方案')
+    expect(cover).toContain('主标题：')
+    expect(cover).toContain('构图：')
+    expect(cover).toContain('配色：')
+  })
+
   it('validates the request before framing', () => {
     expect(() => frameGenerateRequest(generateRequest({ contentType: 'poem' as never }), 1000)).toThrow('contentType')
     expect(() => frameGenerateRequest(generateRequest({ title: '  ' }), 1000)).toThrow('non-empty title')
@@ -65,6 +79,20 @@ describe('create rewrite prompts', () => {
     expect(rewriteSystemPrompt({ operation: 'humanize-light', style: null, text: 'x' })).toContain('±10%')
     expect(rewriteSystemPrompt({ operation: 'humanize-deep', style: null, text: 'x' })).toContain('深度去 AI 味')
     expect(rewriteSystemPrompt({ operation: 'titles', style: null, text: 'x' })).toContain('5 个备选标题')
+  })
+
+  it('carries the user instruction into the custom brief and keeps the shared discipline', () => {
+    const prompt = rewriteSystemPrompt({ operation: 'custom', style: null, instruction: '语言再直接一点', text: 'x' })
+    expect(prompt).toContain('语言再直接一点')
+    expect(prompt).toContain('只输出改写结果本身')
+    expect(prompt).not.toContain('压缩')
+  })
+
+  it('requires a bounded instruction for the custom operation', () => {
+    expect(() => validateRewriteRequest({ operation: 'custom', style: null, text: 'x' }, 1000)).toThrow('non-empty instruction')
+    expect(() => validateRewriteRequest({ operation: 'custom', style: null, instruction: '  ', text: 'x' }, 1000)).toThrow('non-empty instruction')
+    expect(() => validateRewriteRequest({ operation: 'custom', style: null, instruction: 'x'.repeat(501), text: 'x' }, 1000)).toThrow('cap')
+    expect(validateRewriteRequest({ operation: 'custom', style: null, instruction: '改直接点', text: 'x' }, 1000)).toBe('x')
   })
 })
 
@@ -146,7 +174,7 @@ describe('create evaluation', () => {
 
 describe('CreateAiProcessor', () => {
   it('pins the prompt version and the shared timeout code', () => {
-    expect(CREATE_PROMPT_VERSION).toBe(1)
+    expect(CREATE_PROMPT_VERSION).toBe(2)
   })
 
   it('rejects invalid requests before touching the queue', async () => {

@@ -36,6 +36,10 @@ export type {
   CreateRewriteRequest,
   CreateSourceRef,
   CreateStateRead,
+  CreateStoryboardImage,
+  CreateStoryboardImages,
+  CreateCoverImage,
+  CreateCoverImageResult,
   CreateStyleKey,
   CreateTemplate,
   CreateTemplateInput,
@@ -45,6 +49,8 @@ export type {
   OutputCreateState,
 } from './create/types.ts'
 export { CREATE_CONTENT_TYPES, CREATE_GRADES, CREATE_REWRITE_OPERATIONS, CREATE_STYLES } from './create/types.ts'
+export type { CreateCoverPlan, CreateStoryboardShot } from './create/storyboard.ts'
+export { parseCreateCoverPlan, parseCreateStoryboard } from './create/storyboard.ts'
 
 /** Directory name of one output project under the library root. */
 export type OutputTopic = Branded<'OutputTopic'>

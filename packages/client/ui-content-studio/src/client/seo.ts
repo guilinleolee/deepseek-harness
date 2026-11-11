@@ -51,12 +51,41 @@ export function extractKeywords(text: string, cap = 8): string[] {
 }
 
 /**
+ * The placement stems the layout advice names, one locale key each
+ * (`create.seo.layout.<stem>`). The union is what lets the view look the
+ * key up without a cast, so a stem without a dictionary entry fails to
+ * compile rather than rendering the raw key.
+ */
+export type CreateLayoutStem =
+  | 'title'
+  | 'subtitle'
+  | 'hook'
+  | 'sections'
+  | 'cta'
+  | 'tags'
+  | 'firstImage'
+  | 'cards'
+  | 'shots'
+  | 'visual'
+  | 'line'
+  | 'duration'
+  | 'pauses'
+  | 'selling'
+  | 'pain'
+  | 'params'
+  | 'trust'
+  | 'structure'
+  | 'composition'
+  | 'palette'
+  | 'style'
+
+/**
  * The static layout advice of one content type, as locale stems
  * (`create.seo.layout.<key>`).
  * @param contentType - the content type.
  * @returns the placement stems in reading order.
  */
-export function layoutSuggestions(contentType: CreateContentType): readonly string[] {
+export function layoutSuggestions(contentType: CreateContentType): readonly CreateLayoutStem[] {
   switch (contentType) {
     case 'gzh-article': return ['title', 'hook', 'sections', 'cta', 'tags']
     case 'xhs-note': return ['title', 'firstImage', 'cards', 'tags']
@@ -64,6 +93,8 @@ export function layoutSuggestions(contentType: CreateContentType): readonly stri
     case 'voiceover': return ['hook', 'pauses', 'cta']
     case 'product-page': return ['selling', 'pain', 'params', 'trust', 'cta']
     case 'rewrite': return ['title', 'structure', 'tags']
+    case 'storyboard': return ['shots', 'visual', 'line', 'duration']
+    case 'cover': return ['title', 'subtitle', 'composition', 'palette', 'style']
     default: return ['title', 'sections', 'cta']
   }
 }

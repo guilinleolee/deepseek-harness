@@ -22,7 +22,7 @@ import {
   appendHashtagBlock, appendVersion, buildExportMarkdown, contentTypeKind, countWords, defaultManifest,
   deliverableName, exportFileName, formatHashtags, lineDiff, localMetrics, mergeManualSave, newId,
   pinVersion, readingMinutes, replaceRange, suggestHashtags, triggerClass, versionContent,
-  isBatchable, REWRITE_STYLES,
+  isBatchable, REWRITE_STYLES, SELECTION_OPS, CREATE_TYPE_IDS,
 } from './create.ts'
 import { scanBannedWords, type BannedHit } from './banned-words.ts'
 import type { TemplateController } from './template/template-store.ts'
@@ -54,13 +54,16 @@ export interface CreateGateway {
   }): Promise<CreateAiResult>
   rewriteCreateSelection(request: CreateRewriteRequest): Promise<CreateAiResult>
   evaluateCreateContent(request: { contentType: CreateContentType; title: string; text: string }): Promise<CreateEvaluation>
+  generateStoryboardImages(theme: string, storyboard: string): Promise<{
+    images: readonly { file: string; shot: number; mediaType: string; prompt: string }[]
+  }>
+  generateCoverImage(theme: string, cover: string): Promise<{
+    images: readonly { file: string; mediaType: string; prompt: string }[]
+  }>
   listCreateTemplates(): Promise<{ templates: readonly CreateTemplate[]; problems: readonly string[] }>
   putCreateTemplate(input: CreateTemplateInput): Promise<{ templates: readonly CreateTemplate[] }>
   deleteCreateTemplate(id: string): Promise<{ templates: readonly CreateTemplate[] }>
 }
-
-/** The selection rewrites the toolbar offers; titles runs on the whole text. */
-const SELECTION_OPS: readonly CreateRewriteOperation[] = ['condense', 'expand', 'style', 'perspective', 'extract', 'humanize-light', 'humanize-deep']
 
 /** One batch card of the multi-variant generation. */
 export type BatchCard = { kind: 'pending' } | { kind: 'done'; text: string } | { kind: 'failed'; detail: string }
@@ -171,6 +174,7 @@ export function CreateView({
     before: string
     after: string
   } | null>(null)
+  const [instruction, setInstruction] = useState('')
   const [banned, setBanned] = useState<readonly BannedHit[] | null>(null)
   const [overwritePending, setOverwritePending] = useState<string | null>(null)
   const [registerRetry, setRegisterRetry] = useState<string | null>(null)
@@ -569,6 +573,34 @@ export function CreateView({
     }
   }
 
+  /**
+   * Render the current draft's shots or cover fields into asset images. The
+   * storyboard and cover content types each own one button; a draft with
+   * neither structure produces nothing and says so.
+   */
+  const runRenderImages = async (): Promise<void> => {
+    if (editor === null || aiPending !== null) return
+    const contentType = editor.manifest.contentType
+    if (contentType !== 'storyboard' && contentType !== 'cover') return
+    setAiPending('rewrite')
+    setError(null)
+    try {
+      const result = contentType === 'storyboard'
+        ? await create.generateStoryboardImages(editor.theme, editor.text)
+        : await create.generateCoverImage(editor.theme, editor.text)
+      if (result.images.length === 0) {
+        setNotice(t('create.images.empty'))
+      } else {
+        setNotice(t('create.images.rendered').replace('{n}', String(result.images.length)))
+        await loadAssets()
+      }
+    } catch (cause) {
+      setError(t('create.aiFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
+    } finally {
+      setAiPending(null)
+    }
+  }
+
   const addSource = (file: string): void => {
     if (editor === null) return
     if (editor.manifest.sources.some(source => source.file === file)) return
@@ -618,8 +650,39 @@ export function CreateView({
     }
   }
 
-  const applyRewrite = async (): Promise<void> => {
-    if (editor === null || rewritePreview === null) return
+  /**
+   * The conversational revision: the user's own instruction revises the
+   * whole draft, and the diff preview gates the result exactly like the
+   * selection rewrites do.
+   */
+  const runCustomRevision = async (): Promise<void> => {
+    if (editor === null || aiPending !== null) return
+    if (instruction.trim().length === 0) {
+      setNotice(t('create.rewrite.needInstruction'))
+      return
+    }
+    if (editor.text.trim().length === 0) {
+      setNotice(t('create.rewrite.needSelection'))
+      return
+    }
+    setAiPending('rewrite')
+    setError(null)
+    try {
+      const result = await create.rewriteCreateSelection({
+        operation: 'custom',
+        style: null,
+        instruction: instruction.trim(),
+        text: editor.text,
+      })
+      setRewritePreview({ operation: 'custom', start: 0, end: editor.text.length, before: editor.text, after: result.text })
+    } catch (cause) {
+      setError(t('create.aiFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
+    } finally {
+      setAiPending(null)
+    }
+  }
+
+  const applyRewrite = async (): Promise<void> => {    if (editor === null || rewritePreview === null) return
     const nextText = replaceRange(editor.text, rewritePreview.start, rewritePreview.end, rewritePreview.after)
     const nextManifest = appendVersion(editor.manifest, {
       content: nextText,
@@ -904,7 +967,7 @@ export function CreateView({
           onChange={(event) => { setEditor({ ...editor, title: event.target.value }); setDirty(true) }}
         />
         <select value={editor.manifest.contentType} aria-label={t('create.type.label')} onChange={(event) => { void retarget(event.target.value as CreateContentType) }}>
-          {(['gzh-article', 'xhs-note', 'video-script', 'voiceover', 'product-page', 'rewrite'] as const).map(id => (
+          {CREATE_TYPE_IDS.map(id => (
             <option key={id} value={id}>{t(`create.type.${id}`)}</option>
           ))}
         </select>
@@ -1012,7 +1075,7 @@ export function CreateView({
             <span className={css.versionMeta}>{t('create.rewrite.label')}</span>
             {SELECTION_OPS.map(op => (
               <button key={op} type="button" disabled={aiPending !== null} onClick={() => { void runRewrite(op, REWRITE_STYLES[0] ?? null) }}>
-                {t(`create.op.${op}` as StudioKey)}
+                {t(`create.op.${op}`)}
               </button>
             ))}
             <select aria-label={t('create.op.style')} onChange={(event) => {
@@ -1023,7 +1086,21 @@ export function CreateView({
               {REWRITE_STYLES.map(style => <option key={style} value={style}>{t(`create.style.${style}`)}</option>)}
             </select>
             <button type="button" disabled={aiPending !== null} onClick={() => { void runTitles() }}>{t('create.op.titles')}</button>
+            {(editor.manifest.contentType === 'storyboard' || editor.manifest.contentType === 'cover') && (
+              <button type="button" className={workbenchCss.retry} disabled={aiPending !== null} onClick={() => { void runRenderImages() }}>
+                {editor.manifest.contentType === 'storyboard' ? t('create.images.storyboard') : t('create.images.cover')}
+              </button>
+            )}
             <button type="button" disabled={aiPending !== null} onClick={() => { void runEvaluate() }}>{t('create.evaluate')}</button>
+            <span className={css.versionMeta}>{t('create.rewrite.instruction.label')}</span>
+            <input
+              className={workbenchCss.compInput}
+              value={instruction}
+              placeholder={t('create.rewrite.instruction.placeholder')}
+              aria-label={t('create.rewrite.instruction.label')}
+              onChange={(event) => { setInstruction(event.target.value) }}
+            />
+            <button type="button" disabled={aiPending !== null} onClick={() => { void runCustomRevision() }}>{t('create.op.custom')}</button>
             {templateLibrary != null && (
               <button
                 type="button"
@@ -1180,7 +1257,7 @@ export function CreateView({
                 <span className={css.versionMeta}>{t('create.seo.layout')}</span>
                 {layoutSuggestions(editor.manifest.contentType).map(stem => (
                   <div key={stem} className={css.bannedRow}>
-                    <span className={css.versionMeta}>· {t(`create.seo.layout.${stem}` as StudioKey)}</span>
+                    <span className={css.versionMeta}>· {t(`create.seo.layout.${stem}`)}</span>
                   </div>
                 ))}
               </div>

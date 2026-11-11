@@ -462,6 +462,8 @@
       "@deepseek-ai/dsh-content-outputs": ["./packages/creation/content-outputs/src"],
       "@deepseek-ai/dsh-content-schedule": ["./packages/creation/content-schedule/src"],
       "@deepseek-ai/dsh-content-topics": ["./packages/creation/content-topics/src"],
+      "@deepseek-ai/dsh-image-generation": ["./packages/media/image-generation/src/index.ts"],
+      "@deepseek-ai/dsh-image-generation/types": ["./packages/media/image-generation/src/types.ts"],
       "@deepseek-ai/dsh-credentials": ["./packages/credentials/credentials/src"],
       "@deepseek-ai/dsh-credentials-local": ["./packages/credentials/credentials-local/src"],
       "@deepseek-ai/dsh-cua-bundle": ["./packages/experimental/cua-bundle/src"],

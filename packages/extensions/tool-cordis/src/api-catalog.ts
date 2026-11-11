@@ -1994,6 +1994,32 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'imageGeneration',
+    summary: 'The image-generation service: the provider registry and the request path every consumer shares.',
+    description: 'The image-generation service: the provider registry and the request path every consumer shares.',
+    methods: [
+      {
+        signature: 'register(provider: ImageGenerationProvider): () => void',
+        description: 'Register one provider; a duplicate route id fails without replacing the original.',
+        parameters: [{ name: 'provider', description: 'the provider owned by the contributing fiber.' }],
+        returns: 'the disposer that removes it.',
+      },
+      {
+        signature: 'list(): readonly ImageProviderInfo[]',
+        description: 'The registered provider routes, in registration order.',
+        parameters: [],
+        returns: 'the route identities and display names.',
+      },
+      {
+        signature: 'async generate(request: ImageGenerationRequest, signal?: AbortSignal): Promise<readonly ImageGenerationResult[]>',
+        description: 'Produce images for one request. The request\'s empty provider, model, and dimensions take the configured defaults before validation.',
+        parameters: [{ name: 'request', description: 'the request.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the produced images.',
+        throws: ['an {@link ImageGenerationError} when no provider serves the route, the request violates the request contract, or the provider fails.'],
+      },
+    ],
+  },
+  {
     key: 'inspector',
     summary: 'Shared Host/Client service façade over the realm\'s source publisher.',
     description: 'Shared Host/Client service façade over the realm\'s source publisher.',
@@ -7193,8 +7219,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ImageBlock {\n    type: \'image\';\n    attachment: ImageAttachmentRef;\n    offloaded?: true;\n}',
   },
   {
+    name: 'ImageGenerationProvider',
+    declaration: 'export interface ImageGenerationProvider {\n    readonly info: ImageProviderInfo;\n    generate(request: ImageGenerationRequest, signal?: AbortSignal): Promise<readonly ImageGenerationResult[]>;\n}',
+  },
+  {
+    name: 'ImageGenerationRequest',
+    declaration: 'export interface ImageGenerationRequest {\n    readonly providerId: string;\n    readonly prompt: string;\n    readonly model: string;\n    readonly width: number;\n    readonly height: number;\n    readonly count: number;\n}',
+  },
+  {
+    name: 'ImageGenerationResult',
+    declaration: 'export interface ImageGenerationResult {\n    readonly bytes: Uint8Array;\n    readonly mediaType: string;\n    readonly model: string;\n}',
+  },
+  {
     name: 'ImageMediaType',
     declaration: 'export type ImageMediaType = \'image/png\' | \'image/jpeg\' | \'image/webp\' | \'image/gif\';',
+  },
+  {
+    name: 'ImageProviderInfo',
+    declaration: 'export interface ImageProviderInfo {\n    readonly id: string;\n    readonly name: string;\n}',
   },
   {
     name: 'ImageRequestTarget',

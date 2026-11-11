@@ -5,7 +5,7 @@
  * no Node or filesystem imports.
  */
 
-/** The six built-in content types of the create workbench. */
+/** The eight built-in content types of the create workbench. */
 export type CreateContentType =
   | 'gzh-article'
   | 'xhs-note'
@@ -13,6 +13,8 @@ export type CreateContentType =
   | 'voiceover'
   | 'product-page'
   | 'rewrite'
+  | 'storyboard'
+  | 'cover'
 
 /** All content types, in picker order; the store and the AI face validate against this list. */
 export const CREATE_CONTENT_TYPES: readonly CreateContentType[] = [
@@ -22,6 +24,8 @@ export const CREATE_CONTENT_TYPES: readonly CreateContentType[] = [
   'voiceover',
   'product-page',
   'rewrite',
+  'storyboard',
+  'cover',
 ]
 
 /** Style switch for the `style` rewrite operation. */
@@ -37,6 +41,7 @@ export type CreateRewriteOperation =
   | 'humanize-light'
   | 'humanize-deep'
   | 'titles'
+  | 'custom'
 
 /** All rewrite operations, in toolbar order. */
 export const CREATE_REWRITE_OPERATIONS: readonly CreateRewriteOperation[] = [
@@ -48,6 +53,7 @@ export const CREATE_REWRITE_OPERATIONS: readonly CreateRewriteOperation[] = [
   'humanize-light',
   'humanize-deep',
   'titles',
+  'custom',
 ]
 
 /** Style choices of the `style` operation, in toolbar order. */
@@ -214,6 +220,13 @@ export interface CreateRewriteRequest {
   readonly operation: CreateRewriteOperation
   /** Style key for the `style` operation; ignored otherwise. */
   readonly style: CreateStyleKey | null
+  /**
+   * The user's own instruction for the `custom` operation; ignored
+   * otherwise. The instruction is a bounded prompt fragment, never a
+   * replacement for the rewrite contract. Absent on requests written before
+   * the operation existed.
+   */
+  readonly instruction?: string | null
   readonly text: string
 }
 
@@ -268,4 +281,36 @@ export interface CreateTemplateList {
   readonly templates: readonly CreateTemplate[]
   /** Why stored entries (or the whole bank) were rejected; empty when clean. */
   readonly problems: readonly string[]
+}
+
+/** One generated storyboard image and its prompt. */
+export interface CreateStoryboardImage {
+  /** The asset file name inside the theme's `assets/` directory. */
+  readonly file: string
+  /** The 1-based shot position the image renders. */
+  readonly shot: number
+  /** The media type of the stored image. */
+  readonly mediaType: string
+  /** The prompt the image was generated from. */
+  readonly prompt: string
+}
+
+/** Result of one storyboard image generation pass. */
+export interface CreateStoryboardImages {
+  readonly images: readonly CreateStoryboardImage[]
+}
+
+/** One generated cover image and its prompt. */
+export interface CreateCoverImage {
+  /** The asset file name inside the theme's `assets/` directory. */
+  readonly file: string
+  /** The media type of the stored image. */
+  readonly mediaType: string
+  /** The prompt the image was generated from. */
+  readonly prompt: string
+}
+
+/** Result of one cover image generation pass. */
+export interface CreateCoverImageResult {
+  readonly images: readonly CreateCoverImage[]
 }

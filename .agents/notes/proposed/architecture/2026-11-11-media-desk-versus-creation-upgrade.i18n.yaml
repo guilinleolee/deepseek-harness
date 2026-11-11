@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-11-media-desk-versus-creation-upgrade.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-11-11-media-desk-versus-creation-upgrade.md
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain:
+  en: b8b71f961f1afaf8
+  zh: 080590b254001fb5
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/problem:
+  en: 5fc3a83852b9d3f4
+  zh: bedef752c311e9fb
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/proposal:
+  en: 2d5efc1efd47d3d0
+  zh: 85744933fa6eae30
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/proposal/what-is-deliberately-not-ported:
+  en: 7d38524460bcb051
+  zh: 06fac6fd493eebd1
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/alternatives-considered:
+  en: c7ba108796849c1d
+  zh: 10c364782521d15d
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/acceptance-criteria:
+  en: e5f4be3a714ace2b
+  zh: 12ac5097cd638b67
+/agent-note-dsh-media-desk-versus-the-in-tree-creation-domain/risks:
+  en: 8bae062560865a87
+  zh: a4d79f9754deaeee

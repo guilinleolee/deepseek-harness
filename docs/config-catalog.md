@@ -843,7 +843,7 @@ export interface ToolResultPruneConfig {
 ## `@deepseek-ai/dsh-content-outputs`
 
 - `inject`: `llm`
-- `source`: [`packages/creation/content-outputs/src/index.ts:181`](../packages/creation/content-outputs/src/index.ts)
+- `source`: [`packages/creation/content-outputs/src/index.ts:185`](../packages/creation/content-outputs/src/index.ts)
 
 ```ts config-catalog
 /** Content-outputs Remote configuration. */
@@ -2043,6 +2043,38 @@ export interface TlsConfig {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-host-webserver -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-image-generation -->
+<a id="deepseek-aidsh-image-generation"></a>
+
+## `@deepseek-ai/dsh-image-generation`
+
+- `inject`: `credentials`
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/media/image-generation/src/index.ts:40`](../packages/media/image-generation/src/index.ts)
+
+```ts config-catalog
+/** The connection and selection settings of the image-generation capability. */
+export interface Config {
+  /** The provider route used when a request names none. */
+  defaultProvider: Volatile<string>
+  /** The model used when a request names none; empty leaves the provider's own default. */
+  defaultModel: Volatile<string>
+  /** The image width used when a request names none; `0` leaves the provider's own default. */
+  defaultWidth: Volatile<number>
+  /** The image height used when a request names none; `0` leaves the provider's own default. */
+  defaultHeight: Volatile<number>
+  /**
+   * The OpenAI-compatible API base including its path prefix;
+   * `/images/generations` is appended. Empty leaves the bundled provider
+   * without an endpoint, so every request fails until it is set.
+   */
+  baseURL: Volatile<string>
+  /** The credential reference of the bundled provider; empty means no credential. */
+  apiKeyEnv: Volatile<string>
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-image-generation -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-jobs-local -->
 <a id="deepseek-aidsh-jobs-local"></a>

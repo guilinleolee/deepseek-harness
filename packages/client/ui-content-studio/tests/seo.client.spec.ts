@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { extractKeywords, geoKeywords, layoutSuggestions } from '../src/client/seo.ts'
+import { CREATE_TYPES } from '../src/client/create.ts'
+import { en, zh } from '../src/client/locales.ts'
 
 describe('extractKeywords', () => {
   it('ranks repeated CJK bigrams first and drops stopwords', () => {
@@ -28,6 +30,20 @@ describe('layoutSuggestions', () => {
     expect(layoutSuggestions('gzh-article')).toEqual(['title', 'hook', 'sections', 'cta', 'tags'])
     expect(layoutSuggestions('xhs-note')).toEqual(['title', 'firstImage', 'cards', 'tags'])
     expect(layoutSuggestions('product-page')).toContain('trust')
+  })
+
+  it('advises the shot structure for a storyboard and the cover fields for a cover plan', () => {
+    expect(layoutSuggestions('storyboard')).toEqual(['shots', 'visual', 'line', 'duration'])
+    expect(layoutSuggestions('cover')).toEqual(['title', 'subtitle', 'composition', 'palette', 'style'])
+  })
+
+  it('names only stems the dictionary carries', () => {
+    for (const contentType of CREATE_TYPES.map(entry => entry.id)) {
+      for (const stem of layoutSuggestions(contentType)) {
+        expect(zh).toHaveProperty(`create.seo.layout.${stem}`)
+        expect(en).toHaveProperty(`create.seo.layout.${stem}`)
+      }
+    }
   })
 })
 

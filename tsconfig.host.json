@@ -591,6 +591,7 @@
     { "path": "./packages/creation/content-topics" },
     { "path": "./packages/growth/customer-acquisition" },
     { "path": "./packages/growth/customer-acquisition-geo" },
+    { "path": "./packages/media/image-generation" },
     { "path": "./packages/quant/quant-research" },
     { "path": "./packages/boot/plugin-manager" },
     { "path": "./packages/boot/plugin-market" },

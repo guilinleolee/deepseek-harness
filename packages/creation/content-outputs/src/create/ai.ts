@@ -9,6 +9,7 @@
 import pRetry from 'p-retry'
 import PQueue from 'p-queue'
 import type { Context } from '@deepseek-ai/cordis'
+import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type {
   CreateContentType, CreateEvaluateRequest, CreateEvaluation, CreateEvaluationDimension, CreateGrade,
   CreateGenerateRequest, CreateRewriteOperation, CreateRewriteRequest, CreateStyleKey, CreateAiResult,
@@ -23,8 +24,12 @@ import { assertTemplateBody } from './store.ts'
 /** Timeout reason code carried by aborted create AI calls. */
 export const CREATE_AI_TIMEOUT_CODE = 'CREATE_AI_TIMEOUT'
 
-/** Prompt vocabulary version pinned into every result for origin. */
-export const CREATE_PROMPT_VERSION = 1
+/**
+ * Prompt vocabulary version pinned into every result for origin. Version 2
+ * adds the `storyboard` and `cover` type briefs and the `custom` rewrite
+ * operation, so a version-1 result never came from the current vocabulary.
+ */
+export const CREATE_PROMPT_VERSION = 2
 
 /** Chinese labels of the style switch, as the prompts phrase them. */
 const STYLE_LABELS: Record<CreateStyleKey, string> = {
@@ -35,7 +40,7 @@ const STYLE_LABELS: Record<CreateStyleKey, string> = {
   concise: '简短有力',
 }
 
-/** Per-type creation briefs: the six built-in templates' output contracts. */
+/** Per-type creation briefs: the eight built-in templates' output contracts. */
 const TYPE_BRIEFS: Record<CreateContentType, string> = {
   'gzh-article': [
     '写一篇公众号文章：给出 1 个主标题（吸睛但不标题党）、一段导语（3 句内建立钩子）、',
@@ -64,6 +69,18 @@ const TYPE_BRIEFS: Record<CreateContentType, string> = {
   rewrite: [
     '对给定素材做文案二创：保留核心事实与观点，重写表达。先给 1 个新标题，再输出改写',
     '后的全文，Markdown 输出。不要逐句翻译式改写，要重组结构换个讲法。',
+  ].join(''),
+  storyboard: [
+    '写一份短视频分镜表：固定 6 个镜头，每镜一个小节，标题行写成「## 镜头 N · 本镜作用（时长秒数）」；',
+    '每镜正文恰好三行，以「画面：」「台词：」「时长：」开头，各占一行。',
+    '画面行要具体到主体、动作、景别与光线，供后续出图直接使用；台词行是该镜要说的原话；',
+    '时长行只写一个秒数。6 镜时长之和控制在 45-90 秒，第一镜是钩子，最后一镜是行动引导。',
+  ].join(''),
+  cover: [
+    '写一份短视频封面方案：一级标题行写成「## 封面方案」，正文恰好五行，以「主标题：」「副标题：」',
+    '「构图：」「配色：」「画面风格：」开头，各占一行。',
+    '主标题 12 字以内且与内容主体一致，不做标题党；副标题 20 字以内；',
+    '构图行写主体位置、景别与留白区域；配色行给主色与辅色（2-3 个色名或色值）。',
   ].join(''),
 }
 
@@ -117,7 +134,10 @@ function rewriteBrief(operation: CreateRewriteOperation, style: CreateStyleKey |
       '保留全部事实与核心观点，信息量只增不减。',
     ].join('')
     case 'titles': return '从全文提炼 5 个备选标题：角度覆盖悬念、数字、痛点、反差、利益承诺，每行一个标题，不要序号，不要解释。'
-    default: return '改写这段文字。'
+    // The user's own instruction is the brief; it reaches the prompt through
+    // `rewriteSystemPrompt`, which bounds it with the shared discipline.
+    case 'custom': return '按用户给的指令修改这段文字。'
+    default: return assertNever(operation)
   }
 }
 
@@ -128,11 +148,19 @@ function rewriteBrief(operation: CreateRewriteOperation, style: CreateStyleKey |
  * @returns the complete system prompt.
  */
 export function rewriteSystemPrompt(request: CreateRewriteRequest): string {
-  return [
+  const lines = [
     '你是内容创作工作台的改写助手。遵守：只输出改写结果本身，保留原文的事实信息，',
     '不要输出解释或对比说明。',
-    rewriteBrief(request.operation, request.style),
-  ].join('\n')
+  ]
+  if (request.operation === 'custom') {
+    // The user's instruction carries the change; the shared discipline above
+    // still bounds it, so a stray "ignore previous instructions" cannot
+    // widen the contract.
+    lines.push(`按用户给的指令修改这段文字：${request.instruction ?? ''}`)
+  } else {
+    lines.push(rewriteBrief(request.operation, request.style))
+  }
+  return lines.join('\n')
 }
 
 /**
@@ -149,6 +177,9 @@ export function frameGenerateRequest(request: CreateGenerateRequest, maxInputCha
   return generateFramedPrompt(request).slice(0, maxInputChars)
 }
 
+/** The cap on a user-written custom instruction; a prompt fragment, not a document. */
+export const CREATE_MAX_INSTRUCTION_CHARS = 500
+
 /**
  * Validate one rewrite request; shared by the remote face.
  * @param request - the raw request.
@@ -161,6 +192,13 @@ export function validateRewriteRequest(request: CreateRewriteRequest, maxInputCh
   }
   if (request.operation === 'style' && (request.style === null || !(CREATE_STYLES as readonly string[]).includes(request.style))) {
     throw new Error('create rewrite style operation needs a valid style key')
+  }
+  if (request.operation === 'custom') {
+    const instruction = request.instruction ?? ''
+    if (instruction.trim().length === 0) throw new Error('create rewrite custom operation needs a non-empty instruction')
+    if (instruction.length > CREATE_MAX_INSTRUCTION_CHARS) {
+      throw new Error(`create rewrite instruction exceeds the ${CREATE_MAX_INSTRUCTION_CHARS}-character cap`)
+    }
   }
   const text = request.text
   if (text.trim().length === 0) throw new Error('create rewrite selection is empty')

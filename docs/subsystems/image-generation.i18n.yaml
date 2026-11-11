@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for image-generation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/image-generation.md
+/image-generation:
+  en: 9110d258b155c27c
+  zh: 94b59e42ff81af25
+/image-generation/request-and-result:
+  en: 5b074278c6aa1e12
+  zh: 843b798dce44cc20
+/image-generation/providers:
+  en: 57c0be0b5e02cf71
+  zh: 85a511bfba3a5ab1
+/image-generation/failure-behavior:
+  en: 18795c1d807c8010
+  zh: fdfa48cb13aab99b

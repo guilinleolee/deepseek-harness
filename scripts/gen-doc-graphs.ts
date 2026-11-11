@@ -274,6 +274,11 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Authorized Office bytes are converted on the Host using the declared native target engine, or Node WASM when no native target is declared.',
   },
   {
+    key: 'imageGeneration', pkg: 'image-generation', title: 'Image generation',
+    mode: 'seam', implementations: ['image-generation'], consumers: ['content-outputs'],
+    note: 'Named provider routes produce images from one prompt; the bundled OpenAI-compatible provider reads its endpoint and credential from settings, and a consumer that wants a model-facing tool registers one itself.',
+  },
+  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

@@ -42,6 +42,12 @@ Retention: per source, the newest 50 `unread`/`read` materials stay in a theme; 
 
 `extractCreateCopy` fetches the article page behind a pasted link and reduces it to title plus visible prose through the gather sanitization allowlist — network reading only, nothing is persisted, and the fetch happens gateway-side because the browser cannot reach cross-origin article pages. Non-http(s) URLs are rejected before fetching; a non-2xx response, a page over the response-size cap, or prose past the stored-text cap (which truncates and flags `truncated`) are the only failure modes the caller sees.
 
+Eight content types frame the generation prompt, and two of them produce structured documents the image face parses back: `storyboard` (six shots, each carrying a visual, a spoken line, and a duration) and `cover` (main title, subtitle, composition, palette, and style). `parseCreateStoryboard` and `parseCreateCoverPlan` read those documents field-wise; a missing field reads as empty or null rather than rejecting the draft, because a partially conforming document is still the user's draft.
+
+The `custom` rewrite operation carries a user-written instruction instead of a fixed toolbar brief. The instruction is bounded to 500 characters and reaches the prompt under the same "keep the facts, output only the rewrite" discipline as every other operation, so it cannot widen the output contract.
+
+`generateStoryboardImages` and `generateCoverImage` render a parsed document's visuals into asset images through the shared `ctx.imageGeneration` service and store them under `assets/` with an atomic, locked commit. The service is read per call, so a composition may mount it after this gateway; when it is absent the call fails with an error naming the package to mount, and the caller keeps the text-only path. Shots with no visual are skipped, and nothing beyond the image files is persisted.
+
 ## Sentiment faces
 
 The opinion-monitoring storage is one root-level `_sentiment.json` manifest (tasks, mentions, alerts, settings, and the newest report; `formatVersion 0`) following the persona manifest rules: a malformed record is named in `problems` and never hides the rest, and every write refuses to touch a file whose current parse dropped records.
@@ -73,6 +79,7 @@ None retained. Every call is an isolated one-shot with no shared conversation pr
 - **Projection stays read-only** — `list` never mutates; creating and updating output projects is still the agent's job through its own tools. The gather face writes only `assets/` system files, never deliverables.
 - **Deliverable bytes still need a file surface** — the projection carries names and counts only.
 - **Fresh format** — `formatVersion 0` manifests and metadata have no compatibility promise, per the repository's pre-release stance.
+- **Image faces are outside the freemium gate** — `generateStoryboardImages` and `generateCoverImage` spend the deployment's own image-provider credential, not the LLM budget the create quota meters, so they charge no counter; a deployment that wants a spend cap gates them at its image provider.
 
 <a id="dev-note"></a>
 ### Dev Note

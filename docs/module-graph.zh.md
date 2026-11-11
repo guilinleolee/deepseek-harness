@@ -385,6 +385,9 @@ flowchart TD
     pkg_mcp_manager["mcp-manager"]
     pkg_mcp_resources["mcp-resources"]
   end
+  subgraph group_media["packages/media"]
+    pkg_image_generation["image-generation"]
+  end
   subgraph group_preset["packages/preset"]
     pkg_agent_preset["agent-preset"]
     pkg_agent_preset_registry["agent-preset-registry"]
@@ -517,11 +520,6 @@ flowchart TD
   pkg_browser_use --> pkg_brand
   pkg_client_connection --> pkg_scope
   pkg_computer_use --> pkg_brand
-  pkg_content_outputs --> pkg_brand
-  pkg_content_outputs --> pkg_home_paths
-  pkg_content_outputs --> pkg_llm
-  pkg_content_outputs --> pkg_timeout
-  pkg_content_outputs --> pkg_typert_protocol
   pkg_content_schedule --> pkg_atomic_write
   pkg_content_schedule --> pkg_brand
   pkg_content_schedule --> pkg_home_paths
@@ -544,6 +542,7 @@ flowchart TD
   pkg_anonymous_user_id --> pkg_home_paths
   pkg_lsp --> pkg_brand
   pkg_lsp --> pkg_llm
+  pkg_image_generation --> pkg_credentials
   pkg_storage_domain --> pkg_storage
   pkg_storage_json --> pkg_storage
   pkg_storage_sqlite --> pkg_storage
@@ -561,14 +560,12 @@ flowchart TD
   pkg_attachment_local --> pkg_home_paths
   pkg_hmr --> pkg_app_boot
   pkg_hmr --> pkg_cmdline
-  pkg_client_ui_content_studio --> pkg_client_locale
-  pkg_client_ui_content_studio --> pkg_client_ui_layout
-  pkg_client_ui_content_studio --> pkg_client_ui_renderer
-  pkg_client_ui_content_studio --> pkg_client_ui_sidebar
-  pkg_client_ui_content_studio --> pkg_content_outputs
-  pkg_client_ui_content_studio --> pkg_content_schedule
-  pkg_client_ui_content_studio --> pkg_content_topics
-  pkg_client_ui_content_studio --> pkg_typert_protocol
+  pkg_content_outputs --> pkg_brand
+  pkg_content_outputs --> pkg_home_paths
+  pkg_content_outputs --> pkg_image_generation
+  pkg_content_outputs --> pkg_llm
+  pkg_content_outputs --> pkg_timeout
+  pkg_content_outputs --> pkg_typert_protocol
   pkg_deliverable_file_references --> pkg_system_prompt
   pkg_experimental_computer_use_cua_driver_mcp --> pkg_computer_use
   pkg_experimental_forge_github --> pkg_experimental_forge
@@ -615,6 +612,14 @@ flowchart TD
   pkg_session_log_export --> pkg_session_persistence
   pkg_config_editor --> pkg_app_boot
   pkg_config_editor --> pkg_hmr
+  pkg_client_ui_content_studio --> pkg_client_locale
+  pkg_client_ui_content_studio --> pkg_client_ui_layout
+  pkg_client_ui_content_studio --> pkg_client_ui_renderer
+  pkg_client_ui_content_studio --> pkg_client_ui_sidebar
+  pkg_client_ui_content_studio --> pkg_content_outputs
+  pkg_client_ui_content_studio --> pkg_content_schedule
+  pkg_client_ui_content_studio --> pkg_content_topics
+  pkg_client_ui_content_studio --> pkg_typert_protocol
   pkg_experimental_speech_to_text --> pkg_settings
   pkg_experimental_translator --> pkg_credentials
   pkg_experimental_translator --> pkg_launch_environment
@@ -1752,7 +1757,6 @@ flowchart TD
 | [`browser-use`](../packages/browser-use/browser-use) | `browser-use` | [`brand`](../packages/util/brand) |
 | [`client-connection`](../packages/client/connection) | `client` | [`scope`](../packages/core/scope) |
 | [`computer-use`](../packages/computer-use/computer-use) | `computer-use` | [`brand`](../packages/util/brand) |
-| [`content-outputs`](../packages/creation/content-outputs) | `creation` | [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths), [`llm`](../packages/llm/llm), [`timeout`](../packages/util/timeout), [`typert-protocol`](../packages/typert/protocol) |
 | [`content-schedule`](../packages/creation/content-schedule) | `creation` | [`atomic-write`](../packages/util/atomic-write), [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths), [`typert-protocol`](../packages/typert/protocol) |
 | [`content-topics`](../packages/creation/content-topics) | `creation` | [`atomic-write`](../packages/util/atomic-write), [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths), [`typert-protocol`](../packages/typert/protocol) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`llm`](../packages/llm/llm) |
@@ -1761,6 +1765,7 @@ flowchart TD
 | [`experimental-liveshare`](../packages/experimental/liveshare) | `experimental` | [`scope`](../packages/core/scope) |
 | [`anonymous-user-id`](../packages/identity/anonymous-user-id) | `identity` | [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths) |
 | [`lsp`](../packages/lsp/lsp) | `lsp` | [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm) |
+| [`image-generation`](../packages/media/image-generation) | `media` | [`credentials`](../packages/credentials/credentials) |
 | [`storage-domain`](../packages/storage/storage-domain) | `storage` | [`storage`](../packages/storage/storage) |
 | [`storage-json`](../packages/storage/storage-json) | `storage` | [`storage`](../packages/storage/storage) |
 | [`storage-sqlite`](../packages/storage/storage-sqlite) | `storage` | [`storage`](../packages/storage/storage) |
@@ -1773,7 +1778,7 @@ flowchart TD
 | [`api-terminal-controller`](../packages/api/terminal-controller) | `api` | [`subprocess`](../packages/subprocess/subprocess) |
 | [`attachment-local`](../packages/attachment/attachment-local) | `attachment` | [`attachment`](../packages/attachment/attachment), [`home-paths`](../packages/util/home-paths) |
 | [`hmr`](../packages/boot/hmr) | `boot` | [`app-boot`](../packages/boot/app-boot), [`cmdline`](../packages/boot/cmdline) |
-| [`client-ui-content-studio`](../packages/client/ui-content-studio) | `client` | [`client-locale`](../packages/client/locale), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-renderer`](../packages/client/ui-renderer), [`client-ui-sidebar`](../packages/client/ui-sidebar), [`content-outputs`](../packages/creation/content-outputs), [`content-schedule`](../packages/creation/content-schedule), [`content-topics`](../packages/creation/content-topics), [`typert-protocol`](../packages/typert/protocol) |
+| [`content-outputs`](../packages/creation/content-outputs) | `creation` | [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths), [`image-generation`](../packages/media/image-generation), [`llm`](../packages/llm/llm), [`timeout`](../packages/util/timeout), [`typert-protocol`](../packages/typert/protocol) |
 | [`deliverable-file-references`](../packages/deliverables/deliverable-file-references) | `deliverables` | [`system-prompt`](../packages/core/system-prompt) |
 | [`experimental-computer-use-cua-driver-mcp`](../packages/experimental/computer-use-cua-driver-mcp) | `experimental` | [`computer-use`](../packages/computer-use/computer-use) |
 | [`experimental-forge-github`](../packages/experimental/forge-github) | `experimental` | [`experimental-forge`](../packages/experimental/forge), [`subprocess`](../packages/subprocess/subprocess) |
@@ -1797,6 +1802,7 @@ flowchart TD
 | [`spill-local`](../packages/spill/spill-local) | `spill` | [`spill`](../packages/spill/spill) |
 | [`session-log-export`](../packages/session-query/session-log-export) | `session-query` | [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence) |
 | [`config-editor`](../packages/boot/config-editor) | `boot` | [`app-boot`](../packages/boot/app-boot), [`hmr`](../packages/boot/hmr) |
+| [`client-ui-content-studio`](../packages/client/ui-content-studio) | `client` | [`client-locale`](../packages/client/locale), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-renderer`](../packages/client/ui-renderer), [`client-ui-sidebar`](../packages/client/ui-sidebar), [`content-outputs`](../packages/creation/content-outputs), [`content-schedule`](../packages/creation/content-schedule), [`content-topics`](../packages/creation/content-topics), [`typert-protocol`](../packages/typert/protocol) |
 | [`experimental-speech-to-text`](../packages/experimental/speech-to-text) | `experimental` | [`settings`](../packages/settings/settings) |
 | [`experimental-translator`](../packages/experimental/translator) | `experimental` | [`credentials`](../packages/credentials/credentials), [`launch-environment`](../packages/util/launch-environment), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`timeout`](../packages/util/timeout), [`util-values`](../packages/util/values) |
 | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel) | `host` | [`otel`](../packages/telemetry/otel) |

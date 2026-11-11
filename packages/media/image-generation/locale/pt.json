@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Geração de imagens",
+    "description": "Gere imagens por meio de um serviço neutro em relação ao provedor, com um provedor compatível com OpenAI incluído."
+  }
+}

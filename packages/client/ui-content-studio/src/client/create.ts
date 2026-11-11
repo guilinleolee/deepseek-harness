@@ -11,7 +11,7 @@ import type {
   CreateVersion, OutputKind,
 } from '@deepseek-ai/dsh-content-outputs/types'
 
-/** The six built-in content types with the coarse `kind` they map to in metadata. */
+/** The eight built-in content types with the coarse `kind` they map to in metadata. */
 export const CREATE_TYPES: readonly { id: CreateContentType; kind: OutputKind }[] = [
   { id: 'gzh-article', kind: 'article' },
   { id: 'xhs-note', kind: 'xhs-note' },
@@ -19,10 +19,21 @@ export const CREATE_TYPES: readonly { id: CreateContentType; kind: OutputKind }[
   { id: 'voiceover', kind: 'audio' },
   { id: 'product-page', kind: 'other' },
   { id: 'rewrite', kind: 'other' },
+  { id: 'storyboard', kind: 'video' },
+  { id: 'cover', kind: 'poster' },
 ]
 
-/** Rewrite operations of the selection toolbar, in order. */
-export const REWRITE_OPS: readonly CreateRewriteOperation[] = ['condense', 'expand', 'style', 'perspective', 'extract']
+/** The content type ids, in picker order; the picker renders this list. */
+export const CREATE_TYPE_IDS: readonly CreateContentType[] = CREATE_TYPES.map(entry => entry.id)
+
+/**
+ * The rewrite operations that act on the editor selection, in toolbar order.
+ * The `custom` operation is not here: it revises the whole draft from a
+ * user-written instruction.
+ */
+export const SELECTION_OPS: readonly CreateRewriteOperation[] = [
+  'condense', 'expand', 'style', 'perspective', 'extract', 'humanize-light', 'humanize-deep',
+]
 
 /** Style choices of the `style` operation, in order. */
 export const REWRITE_STYLES: readonly CreateStyleKey[] = ['professional', 'friendly', 'hardcore', 'story', 'concise']

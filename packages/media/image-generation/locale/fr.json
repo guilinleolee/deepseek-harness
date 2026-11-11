@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Génération d'images",
+    "description": "Produisez des images via un service neutre vis-à-vis du fournisseur, avec un fournisseur compatible OpenAI intégré."
+  }
+}

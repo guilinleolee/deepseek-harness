@@ -13,14 +13,16 @@ import type Schema from '@deepseek-ai/schemastery'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { join } from 'node:path'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
+import type ImageGeneration from '@deepseek-ai/dsh-image-generation'
+import type {} from '@deepseek-ai/dsh-image-generation'
 // Typert-generated ./typert and ./remote artifacts import Zod at runtime.
 import type {} from 'zod'
 import type {
   CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult, CompetitorManifest,
   CompetitorManifestRead, CompetitorReportRequest, CompetitorReportResult,
-  ContentOutputsSnapshot, CreateAiResult, CreateAssetList, CreateEvaluateRequest,
+  ContentOutputsSnapshot, CreateAiResult, CreateAssetList, CreateCoverImageResult, CreateEvaluateRequest,
   CreateEvaluation, CreateExtractResult, CreateGenerateRequest, CreateManifest, CreatePublishRequest,
-  CreatePublishResult, CreateRegisterRequest, CreateRewriteRequest, CreateStateRead,
+  CreatePublishResult, CreateRegisterRequest, CreateRewriteRequest, CreateStateRead, CreateStoryboardImages,
   CreateTemplateInput, CreateTemplateList,
   GatherAiRequest, GatherAiResult, GatherAssetMove, GatherAssetWrite, GatherFeedRequest,
   GatherFeedResult, GatherManifest, GatherManifestRead, OutputMetadata,
@@ -61,6 +63,8 @@ import {
 } from './create/store.ts'
 import { CreateAiProcessor } from './create/ai.ts'
 import { extractArticleCopy } from './create/extract.ts'
+import { generateCoverImage, generateStoryboardImages } from './create/images.ts'
+import { parseCreateCoverPlan, parseCreateStoryboard } from './create/storyboard.ts'
 import { CreateQuotaGate, type CreateQuotaConfig } from './create/quota.ts'
 import {
   PERSONAS_FILENAME, deletePersonaFile, putPersonaFile, putPersonaReportFile, readPersonasFile,
@@ -265,6 +269,19 @@ export class ContentOutputsGateway extends TypertRemoteService {
 
   /** Freemium gate over the create AI faces. */
   private readonly createQuota: CreateQuotaGate
+
+  /**
+   * The shared image-generation service, read per call. Reading it at
+   * request time is what lets a composition mount the service after this
+   * gateway (or reload it) without a construction-order dependency.
+   */
+  private requireImageGeneration(): ImageGeneration {
+    const service = this.ctx.get('imageGeneration')
+    if (service === undefined) {
+      throw new Error('image generation is not available: mount @deepseek-ai/dsh-image-generation and configure its endpoint')
+    }
+    return service
+  }
 
   /** Browser-session capture processor behind the persona view's social-login reads. */
   private readonly social: SocialCaptureProcessor
@@ -620,6 +637,41 @@ export class ContentOutputsGateway extends TypertRemoteService {
   async rewriteCreateSelection(request: CreateRewriteRequest): Promise<CreateAiResult> {
     await this.createQuota.consumeRewrite()
     return this.createAi.rewrite(request)
+  }
+
+  /**
+   * Render one storyboard's shots into asset images through the shared image
+   * generation service. Shots with no visual are skipped; nothing else is
+   * persisted. Absent image generation reads as a named failure so the UI can
+   * offer the text-only path.
+   * @param theme - outputs-project directory name.
+   * @param storyboard - the generated storyboard text.
+   * @param signal - caller cancellation.
+   * @returns the stored shot images.
+   */
+  @Remote('generateStoryboardImages')
+  async generateStoryboardImages(theme: string, storyboard: string, signal?: AbortSignal): Promise<CreateStoryboardImages> {
+    const service = this.requireImageGeneration()
+    const visuals = parseCreateStoryboard(storyboard).map(shot => shot.visual)
+    return generateStoryboardImages(service, this.root, theme, visuals, signal)
+  }
+
+  /**
+   * Render one cover plan into the cover asset image through the shared image
+   * generation service. Absent image generation reads as a named failure so
+   * the UI can offer the text-only path.
+   * @param theme - outputs-project directory name.
+   * @param cover - the generated cover text.
+   * @param signal - caller cancellation.
+   * @returns the stored cover image.
+   */
+  @Remote('generateCoverImage')
+  async generateCoverImage(theme: string, cover: string, signal?: AbortSignal): Promise<CreateCoverImageResult> {
+    const service = this.requireImageGeneration()
+    const plan = parseCreateCoverPlan(cover)
+    const prompt = [plan.title, plan.subtitle, plan.composition, plan.palette, plan.style]
+      .filter(part => part.length > 0).join('，')
+    return generateCoverImage(service, this.root, theme, prompt, signal)
   }
 
   /**

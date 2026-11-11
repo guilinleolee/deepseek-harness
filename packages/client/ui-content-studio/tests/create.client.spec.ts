@@ -5,6 +5,7 @@ import {
   contentTypeKind, countWords, defaultManifest, deliverableName, exportFileName, formatHashtags,
   isBatchable, lineDiff, localMetrics, mergeManualSave, newId, pinVersion, pruneVersions,
   readingMinutes, replaceRange, slugify, suggestHashtags, triggerClass, versionContent,
+  CREATE_TYPE_IDS, SELECTION_OPS,
 } from '../src/client/create.ts'
 import { scanBannedWords } from '../src/client/banned-words.ts'
 
@@ -138,6 +139,20 @@ describe('text helpers', () => {
     expect(contentTypeKind('video-script')).toBe('video')
     expect(contentTypeKind('voiceover')).toBe('audio')
     expect(contentTypeKind('product-page')).toBe('other')
+    expect(contentTypeKind('storyboard')).toBe('video')
+    expect(contentTypeKind('cover')).toBe('poster')
+  })
+
+  it('lists every content type in picker order', () => {
+    expect(CREATE_TYPE_IDS).toEqual([
+      'gzh-article', 'xhs-note', 'video-script', 'voiceover', 'product-page', 'rewrite', 'storyboard', 'cover',
+    ])
+  })
+
+  it('keeps the selection rewrites apart from the whole-draft revision', () => {
+    expect(SELECTION_OPS).toEqual(['condense', 'expand', 'style', 'perspective', 'extract', 'humanize-light', 'humanize-deep'])
+    expect(SELECTION_OPS).not.toContain('custom')
+    expect(SELECTION_OPS).not.toContain('titles')
   })
 
   it('creates ids and default manifests', () => {
