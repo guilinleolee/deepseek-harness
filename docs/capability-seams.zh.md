@@ -797,7 +797,7 @@ flowchart LR
 | `ctx.customerAcquisition` | `service` | `growth/customer-acquisition` | - | `ui-content-studio`, `ui-customer-acquisition` | - | 持有获客领域（线索、打分、内容、SOP），并提供浏览器面板读取的仪表盘、设置与审计 Remote。 |
 | `ctx.quantResearch` | `service` | [`quant-research`](../packages/quant/quant-research) | - | `ui-quant-research` | - | 持有量化研究领域（账户、笔记、回测快照），并提供浏览器面板读取的账户、笔记、快照与资金曲线 Remote。 |
 | `ctx.geoDiagnosis` | `service` | `growth/customer-acquisition-geo` | - | `ui-customer-acquisition` | - | 执行有界的网站扫描，并提供 GEO 诊断面板读取的历史、报告与对比 Remote。 |
-| `ctx.dragonBridge` | `core` | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | `host-runtime` | - | 把角色注册表、资产索引与许可策略服务合并为一份分类、可检索的资产清单。 |
+| `ctx.dragonBridge` | `core` | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | `host-runtime` | - | 把角色注册表、资产索引与许可策略服务合并为一份带分类的可检索资产清单。 |
 | `ctx.licensePolicy` | `core` | [`license-policy`](../packages/experimental/license-policy) | - | [`dragon-bridge`](../packages/experimental/dragon-bridge) | - | 把每个资产归类为 allow、attribute、artifact-only 或 reject；消费方仅在需要时展示判定文案。 |
 | `ctx.liveshareShares` | `service` | [`experimental-liveshare`](../packages/experimental/liveshare) | - | - | - | 以单个 Typert Remote 命名空间发布 owner 分享管理操作，供 owner 客户端面调用；每个方法都委托给同源路由原先使用的同一组操作。 |
 

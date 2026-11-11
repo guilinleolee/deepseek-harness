@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 5,
+  "projects": [],
+  "assets": [],
+  "tasks": [
+    {
+      "schemaVersion": 5,
+      "id": "tsk-mw9vq3cr-br7exm",
+      "kind": "image",
+      "status": "failed",
+      "createdAt": "2026-11-09T23:15:25.946Z",
+      "updatedAt": "2026-11-09T23:15:25.957Z",
+      "prompt": "install smoke test",
+      "error": "dsh-image-video：没有任何已配置 API Key 的服务商，请至少为一个服务商配置 apiKey 或 apiKeyEnv"
+    },
+    {
+      "schemaVersion": 5,
+      "id": "tsk-mw9w3guu-2bzitm",
+      "kind": "video",
+      "status": "failed",
+      "createdAt": "2026-11-09T23:25:49.974Z",
+      "updatedAt": "2026-11-09T23:25:49.980Z",
+      "prompt": "install smoke test",
+      "error": "dsh-image-video：没有任何已配置 API Key 的服务商，请至少为一个服务商配置 apiKey 或 apiKeyEnv"
+    }
+  ],
+  "resources": [],
+  "workflows": [],
+  "runs": [],
+  "timelines": [],
+  "nodeCache": [],
+  "resourceUsage": [],
+  "exportPresets": []
+}
