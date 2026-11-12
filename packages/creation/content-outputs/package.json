@@ -68,11 +68,6 @@
     "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
-  "peerDependenciesMeta": {
-    "@deepseek-ai/dsh-image-generation": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-brand": "workspace:*",

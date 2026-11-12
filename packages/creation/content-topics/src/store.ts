@@ -15,7 +15,7 @@ import { dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import type {
-  ContentTopicsSnapshot, TopicItem, TopicItemInput, TopicScore, TopicScoreFactor,
+  ContentTopicsSnapshot, TopicItem, TopicItemInput, TopicLayout, TopicScore, TopicScoreFactor,
   TopicSource, TopicSourceSnapshot, TopicSourceType, TopicStatus,
 } from './types.ts'
 
@@ -90,6 +90,13 @@ function isScore(value: unknown): value is TopicScore {
     && isIsoTimestamp(record.evaluatedAt)
 }
 
+function isLayout(value: unknown): value is TopicLayout {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Record<string, unknown>
+  return typeof record.x === 'number' && Number.isFinite(record.x)
+    && typeof record.y === 'number' && Number.isFinite(record.y)
+}
+
 function isTopic(value: unknown): value is TopicItem {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>
@@ -104,6 +111,8 @@ function isTopic(value: unknown): value is TopicItem {
     && (record.planDate === null || (typeof record.planDate === 'string' && DATE_PATTERN.test(record.planDate)))
     && isNullableString(record.scheduleItemId)
     && isNullableString(record.topicDir)
+    // Absent on pre-field items; present-or-null once the idea wall writes them.
+    && (record.layout === undefined || record.layout === null || isLayout(record.layout))
     && isIsoTimestamp(record.createdAt)
     && isIsoTimestamp(record.updatedAt)
 }
@@ -132,6 +141,7 @@ export function normalizeInput(input: TopicItemInput): { item?: TopicItem; detai
   if (input.planDate !== null && (typeof input.planDate !== 'string' || !DATE_PATTERN.test(input.planDate))) return { detail: 'planDate must be YYYY-MM-DD or null' }
   if (!isNullableString(input.scheduleItemId)) return { detail: 'scheduleItemId must be a string or null' }
   if (!isNullableString(input.topicDir)) return { detail: 'topicDir must be a string or null' }
+  if (input.layout !== undefined && input.layout !== null && !isLayout(input.layout)) return { detail: 'layout must be a finite {x, y} position or null' }
   const now = new Date().toISOString()
   return {
     item: {
@@ -151,6 +161,7 @@ export function normalizeInput(input: TopicItemInput): { item?: TopicItem; detai
       planDate: input.planDate,
       scheduleItemId: input.scheduleItemId,
       topicDir: input.topicDir,
+      layout: input.layout ?? null,
       createdAt: now,
       updatedAt: now,
     },

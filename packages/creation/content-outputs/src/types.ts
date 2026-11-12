@@ -40,6 +40,7 @@ export type {
   CreateStoryboardImages,
   CreateCoverImage,
   CreateCoverImageResult,
+  CreateImageRead,
   CreateStyleKey,
   CreateTemplate,
   CreateTemplateInput,

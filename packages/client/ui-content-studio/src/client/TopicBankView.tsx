@@ -1,24 +1,26 @@
 /**
- * The topic-bank view: the whole `_topics.json` bank in two faces — the P0
- * table (title, source with its origin entry, score, tags, status,
- * plan date, update time) and the P1 five-column kanban with native HTML5
- * drag-and-drop status moves — over the reusable SplitDetail layout, with
- * the detail side panel, create/edit forms, batch actions, schedule
- * linkage, and Markdown export. Loading, error, and empty are first-class
- * states; an empty bank renders the guide page carrying the two capability
- * cards inherited from the retired 选题规划 view. Filter and view
- * configuration persists to localStorage under the feature prefix and
- * reloads through the versioned migration (unknown shapes fall back whole).
+ * The topic-bank view: the whole `_topics.json` bank in three faces — the
+ * table (title, source with its origin entry, score, tags, status, plan
+ * date, update time), the five-column kanban with native HTML5 drag-and-drop
+ * status moves, and the draggable idea-wall canvas with a keyword gather —
+ * over the reusable SplitDetail layout, with the detail side panel,
+ * create/edit forms, batch actions, schedule linkage, and Markdown export.
+ * Loading, error, and empty are first-class states; an empty bank renders
+ * the guide page carrying the two capability cards inherited from the
+ * retired 选题规划 view. Filter and view configuration persists to
+ * localStorage under the feature prefix and reloads through the versioned
+ * migration (unknown shapes fall back whole).
  */
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { IconRefreshOutlineMedium, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ScheduleItemId, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
-import type { ContentTopicsSnapshot, TopicCategoriesSnapshot, TopicCategory, TopicCategoryInput, TopicItem, TopicItemInput, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
+import type { ContentTopicsSnapshot, TopicCategoriesSnapshot, TopicCategory, TopicCategoryInput, TopicItem, TopicItemInput, TopicLayout, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
 import type { TopicCollectRequest, TopicCollectResult } from '@deepseek-ai/dsh-content-outputs/types'
 import type { CapabilityItem } from './capabilities.ts'
 import { CapabilityPage } from './CapabilityPage.tsx'
+import { TopicBankCanvas } from './TopicBankCanvas.tsx'
 import type { PickedTopic } from './studio-store.ts'
 import { SplitDetail } from './SplitDetail.tsx'
 import type { TemplateController } from './template/template-store.ts'
@@ -401,6 +403,20 @@ export function TopicBankView({
     }
   }
 
+  /** Persist one idea-wall card's dragged position through the topics put;
+   * a failed write rolls the UI back and toasts. */
+  const moveOnCanvas = async (item: TopicItem, layout: TopicLayout): Promise<void> => {
+    if (snapshot === undefined) return
+    const before = snapshot
+    setSnapshot({ ...snapshot, items: snapshot.items.map(candidate => candidate.id === item.id ? { ...candidate, layout } : candidate) })
+    try {
+      setSnapshot(await topics.put(topicInputOf(item, { layout })))
+    } catch (error) {
+      setSnapshot(before)
+      toast(t('topicBank.notice.failed', { detail: error instanceof Error ? error.message : String(error) }))
+    }
+  }
+
   /** Run one batch edit over every checked topic, sequentially — the
    * gateway serializes on the file lock, and one failure stops the run. */
   const runBatch = async (build: (item: TopicItem) => TopicItemInput): Promise<void> => {
@@ -727,6 +743,7 @@ export function TopicBankView({
         <select aria-label={t('topicBank.view.aria')} className={tb.control} value={config.view} onChange={(event) => { patchConfig({ view: event.target.value as TopicBankConfig['view'] }) }}>
           <option value="table">{t('topicBank.view.table')}</option>
           <option value="kanban">{t('topicBank.view.kanban')}</option>
+          <option value="canvas">{t('topicBank.view.canvas')}</option>
         </select>
         <select aria-label={t('topicBank.filter.source')} className={tb.control} value={config.filters.source} onChange={(event) => { patchFilters({ source: event.target.value as TopicBankConfig['filters']['source'] }) }}>
           <option value="all">{t('topicBank.filter.all')}</option>
@@ -877,6 +894,8 @@ export function TopicBankView({
               </table>
               {visible.length === 0 && <div className={css.libraryState}>{t('topicBank.noMatch')}</div>}
             </div>
+          ) : config.view === 'canvas' ? (
+            <TopicBankCanvas items={visible} onMove={moveOnCanvas} t={t} />
           ) : (
             <div>
               <p className={tb.kanbanHint}>{t('topicBank.kanbanHint')}</p>

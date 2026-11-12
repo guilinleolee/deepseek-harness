@@ -6239,6 +6239,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface BundleRowInfo {\n    rowId: string;\n    moduleName: string;\n    meta?: PluginLocalizedMeta;\n    entryId?: PluginEntryId;\n}',
   },
   {
+    name: 'BusinessForm',
+    declaration: 'export type BusinessForm = z.infer<typeof businessFormSchema>;',
+  },
+  {
     name: 'ButtonProps',
     declaration: 'export interface ButtonProps {\n    readonly label: string;\n    readonly hotkey?: string | undefined;\n    readonly disabled?: boolean | undefined;\n    readonly onPress?: (() => unknown) | undefined;\n}',
   },
@@ -7476,7 +7480,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LeadRefValue',
-    declaration: 'export interface LeadRefValue {\n    id: string;\n    company_name: string;\n    contact_name?: string;\n    source: string;\n    industry?: string;\n    intent_level?: IntentLevel;\n    opportunity_stage: OpportunityStage;\n    owner_id?: string;\n    status: LeadStatus;\n    tags: string[];\n    next_followup_at?: number;\n    updated_at: number;\n}',
+    declaration: 'export interface LeadRefValue {\n    id: string;\n    company_name: string;\n    contact_name?: string;\n    source: string;\n    industry?: string;\n    business_form?: BusinessForm;\n    intent_level?: IntentLevel;\n    opportunity_stage: OpportunityStage;\n    owner_id?: string;\n    status: LeadStatus;\n    tags: string[];\n    next_followup_at?: number;\n    updated_at: number;\n}',
   },
   {
     name: 'LeadStatus',

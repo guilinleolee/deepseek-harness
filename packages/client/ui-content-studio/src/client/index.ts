@@ -159,6 +159,7 @@ function mainApply(ctx: Context): void {
     evaluateCreateContent: request => unwrap('contentOutputs.evaluateCreateContent', ctx.remote.contentOutputs.evaluateCreateContent(request)),
     generateStoryboardImages: (theme, storyboard) => unwrap('contentOutputs.generateStoryboardImages', ctx.remote.contentOutputs.generateStoryboardImages(theme, storyboard)),
     generateCoverImage: (theme, cover) => unwrap('contentOutputs.generateCoverImage', ctx.remote.contentOutputs.generateCoverImage(theme, cover)),
+    readCreateImage: (theme, file) => unwrap('contentOutputs.readCreateImage', ctx.remote.contentOutputs.readCreateImage(theme, file)),
     listCreateAssets: theme => unwrap('contentOutputs.listCreateAssets', ctx.remote.contentOutputs.listCreateAssets(theme)),
     listCreateTemplates: () => unwrap('contentOutputs.listCreateTemplates', ctx.remote.contentOutputs.listCreateTemplates()),
     putCreateTemplate: input => unwrap('contentOutputs.putCreateTemplate', ctx.remote.contentOutputs.putCreateTemplate(input)),

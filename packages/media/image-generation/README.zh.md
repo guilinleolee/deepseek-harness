@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在 Host 组合中挂载 `@deepseek-ai/dsh-image-generation` 并配置内置提供商，或通过 `ctx.imageGeneration.register()` 注册另一个提供商。消费者调用 `ctx.imageGeneration.generate(request)`，传入提示词和可选的提供商路由；请求中为空的提供商、模型和尺寸会在校验前取配置的默认值。
+[Content Studio 的 bundle patch](../../client/ui-content-studio/README.zh.md) 会随其宿主网关一并挂载本包，因此安装 Content Studio 即获得该服务；其他组合需显式挂载。内置提供商出厂未配置：在设置 `baseURL` 之前发起请求会以 `INVALID_REQUEST` 失败并指名该设置，缺少凭据时以 `MISSING_CREDENTIAL` 失败。消费者调用 `ctx.imageGeneration.generate(request)`，传入提示词和可选的提供商路由；请求中为空的提供商、模型和尺寸会在校验前取配置的默认值。另一个提供商通过 `ctx.imageGeneration.register()` 注册。
 
 内置提供商通过共享的 `ctx.credentials` 服务，用 `apiKeyEnv` 引用的凭据进行认证，因此密钥不会出现在插件自己的存储里。它会实时读取 `baseURL`、`apiKeyEnv` 和默认值，设置变更无需重启即可作用于下一次请求。
 

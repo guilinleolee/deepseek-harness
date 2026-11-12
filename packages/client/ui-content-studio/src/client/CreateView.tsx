@@ -14,6 +14,7 @@ import type {
   CreateRegisterRequest, CreateRewriteOperation, CreateRewriteRequest, CreateStateRead,
   CreateStyleKey, CreateAiResult, CreateTemplate, CreateTemplateInput, OutputMetadata,
 } from '@deepseek-ai/dsh-content-outputs/types'
+import { parseCreateCoverPlan, parseCreateStoryboard } from '@deepseek-ai/dsh-content-outputs/types'
 import type { ContentScheduleSnapshot, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
 import type { ContentTopicsSnapshot, TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -60,6 +61,7 @@ export interface CreateGateway {
   generateCoverImage(theme: string, cover: string): Promise<{
     images: readonly { file: string; mediaType: string; prompt: string }[]
   }>
+  readCreateImage(theme: string, file: string): Promise<{ mediaType: string; base64: string }>
   listCreateTemplates(): Promise<{ templates: readonly CreateTemplate[]; problems: readonly string[] }>
   putCreateTemplate(input: CreateTemplateInput): Promise<{ templates: readonly CreateTemplate[] }>
   deleteCreateTemplate(id: string): Promise<{ templates: readonly CreateTemplate[] }>
@@ -185,6 +187,8 @@ export function CreateView({
   const [hashtags, setHashtags] = useState<readonly string[] | null>(null)
   const [hashtagPicks, setHashtagPicks] = useState<readonly string[]>([])
   const [assets, setAssets] = useState<readonly string[] | null>(null)
+  const [previews, setPreviews] = useState<Readonly<Record<string, string>>>({})
+  const [previewFailed, setPreviewFailed] = useState<readonly string[]>([])
   const [pendingTopic, setPendingTopic] = useState<PickedTopic | null>(null)
   const [writebackFailed, setWritebackFailed] = useState(false)
   const [templates, setTemplates] = useState<readonly CreateTemplate[] | null>(null)
@@ -573,10 +577,22 @@ export function CreateView({
     }
   }
 
+  /** Fetch one stored image as a data URL for the structure panel; a failure marks the chip. */
+  const loadPreview = async (theme: string, file: string): Promise<void> => {
+    try {
+      const read = await create.readCreateImage(theme, file)
+      setPreviews(current => ({ ...current, [file]: `data:${read.mediaType};base64,${read.base64}` }))
+      setPreviewFailed(current => current.filter(name => name !== file))
+    } catch {
+      setPreviewFailed(current => current.includes(file) ? current : [...current, file])
+    }
+  }
+
   /**
    * Render the current draft's shots or cover fields into asset images. The
    * storyboard and cover content types each own one button; a draft with
-   * neither structure produces nothing and says so.
+   * neither structure produces nothing and says so. Rendered images load as
+   * previews for the structure panel.
    */
   const runRenderImages = async (): Promise<void> => {
     if (editor === null || aiPending !== null) return
@@ -593,6 +609,7 @@ export function CreateView({
       } else {
         setNotice(t('create.images.rendered').replace('{n}', String(result.images.length)))
         await loadAssets()
+        for (const image of result.images) void loadPreview(editor.theme, image.file)
       }
     } catch (cause) {
       setError(t('create.aiFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
@@ -957,6 +974,18 @@ export function CreateView({
 
   const diffRows = rewritePreview === null ? [] : lineDiff(rewritePreview.before, rewritePreview.after)
 
+  // The structured storyboard/cover view: the parsers read the draft field-wise
+  // on every render (documents are small), and generated images join by shot
+  // number once the assets list knows their names.
+  const storyboardShots = editor.manifest.contentType === 'storyboard' ? parseCreateStoryboard(editor.text) : null
+  const coverPlan = editor.manifest.contentType === 'cover' ? parseCreateCoverPlan(editor.text) : null
+  const shotImageFile = (shot: number): string | null => {
+    if (assets === null) return null
+    const prefix = `storyboard-shot-${String(shot).padStart(2, '0')}.`
+    return assets.find(file => file.startsWith(prefix)) ?? null
+  }
+  const coverImageFile = assets?.find(file => file.startsWith('cover.')) ?? null
+
   return (
     <div>
       <div className={workbenchCss.compDetailHead}>
@@ -1133,6 +1162,62 @@ export function CreateView({
             <span>{t('create.paragraphs').replace('{n}', String(localMetrics(editor.text).paragraphs))}</span>
             {persona.trim().length > 0 && <span>{t('create.profile.applied')}</span>}
           </div>
+          {storyboardShots !== null && storyboardShots.length > 0 && (
+            <div className={css.structurePanel}>
+              <strong className={css.structureTitle}>{t('create.structure.storyboard').replace('{n}', String(storyboardShots.length))}</strong>
+              {storyboardShots.map((shot) => {
+                const file = shotImageFile(shot.index)
+                const src = file === null ? undefined : previews[file]
+                return (
+                  <div key={shot.index} className={css.structureCard}>
+                    <div className={css.structureHead}>
+                      <strong>{t('create.structure.shot').replace('{n}', String(shot.index))}</strong>
+                      {shot.label.length > 0 && <span className={css.structureLabel}>{shot.label}</span>}
+                      {shot.seconds !== null && <span className={css.structureMeta}>{t('create.structure.shotSeconds').replace('{n}', String(shot.seconds))}</span>}
+                      {file !== null && src !== undefined && <img className={css.structureImg} src={src} alt={shot.visual} />}
+                      {file !== null && src === undefined && !previewFailed.includes(file) && (
+                        <button type="button" onClick={() => { void loadPreview(editor.theme, file) }}>{t('create.structure.loadPreview')}</button>
+                      )}
+                      {file !== null && previewFailed.includes(file) && <span className={css.structureMeta}>{t('create.structure.previewFailed')}</span>}
+                    </div>
+                    {shot.visual.length > 0 && (
+                      <div className={css.structureRow}><span className={css.structureField}>{t('create.seo.layout.visual')}</span>{shot.visual}</div>
+                    )}
+                    {shot.line.length > 0 && (
+                      <div className={css.structureRow}><span className={css.structureField}>{t('create.seo.layout.line')}</span>{shot.line}</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {coverPlan !== null && (coverPlan.title.length > 0 || coverPlan.composition.length > 0 || coverPlan.subtitle.length > 0) && (
+            <div className={css.structurePanel}>
+              <strong className={css.structureTitle}>{t('create.structure.cover')}</strong>
+              <div className={css.structureCard}>
+                <div className={css.structureHead}>
+                  <strong>{coverPlan.title.length > 0 ? coverPlan.title : t('create.structure.cover')}</strong>
+                  {coverImageFile !== null && previews[coverImageFile] !== undefined && (
+                    <img className={css.structureImg} src={previews[coverImageFile]} alt={coverPlan.title} />
+                  )}
+                  {coverImageFile !== null && previews[coverImageFile] === undefined && !previewFailed.includes(coverImageFile) && (
+                    <button type="button" onClick={() => { void loadPreview(editor.theme, coverImageFile) }}>{t('create.structure.loadPreview')}</button>
+                  )}
+                  {coverImageFile !== null && previewFailed.includes(coverImageFile) && <span className={css.structureMeta}>{t('create.structure.previewFailed')}</span>}
+                </div>
+                {([
+                  ['subtitle', coverPlan.subtitle],
+                  ['composition', coverPlan.composition],
+                  ['palette', coverPlan.palette],
+                  ['style', coverPlan.style],
+                ] as const).map(([stem, value]) => (
+                  value.length > 0 ? (
+                    <div key={stem} className={css.structureRow}><span className={css.structureField}>{t(`create.seo.layout.${stem}`)}</span>{value}</div>
+                  ) : null
+                ))}
+              </div>
+            </div>
+          )}
           {rewritePreview !== null && (
             <div>
               <div className={workbenchCss.compActions}>

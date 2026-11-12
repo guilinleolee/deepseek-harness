@@ -256,6 +256,7 @@ export class SopService {
     input: {
       name: string
       industry?: string
+      business_form?: SopTemplate['business_form']
       rules: SopTemplate['rules']
       enabled?: boolean
     },
@@ -269,6 +270,7 @@ export class SopService {
       id: newId<SopTemplateId>(),
       name: input.name,
       ...(input.industry === undefined ? {} : { industry: input.industry }),
+      ...(input.business_form === undefined ? {} : { business_form: input.business_form }),
       rules: input.rules,
       enabled: input.enabled ?? true,
       created_at: now,
@@ -294,7 +296,7 @@ export class SopService {
    */
   async updateTemplate(
     templateId: string,
-    patch: { name?: string; industry?: string; rules?: SopTemplate['rules']; enabled?: boolean },
+    patch: { name?: string; industry?: string; business_form?: SopTemplate['business_form']; rules?: SopTemplate['rules']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<SopTemplate> {
@@ -383,10 +385,17 @@ export class SopService {
       .map(([, template]) => template)
       .filter(template => template.enabled)
       .sort((left, right) => left.created_at - right.created_at)
+    // A lead's `industry` names the service we sell; `business_form` says how
+    // that customer actually trades. A form-specific template wins over a plain
+    // industry one, so a 抖店 seller never gets the 到店陪访 plan.
+    const formMatch = lead.business_form === undefined
+      ? undefined
+      : enabled.find(template => template.business_form === lead.business_form
+        && (lead.industry === undefined || template.industry === lead.industry))
     const industryMatch = lead.industry === undefined
       ? undefined
       : enabled.find(template => template.industry === lead.industry)
-    const fallback = industryMatch ?? enabled.find(template => template.industry === undefined)
+    const fallback = formMatch ?? industryMatch ?? enabled.find(template => template.industry === undefined)
     if (fallback !== undefined) return fallback
     const first = enabled[0]
     if (first === undefined) throw new Error('没有启用中的 SOP 模板，请先创建或启用一套（sop_template_manage 的 create）')

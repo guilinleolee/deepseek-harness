@@ -153,6 +153,7 @@ export class LeadLedgerService {
       demand_desc: input.demand_desc,
       budget_range: input.budget_range,
       decision_role: input.decision_role,
+      business_form: input.business_form,
       tags,
       ...(input.opportunity_stage === undefined ? {} : { opportunity_stage: input.opportunity_stage }),
       ...(nextFollowupAt === undefined ? {} : { next_followup_at: nextFollowupAt }),

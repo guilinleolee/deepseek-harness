@@ -3,7 +3,8 @@
 # this via dsh.bundle.patch). The browser half is discovered from the
 # dsh.client manifest of the loaded entry; the host halves register the
 # contentOutputs / contentSchedule / contentTopics Remotes this plugin's
-# client half mounts.
+# client half mounts, and the image-generation provider backs the create
+# workbench's storyboard and cover rendering.
 - insert:
     - id: content-outputs
       name: '@deepseek-ai/dsh-content-outputs'
@@ -11,5 +12,7 @@
       name: '@deepseek-ai/dsh-content-schedule'
     - id: content-topics
       name: '@deepseek-ai/dsh-content-topics'
+    - id: image-generation
+      name: '@deepseek-ai/dsh-image-generation'
     - id: ui-content-studio
       name: '@deepseek-ai/dsh-client-ui-content-studio'

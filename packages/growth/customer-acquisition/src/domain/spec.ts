@@ -30,6 +30,13 @@ export const leadStatusSchema = z.enum(['active', 'archived', 'recycled'])
 export const opportunityStageSchema = z.enum(['new', 'contacted', 'nurturing', 'qualified', 'won', 'lost'])
 /** Contact's decision role in the buying process. */
 export const decisionRoleSchema = z.enum(['decision_maker', 'influencer', 'end_user', 'gatekeeper', 'unknown'])
+/**
+ * How the lead actually trades. `industry` says which service we sell them
+ * (e.g. 实体门店); this field separates stores with walk-in customers from the
+ * ones that only trade online, because the follow-up plan differs (到店 vs
+ * 线上私聊). Optional so leads created before this field keep working.
+ */
+export const businessFormSchema = z.enum(['online', 'offline', 'hybrid'])
 /** A/B variant marker on generated copy. */
 export const contentVariantSchema = z.enum(['A', 'B'])
 /** GEO scan lifecycle. */
@@ -68,6 +75,7 @@ export const leadSchema = updatedAtNotBeforeCreated(z.object({
   demand_desc: z.string().optional(),
   budget_range: z.string().optional(),
   decision_role: decisionRoleSchema.optional(),
+  business_form: businessFormSchema.optional(),
   intent_level: intentLevelSchema.optional(),
   tags: z.array(z.string().min(1)).refine(
     tags => new Set(tags).size === tags.length,
@@ -195,6 +203,7 @@ export const contentTemplateSchema = updatedAtNotBeforeCreated(z.object({
   id: brandedId(ContentTemplateId),
   name: z.string().min(1),
   industry: z.string().optional(),
+  business_form: businessFormSchema.optional(),
   type: z.string().min(1),
   body: z.string().min(1),
   variables: z.array(contentTemplateVariableSchema),
@@ -232,6 +241,7 @@ export const sopTemplateSchema = updatedAtNotBeforeCreated(z.object({
   id: brandedId(SopTemplateId),
   name: z.string().min(1),
   industry: z.string().optional(),
+  business_form: businessFormSchema.optional(),
   rules: z.array(sopRuleSchema).min(1),
   enabled: z.boolean(),
   ...auditTrail,

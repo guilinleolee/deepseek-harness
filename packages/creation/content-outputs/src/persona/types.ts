@@ -71,11 +71,47 @@ export const PERSONA_FIELD_LABELS: Readonly<Record<PersonaFieldKey, string>> = {
 /** Field keys the generic fill operation must never produce: the subject background is a fact only the user or the résumé face supplies. */
 export const PERSONA_FILL_PROHIBITED: readonly PersonaFieldKey[] = ['whoAmI']
 
-/** Built-in writing style presets (step 4 of the wizard); `null` preset means custom text only. */
-export type PersonaStylePreset = 'professional' | 'friendly' | 'humor' | 'concise' | 'narrative' | 'hardcore' | 'empathy'
+/**
+ * Built-in writing style presets (step 4 of the wizard); `null` preset means
+ * custom text only. The first seven constrain tone of voice; the last eight
+ * constrain creator domain — the niche the account works in, which shapes
+ * vocabulary, example types, and pacing rather than personality.
+ */
+export type PersonaStylePreset =
+  | 'professional'
+  | 'friendly'
+  | 'humor'
+  | 'concise'
+  | 'narrative'
+  | 'hardcore'
+  | 'empathy'
+  | 'tech'
+  | 'locale-travel'
+  | 'lifestyle'
+  | 'opinion'
+  | 'tutorial'
+  | 'product'
+  | 'emotional'
+  | 'news'
 
 /** Every style preset, frozen for wire validation and picker order. */
-export const PERSONA_STYLE_PRESETS = ['professional', 'friendly', 'humor', 'concise', 'narrative', 'hardcore', 'empathy'] as const
+export const PERSONA_STYLE_PRESETS = [
+  'professional',
+  'friendly',
+  'humor',
+  'concise',
+  'narrative',
+  'hardcore',
+  'empathy',
+  'tech',
+  'locale-travel',
+  'lifestyle',
+  'opinion',
+  'tutorial',
+  'product',
+  'emotional',
+  'news',
+] as const
 
 /** Chinese label of one style preset; shared by the picker, the packed prompt, and the digest. */
 export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, string>> = {
@@ -86,6 +122,14 @@ export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, st
   narrative: '故事叙事',
   hardcore: '硬核干货',
   empathy: '温柔共情',
+  tech: '科技数码',
+  'locale-travel': '探店旅行',
+  lifestyle: '生活方式 Vlog',
+  opinion: '观点评论',
+  tutorial: '手把手教程',
+  product: '好物测评',
+  emotional: '情感故事',
+  news: '时事热点',
 }
 
 /** How strictly the style constrains generation. */

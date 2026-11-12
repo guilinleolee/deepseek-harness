@@ -174,6 +174,7 @@ export class NurtureContentService {
         company_name: variables.company_name,
         contact_name: variables.contact_name,
         industry: variables.industry,
+        business_form: lead.business_form,
         company_size: variables.company_size,
         demand_desc: variables.demand_desc,
         budget_range: variables.budget_range,
@@ -239,7 +240,7 @@ export class NurtureContentService {
    * @returns the stored template.
    */
   async createTemplate(
-    input: { name: string; type: string; industry?: string; body: string; variables?: ContentTemplate['variables']; enabled?: boolean },
+    input: { name: string; type: string; industry?: string; business_form?: ContentTemplate['business_form']; body: string; variables?: ContentTemplate['variables']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<ContentTemplate> {
@@ -252,6 +253,7 @@ export class NurtureContentService {
       id: newId<ContentTemplateId>(),
       name: input.name,
       ...(input.industry === undefined ? {} : { industry: input.industry }),
+      ...(input.business_form === undefined ? {} : { business_form: input.business_form }),
       type: input.type,
       body: input.body,
       variables: input.variables ?? [],
@@ -279,7 +281,7 @@ export class NurtureContentService {
    */
   async updateTemplate(
     templateId: string,
-    patch: { name?: string; industry?: string; type?: string; body?: string; variables?: ContentTemplate['variables']; enabled?: boolean },
+    patch: { name?: string; industry?: string; business_form?: ContentTemplate['business_form']; type?: string; body?: string; variables?: ContentTemplate['variables']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<ContentTemplate> {
@@ -371,10 +373,16 @@ export class NurtureContentService {
       .filter(template => template.enabled && template.type === type)
       .sort((left, right) => left.created_at - right.created_at)
     if (enabled.length === 0) return undefined
+    // Same rule as the SOP matcher: a business-form-specific template beats a
+    // plain industry one, so copy written for 线上店 never lands on 线下店.
+    const formMatch = lead.business_form === undefined
+      ? undefined
+      : enabled.find(template => template.business_form === lead.business_form
+        && (lead.industry === undefined || template.industry === lead.industry))
     const industryMatch = lead.industry === undefined
       ? undefined
       : enabled.find(template => template.industry === lead.industry)
-    return industryMatch ?? enabled.find(template => template.industry === undefined) ?? enabled[0]
+    return formMatch ?? industryMatch ?? enabled.find(template => template.industry === undefined) ?? enabled[0]
   }
 
   /** Global-template management gate for every template write. */

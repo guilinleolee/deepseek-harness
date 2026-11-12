@@ -9,13 +9,15 @@
 
 import type { z } from 'zod'
 import type {
-  decisionRoleSchema, intentLevelSchema, leadStatusSchema, opportunityStageSchema,
+  businessFormSchema, decisionRoleSchema, intentLevelSchema, leadStatusSchema, opportunityStageSchema,
 } from '../domain/spec.ts'
 
 /** Lead qualification tag written back by the scoring flow. */
 export type IntentLevel = z.infer<typeof intentLevelSchema>
 /** Contact's decision role in the buying process. */
 export type DecisionRole = z.infer<typeof decisionRoleSchema>
+/** How the lead trades: online-only, walk-in store, or both. */
+export type BusinessForm = z.infer<typeof businessFormSchema>
 /** Lead lifecycle status; `recycled` is the recycle bin. */
 export type LeadStatus = z.infer<typeof leadStatusSchema>
 /** Opportunity progress. */
@@ -31,6 +33,7 @@ export interface LeadRefValue {
   contact_name?: string
   source: string
   industry?: string
+  business_form?: BusinessForm
   intent_level?: IntentLevel
   opportunity_stage: OpportunityStage
   owner_id?: string
@@ -157,6 +160,7 @@ export interface LeadCreateInput {
   demand_desc?: string
   budget_range?: string
   decision_role?: DecisionRole
+  business_form?: BusinessForm
   tags?: string[]
   opportunity_stage?: OpportunityStage
   next_followup_at?: number
@@ -174,6 +178,7 @@ export interface LeadUpdateInput {
   demand_desc?: string
   budget_range?: string
   decision_role?: DecisionRole
+  business_form?: BusinessForm
   tags?: string[]
   opportunity_stage?: OpportunityStage
   next_followup_at?: number

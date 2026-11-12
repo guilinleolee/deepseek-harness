@@ -25,6 +25,11 @@ export interface ContentToolDeps {
 export const TEMPLATE_FIELD_PARAMETERS = {
   name: { type: 'string', description: '模板名称' },
   industry: { type: 'string', description: '适用行业；省略 = 通用' },
+  business_form: {
+    type: 'string',
+    enum: ['online', 'offline', 'hybrid'],
+    description: '适用经营形态：online=纯线上客户 / offline=有线下门店 / hybrid=两者兼有；省略 = 不限形态',
+  },
   type: { type: 'string', description: '渠道类型（open 词表，已知值见 generate 描述）' },
   body: { type: 'string', description: '模板正文，支持 {{变量}} 占位' },
   variables: {
@@ -195,6 +200,11 @@ export function contentTemplateCreateTool(deps: ContentToolDeps): ToolDefinition
       name: { type: 'string', required: true, description: '模板名称' },
       type: { type: 'string', required: true, description: '渠道类型' },
       industry: { type: 'string', description: '适用行业；省略 = 通用' },
+      business_form: {
+        type: 'string',
+        enum: ['online', 'offline', 'hybrid'],
+        description: '适用经营形态：online=纯线上客户 / offline=有线下门店 / hybrid=两者兼有；省略 = 不限形态',
+      },
       body: { type: 'string', required: true, description: '模板正文' },
       variables: {
         type: 'array',
@@ -241,11 +251,12 @@ export function contentTemplateCreateTool(deps: ContentToolDeps): ToolDefinition
     }),
     async execute(args, exec) {
       const operator = await deps.permission.resolve(operatorRequest('agent', exec.agent?.id))
-      const { name, type, industry, body, variables, enabled } = args
+      const { name, type, industry, business_form: businessForm, body, variables, enabled } = args
       const template = await deps.content.createTemplate({
         name,
         type,
         ...(industry === undefined ? {} : { industry }),
+        ...(businessForm === undefined ? {} : { business_form: businessForm }),
         body,
         ...(variables === undefined ? {} : { variables }),
         ...(enabled === undefined ? {} : { enabled }),
@@ -298,10 +309,11 @@ export function contentTemplateUpdateTool(deps: ContentToolDeps): ToolDefinition
     }),
     async execute(args, exec) {
       const operator = await deps.permission.resolve(operatorRequest('agent', exec.agent?.id))
-      const { content_template_id: templateId, name, industry, type, body, variables, enabled } = args
+      const { content_template_id: templateId, name, industry, business_form: businessForm, type, body, variables, enabled } = args
       const template = await deps.content.updateTemplate(templateId, {
         ...(name === undefined ? {} : { name }),
         ...(industry === undefined ? {} : { industry }),
+        ...(businessForm === undefined ? {} : { business_form: businessForm }),
         ...(type === undefined ? {} : { type }),
         ...(body === undefined ? {} : { body }),
         ...(variables === undefined ? {} : { variables }),

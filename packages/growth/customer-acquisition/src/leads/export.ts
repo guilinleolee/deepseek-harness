@@ -11,6 +11,7 @@ import type { Lead } from '../domain/spec.ts'
 /** Export columns, in presentation order. */
 export const LEAD_EXPORT_COLUMNS = [
   'id', 'company_name', 'contact_name', 'phone', 'email', 'source', 'industry',
+  'business_form',
   'company_size', 'demand_desc', 'budget_range', 'decision_role', 'intent_level',
   'opportunity_stage', 'status', 'owner_id', 'tags', 'next_followup_at',
   'created_at', 'updated_at',
@@ -26,6 +27,7 @@ function exportRow(lead: Lead): string[] {
     email: lead.email ?? '',
     source: lead.source,
     industry: lead.industry ?? '',
+    business_form: lead.business_form ?? '',
     company_size: lead.company_size ?? '',
     demand_desc: lead.demand_desc ?? '',
     budget_range: lead.budget_range ?? '',

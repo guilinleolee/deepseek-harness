@@ -192,6 +192,22 @@ describe('normalizeInput', () => {
     expect(normalizeInput({ ...base, planDate: '20261001' }).detail).toBeDefined()
   })
 
+  it('carries a finite canvas layout through the upsert and rejects a non-finite one', () => {
+    const base = {
+      title: 't', oneLiner: null, status: 'idea', source: { type: 'manual', refId: null, url: null, snapshot: null },
+      tags: [], description: null, score: null, planDate: null, scheduleItemId: null, topicDir: null,
+    } as const
+    const placed = normalizeInput({ ...base, layout: { x: 120.5, y: 0 } })
+    expect(placed.item?.layout).toEqual({ x: 120.5, y: 0 })
+    const absent = { ...base }
+    delete (absent as { layout?: unknown }).layout
+    expect(normalizeInput(absent).item?.layout).toBeNull()
+    expect(normalizeInput({ ...base, layout: null }).item?.layout).toBeNull()
+    expect(normalizeInput({ ...base, layout: { x: Number.NaN, y: 0 } }).detail).toBeDefined()
+    expect(normalizeInput({ ...base, layout: { x: Infinity, y: 0 } }).detail).toBeDefined()
+    expect(normalizeInput({ ...base, layout: { x: 0 } as never }).detail).toBeDefined()
+  })
+
   it('rejects an out-of-range score total and a non-ISO evaluatedAt', () => {
     const base = {
       title: 't', oneLiner: null, status: 'idea', source: { type: 'manual', refId: null, url: null, snapshot: null },

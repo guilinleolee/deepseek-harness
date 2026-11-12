@@ -27,7 +27,7 @@ Content Studio is the web workbench for the content-creation domain: one install
 
 Content Studio plugin: the sidebar entry plus the frame-wide creation workbench surface. The entry fills the sidebar shell's `sidebar.footer.action` hole (labeled row while the column is wide, icon on the rail), and the workbench fills the frame's additive `shell.overlay` hole, so both registrations are additive chrome — nothing shipped is replaced.
 
-Install into any DSH web profile with one command: `dsh plugin --profile web add @deepseek-ai/dsh-client-ui-content-studio` — the package declares `dsh.bundle.patch`, whose insert list brings its two host Remote gateways (`content-outputs`, `content-schedule`) along, so nothing else is manual.
+Install into any DSH web profile with one command: `dsh plugin --profile web add @deepseek-ai/dsh-client-ui-content-studio` — the package declares `dsh.bundle.patch`, whose insert list brings its host Remote gateways (`content-outputs`, `content-schedule`, `content-topics`) and the image-generation provider that backs the create workbench's storyboard and cover rendering along, so nothing else is manual. The image provider ships unconfigured: rendering fails with an error naming the `baseURL` setting until the deployment sets its endpoint and credential.
 
 The plugin is a **self-contained Remote assembly**: `apply` mounts its own host contributions (`contentOutputs`, `contentSchedule`) through `ctx.remote.$mount()` — the pattern api-remotes established — so the browser bundle carries its whole server face and no in-tree BFF assembly needs to know this plugin exists.
 

@@ -2,11 +2,17 @@ import { describe, expect, it } from 'vitest'
 import type { TopicItem } from '@deepseek-ai/dsh-content-topics/types'
 import {
   DEFAULT_TOPIC_BANK_CONFIG,
+  TOPIC_CANVAS_CARD,
+  TOPIC_CANVAS_GAP,
+  TOPIC_CANVAS_SIZE,
   TOPIC_SOURCE_TYPES,
   TOPIC_STATUSES,
+  canvasPlacements,
+  clampCanvasPosition,
   collectTags,
   filterTopics,
   formatScore,
+  gatheredCanvasPlacements,
   groupByStatus,
   loadTopicBankConfig,
   manualTopicInput,
@@ -263,5 +269,53 @@ describe('upsert inputs', () => {
   it('appends batch tags deduplicated and skips blanks', () => {
     const item = topic({ tags: ['a', 'b'] })
     expect(withAppendedTags(item, ['b', 'c', '']).tags).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('idea-wall canvas geometry', () => {
+  it('places topics with a persisted layout first and auto-grids the rest', () => {
+    const placed = canvasPlacements([
+      topic({ id: 't-1' as TopicItem['id'], layout: { x: 500, y: 700 } }),
+      topic({ id: 't-2' as TopicItem['id'] }),
+      topic({ id: 't-3' as TopicItem['id'] }),
+    ])
+    expect(placed[0]?.position).toEqual({ x: 500, y: 700 })
+    expect(placed[1]?.position).toEqual({ x: TOPIC_CANVAS_GAP, y: TOPIC_CANVAS_GAP })
+    expect(placed[2]?.position.x).toBe(TOPIC_CANVAS_GAP * 2 + TOPIC_CANVAS_CARD.width)
+  })
+
+  it('clamps a dragged position into the world bounds', () => {
+    expect(clampCanvasPosition({ x: -50, y: -50 })).toEqual({ x: 0, y: 0 })
+    expect(clampCanvasPosition({ x: 9_999_999, y: 9_999_999 }).x)
+      .toBe(TOPIC_CANVAS_SIZE.width - TOPIC_CANVAS_CARD.width)
+  })
+
+  it('keeps every position while the keyword is empty', () => {
+    const placements = canvasPlacements([topic(), topic({ id: 't-2' as TopicItem['id'] })])
+    expect(gatheredCanvasPlacements(placements, '  ', { x: 1200, y: 800 })).toEqual(placements)
+  })
+
+  it('pulls keyword matches into a cluster and leaves the rest in place', () => {
+    const items = [
+      topic({ id: 't-1' as TopicItem['id'], title: 'Agent 工作流' }),
+      topic({ id: 't-2' as TopicItem['id'], title: '咖啡探店' }),
+      topic({ id: 't-3' as TopicItem['id'], title: 'Agent 评测' }),
+    ]
+    const placements = canvasPlacements(items)
+    const gathered = gatheredCanvasPlacements(placements, 'agent', { x: 1200, y: 800 })
+    const clustered = gathered.filter(({ item }) => item.title.includes('Agent'))
+    const rest = gathered.filter(({ item }) => !item.title.includes('Agent'))
+    expect(clustered).toHaveLength(2)
+    const spreadX = Math.abs((clustered[0]?.position.x ?? 0) - (clustered[1]?.position.x ?? 0))
+    const spreadY = Math.abs((clustered[0]?.position.y ?? 0) - (clustered[1]?.position.y ?? 0))
+    expect(spreadX + spreadY).toBeGreaterThan(0)
+    expect(gathered.find(({ item }) => item.id === rest[0]?.item.id)?.position)
+      .toEqual(placements.find(({ item }) => item.id === rest[0]?.item.id)?.position)
+  })
+
+  it('carries the stored layout through the upsert input', () => {
+    const item = topic({ layout: { x: 300, y: 400 } })
+    expect(topicInputOf(item, { status: 'todo' }).layout).toEqual({ x: 300, y: 400 })
+    expect(topicInputOf(topic()).layout).toBeNull()
   })
 })
