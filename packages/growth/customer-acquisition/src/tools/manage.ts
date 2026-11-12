@@ -842,6 +842,7 @@ export function sopTemplateManageTool(deps: SopManageDeps): ToolDefinition {
         const template = await deps.sop.updateTemplate(templateId, {
           ...(args.name === undefined ? {} : { name: args.name }),
           ...(args.industry === undefined ? {} : { industry: args.industry }),
+          ...(args.business_form === undefined ? {} : { business_form: args.business_form }),
           ...(args.rules === undefined ? {} : { rules: args.rules.map(rule => ({
             intent_level: rule.intent_level,
             cadence: rule.cadence,
