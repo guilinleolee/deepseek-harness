@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-12-github-sourced-packages-fork-only.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-11-12-github-sourced-packages-fork-only.md
+/agent-note-github-sourced-skills-plugins-and-mcps-installed-through-the-dragon-engine-commit-only-to-the-fork:
+  en: 5c598b88647f73e1
+  zh: 8a717c6d84647422
+/agent-note-github-sourced-skills-plugins-and-mcps-installed-through-the-dragon-engine-commit-only-to-the-fork/problem:
+  en: f8e00613848ecb09
+  zh: 9bd16e5175b3d1e3
+/agent-note-github-sourced-skills-plugins-and-mcps-installed-through-the-dragon-engine-commit-only-to-the-fork/decision:
+  en: 34797077a12ee6bd
+  zh: 19832e9f27814b4d
+/agent-note-github-sourced-skills-plugins-and-mcps-installed-through-the-dragon-engine-commit-only-to-the-fork/alternatives-considered:
+  en: e70ba32b23dfe569
+  zh: 6ac207fea4ce870f
+/agent-note-github-sourced-skills-plugins-and-mcps-installed-through-the-dragon-engine-commit-only-to-the-fork/consequences:
+  en: 44449539535fac95
+  zh: 72ae3dd05e53021b
