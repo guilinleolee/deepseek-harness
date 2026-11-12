@@ -24,7 +24,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { QuantEntry } from './QuantEntry.tsx'
 import { QuantPanel, type QuantPanelInjected } from './QuantPanel.tsx'
 import { createPanelController } from './panel-controller.ts'
-import { en, zh, type QuantKey } from './locales.ts'
+import { en, ja, es, fr, de, ru, pt, zh, type QuantKey } from './locales.ts'
 
 export { createPanelController, type PanelController } from './panel-controller.ts'
 export type { QuantEntryProps } from './QuantEntry.tsx'
@@ -81,7 +81,7 @@ async function unwrap<T>(label: string, call: RpcCall<T>): Promise<T> {
  * @returns the plugin disposer unwinding the surface and the mount.
  */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-quant-research: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-quant-research: dictionaries')
 
   const mount = await ctx.remote.$mount(quantResearchRemote)
   const surface = await ctx.plugin({
