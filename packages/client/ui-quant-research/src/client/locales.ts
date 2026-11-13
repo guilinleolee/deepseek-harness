@@ -120,7 +120,7 @@ export const es: Record<QuantKey, string> = {
   'panel.results.compareNone': 'Elija otra instantánea',
   'panel.results.compareLabel': 'Comparación de curvas de patrimonio',
   'panel.results.return': 'Rentabilidad acumulada',
-  'panel.results.drawdown': 'Máxima caída',
+  'panel.results.drawdown': 'Máximo drawdown',
   'panel.results.trades': 'Operaciones',
   'panel.load.failed': 'Error al leer Remote',
   'panel.retry': 'Reintentar',
@@ -219,9 +219,9 @@ export const ru: Record<QuantKey, string> = {
 
 /** Portuguese copy, checked against the English keys. */
 export const pt: Record<QuantKey, string> = {
-  'entry.label': 'Pesquisa Quant',
+  'entry.label': 'Pesquisa quantitativa',
   'entry.aria': 'Abrir o painel de pesquisa quantitativa',
-  'panel.title': 'Pesquisa Quant',
+  'panel.title': 'Pesquisa quantitativa',
   'panel.phase': 'Painel de pesquisa',
   'panel.intro': 'Visualizações somente leitura das contas virtuais e das notas de pesquisa. Todas as ações de rebalanceamento e pesquisa passam pelo fluxo de revisão humana das ferramentas do modelo; este painel não constitui recomendação de investimento e o plugin não tem canal de trading real.',
   'panel.accounts.title': 'Contas virtuais',
@@ -235,10 +235,10 @@ export const pt: Record<QuantKey, string> = {
   'panel.notes.empty': 'Nenhuma nota de pesquisa ainda. Salve uma com a ferramenta quant_save_note.',
   'panel.results.title': 'Resultados do backtest',
   'panel.results.empty': 'Nenhum snapshot de backtest ainda. Rode um com a ferramenta quant_run_backtest.',
-  'panel.results.curve': 'Curva de patrimônio',
+  'panel.results.curve': 'Curva de capital',
   'panel.results.compareWith': 'Comparar com:',
   'panel.results.compareNone': 'Selecione outro instantâneo',
-  'panel.results.compareLabel': 'Comparação de curvas de patrimônio',
+  'panel.results.compareLabel': 'Comparação de curvas de capital',
   'panel.results.return': 'Retorno total',
   'panel.results.drawdown': 'Drawdown máximo',
   'panel.results.trades': 'Operações',
