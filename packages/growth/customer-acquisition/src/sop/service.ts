@@ -20,6 +20,7 @@ import {
   type SopTask,
 } from '../domain/spec.ts'
 import type { LeadLedgerService } from '../leads/service.ts'
+import { normalizeIndustry } from '../domain/vocab.ts'
 import type { OperatorChannel, ResolvedOperator } from '../permission/types.ts'
 
 /** The day in milliseconds; cadence offsets (`D+N`) resolve against it. */
@@ -256,6 +257,7 @@ export class SopService {
     input: {
       name: string
       industry?: string
+      business_form?: SopTemplate['business_form']
       rules: SopTemplate['rules']
       enabled?: boolean
     },
@@ -269,6 +271,7 @@ export class SopService {
       id: newId<SopTemplateId>(),
       name: input.name,
       ...(input.industry === undefined ? {} : { industry: input.industry }),
+      ...(input.business_form === undefined ? {} : { business_form: input.business_form }),
       rules: input.rules,
       enabled: input.enabled ?? true,
       created_at: now,
@@ -294,7 +297,7 @@ export class SopService {
    */
   async updateTemplate(
     templateId: string,
-    patch: { name?: string; industry?: string; rules?: SopTemplate['rules']; enabled?: boolean },
+    patch: { name?: string; industry?: string; business_form?: SopTemplate['business_form']; rules?: SopTemplate['rules']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<SopTemplate> {
@@ -370,8 +373,35 @@ export class SopService {
   }
 
   /**
-   * The generate-time template chain: explicit id → industry →
-   * industry-absent → any enabled.
+   * Rank one SOP template against a lead: lower is better, `-1` means the
+   * template contradicts the lead and may never be used. A dimension the
+   * template leaves empty (or the lead leaves unset) never contradicts; it
+   * merely ranks below an exact hit. Tiers, best first: form+industry exact,
+   * form exact, industry exact, generic on both.
+   * @param template - one candidate template.
+   * @param lead - the lead the plan is for.
+   * @returns the tier, or `-1` when the template contradicts the lead.
+   */
+  private static matchRank(template: SopTemplate, lead: Lead): number {
+    const formDeclared = template.business_form !== undefined
+    const industryDeclared = template.industry !== undefined
+    if (formDeclared && lead.business_form !== undefined && template.business_form !== lead.business_form) return -1
+    const templateIndustry = normalizeIndustry(template.industry)
+    const leadIndustry = normalizeIndustry(lead.industry)
+    if (industryDeclared && leadIndustry.length > 0 && templateIndustry !== leadIndustry) return -1
+    const formExact = formDeclared && template.business_form === lead.business_form
+    const industryExact = industryDeclared && leadIndustry.length > 0 && templateIndustry === leadIndustry
+    if (formExact && industryExact) return 0
+    if (formExact) return 1
+    if (industryExact) return 2
+    return 3
+  }
+
+  /**
+   * The generate-time template chain: an explicit id wins outright; otherwise
+   * the best-ranked {@link matchRank} template. A lead that every enabled
+   * template contradicts is a loud error — silently reusing the oldest one
+   * would hand a 抖店 seller the 到店陪访 plan.
    */
   private resolveTemplate(explicitId: string | undefined, lead: Lead): SopTemplate {
     if (explicitId !== undefined) {
@@ -383,14 +413,27 @@ export class SopService {
       .map(([, template]) => template)
       .filter(template => template.enabled)
       .sort((left, right) => left.created_at - right.created_at)
-    const industryMatch = lead.industry === undefined
-      ? undefined
-      : enabled.find(template => template.industry === lead.industry)
-    const fallback = industryMatch ?? enabled.find(template => template.industry === undefined)
-    if (fallback !== undefined) return fallback
-    const first = enabled[0]
-    if (first === undefined) throw new Error('没有启用中的 SOP 模板，请先创建或启用一套（sop_template_manage 的 create）')
-    return first
+    if (enabled.length === 0) {
+      throw new Error('没有启用中的 SOP 模板，请先创建或启用一套（sop_template_manage 的 create）')
+    }
+    // A lead's `industry` names the service we sell; `business_form` says how
+    // that customer actually trades. Both dimensions must not contradict, and
+    // an exact hit beats a template that leaves a dimension empty.
+    let best: SopTemplate | undefined
+    let bestRank = Number.POSITIVE_INFINITY
+    for (const template of enabled) {
+      const rank = SopService.matchRank(template, lead)
+      if (rank >= 0 && rank < bestRank) {
+        best = template
+        bestRank = rank
+      }
+    }
+    if (best !== undefined) return best
+    throw new Error(
+      `没有与这条线索匹配的 SOP 模板：线索业态=${lead.business_form ?? '未填'}、行业=${lead.industry ?? '未填'}，`
+      + `而 ${enabled.length} 套启用中的模板都与它冲突。请先用 sop_template_manage 的 create 补一套，`
+      + '或把某套模板的 business_form / industry 留空作为通用模板。',
+    )
   }
 
   /** Global-template management gate for every template write. */

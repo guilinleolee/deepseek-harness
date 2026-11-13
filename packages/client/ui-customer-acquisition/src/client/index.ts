@@ -23,7 +23,7 @@ import { AcquisitionEntry } from './AcquisitionEntry.tsx'
 import { AcquisitionWorkbench } from './AcquisitionWorkbench.tsx'
 import type { WorkbenchInjected } from './injected.ts'
 import { createPanelController } from './panel-controller.ts'
-import { en, zh, type AcquisitionKey } from './locales.ts'
+import { en, ja, es, fr, de, ru, pt, zh, type AcquisitionKey } from './locales.ts'
 
 export { createPanelController, type PanelController } from './panel-controller.ts'
 export { AcquisitionWorkbench, type AcquisitionWorkbenchProps, type WorkbenchPage } from './AcquisitionWorkbench.tsx'
@@ -73,7 +73,7 @@ async function unwrap<T>(label: string, call: RpcCall<T>): Promise<T> {
  * @param ctx - client root context.
  */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-customer-acquisition: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-customer-acquisition: dictionaries')
 
   const mount = await ctx.remote.$mount(customerAcquisitionRemote)
   const surface = await ctx.plugin({

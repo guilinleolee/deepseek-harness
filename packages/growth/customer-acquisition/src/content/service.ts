@@ -18,6 +18,7 @@ import {
   type GeneratedContent,
   type Lead,
 } from '../domain/spec.ts'
+import { normalizeIndustry } from '../domain/vocab.ts'
 import { llmPromptCompletion, type PromptCompletion, type ResolvedAiPolicy } from '../llm/oneshot.ts'
 import type { LeadLedgerService } from '../leads/service.ts'
 import type { OperatorChannel, ResolvedOperator } from '../permission/types.ts'
@@ -174,6 +175,7 @@ export class NurtureContentService {
         company_name: variables.company_name,
         contact_name: variables.contact_name,
         industry: variables.industry,
+        business_form: lead.business_form,
         company_size: variables.company_size,
         demand_desc: variables.demand_desc,
         budget_range: variables.budget_range,
@@ -239,7 +241,7 @@ export class NurtureContentService {
    * @returns the stored template.
    */
   async createTemplate(
-    input: { name: string; type: string; industry?: string; body: string; variables?: ContentTemplate['variables']; enabled?: boolean },
+    input: { name: string; type: string; industry?: string; business_form?: ContentTemplate['business_form']; body: string; variables?: ContentTemplate['variables']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<ContentTemplate> {
@@ -252,6 +254,7 @@ export class NurtureContentService {
       id: newId<ContentTemplateId>(),
       name: input.name,
       ...(input.industry === undefined ? {} : { industry: input.industry }),
+      ...(input.business_form === undefined ? {} : { business_form: input.business_form }),
       type: input.type,
       body: input.body,
       variables: input.variables ?? [],
@@ -279,7 +282,7 @@ export class NurtureContentService {
    */
   async updateTemplate(
     templateId: string,
-    patch: { name?: string; industry?: string; type?: string; body?: string; variables?: ContentTemplate['variables']; enabled?: boolean },
+    patch: { name?: string; industry?: string; business_form?: ContentTemplate['business_form']; type?: string; body?: string; variables?: ContentTemplate['variables']; enabled?: boolean },
     operator: ResolvedOperator,
     channel: OperatorChannel,
   ): Promise<ContentTemplate> {
@@ -356,9 +359,40 @@ export class NurtureContentService {
   }
 
   /**
-   * The generate-time template chain: explicit id → type+industry → type →
-   * industry-absent → any of the type; an explicit id is honored even when
-   * disabled (the operator named it).
+   * Rank one template against a lead: lower is better, `-1` means the template
+   * contradicts the lead and may never be used. A dimension the template leaves
+   * empty (or the lead leaves unset) never contradicts; it merely ranks below an
+   * exact hit. The four tiers, best first: form+industry exact, form exact,
+   * industry exact, generic on both.
+   *
+   * Industry is free text, so it compares after {@link normalizeIndustry}: the
+   * same industry reaches us as both `B2B工厂商贸` (leads) and `B2B 工厂商贸`
+   * (seeded templates), and a stray space must not read as a different industry.
+   * @param template - one candidate template of the requested type.
+   * @param lead - the lead the copy is for.
+   * @returns the tier, or `-1` when the template contradicts the lead.
+   */
+  private static matchRank(template: ContentTemplate, lead: Lead): number {
+    const formDeclared = template.business_form !== undefined
+    const industryDeclared = template.industry !== undefined
+    if (formDeclared && lead.business_form !== undefined && template.business_form !== lead.business_form) return -1
+    const templateIndustry = normalizeIndustry(template.industry)
+    const leadIndustry = normalizeIndustry(lead.industry)
+    if (industryDeclared && leadIndustry.length > 0 && templateIndustry !== leadIndustry) return -1
+    const formExact = formDeclared && template.business_form === lead.business_form
+    const industryExact = industryDeclared && leadIndustry.length > 0 && templateIndustry === leadIndustry
+    if (formExact && industryExact) return 0
+    if (formExact) return 1
+    if (industryExact) return 2
+    return 3
+  }
+
+  /**
+   * The generate-time template chain: an explicit id wins outright; otherwise
+   * the best-ranked {@link matchRank} template of that type. No template of the
+   * type at all means freeform copy (undefined). Templates of the type that all
+   * contradict the lead is a loud error: silently reusing the oldest one would
+   * hand a 线上店 a 到店 script, which reads as a machine-written blast.
    */
   private resolveTemplate(explicitId: string | undefined, type: string, lead: Lead): ContentTemplate | undefined {
     if (explicitId !== undefined) {
@@ -371,10 +405,21 @@ export class NurtureContentService {
       .filter(template => template.enabled && template.type === type)
       .sort((left, right) => left.created_at - right.created_at)
     if (enabled.length === 0) return undefined
-    const industryMatch = lead.industry === undefined
-      ? undefined
-      : enabled.find(template => template.industry === lead.industry)
-    return industryMatch ?? enabled.find(template => template.industry === undefined) ?? enabled[0]
+    let best: ContentTemplate | undefined
+    let bestRank = Number.POSITIVE_INFINITY
+    for (const template of enabled) {
+      const rank = NurtureContentService.matchRank(template, lead)
+      if (rank >= 0 && rank < bestRank) {
+        best = template
+        bestRank = rank
+      }
+    }
+    if (best !== undefined) return best
+    throw new Error(
+      `没有与这条线索匹配的「${type}」文案模板：线索业态=${lead.business_form ?? '未填'}、行业=${lead.industry ?? '未填'}，`
+      + `而该类型的 ${enabled.length} 套模板都与它冲突。请先用 content_template_manage 的 create 补一套，`
+      + '或把某套模板的 business_form / industry 留空作为通用模板。',
+    )
   }
 
   /** Global-template management gate for every template write. */

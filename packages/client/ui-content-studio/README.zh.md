@@ -27,7 +27,7 @@ Content Studio 是内容创作领域的网页工作台：一次安装即加入�
 
 内容创作工作台插件：侧边栏入口 + 全帧创作工作台页面。入口填充侧栏外壳的 `sidebar.footer.action` 槽（宽栏时为带文字的行，窄栏时为图标），工作台填充框架的加法位 `shell.overlay` 槽——两处都是增量挂载，不替换任何现有界面。
 
-一条命令即可装入任何 DSH web profile：`dsh plugin --profile web add @deepseek-ai/dsh-client-ui-content-studio`——本包声明了 `dsh.bundle.patch`，其 insert 清单会一并带上两个 host Remote 网关（`content-outputs`、`content-schedule`），无需任何手工步骤。
+一条命令即可装入任何 DSH web profile：`dsh plugin --profile web add @deepseek-ai/dsh-client-ui-content-studio`——本包声明了 `dsh.bundle.patch`，其 insert 清单会一并带上宿主 Remote 网关（`content-outputs`、`content-schedule`、`content-topics`）与支撑创作工作台分镜和封面出图的图像生成提供商，无需任何手工步骤。图像提供商出厂未配置：部署设置好自己的端点与凭据之前，出图会以指名 `baseURL` 设置的错误失败。
 
 本插件是**自包含的 Remote 装配**：`apply` 通过 `ctx.remote.$mount()` 挂载自己的两个 host 贡献（`contentOutputs`、`contentSchedule`）——沿用 api-remotes 确立的模式——浏览器 bundle 自带完整服务端通信面，任何树内 BFF 装配都无需感知本插件的存在。
 

@@ -314,3 +314,9 @@ export interface CreateCoverImage {
 export interface CreateCoverImageResult {
   readonly images: readonly CreateCoverImage[]
 }
+
+/** One generated image read back for display; base64 of the encoded bytes. */
+export interface CreateImageRead {
+  readonly mediaType: string
+  readonly base64: string
+}

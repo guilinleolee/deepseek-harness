@@ -94,6 +94,14 @@ export interface TopicItemInput {
   readonly scheduleItemId: string | null
   /** Linked `outputs/<topic>/` project directory name, or null. */
   readonly topicDir: string | null
+  /** Idea-wall canvas position; absent or null leaves the topic unplaced. */
+  readonly layout?: TopicLayout | null
+}
+
+/** Canvas position of one topic on the idea wall; both axes are finite numbers. */
+export interface TopicLayout {
+  readonly x: number
+  readonly y: number
 }
 
 /** One stored topic; `id` and the audit timestamps are always present. */
@@ -118,6 +126,11 @@ export interface TopicItem {
   readonly scheduleItemId: string | null
   /** Linked `outputs/<topic>/` project directory name, or null. */
   readonly topicDir: string | null
+  /**
+   * Idea-wall canvas position, or null when the topic has never been placed.
+   * Absent on pre-field items; a reader treats absent as null.
+   */
+  readonly layout?: TopicLayout | null
   /** Creation time, ISO 8601; preserved across upserts. */
   readonly createdAt: string
   /** Last-write time, ISO 8601; the list ordering key. */

@@ -23,7 +23,7 @@ Image generation as a capability seam: one `ctx.imageGeneration` service through
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount `@deepseek-ai/dsh-image-generation` in a Host composition and configure the bundled provider, or register another provider through `ctx.imageGeneration.register()`. Consumers call `ctx.imageGeneration.generate(request)` with a prompt and an optional provider route; the request's empty provider, model, and dimensions take the configured defaults before validation.
+The [Content Studio bundle patch](../../client/ui-content-studio/README.md) mounts this package alongside its host gateways, so installing Content Studio delivers the service; other compositions mount it explicitly. The bundled provider ships unconfigured: a request before `baseURL` is set fails with `INVALID_REQUEST` naming the setting, and a request without the credential fails with `MISSING_CREDENTIAL`. Consumers call `ctx.imageGeneration.generate(request)` with a prompt and an optional provider route; the request's empty provider, model, and dimensions take the configured defaults before validation. Another provider registers through `ctx.imageGeneration.register()`.
 
 The bundled provider authenticates with the credential referenced by `apiKeyEnv` through the shared `ctx.credentials` service, so the key never appears in the plugin's own storage. It reads `baseURL`, `apiKeyEnv`, and the defaults live, so a settings change reaches the next request without a restart.
 

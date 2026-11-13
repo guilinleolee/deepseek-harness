@@ -25,6 +25,7 @@ export function toLeadRef(lead: Lead): LeadRefValue {
     ...(lead.contact_name === undefined ? {} : { contact_name: lead.contact_name }),
     source: lead.source,
     ...(lead.industry === undefined ? {} : { industry: lead.industry }),
+    ...(lead.business_form === undefined ? {} : { business_form: lead.business_form }),
     ...(lead.intent_level === undefined ? {} : { intent_level: lead.intent_level }),
     opportunity_stage: lead.opportunity_stage,
     ...(lead.owner_id === undefined ? {} : { owner_id: lead.owner_id }),

@@ -32,7 +32,7 @@ import { createTemplateController } from './template/template-store.ts'
 import { createPublishController } from './publish/publish-store.ts'
 import { createReviewController } from './review/review-store.ts'
 import { createInteractionController } from './interaction/interaction-store.ts'
-import { en, zh, type StudioKey } from './locales.ts'
+import { en, ja, es, fr, de, ru, pt, zh, type StudioKey } from './locales.ts'
 
 export { createContentStudioController, type ContentStudioController } from './studio-store.ts'
 export { CAPABILITY_ITEMS, STUDIO_TABS, capabilityGroups } from './capabilities.ts'
@@ -99,7 +99,7 @@ async function unwrap<T>(label: string, call: RpcCall<T>): Promise<T> {
  * @param ctx - client root context.
  */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-content-studio: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-content-studio: dictionaries')
 
   const mountDisposers: Array<() => Promise<void>> = []
   try {
@@ -159,6 +159,7 @@ function mainApply(ctx: Context): void {
     evaluateCreateContent: request => unwrap('contentOutputs.evaluateCreateContent', ctx.remote.contentOutputs.evaluateCreateContent(request)),
     generateStoryboardImages: (theme, storyboard) => unwrap('contentOutputs.generateStoryboardImages', ctx.remote.contentOutputs.generateStoryboardImages(theme, storyboard)),
     generateCoverImage: (theme, cover) => unwrap('contentOutputs.generateCoverImage', ctx.remote.contentOutputs.generateCoverImage(theme, cover)),
+    readCreateImage: (theme, file) => unwrap('contentOutputs.readCreateImage', ctx.remote.contentOutputs.readCreateImage(theme, file)),
     listCreateAssets: theme => unwrap('contentOutputs.listCreateAssets', ctx.remote.contentOutputs.listCreateAssets(theme)),
     listCreateTemplates: () => unwrap('contentOutputs.listCreateTemplates', ctx.remote.contentOutputs.listCreateTemplates()),
     putCreateTemplate: input => unwrap('contentOutputs.putCreateTemplate', ctx.remote.contentOutputs.putCreateTemplate(input)),

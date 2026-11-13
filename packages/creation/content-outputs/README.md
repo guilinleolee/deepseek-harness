@@ -46,7 +46,7 @@ Eight content types frame the generation prompt, and two of them produce structu
 
 The `custom` rewrite operation carries a user-written instruction instead of a fixed toolbar brief. The instruction is bounded to 500 characters and reaches the prompt under the same "keep the facts, output only the rewrite" discipline as every other operation, so it cannot widen the output contract.
 
-`generateStoryboardImages` and `generateCoverImage` render a parsed document's visuals into asset images through the shared `ctx.imageGeneration` service and store them under `assets/` with an atomic, locked commit. The service is read per call, so a composition may mount it after this gateway; when it is absent the call fails with an error naming the package to mount, and the caller keeps the text-only path. Shots with no visual are skipped, and nothing beyond the image files is persisted.
+`generateStoryboardImages` and `generateCoverImage` render a parsed document's visuals into asset images through the shared `ctx.imageGeneration` service and store them under `assets/` with an atomic, locked commit, each file's extension following the media type the bytes carry. The service is read per call, so a composition may disable or omit it without breaking this gateway's load; when it is absent the call fails naming the plugin to enable, and when it is present but unconfigured the provider's own error names the setting. Either way the caller keeps the text-only path. Shots with no visual are skipped, and nothing beyond the image files is persisted.
 
 ## Sentiment faces
 

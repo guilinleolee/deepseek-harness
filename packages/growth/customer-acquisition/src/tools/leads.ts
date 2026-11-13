@@ -29,6 +29,7 @@ export const LEAD_REF_SCHEMA = {
     contact_name: { type: 'string' },
     source: { type: 'string', required: true },
     industry: { type: 'string' },
+    business_form: { type: 'string', enum: ['online', 'offline', 'hybrid'] },
     intent_level: { type: 'string' },
     opportunity_stage: { type: 'string', required: true },
     owner_id: { type: 'string' },
@@ -55,6 +56,11 @@ export const LEAD_FIELD_PARAMETERS = {
     type: 'string',
     enum: ['decision_maker', 'influencer', 'end_user', 'gatekeeper', 'unknown'],
     description: '决策角色',
+  },
+  business_form: {
+    type: 'string',
+    enum: ['online', 'offline', 'hybrid'],
+    description: '经营形态：online=纯线上（抖店/网店/跨境）/ offline=有线下门店 / hybrid=两者兼有。影响跟进计划走线上还是到店',
   },
   tags: { type: 'array', items: { type: 'string' }, description: '标签；整体传入，不可重复（更新时整体替换）' },
   opportunity_stage: {
@@ -553,6 +559,7 @@ export function leadExtractTool(deps: LeadToolDeps): ToolDefinition {
               demand_desc: { type: 'string' },
               budget_range: { type: 'string' },
               decision_role: { type: 'string' },
+              business_form: { type: 'string', enum: ['online', 'offline', 'hybrid'] },
             },
           },
           notes: { type: 'string', description: '抽取歧义与未识别字段的说明' },

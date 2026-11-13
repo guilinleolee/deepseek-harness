@@ -644,6 +644,7 @@ export function contentTemplateManageTool(deps: ContentManageDeps): ToolDefiniti
           name,
           type,
           ...(args.industry === undefined ? {} : { industry: args.industry }),
+          ...(args.business_form === undefined ? {} : { business_form: args.business_form }),
           body,
           ...(args.variables === undefined ? {} : { variables: args.variables }),
           ...(args.enabled === undefined ? {} : { enabled: args.enabled }),
@@ -655,6 +656,7 @@ export function contentTemplateManageTool(deps: ContentManageDeps): ToolDefiniti
         const template = await deps.content.updateTemplate(templateId, {
           ...(args.name === undefined ? {} : { name: args.name }),
           ...(args.industry === undefined ? {} : { industry: args.industry }),
+          ...(args.business_form === undefined ? {} : { business_form: args.business_form }),
           ...(args.type === undefined ? {} : { type: args.type }),
           ...(args.body === undefined ? {} : { body: args.body }),
           ...(args.variables === undefined ? {} : { variables: args.variables }),
@@ -714,6 +716,11 @@ export function sopTemplateManageTool(deps: SopManageDeps): ToolDefinition {
       sop_template_id: { type: 'string', description: '模板 id（update/delete 必填）' },
       name: { type: 'string', description: '模板名称（create 必填）；update 为新名称' },
       industry: { type: 'string', description: '适用行业；省略 = 通用（update 为新行业）' },
+      business_form: {
+        type: 'string',
+        enum: ['online', 'offline', 'hybrid'],
+        description: '适用经营形态：online=纯线上客户 / offline=有线下门店 / hybrid=两者兼有；省略 = 不限形态',
+      },
       rules: { type: 'array', items: SOP_RULE_PARAMETER_ITEM, description: '规则列表，1-N 条（create 必填；update 为整体替换）' },
       enabled: { type: 'boolean', description: 'create：默认 true；update：启用状态' },
       enabled_only: { type: 'boolean', description: 'list：仅看启用，默认 false' },
@@ -818,6 +825,7 @@ export function sopTemplateManageTool(deps: SopManageDeps): ToolDefinition {
         const template = await deps.sop.createTemplate({
           name,
           ...(args.industry === undefined ? {} : { industry: args.industry }),
+          ...(args.business_form === undefined ? {} : { business_form: args.business_form }),
           rules: rules.map(rule => ({
             intent_level: rule.intent_level,
             cadence: rule.cadence,
@@ -834,6 +842,7 @@ export function sopTemplateManageTool(deps: SopManageDeps): ToolDefinition {
         const template = await deps.sop.updateTemplate(templateId, {
           ...(args.name === undefined ? {} : { name: args.name }),
           ...(args.industry === undefined ? {} : { industry: args.industry }),
+          ...(args.business_form === undefined ? {} : { business_form: args.business_form }),
           ...(args.rules === undefined ? {} : { rules: args.rules.map(rule => ({
             intent_level: rule.intent_level,
             cadence: rule.cadence,

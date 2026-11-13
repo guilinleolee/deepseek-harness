@@ -389,12 +389,14 @@ describe('P3 service edge fills over the composed stack', () => {
     expect(outcome.content.template_id).toBe(generic.id)
   })
 
-  it('generate falls back to the first enabled template when industries all miss', async () => {
+  it('generate refuses a cross-industry fallback instead of reusing the oldest template', async () => {
     const other = await p1.ledger.createLead({ company_name: '教育公司', industry: '教育' }, FULL_OPERATOR, 'agent')
     await p1.ledger.applyIntent(other.id, 'high')
-    const finance = await contentOf('金融模板').createTemplate({ name: '金融专用', type: 'wecom_first_touch', industry: '金融', body: '金融正文' }, FULL_OPERATOR, 'agent')
-    const crossed = await contentOf('金融模板').generate({ lead_id: other.id, type: 'wecom_first_touch', variant: 'A' }, FULL_OPERATOR, 'agent')
-    expect(crossed.content.template_id).toBe(finance.id)
+    await contentOf('金融模板').createTemplate({ name: '金融专用', type: 'wecom_first_touch', industry: '金融', body: '金融正文' }, FULL_OPERATOR, 'agent')
+    // A 教育 lead must never receive the 金融 script: the old chain returned the
+    // first enabled template here, which reads as a machine-written blast.
+    await expect(contentOf('金融模板').generate({ lead_id: other.id, type: 'wecom_first_touch', variant: 'A' }, FULL_OPERATOR, 'agent'))
+      .rejects.toThrow('没有与这条线索匹配的「wecom_first_touch」文案模板')
   })
 
   it('sop service edges: no-template generation, sorted templates, missing ids, and the manager gate', async () => {

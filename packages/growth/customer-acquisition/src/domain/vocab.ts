@@ -28,3 +28,17 @@ export const KNOWN_COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-1000', '1000
 export const LEAD_SOURCES_HINT = KNOWN_LEAD_SOURCES.join('/')
 export const CONTENT_TYPES_HINT = KNOWN_CONTENT_TYPES.join('/')
 export const COMPANY_SIZES_HINT = KNOWN_COMPANY_SIZES.join('/')
+
+/**
+ * Fold one free-text industry name to its comparison form: trim, drop every
+ * whitespace run, and lowercase. `industry` is open free text on both leads and
+ * templates, so the same industry reaches storage as `B2B工厂商贸` from a lead
+ * and `B2B 工厂商贸` from a seeded template; comparing raw strings would read
+ * that stray space as a different industry and mis-route the template.
+ * @param industry - the raw stored value, possibly undefined.
+ * @returns the folded comparison key; empty when there is nothing to compare.
+ */
+export function normalizeIndustry(industry: string | undefined): string {
+  if (industry === undefined) return ''
+  return industry.replace(/\s+/g, '').toLowerCase()
+}

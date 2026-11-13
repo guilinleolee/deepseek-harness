@@ -21,7 +21,7 @@ import type {
   CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult, CompetitorManifest,
   CompetitorManifestRead, CompetitorReportRequest, CompetitorReportResult,
   ContentOutputsSnapshot, CreateAiResult, CreateAssetList, CreateCoverImageResult, CreateEvaluateRequest,
-  CreateEvaluation, CreateExtractResult, CreateGenerateRequest, CreateManifest, CreatePublishRequest,
+  CreateEvaluation, CreateExtractResult, CreateGenerateRequest, CreateImageRead, CreateManifest, CreatePublishRequest,
   CreatePublishResult, CreateRegisterRequest, CreateRewriteRequest, CreateStateRead, CreateStoryboardImages,
   CreateTemplateInput, CreateTemplateList,
   GatherAiRequest, GatherAiResult, GatherAssetMove, GatherAssetWrite, GatherFeedRequest,
@@ -63,7 +63,7 @@ import {
 } from './create/store.ts'
 import { CreateAiProcessor } from './create/ai.ts'
 import { extractArticleCopy } from './create/extract.ts'
-import { generateCoverImage, generateStoryboardImages } from './create/images.ts'
+import { generateCoverImage, generateStoryboardImages, readCreateImageFile } from './create/images.ts'
 import { parseCreateCoverPlan, parseCreateStoryboard } from './create/storyboard.ts'
 import { CreateQuotaGate, type CreateQuotaConfig } from './create/quota.ts'
 import {
@@ -272,13 +272,13 @@ export class ContentOutputsGateway extends TypertRemoteService {
 
   /**
    * The shared image-generation service, read per call. Reading it at
-   * request time is what lets a composition mount the service after this
-   * gateway (or reload it) without a construction-order dependency.
+   * request time is what lets a composition disable the plugin (or mount it
+   * late) without breaking this gateway's load.
    */
   private requireImageGeneration(): ImageGeneration {
     const service = this.ctx.get('imageGeneration')
     if (service === undefined) {
-      throw new Error('image generation is not available: mount @deepseek-ai/dsh-image-generation and configure its endpoint')
+      throw new Error('image generation is not available: enable the @deepseek-ai/dsh-image-generation plugin and configure its baseURL')
     }
     return service
   }
@@ -672,6 +672,19 @@ export class ContentOutputsGateway extends TypertRemoteService {
     const prompt = [plan.title, plan.subtitle, plan.composition, plan.palette, plan.style]
       .filter(part => part.length > 0).join('，')
     return generateCoverImage(service, this.root, theme, prompt, signal)
+  }
+
+  /**
+   * Read one generated image asset back for display. Only raster images
+   * inside the theme's `assets/` directory are served, under a hard byte cap;
+   * the byte prefix decides the media type, never the file extension.
+   * @param theme - outputs-project directory name.
+   * @param file - the plain asset file name a generation pass stored.
+   * @returns the media type and base64 bytes.
+   */
+  @Remote('readCreateImage')
+  async readCreateImage(theme: string, file: string): Promise<CreateImageRead> {
+    return readCreateImageFile(this.root, theme, file)
   }
 
   /**

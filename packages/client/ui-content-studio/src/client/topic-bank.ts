@@ -2,13 +2,14 @@
  * Pure logic of the topic-bank view: the five-status single-source config,
  * the persisted view/filter configuration with versioned load migration,
  * filtering (source, score range, tag, status, keyword, plan window), the
- * kanban grouping, and the Markdown export whose frontmatter is emitted and
+ * kanban grouping, the idea-wall canvas geometry (auto grid, drag clamping,
+ * keyword gather), and the Markdown export whose frontmatter is emitted and
  * parsed by one strict schema so export → import round-trips losslessly.
  * No React, no I/O — the view and the tests share this module, like
  * `create.ts` and `competitors.ts`.
  */
 
-import type { TopicItem, TopicItemInput, TopicSourceType, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
+import type { TopicItem, TopicItemInput, TopicLayout, TopicSourceType, TopicStatus } from '@deepseek-ai/dsh-content-topics/types'
 
 /** Kanban column order and the canonical status sequence, oldest stage first. */
 export const TOPIC_STATUSES: readonly TopicStatus[] = ['idea', 'todo', 'creating', 'done', 'shelved']
@@ -16,8 +17,8 @@ export const TOPIC_STATUSES: readonly TopicStatus[] = ['idea', 'todo', 'creating
 /** Source families of one topic, in filter order. */
 export const TOPIC_SOURCE_TYPES: readonly TopicSourceType[] = ['manual', 'gather', 'benchmark', 'interaction']
 
-/** The persisted view: the topic bank's two faces. */
-export type TopicBankViewKind = 'table' | 'kanban'
+/** The persisted view: the topic bank's three faces. */
+export type TopicBankViewKind = 'table' | 'kanban' | 'canvas'
 
 /** How the plan-date filter scopes the list. */
 export type TopicBankPlanWindow = 'all' | 'week' | 'month'
@@ -82,7 +83,7 @@ function normalizeConfig(value: unknown): TopicBankConfig | null {
   if (typeof value !== 'object' || value === null) return null
   const record = value as Record<string, unknown>
   if (record.version !== TOPIC_BANK_CONFIG_VERSION) return null
-  if (record.view !== 'table' && record.view !== 'kanban') return null
+  if (record.view !== 'table' && record.view !== 'kanban' && record.view !== 'canvas') return null
   const filters = record.filters
   if (typeof filters !== 'object' || filters === null) return null
   const f = filters as Record<string, unknown>
@@ -439,6 +440,7 @@ export function topicInputOf(item: TopicItem, patch: Partial<TopicItemInput> = {
     planDate: item.planDate,
     scheduleItemId: item.scheduleItemId,
     topicDir: item.topicDir,
+    layout: item.layout ?? null,
     ...patch,
   }
 }
@@ -456,4 +458,108 @@ export function withAppendedTags(item: TopicItem, appended: readonly string[]): 
     if (tag.length > 0 && !tags.includes(tag)) tags.push(tag)
   }
   return topicInputOf(item, { tags })
+}
+
+/** Card footprint of one idea-wall topic, used by the auto-layout and drag clamping. */
+export const TOPIC_CANVAS_CARD = { width: 224, height: 104 } as const
+
+/** The gap between auto-layout grid cells. */
+export const TOPIC_CANVAS_GAP = 24
+
+/** The canvas world size the wall pans and zooms over. */
+export const TOPIC_CANVAS_SIZE = { width: 2400, height: 1600 } as const
+
+/** The zoom bounds of the idea wall. */
+export const TOPIC_CANVAS_ZOOM = { min: 0.4, max: 1.5, step: 0.15 } as const
+
+/**
+ * Clamp one canvas position so a card's top-left corner stays inside the world,
+ * with a right/bottom margin of the card footprint.
+ * @param position - the position to clamp.
+ * @returns the clamped position.
+ */
+export function clampCanvasPosition(position: TopicLayout): TopicLayout {
+  const maxX = Math.max(0, TOPIC_CANVAS_SIZE.width - TOPIC_CANVAS_CARD.width)
+  const maxY = Math.max(0, TOPIC_CANVAS_SIZE.height - TOPIC_CANVAS_CARD.height)
+  return {
+    x: Math.min(Math.max(position.x, 0), maxX),
+    y: Math.min(Math.max(position.y, 0), maxY),
+  }
+}
+
+/** One placed topic: the stored topic plus its display position. */
+export interface PlacedTopic {
+  readonly item: TopicItem
+  readonly position: TopicLayout
+}
+
+/**
+ * The display positions of the wall's topics. A persisted layout wins; the
+ * rest take a grid slot in input order, so an unarranged wall is still
+ * readable and every card has a stable place to be dragged from.
+ * @param items - the topics to place, in list order.
+ * @returns one entry per topic, in input order.
+ */
+export function canvasPlacements(items: readonly TopicItem[]): readonly PlacedTopic[] {
+  const perRow = Math.max(1, Math.floor((TOPIC_CANVAS_SIZE.width + TOPIC_CANVAS_GAP) / (TOPIC_CANVAS_CARD.width + TOPIC_CANVAS_GAP)))
+  let autoIndex = 0
+  return items.map((item) => {
+    if (item.layout !== undefined && item.layout !== null) return { item, position: clampCanvasPosition(item.layout) }
+    const column = autoIndex % perRow
+    const row = Math.floor(autoIndex / perRow)
+    autoIndex += 1
+    return {
+      item,
+      position: {
+        x: TOPIC_CANVAS_GAP + column * (TOPIC_CANVAS_CARD.width + TOPIC_CANVAS_GAP),
+        y: TOPIC_CANVAS_GAP + row * (TOPIC_CANVAS_CARD.height + TOPIC_CANVAS_GAP),
+      },
+    }
+  })
+}
+
+/**
+ * The wall's positions while a keyword is active: matching topics pull into a
+ * dense cluster around the viewport anchor, and non-matching topics keep
+ * their positions. Purely display — the cluster is never persisted.
+ * @param placements - the topics' resting positions.
+ * @param keyword - the active keyword; empty keeps every resting position.
+ * @param anchor - the cluster center in world coordinates.
+ * @returns the display positions, one per input entry.
+ */
+export function gatheredCanvasPlacements(
+  placements: readonly PlacedTopic[], keyword: string, anchor: TopicLayout,
+): readonly PlacedTopic[] {
+  const query = keyword.trim().toLowerCase()
+  if (query.length === 0) return placements
+  const matches = placements.filter(({ item }) => matchesCanvasKeyword(item, query))
+  const clusterRadius = Math.max(1, Math.ceil(Math.sqrt(Math.max(1, matches.length)))) * (TOPIC_CANVAS_CARD.width + TOPIC_CANVAS_GAP)
+  let matchIndex = 0
+  return placements.map(({ item, position }) => {
+    if (!matchesCanvasKeyword(item, query)) return { item, position }
+    const column = matchIndex % Math.max(1, Math.ceil(Math.sqrt(matches.length)))
+    const row = Math.floor(matchIndex / Math.max(1, Math.ceil(Math.sqrt(matches.length))))
+    matchIndex += 1
+    return {
+      item,
+      position: clampCanvasPosition({
+        x: anchor.x - clusterRadius / 2 + column * (TOPIC_CANVAS_CARD.width + TOPIC_CANVAS_GAP),
+        y: anchor.y - clusterRadius / 2 + row * (TOPIC_CANVAS_CARD.height + TOPIC_CANVAS_GAP),
+      }),
+    }
+  })
+}
+
+/**
+ * Whether one topic matches the wall's keyword: the same case-insensitive
+ * substring sweep the list view's search runs, over title, pitch,
+ * description, and tags.
+ * @param item - the topic to test.
+ * @param query - the lowercased keyword.
+ * @returns whether the topic matches.
+ */
+export function matchesCanvasKeyword(item: TopicItem, query: string): boolean {
+  if (query.length === 0) return true
+  const haystack = [item.title, item.oneLiner ?? '', item.description ?? '', ...item.tags].join('\n').toLowerCase()
+  return haystack.includes(query)
 }

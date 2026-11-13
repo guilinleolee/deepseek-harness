@@ -285,6 +285,11 @@ export function sopTemplateCreateTool(deps: SopToolDeps): ToolDefinition {
     parameters: {
       name: { type: 'string', required: true, description: '模板名称' },
       industry: { type: 'string', description: '适用行业；省略 = 通用' },
+      business_form: {
+        type: 'string',
+        enum: ['online', 'offline', 'hybrid'],
+        description: '适用经营形态：online=纯线上客户 / offline=有线下门店 / hybrid=两者兼有；省略 = 不限形态',
+      },
       rules: { type: 'array', required: true, items: SOP_RULE_PARAMETER_ITEM, description: '规则列表，1-N 条' },
       enabled: { type: 'boolean', description: '默认 true' },
     },
@@ -317,10 +322,11 @@ export function sopTemplateCreateTool(deps: SopToolDeps): ToolDefinition {
     }),
     async execute(args, exec) {
       const operator = await deps.permission.resolve(operatorRequest('agent', exec.agent?.id))
-      const { name, industry, rules, enabled } = args
+      const { name, industry, business_form: businessForm, rules, enabled } = args
       const template = await deps.sop.createTemplate({
         name,
         ...(industry === undefined ? {} : { industry }),
+        ...(businessForm === undefined ? {} : { business_form: businessForm }),
         rules: rules.map(rule => ({
           intent_level: rule.intent_level,
           cadence: rule.cadence,
@@ -348,6 +354,11 @@ export function sopTemplateUpdateTool(deps: SopToolDeps): ToolDefinition {
       sop_template_id: { type: 'string', required: true, description: '模板 id' },
       name: { type: 'string', description: '新名称' },
       industry: { type: 'string', description: '新行业' },
+      business_form: {
+        type: 'string',
+        enum: ['online', 'offline', 'hybrid'],
+        description: '新经营形态：online=纯线上客户 / offline=有线下门店 / hybrid=两者兼有',
+      },
       rules: { type: 'array', items: SOP_RULE_PARAMETER_ITEM, description: '整体替换规则列表' },
       enabled: { type: 'boolean', description: '启用状态' },
     },
@@ -380,10 +391,11 @@ export function sopTemplateUpdateTool(deps: SopToolDeps): ToolDefinition {
     }),
     async execute(args, exec) {
       const operator = await deps.permission.resolve(operatorRequest('agent', exec.agent?.id))
-      const { sop_template_id: templateId, name, industry, rules, enabled } = args
+      const { sop_template_id: templateId, name, industry, business_form: businessForm, rules, enabled } = args
       const template = await deps.sop.updateTemplate(templateId, {
         ...(name === undefined ? {} : { name }),
         ...(industry === undefined ? {} : { industry }),
+        ...(businessForm === undefined ? {} : { business_form: businessForm }),
         ...(rules === undefined ? {} : { rules: rules.map(rule => ({
           intent_level: rule.intent_level,
           cadence: rule.cadence,

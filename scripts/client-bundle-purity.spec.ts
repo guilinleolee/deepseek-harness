@@ -273,6 +273,11 @@ describe('client bundle purity gate', () => {
     expect(resolveId('@deepseek-ai/dsh-plugin-manager/registry')).toBeNull()
     expect(() => resolveId('@deepseek-ai/dsh-plugin-manager')).toThrow(/purity/)
     expect(() => resolveId('@deepseek-ai/dsh-plugin-manager/registry/internal')).toThrow(/purity/)
+    // content-outputs/types is its documented client-safe wire vocabulary; the
+    // package root and any deeper subpath stay rejected.
+    expect(resolveId('@deepseek-ai/dsh-content-outputs/types')).toBeNull()
+    expect(() => resolveId('@deepseek-ai/dsh-content-outputs')).toThrow(/purity/)
+    expect(() => resolveId('@deepseek-ai/dsh-content-outputs/types/internal')).toThrow(/purity/)
   })
 
   it('omits unused RRULE code from a Cron-only browser import', async () => {

@@ -491,3 +491,85 @@
   padding: 8px;
   margin-top: 4px;
 }
+
+.canvasToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.canvasHint {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-right: auto;
+}
+
+.canvasZoom {
+  font-size: 12px;
+  opacity: 0.7;
+  min-width: 40px;
+  text-align: center;
+}
+
+.canvasViewport {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-line-control);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-subtle, rgba(127, 127, 127, 0.06));
+  touch-action: none;
+  cursor: grab;
+}
+
+.canvasPanning {
+  cursor: grabbing;
+}
+
+.canvasWorld {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.canvasCard {
+  position: absolute;
+  width: 224px;
+  min-height: 104px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-line-control);
+  background: var(--dsw-alias-bg-surface, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  touch-action: none;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+}
+
+.canvasCardDragging {
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.canvasCardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.canvasCardPitch {
+  font-size: 12px;
+  opacity: 0.75;
+  word-break: break-word;
+}
+
+.canvasCardTags {
+  font-size: 11px;
+  opacity: 0.6;
+  word-break: break-word;
+}

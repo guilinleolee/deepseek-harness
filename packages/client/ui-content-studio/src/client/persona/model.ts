@@ -91,6 +91,14 @@ export const PERSONA_STYLE_SAMPLES: Readonly<Record<PersonaStylePreset, string>>
   narrative: '去年这个时候我还在为获客发愁，直到遇见了它。',
   hardcore: '实测数据说话：同配置续航提升 23%，附测试方法。',
   empathy: '带娃已经很累了，收拾屋子的事交给我来帮你。',
+  tech: '首发上手：这块芯片的实测跑分和发热，直接决定了值不值。',
+  'locale-travel': '人均 50 吃遍这条街，最后一家本地人才去。',
+  lifestyle: '独居第四年，我把 60 平小家改成了这样。',
+  opinion: '别再神话效率工具了，真正拉开差距的是取舍。',
+  tutorial: '三步搞定：先开这个开关，再导数据，最后设提醒。',
+  product: '用了 30 天才敢写：这款键盘的优缺点都在这里。',
+  emotional: '收到录取通知那天，我妈在厨房偷偷抹眼泪。',
+  news: '昨晚新政落地，对普通创作者影响最大的就这一条。',
 }
 
 /** Preset red-line choices offered as chips; the field value stays a plain joined string. */
@@ -129,8 +137,28 @@ export function joinIntents(selected: readonly string[], custom: string): string
   return [...selected, custom.trim()].filter(segment => segment.length > 0).join('；')
 }
 
-/** Every style preset, in picker order. */
-export const PERSONA_STYLE_PRESETS = ['professional', 'friendly', 'humor', 'concise', 'narrative', 'hardcore', 'empathy'] as const
+/**
+ * Every style preset, in picker order. The first seven constrain tone of
+ * voice; the last eight constrain creator domain. The client copy must stay
+ * equal to the gateway's list, which the persona-model test pins.
+ */
+export const PERSONA_STYLE_PRESETS = [
+  'professional',
+  'friendly',
+  'humor',
+  'concise',
+  'narrative',
+  'hardcore',
+  'empathy',
+  'tech',
+  'locale-travel',
+  'lifestyle',
+  'opinion',
+  'tutorial',
+  'product',
+  'emotional',
+  'news',
+] as const
 
 /** Chinese label of one style preset. */
 export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, string>> = {
@@ -141,6 +169,14 @@ export const PERSONA_STYLE_PRESET_LABELS: Readonly<Record<PersonaStylePreset, st
   narrative: '故事叙事',
   hardcore: '硬核干货',
   empathy: '温柔共情',
+  tech: '科技数码',
+  'locale-travel': '探店旅行',
+  lifestyle: '生活方式 Vlog',
+  opinion: '观点评论',
+  tutorial: '手把手教程',
+  product: '好物测评',
+  emotional: '情感故事',
+  news: '时事热点',
 }
 
 /** One editable structured field: the text plus the origin it keeps. */

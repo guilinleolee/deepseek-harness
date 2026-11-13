@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type ImageGeneration from '@deepseek-ai/dsh-image-generation'
-import { generateCoverImage, generateStoryboardImages } from '../src/create/images.ts'
+import { CREATE_MAX_IMAGE_BYTES, generateCoverImage, generateStoryboardImages, readCreateImageFile } from '../src/create/images.ts'
 
 /** A stand-in image generation service returning one PNG per call. */
 function imageGeneration(): { service: ImageGeneration; generate: ReturnType<typeof vi.fn> } {
@@ -93,6 +93,47 @@ describe('generateCoverImage', () => {
       expect(result.images[0]).toMatchObject({ file: 'cover.jpg', mediaType: 'image/jpeg' })
       expect(existsSync(join(root, theme, 'assets', 'cover.jpg'))).toBe(true)
       expect(existsSync(join(root, theme, 'assets', 'cover.png'))).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('readCreateImageFile', () => {
+  /** A theme directory with one image written by hand. */
+  function themeWithImage(name: string, bytes: Uint8Array): string {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-create-read-'))
+    mkdirSync(join(root, 'topic', 'assets'), { recursive: true })
+    writeFileSync(join(root, 'topic', 'assets', name), bytes)
+    return root
+  }
+
+  it('reads a stored png back with its sniffed media type and base64 bytes', async () => {
+    const root = themeWithImage('cover.png', Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))
+    try {
+      const read = await readCreateImageFile(root, 'topic', 'cover.png')
+      expect(read.mediaType).toBe('image/png')
+      expect(Buffer.from(read.base64, 'base64')).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a file whose bytes are not a raster image, whatever the extension claims', async () => {
+    const root = themeWithImage('cover.png', Uint8Array.from([0x3c, 0x68, 0x74, 0x6d, 0x6c]))
+    try {
+      await expect(readCreateImageFile(root, 'topic', 'cover.png')).rejects.toThrow('not a supported raster image')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a read past the byte cap', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-create-read-'))
+    try {
+      mkdirSync(join(root, 'topic', 'assets'), { recursive: true })
+      writeFileSync(join(root, 'topic', 'assets', 'cover.png'), Buffer.alloc(CREATE_MAX_IMAGE_BYTES + 1, 0x89))
+      await expect(readCreateImageFile(root, 'topic', 'cover.png')).rejects.toThrow('read cap')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
