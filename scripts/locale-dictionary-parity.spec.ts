@@ -309,11 +309,14 @@ function registrationProblems(file: string): string[] {
 }
 
 describe('shipped locale dictionaries', () => {
-  it('registers every shipped language alongside every object-form bilingual dictionary', () => {
+  // Both tests parse every workspace source file. On a busy machine the sweep
+  // has been measured past the 5s default, so the budget is explicit rather
+  // than a load-dependent flake.
+  it('registers every shipped language alongside every object-form bilingual dictionary', { timeout: 60_000 }, () => {
     expect(sourceFiles().flatMap(registrationProblems)).toEqual([])
   })
 
-  it('keeps bilingual keys aligned and shipped-language keys and placeholders complete', () => {
+  it('keeps bilingual keys aligned and shipped-language keys and placeholders complete', { timeout: 60_000 }, () => {
     const files = sourceFiles()
     // Guard the discovery itself: an empty or narrowed sweep would pass every
     // assertion below while checking nothing.
