@@ -237,7 +237,7 @@ export const pt: Record<QuantKey, string> = {
   'panel.results.empty': 'Nenhum snapshot de backtest ainda. Rode um com a ferramenta quant_run_backtest.',
   'panel.results.curve': 'Curva de capital',
   'panel.results.compareWith': 'Comparar com:',
-  'panel.results.compareNone': 'Selecione outro instantâneo',
+  'panel.results.compareNone': 'Selecione outro snapshot',
   'panel.results.compareLabel': 'Comparação de curvas de capital',
   'panel.results.return': 'Retorno total',
   'panel.results.drawdown': 'Drawdown máximo',
