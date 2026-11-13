@@ -334,7 +334,8 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
     }
   }
 
-  const editTask = (task: SentimentTask): void => {    const groupOf = (polarity: SentimentPolarity | 'any'): string =>
+  const editTask = (task: SentimentTask): void => {
+    const groupOf = (polarity: SentimentPolarity | 'any'): string =>
       joinTerms(task.keywordGroups.filter(group => group.polarity === polarity).flatMap(group => [...group.terms]))
     setTaskForm({
       id: task.id,
@@ -531,17 +532,17 @@ export function SentimentView({ sentiment, topics, t }: SentimentViewProps) {
           <div className={css.sentimentChartCard}>
             <strong>{t('sentiment.chart.trend')}</strong>
             <div className={css.sentimentTrend}>
-            {(stats?.trend ?? []).map((day, index) => {
-              const max = Math.max(1, day.pos + day.neu + day.neg)
-              const previous = stats?.trend[index - 1]
-              const surged = previous !== undefined && day.pos + day.neu + day.neg > previous.pos + previous.neu + previous.neg
-              return (
-                <div key={day.day} className={css.sentimentTrendCol} title={`${day.day}: +${String(day.pos)} ~${String(day.neu)} -${String(day.neg)}${surged ? `（${t('sentiment.chart.surge')}）` : ''}`}>
-                  <div className={css.sentimentTrendBar} style={{ height: `${String(Math.round(((day.pos + day.neu + day.neg) / max) * 80))}px` }} />
-                  <span className={css.sentimentTrendDay}>{surged ? `▲${day.day.slice(5)}` : day.day.slice(5)}</span>
-                </div>
-              )
-            })}
+              {(stats?.trend ?? []).map((day, index) => {
+                const max = Math.max(1, day.pos + day.neu + day.neg)
+                const previous = stats?.trend[index - 1]
+                const surged = previous !== undefined && day.pos + day.neu + day.neg > previous.pos + previous.neu + previous.neg
+                return (
+                  <div key={day.day} className={css.sentimentTrendCol} title={`${day.day}: +${String(day.pos)} ~${String(day.neu)} -${String(day.neg)}${surged ? `（${t('sentiment.chart.surge')}）` : ''}`}>
+                    <div className={css.sentimentTrendBar} style={{ height: `${String(Math.round(((day.pos + day.neu + day.neg) / max) * 80))}px` }} />
+                    <span className={css.sentimentTrendDay}>{surged ? `▲${day.day.slice(5)}` : day.day.slice(5)}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
           <div className={css.sentimentChartCard}>
