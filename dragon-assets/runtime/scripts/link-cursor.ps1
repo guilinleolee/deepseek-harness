@@ -1,4 +1,4 @@
-# link-cursor.ps1 · 天龙引擎 -> Cursor 软链挂载
+﻿# link-cursor.ps1 · 天龙引擎 -> Cursor 软链挂载
 # =================================================
 #
 # Cursor 用 .cursorrules 文件 + .cursor/ 目录。

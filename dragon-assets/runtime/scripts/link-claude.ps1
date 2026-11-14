@@ -1,4 +1,4 @@
-# link-claude.ps1 · 天龙引擎 -> Claude Code 软链挂载
+﻿# link-claude.ps1 · 天龙引擎 -> Claude Code 软链挂载
 # =================================================
 #
 # 把天龙引擎的 4 类资源（skills / agents / commands / hooks）通过

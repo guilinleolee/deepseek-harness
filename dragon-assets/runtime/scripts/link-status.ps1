@@ -1,4 +1,4 @@
-# link-status.ps1 · 查看 dragon-engine 软链挂载状态
+﻿# link-status.ps1 · 查看 dragon-engine 软链挂载状态
 # =====================================================
 #
 # 检查 4 个 AI 应用目录（Claude Code / Cursor / Continue）下是否存在

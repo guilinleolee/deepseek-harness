@@ -1,4 +1,4 @@
-# unlink.ps1 · 移除 dragon-engine 软链
+﻿# unlink.ps1 · 移除 dragon-engine 软链
 # ======================================
 #
 # 反向操作：删除由 link-claude.ps1 / link-cursor.ps1 / link-continue.ps1

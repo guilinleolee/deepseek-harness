@@ -1,4 +1,4 @@
-# link-continue.ps1 · 天龙引擎 -> Continue 软链挂载
+﻿# link-continue.ps1 · 天龙引擎 -> Continue 软链挂载
 # =====================================================
 #
 # Continue (https://continue.dev) 的资源目录结构：

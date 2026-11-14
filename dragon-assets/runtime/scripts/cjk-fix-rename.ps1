@@ -1,4 +1,4 @@
-# cjk-fix-rename.ps1
+﻿# cjk-fix-rename.ps1
 # Auto-generated 2026-08-05 · 修正 5 个 rename 后内容名不贴切的文件
 
 # 用法：在 dragon-engine 根目录下运行

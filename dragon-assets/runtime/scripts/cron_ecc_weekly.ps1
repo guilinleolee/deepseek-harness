@@ -1,4 +1,4 @@
-# cron_ecc_weekly.ps1 - Stage 47.2 ECC 7 天观察期 Windows 计划任务脚本
+﻿# cron_ecc_weekly.ps1 - Stage 47.2 ECC 7 天观察期 Windows 计划任务脚本
 #
 # 用法 (管理员):
 #   1. 在 PowerShell (管理员) 中执行此脚本: `.\cron_ecc_weekly.ps1 -Install`
