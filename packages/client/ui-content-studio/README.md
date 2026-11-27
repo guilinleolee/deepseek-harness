@@ -88,6 +88,7 @@ One orienting sentence, then top-level bullets naming current package constraint
 - **No composer hand-off** — picking a capability copies the instruction instead of prefilling a session draft; a runtime draft/prefill seam would remove the paste hop.
 - **The capability catalog is static** — menu items are shipped data, not derived from the mounted skill registry, so maturity badges must be maintained by hand until a catalog RPC exists.
 - **Single-surface state** — open/closed state lives in one controller instance per apply; the surface is not per-session and holds no session context.
+- **The cover title is painted, not prompted** — a rendered cover carries no legible text, so the create view typesets the plan's main title over the image in the browser (`cover-text.ts`) and exports one 1920×1080 file. The compositor runs on the client only: a headless or CLI caller gets the bare image.
 
 -----
 

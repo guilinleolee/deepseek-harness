@@ -1,8 +1,9 @@
 /**
- * Parsers for the two structured creation documents: the storyboard and the
- * cover plan. Both are model-generated markdown with a fixed field
- * vocabulary, and both are read back into structured facts the workbench
- * renders and the image providers consume.
+ * Parsers for the structured creation documents: the storyboard, the cover
+ * plan, and the inline figure markers an article draft carries. All are
+ * model-generated markdown with a fixed field vocabulary, and all are read
+ * back into structured facts the workbench renders and the image providers
+ * consume.
  *
  * The parsers are tolerant by design: a field the model omitted reads as
  * empty or null rather than rejecting the whole document, because a partially
@@ -33,8 +34,22 @@ export interface CreateCoverPlan {
   readonly style: string
 }
 
+/** One inline figure marker an article draft carries: `[配图 3] 俯拍桌面，暖光`. */
+export interface CreateFigure {
+  /** The 1-based figure number the marker states; markers repeat so the draft can reorder text. */
+  readonly index: number
+  /** The visual brief the marker carries; an image provider renders this. */
+  readonly prompt: string
+}
+
 /** The heading line that opens one section of a generated document. */
 const HEADING = /^#{1,6}\s*(.*)$/u
+
+/** An inline figure marker: `[配图 3]`, `【配图3】`, `[图片 3]`, and the unnumbered form. */
+const FIGURE_MARKER = /[[【]\s*(?:配图|图片|示意图)\s*(\d{1,2})?\s*[\]】]/u
+
+/** The separator between a marker and its brief, stripped before the brief is read. */
+const FIGURE_BRIEF_LEAD = /^[ \t：:]+/u
 
 /** The label and duration a storyboard heading carries: `镜头 2 · 冲突（5s）`. */
 const SHOT_HEADING = /镜头\s*(\d+)\s*[·・:：]?\s*(.*?)\s*(?:[（(]\s*(\d+)\s*s?\s*[）)])?\s*$/u
@@ -153,4 +168,26 @@ export function parseCreateCoverPlan(text: string): CreateCoverPlan {
     palette: fieldValue(body, ['配色']),
     style: fieldValue(body, ['画面风格', '风格']),
   }
+}
+
+/**
+ * Parse the inline figure markers an article draft carries. A marker with no
+ * number takes its 1-based position in the document; a repeated number keeps
+ * the first marker's brief, because the draft may move the same figure. The
+ * brief is the rest of the marker's own line.
+ * @param text - the article draft.
+ * @returns the figures in document order.
+ */
+export function parseCreateFigures(text: string): CreateFigure[] {
+  const figures: CreateFigure[] = []
+  const seen = new Set<number>()
+  for (const line of text.split('\n')) {
+    const match = FIGURE_MARKER.exec(line)
+    if (match === null) continue
+    const stated = match[1] === undefined ? figures.length + 1 : Number.parseInt(match[1], 10)
+    if (seen.has(stated)) continue
+    seen.add(stated)
+    figures.push({ index: stated, prompt: line.slice(match.index + match[0].length).replace(FIGURE_BRIEF_LEAD, '').trim() })
+  }
+  return figures
 }

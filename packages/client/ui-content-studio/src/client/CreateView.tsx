@@ -14,7 +14,7 @@ import type {
   CreateRegisterRequest, CreateRewriteOperation, CreateRewriteRequest, CreateStateRead,
   CreateStyleKey, CreateAiResult, CreateTemplate, CreateTemplateInput, OutputMetadata,
 } from '@deepseek-ai/dsh-content-outputs/types'
-import { parseCreateCoverPlan, parseCreateStoryboard } from '@deepseek-ai/dsh-content-outputs/types'
+import { parseCreateCoverPlan, parseCreateFigures, parseCreateStoryboard } from '@deepseek-ai/dsh-content-outputs/types'
 import type { ContentScheduleSnapshot, ScheduleItemInput } from '@deepseek-ai/dsh-content-schedule/types'
 import type { ContentTopicsSnapshot, TopicItemInput } from '@deepseek-ai/dsh-content-topics/types'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -26,6 +26,7 @@ import {
   isBatchable, REWRITE_STYLES, SELECTION_OPS, CREATE_TYPE_IDS,
 } from './create.ts'
 import { scanBannedWords, type BannedHit } from './banned-words.ts'
+import { COVER_HEIGHT, COVER_WIDTH, coverDownloadName, paintCoverElement } from './cover-text.ts'
 import type { TemplateController } from './template/template-store.ts'
 import type { PickedTopic } from './studio-store.ts'
 import type { StudioKey } from './locales.ts'
@@ -55,8 +56,13 @@ export interface CreateGateway {
   }): Promise<CreateAiResult>
   rewriteCreateSelection(request: CreateRewriteRequest): Promise<CreateAiResult>
   evaluateCreateContent(request: { contentType: CreateContentType; title: string; text: string }): Promise<CreateEvaluation>
-  generateStoryboardImages(theme: string, storyboard: string): Promise<{
+  /** Render the named 1-based shots (all of them when the caller passes every number). */
+  generateStoryboardImages(theme: string, storyboard: string, shots: readonly number[]): Promise<{
     images: readonly { file: string; shot: number; mediaType: string; prompt: string }[]
+  }>
+  /** Render the named 1-based inline figures of an article draft. */
+  generateFigureImages(theme: string, text: string, figures: readonly number[]): Promise<{
+    images: readonly { file: string; figure: number; mediaType: string; prompt: string }[]
   }>
   generateCoverImage(theme: string, cover: string): Promise<{
     images: readonly { file: string; mediaType: string; prompt: string }[]
@@ -197,6 +203,7 @@ export function CreateView({
   const [templateForm, setTemplateForm] = useState<{ id: string | null; title: string; body: string } | null>(null)
   const [seoKeywords, setSeoKeywords] = useState<readonly string[] | null>(null)
   const [seoRegion, setSeoRegion] = useState('')
+  const [coverExporting, setCoverExporting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const activeTemplate = templates?.find(template => template.id === activeTemplateId) ?? null
 
@@ -589,32 +596,92 @@ export function CreateView({
   }
 
   /**
-   * Render the current draft's shots or cover fields into asset images. The
-   * storyboard and cover content types each own one button; a draft with
-   * neither structure produces nothing and says so. Rendered images load as
-   * previews for the structure panel.
+   * Render one draft's images and return the stored file names. The
+   * storyboard type renders its shots, `cover` renders the cover plan, and any
+   * other draft renders the inline `[配图 N]` markers it carries — so an
+   * article gets its illustrations from the same button. `only` narrows the
+   * render to one 1-based target.
    */
-  const runRenderImages = async (): Promise<void> => {
+  const renderDraftImages = async (state: EditorState, contentType: CreateContentType, only?: number): Promise<readonly string[]> => {
+    if (contentType === 'cover') {
+      const result = await create.generateCoverImage(state.theme, state.text)
+      return result.images.map(image => image.file)
+    }
+    const targets = contentType === 'storyboard'
+      ? parseCreateStoryboard(state.text).map(shot => shot.index)
+      : parseCreateFigures(state.text).map(figure => figure.index)
+    if (targets.length === 0) return []
+    const wanted = only === undefined ? targets : targets.filter(index => index === only)
+    if (wanted.length === 0) return []
+    const result = contentType === 'storyboard'
+      ? await create.generateStoryboardImages(state.theme, state.text, wanted)
+      : await create.generateFigureImages(state.theme, state.text, wanted)
+    return result.images.map(image => image.file)
+  }
+
+  /**
+   * Render the current draft's images. The storyboard, cover, and figure
+   * targets each render from the same button; a draft with none produces
+   * nothing and says so. `only` names one 1-based target to redraw, so
+   * changing one shot costs one image.
+   */
+  const runRenderImages = async (only?: number): Promise<void> => {
     if (editor === null || aiPending !== null) return
     const contentType = editor.manifest.contentType
-    if (contentType !== 'storyboard' && contentType !== 'cover') return
     setAiPending('rewrite')
     setError(null)
     try {
-      const result = contentType === 'storyboard'
-        ? await create.generateStoryboardImages(editor.theme, editor.text)
-        : await create.generateCoverImage(editor.theme, editor.text)
-      if (result.images.length === 0) {
+      const images = await renderDraftImages(editor, contentType, only)
+      if (images.length === 0) {
         setNotice(t('create.images.empty'))
       } else {
-        setNotice(t('create.images.rendered').replace('{n}', String(result.images.length)))
+        setNotice(t('create.images.rendered').replace('{n}', String(images.length)))
         await loadAssets()
-        for (const image of result.images) void loadPreview(editor.theme, image.file)
+        for (const file of images) void loadPreview(editor.theme, file)
       }
     } catch (cause) {
       setError(t('create.aiFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
     } finally {
       setAiPending(null)
+    }
+  }
+
+  /**
+   * Export the cover as one 1920×1080 file: the provider's rendered image with
+   * the plan's main title typeset over it, or the gradient card with that title
+   * when no image was rendered. Image models return glyph-shaped noise when
+   * asked to draw text, so the title is drawn here instead of prompted.
+   */
+  const exportCover = async (): Promise<void> => {
+    if (editor === null || coverExporting) return
+    const plan = parseCreateCoverPlan(editor.text)
+    const headline = plan.title.trim().length > 0 ? plan.title : editor.title
+    setCoverExporting(true)
+    setError(null)
+    try {
+      // The rendered image may exist without its preview loaded yet; read it
+      // before compositing so the export carries the artwork, not the card.
+      let imageDataUrl = coverImageFile === null ? null : previews[coverImageFile] ?? null
+      if (coverImageFile !== null && imageDataUrl === null) {
+        const read = await create.readCreateImage(editor.theme, coverImageFile)
+        imageDataUrl = `data:${read.mediaType};base64,${read.base64}`
+        setPreviews(current => ({ ...current, [coverImageFile]: imageDataUrl as string }))
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = COVER_WIDTH
+      canvas.height = COVER_HEIGHT
+      const context = canvas.getContext('2d')
+      if (context === null) throw new Error(t('create.cover.unsupported'))
+      await paintCoverElement(context, headline, imageDataUrl)
+      const anchor = document.createElement('a')
+      anchor.href = canvas.toDataURL('image/jpeg', 0.9)
+      anchor.download = `${coverDownloadName(headline)}.jpg`
+      anchor.click()
+      setNotice(t('create.cover.exported'))
+    } catch (cause) {
+      setError(t('create.aiFailed').replace('{detail}', cause instanceof Error ? cause.message : String(cause)))
+    } finally {
+      setCoverExporting(false)
     }
   }
 
@@ -974,17 +1041,23 @@ export function CreateView({
 
   const diffRows = rewritePreview === null ? [] : lineDiff(rewritePreview.before, rewritePreview.after)
 
-  // The structured storyboard/cover view: the parsers read the draft field-wise
-  // on every render (documents are small), and generated images join by shot
-  // number once the assets list knows their names.
+  // The structured storyboard/cover/figure view: the parsers read the draft
+  // field-wise on every render (documents are small), and generated images
+  // join by shot or figure number once the assets list knows their names.
   const storyboardShots = editor.manifest.contentType === 'storyboard' ? parseCreateStoryboard(editor.text) : null
   const coverPlan = editor.manifest.contentType === 'cover' ? parseCreateCoverPlan(editor.text) : null
-  const shotImageFile = (shot: number): string | null => {
+  const figures = editor.manifest.contentType === 'storyboard' || editor.manifest.contentType === 'cover'
+    ? null
+    : parseCreateFigures(editor.text)
+  const numberedImageFile = (family: string, index: number): string | null => {
     if (assets === null) return null
-    const prefix = `storyboard-shot-${String(shot).padStart(2, '0')}.`
+    const prefix = `${family}-${String(index).padStart(2, '0')}.`
     return assets.find(file => file.startsWith(prefix)) ?? null
   }
+  const shotImageFile = (shot: number): string | null => numberedImageFile('storyboard-shot', shot)
+  const figureImageFile = (figure: number): string | null => numberedImageFile('figure', figure)
   const coverImageFile = assets?.find(file => file.startsWith('cover.')) ?? null
+  const renderTargets = storyboardShots?.length ?? figures?.length ?? (coverPlan === null ? 0 : 1)
 
   return (
     <div>
@@ -1115,9 +1188,11 @@ export function CreateView({
               {REWRITE_STYLES.map(style => <option key={style} value={style}>{t(`create.style.${style}`)}</option>)}
             </select>
             <button type="button" disabled={aiPending !== null} onClick={() => { void runTitles() }}>{t('create.op.titles')}</button>
-            {(editor.manifest.contentType === 'storyboard' || editor.manifest.contentType === 'cover') && (
+            {renderTargets > 0 && (
               <button type="button" className={workbenchCss.retry} disabled={aiPending !== null} onClick={() => { void runRenderImages() }}>
-                {editor.manifest.contentType === 'storyboard' ? t('create.images.storyboard') : t('create.images.cover')}
+                {editor.manifest.contentType === 'storyboard'
+                  ? t('create.images.storyboard')
+                  : editor.manifest.contentType === 'cover' ? t('create.images.cover') : t('create.images.figures')}
               </button>
             )}
             <button type="button" disabled={aiPending !== null} onClick={() => { void runEvaluate() }}>{t('create.evaluate')}</button>
@@ -1179,6 +1254,9 @@ export function CreateView({
                         <button type="button" onClick={() => { void loadPreview(editor.theme, file) }}>{t('create.structure.loadPreview')}</button>
                       )}
                       {file !== null && previewFailed.includes(file) && <span className={css.structureMeta}>{t('create.structure.previewFailed')}</span>}
+                      <button type="button" disabled={aiPending !== null} onClick={() => { void runRenderImages(shot.index) }}>
+                        {file === null ? t('create.structure.draw') : t('create.structure.redraw')}
+                      </button>
                     </div>
                     {shot.visual.length > 0 && (
                       <div className={css.structureRow}><span className={css.structureField}>{t('create.seo.layout.visual')}</span>{shot.visual}</div>
@@ -1204,6 +1282,12 @@ export function CreateView({
                     <button type="button" onClick={() => { void loadPreview(editor.theme, coverImageFile) }}>{t('create.structure.loadPreview')}</button>
                   )}
                   {coverImageFile !== null && previewFailed.includes(coverImageFile) && <span className={css.structureMeta}>{t('create.structure.previewFailed')}</span>}
+                  <button type="button" disabled={aiPending !== null} onClick={() => { void runRenderImages() }}>
+                    {coverImageFile === null ? t('create.structure.draw') : t('create.structure.redraw')}
+                  </button>
+                  <button type="button" className={workbenchCss.retry} disabled={coverExporting} onClick={() => { void exportCover() }}>
+                    {t('create.cover.export')}
+                  </button>
                 </div>
                 {([
                   ['subtitle', coverPlan.subtitle],
@@ -1216,6 +1300,33 @@ export function CreateView({
                   ) : null
                 ))}
               </div>
+            </div>
+          )}
+          {figures !== null && figures.length > 0 && (
+            <div className={css.structurePanel}>
+              <strong className={css.structureTitle}>{t('create.structure.figures').replace('{n}', String(figures.length))}</strong>
+              {figures.map((figure) => {
+                const file = figureImageFile(figure.index)
+                const src = file === null ? undefined : previews[file]
+                return (
+                  <div key={figure.index} className={css.structureCard}>
+                    <div className={css.structureHead}>
+                      <strong>{t('create.structure.figure').replace('{n}', String(figure.index))}</strong>
+                      {file !== null && src !== undefined && <img className={css.structureImg} src={src} alt={figure.prompt} />}
+                      {file !== null && src === undefined && !previewFailed.includes(file) && (
+                        <button type="button" onClick={() => { void loadPreview(editor.theme, file) }}>{t('create.structure.loadPreview')}</button>
+                      )}
+                      {file !== null && previewFailed.includes(file) && <span className={css.structureMeta}>{t('create.structure.previewFailed')}</span>}
+                      <button type="button" disabled={aiPending !== null} onClick={() => { void runRenderImages(figure.index) }}>
+                        {file === null ? t('create.structure.draw') : t('create.structure.redraw')}
+                      </button>
+                    </div>
+                    {figure.prompt.length > 0 && (
+                      <div className={css.structureRow}><span className={css.structureField}>{t('create.seo.layout.visual')}</span>{figure.prompt}</div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
           {rewritePreview !== null && (

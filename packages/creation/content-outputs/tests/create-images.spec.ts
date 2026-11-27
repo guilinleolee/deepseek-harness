@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type ImageGeneration from '@deepseek-ai/dsh-image-generation'
-import { CREATE_MAX_IMAGE_BYTES, generateCoverImage, generateStoryboardImages, readCreateImageFile } from '../src/create/images.ts'
+import { CREATE_MAX_IMAGE_BYTES, generateCoverImage, generateFigureImages, generateStoryboardImages, readCreateImageFile } from '../src/create/images.ts'
 
 /** A stand-in image generation service returning one PNG per call. */
 function imageGeneration(): { service: ImageGeneration; generate: ReturnType<typeof vi.fn> } {
@@ -20,12 +20,16 @@ function themeDir(): string {
 }
 
 describe('generateStoryboardImages', () => {
-  it('renders each non-empty visual into an ordered asset file', async () => {
+  it('renders each non-empty visual into an asset file named by its shot number', async () => {
     const root = themeDir()
     const theme = 'topic'
     try {
       const stub = imageGeneration()
-      const result = await generateStoryboardImages(stub.service, root, theme, ['画面一', '  ', '画面三'])
+      const result = await generateStoryboardImages(stub.service, root, theme, [
+        { index: 1, prompt: '画面一' },
+        { index: 2, prompt: '  ' },
+        { index: 3, prompt: '画面三' },
+      ])
       expect(result.images).toHaveLength(2)
       expect(result.images[0]).toMatchObject({ file: 'storyboard-shot-01.png', shot: 1, prompt: '画面一' })
       expect(result.images[1]).toMatchObject({ file: 'storyboard-shot-03.png', shot: 3, prompt: '画面三' })
@@ -39,13 +43,64 @@ describe('generateStoryboardImages', () => {
     }
   })
 
+  it('renders only the shots asked for, so one changed shot costs one image', async () => {
+    const root = themeDir()
+    const theme = 'topic'
+    try {
+      const stub = imageGeneration()
+      const result = await generateStoryboardImages(stub.service, root, theme, [{ index: 3, prompt: '只重画第三镜' }])
+      expect(result.images).toHaveLength(1)
+      expect(result.images[0]?.file).toBe('storyboard-shot-03.png')
+      expect(stub.generate).toHaveBeenCalledTimes(1)
+      expect(existsSync(join(root, theme, 'assets', 'storyboard-shot-01.png'))).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('renders nothing when every visual is empty', async () => {
     const root = themeDir()
     try {
       const stub = imageGeneration()
-      const result = await generateStoryboardImages(stub.service, root, 'topic', ['  ', ''])
+      const result = await generateStoryboardImages(stub.service, root, 'topic', [
+        { index: 1, prompt: '  ' },
+        { index: 2, prompt: '' },
+      ])
       expect(result.images).toEqual([])
       expect(stub.generate).not.toHaveBeenCalled()
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('generateFigureImages', () => {
+  it('renders each figure brief into a file named by its figure number', async () => {
+    const root = themeDir()
+    const theme = 'topic'
+    try {
+      const stub = imageGeneration()
+      const result = await generateFigureImages(stub.service, root, theme, [
+        { index: 1, prompt: '俯拍桌面，暖光' },
+        { index: 4, prompt: '城市夜景，长焦' },
+      ])
+      expect(result.images).toHaveLength(2)
+      expect(result.images[0]).toMatchObject({ file: 'figure-01.png', figure: 1, prompt: '俯拍桌面，暖光' })
+      expect(result.images[1]).toMatchObject({ file: 'figure-04.png', figure: 4, prompt: '城市夜景，长焦' })
+      expect(existsSync(join(root, theme, 'assets', 'figure-04.png'))).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('produces no images when the provider returns none for a brief', async () => {
+    const root = themeDir()
+    try {
+      const generate = vi.fn(async () => [])
+      const service = { generate } as unknown as ImageGeneration
+      const result = await generateFigureImages(service, root, 'topic', [{ index: 1, prompt: '有提示词' }])
+      expect(result.images).toEqual([])
+      expect(generate).toHaveBeenCalledOnce()
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -93,6 +148,19 @@ describe('generateCoverImage', () => {
       expect(result.images[0]).toMatchObject({ file: 'cover.jpg', mediaType: 'image/jpeg' })
       expect(existsSync(join(root, theme, 'assets', 'cover.jpg'))).toBe(true)
       expect(existsSync(join(root, theme, 'assets', 'cover.png'))).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('renders nothing when the provider returns no image', async () => {
+    const root = themeDir()
+    try {
+      const generate = vi.fn(async () => [])
+      const service = { generate } as unknown as ImageGeneration
+      const result = await generateCoverImage(service, root, 'topic', '有提示词')
+      expect(result.images).toEqual([])
+      expect(generate).toHaveBeenCalledOnce()
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

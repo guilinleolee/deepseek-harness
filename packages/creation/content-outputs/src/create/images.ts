@@ -1,13 +1,15 @@
 /**
- * Image generation for the create workbench: renders a storyboard's shots or
- * a cover plan's fields into asset images through the shared
- * `ctx.imageGeneration` service, and writes the produced bytes into the
- * theme's `assets/` directory. A read face hands a stored image back to the
- * browser for display.
+ * Image generation for the create workbench: renders a storyboard's shots, an
+ * article's inline figures, or a cover plan's fields into asset images through
+ * the shared `ctx.imageGeneration` service, and writes the produced bytes into
+ * the theme's `assets/` directory. A read face hands a stored image back to
+ * the browser for display.
  *
- * The caller owns the prompts (from the storyboard/cover parsers) and the
- * theme root; this module only turns prompts into stored images and stored
- * images into display reads. Nothing is persisted beyond the image files.
+ * The caller owns the prompts (from the storyboard, figure, and cover parsers)
+ * and the theme root; this module only turns prompts into stored images and
+ * stored images into display reads. Every face takes a subset of the parsed
+ * targets, so redrawing one image costs one call. Nothing is persisted beyond
+ * the image files.
  */
 
 import { resolveAssetPath } from '../gather/store.ts'
@@ -16,7 +18,7 @@ import { mkdir, readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type ImageGeneration from '@deepseek-ai/dsh-image-generation'
 import type {
-  CreateCoverImage, CreateCoverImageResult, CreateImageRead, CreateStoryboardImage, CreateStoryboardImages,
+  CreateCoverImage, CreateCoverImageResult, CreateFigureImages, CreateImageRead, CreateStoryboardImages,
 } from '../types.ts'
 
 /** The hard byte cap on one image read; generated images sit far below it. */
@@ -43,19 +45,66 @@ function shotFileName(shot: number, mediaType: string): string {
   return `storyboard-shot-${String(shot).padStart(2, '0')}.${extensionOf(mediaType)}`
 }
 
+/** The asset file stem of one article figure image. */
+function figureFileName(figure: number, mediaType: string): string {
+  return `figure-${String(figure).padStart(2, '0')}.${extensionOf(mediaType)}`
+}
+
 /** The asset file stem of the cover image. */
 function coverFileName(mediaType: string): string {
   return `cover.${extensionOf(mediaType)}`
 }
 
+/** One numbered render target: the 1-based position its file name carries, and its brief. */
+export interface CreateRenderTarget {
+  /** The 1-based position in the source document. */
+  readonly index: number
+  /** The visual brief the provider renders; an empty brief is skipped. */
+  readonly prompt: string
+}
+
 /**
- * Generate the storyboard shots' images from the parsed visuals and store
- * each under `assets/storyboard-shot-NN.<extension>`, the extension following
- * the produced bytes' media type.
+ * Render one numbered target set into `assets/<prefix>-NN.<extension>` files,
+ * the extension following the produced bytes' media type.
  * @param imageGeneration - the image-generation service.
  * @param root - absolute outputs library root.
  * @param theme - outputs-project directory name.
- * @param visuals - the shot visuals, one per shot in document order.
+ * @param targets - the numbered briefs to render.
+ * @param fileOf - the asset file stem builder for this target family.
+ * @param signal - caller cancellation.
+ * @returns the stored images in target order.
+ */
+async function renderNumberedImages(
+  imageGeneration: ImageGeneration,
+  root: string,
+  theme: string,
+  targets: readonly CreateRenderTarget[],
+  fileOf: (index: number, mediaType: string) => string,
+  signal?: AbortSignal,
+): Promise<{ file: string; index: number; mediaType: string; prompt: string }[]> {
+  const images: { file: string; index: number; mediaType: string; prompt: string }[] = []
+  for (const target of targets) {
+    const prompt = target.prompt.trim()
+    if (prompt.length === 0) continue
+    const [produced] = await imageGeneration.generate({
+      providerId: '', prompt, model: '', width: 0, height: 0, count: 1,
+    }, signal)
+    if (produced === undefined) continue
+    const file = fileOf(target.index, produced.mediaType)
+    await writeImageAsset(root, theme, file, produced.bytes)
+    images.push({ file, index: target.index, mediaType: produced.mediaType, prompt })
+  }
+  return images
+}
+
+/**
+ * Generate the storyboard shots' images and store each under
+ * `assets/storyboard-shot-NN.<extension>`. Passing a subset of the parsed
+ * shots redraws exactly those shots, so one changed shot costs one image.
+ * @param imageGeneration - the image-generation service.
+ * @param root - absolute outputs library root.
+ * @param theme - outputs-project directory name.
+ * @param shots - the numbered shot briefs to render, in document order.
  * @param signal - caller cancellation.
  * @returns the stored images.
  */
@@ -63,22 +112,32 @@ export async function generateStoryboardImages(
   imageGeneration: ImageGeneration,
   root: string,
   theme: string,
-  visuals: readonly string[],
+  shots: readonly CreateRenderTarget[],
   signal?: AbortSignal,
 ): Promise<CreateStoryboardImages> {
-  const images: CreateStoryboardImage[] = []
-  for (let index = 0; index < visuals.length; index += 1) {
-    const prompt = visuals[index]?.trim() ?? ''
-    if (prompt.length === 0) continue
-    const [produced] = await imageGeneration.generate({
-      providerId: '', prompt, model: '', width: 0, height: 0, count: 1,
-    }, signal)
-    if (produced === undefined) continue
-    const file = shotFileName(index + 1, produced.mediaType)
-    await writeImageAsset(root, theme, file, produced.bytes)
-    images.push({ file, shot: index + 1, mediaType: produced.mediaType, prompt })
-  }
-  return { images }
+  const rendered = await renderNumberedImages(imageGeneration, root, theme, shots, shotFileName, signal)
+  return { images: rendered.map(image => ({ file: image.file, shot: image.index, mediaType: image.mediaType, prompt: image.prompt })) }
+}
+
+/**
+ * Generate the article figures' images and store each under
+ * `assets/figure-NN.<extension>`.
+ * @param imageGeneration - the image-generation service.
+ * @param root - absolute outputs library root.
+ * @param theme - outputs-project directory name.
+ * @param figures - the numbered figure briefs to render, in document order.
+ * @param signal - caller cancellation.
+ * @returns the stored images.
+ */
+export async function generateFigureImages(
+  imageGeneration: ImageGeneration,
+  root: string,
+  theme: string,
+  figures: readonly CreateRenderTarget[],
+  signal?: AbortSignal,
+): Promise<CreateFigureImages> {
+  const rendered = await renderNumberedImages(imageGeneration, root, theme, figures, figureFileName, signal)
+  return { images: rendered.map(image => ({ file: image.file, figure: image.index, mediaType: image.mediaType, prompt: image.prompt })) }
 }
 
 /**
