@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCreateCoverPlan, parseCreateStoryboard } from '../src/create/storyboard.ts'
+import { parseCreateCoverPlan, parseCreateFigures, parseCreateStoryboard } from '../src/create/storyboard.ts'
 
 const STORYBOARD = [
   '## 镜头 1 · 开场钩子（3s）',
@@ -110,5 +110,39 @@ describe('parseCreateCoverPlan', () => {
     expect(parseCreateCoverPlan('一段普通正文')).toEqual({
       title: '', subtitle: '', composition: '', palette: '', style: '',
     })
+  })
+})
+
+describe('parseCreateFigures', () => {
+  it('reads every inline marker with its stated number and brief, in document order', () => {
+    const text = [
+      '第一段正文，讲清楚问题。',
+      '[配图 1] 俯拍桌面，暖光，极简',
+      '第二段正文，给出方案。',
+      '[配图 3] 城市夜景，长焦，冷调',
+    ].join('\n')
+    expect(parseCreateFigures(text)).toEqual([
+      { index: 1, prompt: '俯拍桌面，暖光，极简' },
+      { index: 3, prompt: '城市夜景，长焦，冷调' },
+    ])
+  })
+
+  it('numbers an unnumbered marker by its position and accepts every bracket form', () => {
+    expect(parseCreateFigures('[配图] 一\n【配图2】：二\n[图片] 三')).toEqual([
+      { index: 1, prompt: '一' },
+      { index: 2, prompt: '二' },
+      { index: 3, prompt: '三' },
+    ])
+  })
+
+  it('keeps the first brief for a repeated number, because the draft may reorder', () => {
+    expect(parseCreateFigures('[配图 2] 原来的简述\n[配图 2] 后来的简述')).toEqual([
+      { index: 2, prompt: '原来的简述' },
+    ])
+  })
+
+  it('returns no figures for text without markers', () => {
+    expect(parseCreateFigures('纯正文，没有任何配图标记。')).toEqual([])
+    expect(parseCreateFigures('')).toEqual([])
   })
 })

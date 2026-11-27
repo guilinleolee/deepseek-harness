@@ -38,6 +38,8 @@ export type {
   CreateStateRead,
   CreateStoryboardImage,
   CreateStoryboardImages,
+  CreateFigureImage,
+  CreateFigureImages,
   CreateCoverImage,
   CreateCoverImageResult,
   CreateImageRead,
@@ -50,8 +52,8 @@ export type {
   OutputCreateState,
 } from './create/types.ts'
 export { CREATE_CONTENT_TYPES, CREATE_GRADES, CREATE_REWRITE_OPERATIONS, CREATE_STYLES } from './create/types.ts'
-export type { CreateCoverPlan, CreateStoryboardShot } from './create/storyboard.ts'
-export { parseCreateCoverPlan, parseCreateStoryboard } from './create/storyboard.ts'
+export type { CreateCoverPlan, CreateFigure, CreateStoryboardShot } from './create/storyboard.ts'
+export { parseCreateCoverPlan, parseCreateFigures, parseCreateStoryboard } from './create/storyboard.ts'
 
 /** Directory name of one output project under the library root. */
 export type OutputTopic = Branded<'OutputTopic'>

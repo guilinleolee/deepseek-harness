@@ -21,7 +21,7 @@ import type {
   CompetitorAnalyzeWorkRequest, CompetitorAnalyzeWorkResult, CompetitorManifest,
   CompetitorManifestRead, CompetitorReportRequest, CompetitorReportResult,
   ContentOutputsSnapshot, CreateAiResult, CreateAssetList, CreateCoverImageResult, CreateEvaluateRequest,
-  CreateEvaluation, CreateExtractResult, CreateGenerateRequest, CreateImageRead, CreateManifest, CreatePublishRequest,
+  CreateEvaluation, CreateExtractResult, CreateFigureImages, CreateGenerateRequest, CreateImageRead, CreateManifest, CreatePublishRequest,
   CreatePublishResult, CreateRegisterRequest, CreateRewriteRequest, CreateStateRead, CreateStoryboardImages,
   CreateTemplateInput, CreateTemplateList,
   GatherAiRequest, GatherAiResult, GatherAssetMove, GatherAssetWrite, GatherFeedRequest,
@@ -63,8 +63,8 @@ import {
 } from './create/store.ts'
 import { CreateAiProcessor } from './create/ai.ts'
 import { extractArticleCopy } from './create/extract.ts'
-import { generateCoverImage, generateStoryboardImages, readCreateImageFile } from './create/images.ts'
-import { parseCreateCoverPlan, parseCreateStoryboard } from './create/storyboard.ts'
+import { generateCoverImage, generateFigureImages, generateStoryboardImages, readCreateImageFile } from './create/images.ts'
+import { parseCreateCoverPlan, parseCreateFigures, parseCreateStoryboard } from './create/storyboard.ts'
 import { CreateQuotaGate, type CreateQuotaConfig } from './create/quota.ts'
 import {
   PERSONAS_FILENAME, deletePersonaFile, putPersonaFile, putPersonaReportFile, readPersonasFile,
@@ -641,19 +641,57 @@ export class ContentOutputsGateway extends TypertRemoteService {
 
   /**
    * Render one storyboard's shots into asset images through the shared image
-   * generation service. Shots with no visual are skipped; nothing else is
-   * persisted. Absent image generation reads as a named failure so the UI can
-   * offer the text-only path.
+   * generation service. `shots` names the 1-based shot numbers to redraw, so
+   * the surface renders everything or one changed shot with the same call;
+   * shots outside the document, or with no visual, are skipped. Nothing else
+   * is persisted. Absent image generation reads as a named failure so the UI
+   * can offer the text-only path.
    * @param theme - outputs-project directory name.
    * @param storyboard - the generated storyboard text.
+   * @param shots - the 1-based shot numbers to render.
    * @param signal - caller cancellation.
    * @returns the stored shot images.
    */
   @Remote('generateStoryboardImages')
-  async generateStoryboardImages(theme: string, storyboard: string, signal?: AbortSignal): Promise<CreateStoryboardImages> {
+  async generateStoryboardImages(
+    theme: string,
+    storyboard: string,
+    shots: readonly number[],
+    signal?: AbortSignal,
+  ): Promise<CreateStoryboardImages> {
     const service = this.requireImageGeneration()
-    const visuals = parseCreateStoryboard(storyboard).map(shot => shot.visual)
-    return generateStoryboardImages(service, this.root, theme, visuals, signal)
+    const wanted = new Set(shots)
+    const targets = parseCreateStoryboard(storyboard)
+      .filter(shot => wanted.has(shot.index))
+      .map(shot => ({ index: shot.index, prompt: shot.visual }))
+    return generateStoryboardImages(service, this.root, theme, targets, signal)
+  }
+
+  /**
+   * Render one article draft's inline figures into asset images through the
+   * shared image generation service. `figures` names the 1-based figure
+   * numbers to redraw; markers outside the draft, or with no brief, are
+   * skipped. Nothing else is persisted; absent image generation reads as a
+   * named failure so the UI can offer the text-only path.
+   * @param theme - outputs-project directory name.
+   * @param text - the article draft carrying the figure markers.
+   * @param figures - the 1-based figure numbers to render.
+   * @param signal - caller cancellation.
+   * @returns the stored figure images.
+   */
+  @Remote('generateFigureImages')
+  async generateFigureImages(
+    theme: string,
+    text: string,
+    figures: readonly number[],
+    signal?: AbortSignal,
+  ): Promise<CreateFigureImages> {
+    const service = this.requireImageGeneration()
+    const wanted = new Set(figures)
+    const targets = parseCreateFigures(text)
+      .filter(figure => wanted.has(figure.index))
+      .map(figure => ({ index: figure.index, prompt: figure.prompt }))
+    return generateFigureImages(service, this.root, theme, targets, signal)
   }
 
   /**

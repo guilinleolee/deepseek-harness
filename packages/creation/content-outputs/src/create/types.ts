@@ -300,6 +300,23 @@ export interface CreateStoryboardImages {
   readonly images: readonly CreateStoryboardImage[]
 }
 
+/** One generated article figure image and its prompt. */
+export interface CreateFigureImage {
+  /** The asset file name inside the theme's `assets/` directory. */
+  readonly file: string
+  /** The 1-based figure number the image renders. */
+  readonly figure: number
+  /** The media type of the stored image. */
+  readonly mediaType: string
+  /** The prompt the image was generated from. */
+  readonly prompt: string
+}
+
+/** Result of one article figure image generation pass. */
+export interface CreateFigureImages {
+  readonly images: readonly CreateFigureImage[]
+}
+
 /** One generated cover image and its prompt. */
 export interface CreateCoverImage {
   /** The asset file name inside the theme's `assets/` directory. */
